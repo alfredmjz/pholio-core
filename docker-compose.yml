@@ -1,0 +1,8 @@
+services:
+  deepdepth-core:
+    container_name: pholio-core-${NODE_ENV:-development}
+    build:
+      context: ./core
+      dockerfile: Dockerfile
+    ports:
+      - "3000:3000" #host_port:container_port

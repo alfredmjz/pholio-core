@@ -1,0 +1,10 @@
+{
+	"name": "deepdepth",
+	"version": "0.0.0-Alpha",
+	"scripts": {
+		"start": "docker-compose up --remove-orphans",
+		"build": "docker-compose up --build",
+		"down": "docker-compose down",
+		"logs": "docker-compose logs -f"
+	}
+}

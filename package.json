@@ -1,6 +1,7 @@
 {
-	"name": "deepdepth",
-	"version": "0.0.0-Alpha",
+	"name": "pholio",
+	"version": "${APP_VERSION}",
+	"private": true,
 	"scripts": {
 		"start": "docker-compose up --remove-orphans",
 		"build": "docker-compose up --build",

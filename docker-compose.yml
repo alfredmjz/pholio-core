@@ -1,8 +1,14 @@
 services:
-  pholio-core:
-    container_name: pholio-core-${NODE_ENV:-development}
+  pholio:
+    container_name: pholio-core-${APP_VERSION:-0.0.0}-${NODE_ENV:-development}
+    image: pholio-core:${APP_VERSION:-0.0.0}-${NODE_ENV:-development}
     build:
-      context: ./core
+      context: ./main
       dockerfile: Dockerfile
     ports:
       - "3000:3000" #host_port:container_port
+    labels:
+      - "author=Alfred Mah <alfredmjz@gmail.com>"
+      - "version=${APP_VERSION:-0.0.0}"
+    env_file:
+      - .env

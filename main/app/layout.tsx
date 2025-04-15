@@ -1,5 +1,6 @@
-import React from "react";
-import "./globals.css";
+import React from 'react';
+import '@/styles/globals.css';
+import { SideBarComponent } from '@/components/sidebar';
 
 export default function RootLayout({ children }: { children: React.ReactNode }) {
 	return (
@@ -7,10 +8,8 @@ export default function RootLayout({ children }: { children: React.ReactNode }) 
 			<head>
 				<title>My App</title>
 			</head>
-			<body>
-				<header>
-					<nav>{/* Navigation items */}</nav>
-				</header>
+			<body className="w-screen h-screen min-h-screen flex flex-row bg-primary">
+				<SideBarComponent />
 				<main>{children}</main>
 				<footer>{/* Footer content */}</footer>
 			</body>

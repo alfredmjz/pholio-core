@@ -1,0 +1,62 @@
+@import url('https://fonts.googleapis.com/css2?family=Geist:wght@100..900&display=swap');
+
+@tailwind base;
+@tailwind components;
+@tailwind utilities;
+
+@layer base {
+	:root {
+		--primary: #242424;
+		--primary-highlight: #2e2e2e;
+		--primary-muted: #383838;
+
+		--secondary: #2b2b2b;
+		--secondary-highlight: #353535;
+		--secondary-muted: #9b9b9b;
+
+		--accent: #f6f6f6;
+		--constructive: #2ca04b;
+		--destructive: #e14646;
+
+		--text-primary: #d9d9d9;
+		--text-secondary: #9c9c9ce5;
+		--text-secondary-highlight: #f6f6f6e5;
+		--ring: #a6b3c8;
+		--radius: 0.5rem;
+	}
+
+	/* .light {
+		--primary: 36 36 36;
+		--primary-highlight: 46 46 46;
+		--primary-muted: 56 56 56;
+
+		--secondary: 43 43 43;
+		--secondary-highlight: 53 53 53;
+		--secondary-muted: 155 155 155;
+
+		--accent: 246 246 246;
+		--constructive: 44 160 75;
+		--destructive: 255 70 70;
+
+		--ring: 215 20.2% 65.1%;
+		--radius: 0.5rem;
+	} */
+}
+
+@layer base {
+	* {
+		@apply box-border;
+	}
+	html,
+	body {
+		@apply font-sans antialiased bg-background text-primary m-0 p-0;
+	}
+	a {
+		@apply text-inherit no-underline;
+	}
+	ul,
+	ol {
+		@apply list-none m-0 p-0;
+	}
+}
+

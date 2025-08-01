@@ -6,7 +6,7 @@ export default function RootLayout({ children }: { children: React.ReactNode }) 
 	return (
 		<html lang="en">
 			<head>
-				<title>My App</title>
+				<title>Folio</title>
 			</head>
 			<body className="w-screen h-screen min-h-screen flex flex-row bg-primary">
 				<SideBarComponent />

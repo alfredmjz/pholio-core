@@ -1,9 +1,7 @@
 'use client';
 
 import * as React from 'react';
-
 import { cn } from '@/lib/utils';
-
 import {
 	NavigationMenu,
 	NavigationMenuContent,
@@ -61,21 +59,16 @@ export function SideBarComponent() {
 			<NavigationMenu orientation="vertical">
 				<NavigationMenuList className="w-full flex flex-col justify-start items-start gap-2 p-4">
 					<NavigationMenuItem>
-						<NavigationMenuTrigger className="w-full h-fit flex gap-4 text-primary truncate ">
+						<NavigationMenuTrigger className="w-full h-fit flex justify-start gap-4 text-primary truncate">
 							<div className="w-4 h-4 rounded-md bg-black"></div>
 							<span>User A</span>
 						</NavigationMenuTrigger>
 						<NavigationMenuContent className="!w-[18.75rem] bg-secondary-highlight rounded-md">
-							<ul>
-								<ListItem href="/docs" title="Introduction">
-									Re-usable components built using Radix UI and Tailwind CSS.
-								</ListItem>
-								<ListItem href="/docs/installation" title="Installation">
-									How to install dependencies and structure your app.
-								</ListItem>
-								<ListItem href="/docs/primitives/typography" title="Typography">
-									Styles for headings, paragraphs, lists...etc
-								</ListItem>
+							<ul className="flex flex-col gap-3 p-4 border-none">
+								<ListItem title="Button">Interactive elements for user actions.</ListItem>
+								<ListItem title="Input">Form controls for user input.</ListItem>
+								<ListItem title="Modal">Dialog windows for focused tasks.</ListItem>
+								<ListItem title="Tooltip">Contextual information on hover.</ListItem>
 							</ul>
 						</NavigationMenuContent>
 					</NavigationMenuItem>
@@ -85,6 +78,7 @@ export function SideBarComponent() {
 					</NavigationMenuItem>
 				</NavigationMenuList>
 			</NavigationMenu>
+
 			<div
 				className="absolute top-0 right-0 w-1 h-full cursor-col-resize bg-secondary-highlight hover:bg-secondary-muted"
 				onMouseDown={handleMouseDown}

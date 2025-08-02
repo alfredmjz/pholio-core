@@ -6,10 +6,14 @@ import { ChevronDown } from 'lucide-react';
 import { cn } from '@/lib/utils';
 
 const NavigationMenu = React.forwardRef<
-	React.ElementRef<typeof NavigationMenuPrimitive.Root>,
+	React.ComponentRef<typeof NavigationMenuPrimitive.Root>,
 	React.ComponentPropsWithoutRef<typeof NavigationMenuPrimitive.Root>
 >(({ className, children, ...props }, ref) => (
-	<NavigationMenuPrimitive.Root ref={ref} className={cn('relative w-full h-full', className)} {...props}>
+	<NavigationMenuPrimitive.Root
+		ref={ref}
+		className={cn('relative z-10 flex max-w-max flex-1 items-center justify-center', className)}
+		{...props}
+	>
 		{children}
 		<NavigationMenuViewport />
 	</NavigationMenuPrimitive.Root>
@@ -17,7 +21,7 @@ const NavigationMenu = React.forwardRef<
 NavigationMenu.displayName = NavigationMenuPrimitive.Root.displayName;
 
 const NavigationMenuList = React.forwardRef<
-	React.ElementRef<typeof NavigationMenuPrimitive.List>,
+	React.ComponentRef<typeof NavigationMenuPrimitive.List>,
 	React.ComponentPropsWithoutRef<typeof NavigationMenuPrimitive.List>
 >(({ className, ...props }, ref) => (
 	<NavigationMenuPrimitive.List
@@ -35,7 +39,7 @@ const navigationMenuTriggerStyle = cva(
 );
 
 const NavigationMenuTrigger = React.forwardRef<
-	React.ElementRef<typeof NavigationMenuPrimitive.Trigger>,
+	React.ComponentRef<typeof NavigationMenuPrimitive.Trigger>,
 	React.ComponentPropsWithoutRef<typeof NavigationMenuPrimitive.Trigger>
 >(({ className, children, ...props }, ref) => (
 	<NavigationMenuPrimitive.Trigger
@@ -53,13 +57,13 @@ const NavigationMenuTrigger = React.forwardRef<
 NavigationMenuTrigger.displayName = NavigationMenuPrimitive.Trigger.displayName;
 
 const NavigationMenuContent = React.forwardRef<
-	React.ElementRef<typeof NavigationMenuPrimitive.Content>,
+	React.ComponentRef<typeof NavigationMenuPrimitive.Content>,
 	React.ComponentPropsWithoutRef<typeof NavigationMenuPrimitive.Content>
 >(({ className, ...props }, ref) => (
 	<NavigationMenuPrimitive.Content
 		ref={ref}
 		className={cn(
-			'left-6 top-1/2 w-full z-20 data-[motion^=from-]:animate-in data-[motion^=to-]:animate-out data-[motion^=from-]:fade-in data-[motion^=to-]:fade-out data-[motion=from-end]:slide-in-from-right-52 data-[motion=from-start]:slide-in-from-left-52 data-[motion=to-end]:slide-out-to-right-52 data-[motion=to-start]:slide-out-to-left-52 md:absolute md:w-auto ',
+			'left-0 top-0 w-full data-[motion^=from-]:animate-in data-[motion^=to-]:animate-out data-[motion^=from-]:fade-in data-[motion^=to-]:fade-out data-[motion=from-end]:slide-in-from-right-52 data-[motion=from-start]:slide-in-from-left-52 data-[motion=to-end]:slide-out-to-right-52 data-[motion=to-start]:slide-out-to-left-52 md:absolute md:w-auto ',
 			className
 		)}
 		{...props}
@@ -70,7 +74,7 @@ NavigationMenuContent.displayName = NavigationMenuPrimitive.Content.displayName;
 const NavigationMenuLink = NavigationMenuPrimitive.Link;
 
 const NavigationMenuViewport = React.forwardRef<
-	React.ElementRef<typeof NavigationMenuPrimitive.Viewport>,
+	React.ComponentRef<typeof NavigationMenuPrimitive.Viewport>,
 	React.ComponentPropsWithoutRef<typeof NavigationMenuPrimitive.Viewport>
 >(({ className, ...props }, ref) => (
 	<div className={cn('absolute left-0 top-full flex justify-center')}>
@@ -87,7 +91,7 @@ const NavigationMenuViewport = React.forwardRef<
 NavigationMenuViewport.displayName = NavigationMenuPrimitive.Viewport.displayName;
 
 const NavigationMenuIndicator = React.forwardRef<
-	React.ElementRef<typeof NavigationMenuPrimitive.Indicator>,
+	React.ComponentRef<typeof NavigationMenuPrimitive.Indicator>,
 	React.ComponentPropsWithoutRef<typeof NavigationMenuPrimitive.Indicator>
 >(({ className, ...props }, ref) => (
 	<NavigationMenuPrimitive.Indicator

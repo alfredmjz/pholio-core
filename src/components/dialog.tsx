@@ -1,3 +1,4 @@
+import * as React from 'react';
 import { Button } from '@/components/ui/button';
 import {
 	Dialog,
@@ -15,9 +16,19 @@ interface DialogButtonProps {
 	trigger: React.ReactNode;
 	content: React.ReactNode;
 	buttonLabel?: React.ReactNode;
+	formId?: string;
+	showSubmit?: boolean;
 }
 
-export function DialogButton({ title, description, trigger, content, buttonLabel }: DialogButtonProps) {
+export function DialogButton({
+	title,
+	description,
+	trigger,
+	content,
+	buttonLabel = 'Submit',
+	formId,
+	showSubmit = true,
+}: DialogButtonProps) {
 	return (
 		<Dialog>
 			<DialogTrigger asChild>{trigger}</DialogTrigger>
@@ -27,11 +38,13 @@ export function DialogButton({ title, description, trigger, content, buttonLabel
 					<DialogDescription>{description}</DialogDescription>
 				</DialogHeader>
 				{content}
-				<DialogFooter className="justify-end">
-					<Button type="submit" form="entry-form">
-						{buttonLabel}
-					</Button>
-				</DialogFooter>
+				{showSubmit && (
+					<DialogFooter className="justify-end">
+						<Button type="submit" form={formId}>
+							{buttonLabel}
+						</Button>
+					</DialogFooter>
+				)}
 			</DialogContent>
 		</Dialog>
 	);

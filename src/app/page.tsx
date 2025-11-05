@@ -1,4 +1,4 @@
-import { fetchData } from '@/utils/supabase/client';
+import { fetchData } from '@/lib/supabase/client';
 
 export default async function HomePage() {
 	const data = await fetchData('test');
@@ -14,4 +14,3 @@ export default async function HomePage() {
 		</div>
 	);
 }
-

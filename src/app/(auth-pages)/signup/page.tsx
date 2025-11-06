@@ -13,7 +13,7 @@ export default function Page() {
 	const [error, setError] = useState<string | null>(null);
 	const [isLoading, setIsLoading] = useState(false);
 
-	const handleSignUp = async (e: React.FormEvent<HTMLFormElement>) => {
+	const handlesignup = async (e: React.FormEvent<HTMLFormElement>) => {
 		e.preventDefault();
 		setIsLoading(true);
 		setError(null);
@@ -46,7 +46,7 @@ export default function Page() {
 							<CardDescription>Create a new account</CardDescription>
 						</CardHeader>
 						<CardContent>
-							<form onSubmit={handleSignUp}>
+							<form onSubmit={handlesignup}>
 								<div className="flex flex-col gap-6">
 									<div className="grid gap-2">
 										<Label htmlFor="email">Email</Label>
@@ -67,7 +67,7 @@ export default function Page() {
 								</div>
 								<div className="mt-4 text-center text-sm">
 									Already have an account?{' '}
-									<Link href="/auth/login" className="underline underline-offset-4">
+									<Link href="/login" className="underline underline-offset-4">
 										Login
 									</Link>
 								</div>

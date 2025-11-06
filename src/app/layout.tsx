@@ -1,6 +1,6 @@
 import React from 'react';
 import '@/styles/globals.css';
-import { SideBarComponent } from '@/components/sidebar';
+import LayoutWrapper from '@/components/layoutWrapper';
 
 export default function RootLayout({ children }: { children: React.ReactNode }) {
 	return (
@@ -9,8 +9,7 @@ export default function RootLayout({ children }: { children: React.ReactNode }) 
 				<title>Folio</title>
 			</head>
 			<body className="w-screen h-screen min-h-screen flex flex-row bg-primary">
-				<SideBarComponent />
-				<main>{children}</main>
+				<LayoutWrapper>{children}</LayoutWrapper>
 				<footer>{/* Footer content */}</footer>
 			</body>
 		</html>

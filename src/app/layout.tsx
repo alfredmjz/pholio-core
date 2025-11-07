@@ -1,6 +1,15 @@
 import React from 'react';
+import type { Metadata } from 'next';
+
 import '@/styles/globals.css';
 import LayoutWrapper from '@/components/layoutWrapper';
+
+export const metadata: Metadata = {
+	title: 'Pholio',
+	icons: {
+		icon: '/pholio-icon.svg',
+	},
+};
 
 export default function RootLayout({ children }: { children: React.ReactNode }) {
 	return (

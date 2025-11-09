@@ -49,6 +49,10 @@ export default function Page() {
 							<form onSubmit={handlesignup}>
 								<div className="flex flex-col gap-6">
 									<div className="grid gap-2">
+										<Label htmlFor="fullName">Full Name (Optional)</Label>
+										<Input id="fullName" name="fullName" type="text" placeholder="John Doe" />
+									</div>
+									<div className="grid gap-2">
 										<Label htmlFor="email">Email</Label>
 										<Input id="email" name="email" type="email" placeholder="m@example.com" required />
 									</div>

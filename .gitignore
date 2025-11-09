@@ -39,3 +39,6 @@
 # typescript
 **/*.tsbuildinfo
 **/next-env.d.ts
+
+# generated files
+database/generated/

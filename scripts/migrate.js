@@ -1,0 +1,161 @@
+/**
+ * Database Migration Script
+ * Run this script to apply all database migrations to Supabase
+ *
+ * Usage: node scripts/migrate.js
+ *
+ * Environment variables required:
+ * - SUPABASE_URL or NEXT_PUBLIC_SUPABASE_URL
+ * - SUPABASE_SERVICE_KEY (Service Role Key - NOT the anon key!)
+ */
+
+const fs = require('fs');
+const path = require('path');
+
+// Load environment variables
+function loadEnv() {
+	const envPath = path.join(__dirname, '../src/.env.local');
+	if (fs.existsSync(envPath)) {
+		console.log(`🔄 Loading environment variables from ${envPath}`);
+		const envContent = fs.readFileSync(envPath, 'utf8');
+		envContent.split('\n').forEach((line) => {
+			const match = line.match(/^([^=:#]+?)\s*=\s*(.*)?\s*$/);
+			if (match) {
+				const key = match[1];
+				const value = match[2] || '';
+				if (!process.env[key]) {
+					process.env[key] = value.replace(/^['"]|['"]$/g, '');
+				}
+			}
+		});
+	}
+}
+
+loadEnv();
+
+const SUPABASE_URL = process.env.SUPABASE_URL || process.env.NEXT_PUBLIC_SUPABASE_URL;
+
+// Note: We don't need SUPABASE_SERVICE_KEY for this script since it just displays migrations
+// The user will copy and paste them into Supabase SQL Editor manually
+
+if (SUPABASE_URL) {
+	console.log(`✅ Supabase URL detected: ${SUPABASE_URL}\n`);
+} else {
+	console.warn('⚠️  Warning: NEXT_PUBLIC_SUPABASE_URL not found in .env.local');
+	console.warn('   This is optional - migrations will still be displayed.\n');
+}
+
+// Note: SQL execution functions removed - this script only displays migrations
+// For automated execution in the future, you would need SUPABASE_SERVICE_KEY
+
+// Read all migration files
+function getMigrationFiles() {
+	const migrationsDir = path.join(__dirname, '../database/migrations');
+
+	if (!fs.existsSync(migrationsDir)) {
+		console.error('❌ Error: migrations directory not found at', migrationsDir);
+		process.exit(1);
+	}
+
+	const files = fs
+		.readdirSync(migrationsDir)
+		.filter((file) => file.endsWith('.sql'))
+		.sort(); // Sort to ensure order
+
+	return files.map((file) => ({
+		name: file,
+		path: path.join(migrationsDir, file),
+		content: fs.readFileSync(path.join(migrationsDir, file), 'utf8'),
+	}));
+}
+
+// Main migration function
+async function runMigrations() {
+	console.log('════════════════════════════════════════════════════════════');
+	console.log('  📋 Pholio Database Migration Tool');
+	console.log('════════════════════════════════════════════════════════════\n');
+
+	const migrations = getMigrationFiles();
+
+	if (migrations.length === 0) {
+		console.error('❌ Error: No migration files found');
+		console.error('   Expected location: database/migrations/*.sql');
+		process.exit(1);
+	}
+
+	console.log(`📝 Found ${migrations.length} migration file(s):\n`);
+	migrations.forEach((m, i) => {
+		console.log(`   ${i + 1}. ${m.name}`);
+	});
+	console.log('');
+
+	// Combine all migrations into a single SQL file
+	const outputPath = path.join(__dirname, '..', 'database', 'generated', 'combined-migrations.sql');
+
+	let combinedSQL = '-- ════════════════════════════════════════════════════════════\n';
+	combinedSQL += '-- Combined Database Migrations for Pholio\n';
+	combinedSQL += `-- Generated: ${new Date().toISOString()}\n`;
+	combinedSQL += `-- Total migrations: ${migrations.length}\n`;
+	combinedSQL += '-- ════════════════════════════════════════════════════════════\n';
+	combinedSQL += '--\n';
+	combinedSQL += '-- INSTRUCTIONS:\n';
+	combinedSQL += '-- 1. Copy ALL content from this file (Ctrl+A, Ctrl+C)\n';
+	combinedSQL += '-- 2. Go to: https://supabase.com/dashboard → Your Project\n';
+	combinedSQL += '-- 3. Click "SQL Editor" in the left sidebar\n';
+	combinedSQL += '-- 4. Create a new query\n';
+	combinedSQL += '-- 5. Paste this content (Ctrl+V)\n';
+	combinedSQL += '-- 6. Click "Run" (or press Ctrl+Enter)\n';
+	combinedSQL += '-- 7. Verify the "users" table appears in Table Editor\n';
+	combinedSQL += '--\n';
+	combinedSQL += '-- ════════════════════════════════════════════════════════════\n\n';
+
+	migrations.forEach((migration, index) => {
+		combinedSQL += '\n';
+		combinedSQL += '-- ╔══════════════════════════════════════════════════════════╗\n';
+		combinedSQL += `-- ║  Migration ${(index + 1).toString().padStart(2)}: ${migration.name.padEnd(44)} ║\n`;
+		combinedSQL += '-- ╚══════════════════════════════════════════════════════════╝\n\n';
+		combinedSQL += migration.content;
+		combinedSQL += '\n\n';
+	});
+
+	combinedSQL += '-- ════════════════════════════════════════════════════════════\n';
+	combinedSQL += '-- ✅ End of Migrations\n';
+	combinedSQL += '-- ════════════════════════════════════════════════════════════\n';
+
+	// Write to file
+	fs.writeFileSync(outputPath, combinedSQL, 'utf8');
+
+	console.log('✅ Migration file created successfully!\n');
+	console.log('📄 File location:');
+	console.log(`   ${outputPath}\n`);
+
+	console.log('━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━');
+	console.log('  📋 NEXT STEPS:');
+	console.log('━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━');
+	console.log('');
+	console.log('  1. Open: database/generated/combined-migrations.sql');
+	console.log('  2. Select all content (Ctrl+A) and copy (Ctrl+C)');
+	console.log('  3. Go to: https://supabase.com/dashboard');
+	console.log('  4. Select your project → SQL Editor → New query');
+	console.log('  5. Paste the SQL (Ctrl+V)');
+	console.log('  6. Click "Run" to create the database tables');
+	console.log('');
+	console.log('━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━');
+	console.log('');
+	console.log('💡 Why manual execution?');
+	console.log('   For security, Supabase requires database changes to be reviewed');
+	console.log('   and executed through their dashboard. This ensures you see exactly');
+	console.log('   what changes are being made to your database.');
+	console.log('');
+	console.log('   (Automated execution would require a Service Role Key with full');
+	console.log('   admin access, which is a security risk to store in your project)');
+	console.log('');
+	console.log('📖 For detailed instructions, see: README.md');
+	console.log('');
+}
+
+// Run the migrations
+runMigrations().catch((error) => {
+	console.error('❌ Migration failed:', error.message);
+	process.exit(1);
+});

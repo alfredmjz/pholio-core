@@ -1,16 +1,20 @@
 'use client';
 
 import React from 'react';
-import { SideBarComponent } from '@/components/sidebar';
 import { usePathname } from 'next/navigation';
 
-export default function LayoutWrapper({ children }: { children: React.ReactNode }) {
+interface LayoutWrapperProps {
+	children: React.ReactNode;
+	sidebar: React.ReactNode;
+}
+
+export default function LayoutWrapper({ children, sidebar }: LayoutWrapperProps) {
 	const pathname = usePathname();
-	const isAuthPage = pathname.includes('/login') || pathname.includes('/signup');
+	const isAuthPage = pathname.includes('/login') || pathname.includes('/signup') || pathname.includes('/confirm');
 
 	return (
 		<>
-			{!isAuthPage && <SideBarComponent />}
+			{!isAuthPage && sidebar}
 			<main className="min-h-screen w-full">{children}</main>
 		</>
 	);

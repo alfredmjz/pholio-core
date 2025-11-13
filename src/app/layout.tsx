@@ -3,6 +3,7 @@ import type { Metadata } from 'next';
 
 import '@/styles/globals.css';
 import LayoutWrapper from '@/components/layoutWrapper';
+import { SidebarWrapper } from '@/components/sidebarWrapper';
 
 export const metadata: Metadata = {
 	title: 'Pholio',
@@ -18,7 +19,7 @@ export default function RootLayout({ children }: { children: React.ReactNode }) 
 				<title>Folio</title>
 			</head>
 			<body className="w-screen h-screen min-h-screen flex flex-row bg-primary">
-				<LayoutWrapper>{children}</LayoutWrapper>
+				<LayoutWrapper sidebar={<SidebarWrapper />}>{children}</LayoutWrapper>
 				<footer>{/* Footer content */}</footer>
 			</body>
 		</html>

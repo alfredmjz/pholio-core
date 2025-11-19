@@ -1,7 +1,12 @@
-/** @type {import('tailwindcss').Config} */
-module.exports = {
+import type { Config } from 'tailwindcss';
+
+const config: Config = {
 	darkMode: ['class'],
-	content: ['app/**/*.{ts,tsx}', 'components/**/*.{ts,tsx}', 'styles/**/*.css'],
+	content: [
+		'./app/**/*.{ts,tsx}',
+		'./components/**/*.{ts,tsx}',
+		'./styles/**/*.css',
+	],
 	theme: {
 		extend: {
 			colors: {
@@ -18,7 +23,7 @@ module.exports = {
 					muted: 'var(--secondary-muted)',
 				},
 				accent: {
-					DEFAULT: 'var(--secondary)',
+					DEFAULT: 'var(--accent)',
 				},
 				constructive: {
 					DEFAULT: 'var(--constructive)',
@@ -36,10 +41,9 @@ module.exports = {
 					highlight: 'var(--text-secondary-highlight)',
 				},
 			},
-
 			borderRadius: {
-				lg: `var(--radius)`,
-				md: `calc(var(--radius) - 2px)`,
+				lg: 'var(--radius)',
+				md: 'calc(var(--radius) - 2px)',
 				sm: 'calc(var(--radius) - 4px)',
 			},
 			width: {
@@ -52,4 +56,6 @@ module.exports = {
 	},
 	plugins: [require('tailwindcss-animate')],
 };
+
+export default config;
 

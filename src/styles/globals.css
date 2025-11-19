@@ -6,6 +6,8 @@
 
 @layer base {
 	:root {
+		--background: #1a1a1a;
+
 		--primary: #242424;
 		--primary-highlight: #2e2e2e;
 		--primary-muted: #383838;

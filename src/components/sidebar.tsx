@@ -31,16 +31,19 @@ const GUEST_NAMES = [
 	'Shadow Walker',
 ];
 
-/**
- * Generates a random guest name from predefined list
- */
+const SIDEBAR_DEFAULTS = {
+	WIDTH: 14,
+	MIN_WIDTH: 12.5,
+	COLLAPSED_WIDTH: 4,
+	MAX_WIDTH_PERCENTAGE: 0.25,
+	REM_TO_PX: 16,
+	MIN_WIDTH_CALC_DELAY: 100,
+} as const;
+
 function getRandomGuestName(): string {
 	return GUEST_NAMES[Math.floor(Math.random() * GUEST_NAMES.length)];
 }
 
-/**
- * Gets initials from a name (e.g., "John Doe" -> "JD")
- */
 function getInitials(name: string): string {
 	return name
 		.split(' ')
@@ -50,13 +53,24 @@ function getInitials(name: string): string {
 		.slice(0, 2);
 }
 
+function getOrCreateGuestName(): string {
+	const savedGuestName = localStorage.getItem('guestName');
+	if (savedGuestName) return savedGuestName;
+
+	const newGuestName = getRandomGuestName();
+	localStorage.setItem('guestName', newGuestName);
+	return newGuestName;
+}
+
 export function SideBarComponent({ userProfile }: SideBarComponentProps) {
-	const [sidebarWidth, setSidebarWidth] = React.useState<number>(14); // Default width in rem
-	const [minWidth, setMinWidth] = React.useState<number>(12.5); // Minimum width in rem
+	const [sidebarWidth, setSidebarWidth] = React.useState<number>(SIDEBAR_DEFAULTS.WIDTH);
+	const [minWidth, setMinWidth] = React.useState<number>(SIDEBAR_DEFAULTS.WIDTH);
 	const [isCollapsed, setIsCollapsed] = React.useState<boolean>(false);
-	const [guestName] = React.useState<string>(() => getRandomGuestName());
+	const [openMenuItem, setOpenMenuItem] = React.useState<string>('');
+	const [guestName] = React.useState<string>(getOrCreateGuestName);
 
 	const contentRef = React.useRef<HTMLDivElement>(null);
+	const sidebarWidthRef = React.useRef<number>(SIDEBAR_DEFAULTS.WIDTH);
 
 	const displayName = userProfile?.full_name || guestName;
 	const displayInitials = getInitials(displayName);
@@ -66,7 +80,9 @@ export function SideBarComponent({ userProfile }: SideBarComponentProps) {
 		const savedCollapsed = localStorage.getItem('sidebarCollapsed');
 
 		if (savedWidth) {
-			setSidebarWidth(parseFloat(savedWidth)); // Set width from local storage if available
+			const width = parseFloat(savedWidth);
+			setSidebarWidth(width);
+			sidebarWidthRef.current = width;
 		}
 		if (savedCollapsed) {
 			setIsCollapsed(savedCollapsed === 'true');
@@ -74,74 +90,95 @@ export function SideBarComponent({ userProfile }: SideBarComponentProps) {
 	}, []);
 
 	React.useEffect(() => {
-		if (contentRef.current && !isCollapsed) {
-			const timeoutId = setTimeout(() => {
-				if (!contentRef.current) return;
+		sidebarWidthRef.current = sidebarWidth;
+	}, [sidebarWidth]);
 
-				const navList = contentRef.current.querySelector('ul');
-				if (navList) {
-					// Get the natural scroll width (content width without wrapping)
-					const totalWidthPx = navList.scrollWidth;
-					// Convert to rem and round up
-					const calculatedMinWidth = Math.ceil(totalWidthPx / 16);
+	React.useEffect(() => {
+		if (!openMenuItem) return;
 
-					setMinWidth(Math.max(12.5, calculatedMinWidth));
-				}
-			}, 100);
+		const handleClickOutside = (event: MouseEvent) => {
+			const target = event.target as Node;
+			const viewport = document.querySelector('[data-radix-navigation-menu-viewport]');
 
-			return () => clearTimeout(timeoutId);
-		}
-	}, [isCollapsed, displayName, userProfile]);
+			const isInsideMenu = contentRef.current?.contains(target);
+			const isInsideViewport = viewport?.contains(target);
 
-	const toggleCollapse = () => {
+			if (!isInsideMenu && !isInsideViewport) {
+				setOpenMenuItem('');
+			}
+		};
+
+		document.addEventListener('mousedown', handleClickOutside);
+		return () => document.removeEventListener('mousedown', handleClickOutside);
+	}, [openMenuItem]);
+
+	React.useEffect(() => {
+		if (!contentRef.current || isCollapsed) return;
+
+		const timeoutId = setTimeout(() => {
+			const navList = contentRef.current?.querySelector('ul');
+			if (!navList) return;
+
+			const totalWidthPx = navList.scrollWidth;
+			const calculatedMinWidth = Math.ceil(totalWidthPx / SIDEBAR_DEFAULTS.REM_TO_PX);
+			const finalMinWidth = Math.max(SIDEBAR_DEFAULTS.MIN_WIDTH, calculatedMinWidth);
+
+			setMinWidth(finalMinWidth);
+
+			if (sidebarWidth < finalMinWidth) {
+				setSidebarWidth(finalMinWidth);
+				localStorage.setItem('sidebarWidth', finalMinWidth.toString());
+			}
+		}, SIDEBAR_DEFAULTS.MIN_WIDTH_CALC_DELAY);
+
+		return () => clearTimeout(timeoutId);
+	}, [isCollapsed, displayName, userProfile, sidebarWidth]);
+
+	const toggleCollapse = React.useCallback(() => {
 		const newCollapsed = !isCollapsed;
 		setIsCollapsed(newCollapsed);
 		localStorage.setItem('sidebarCollapsed', newCollapsed.toString());
 
-		// When expanding, ensure width is at least the minimum width
 		if (!newCollapsed && sidebarWidth < minWidth) {
 			setSidebarWidth(minWidth);
 			localStorage.setItem('sidebarWidth', minWidth.toString());
 		}
-	};
+	}, [isCollapsed, sidebarWidth, minWidth]);
 
-	const handleMouseDown = (e: React.MouseEvent) => {
-		if (isCollapsed) return; // Disable resizing when collapsed
+	const handleMouseDown = React.useCallback(
+		(e: React.MouseEvent) => {
+			if (isCollapsed) return;
 
-		document.body.classList.add('select-none'); // Prevent text selection during drag
+			document.body.classList.add('select-none');
 
-		const startX = e.clientX;
-		const startWidth = sidebarWidth;
+			const startX = e.clientX;
+			const startWidth = sidebarWidth;
 
-		const handleMouseMove = (moveEvent: MouseEvent) => {
-			// Calculate the maximum width in rem (25% of the viewport width)
-			const maxWidth = (window.innerWidth * 0.25) / 16; // Convert 25% of viewport width to rem
-			// Calculate new width in rem using the dynamically calculated minimum width
-			const newWidth = Math.min(
-				maxWidth, // Ensure it doesn't exceed 25% of the viewport width
-				Math.max(minWidth, startWidth + (moveEvent.clientX - startX) / 16) // Use calculated minimum width
-			);
-			setSidebarWidth(newWidth);
-		};
+			const handleMouseMove = (moveEvent: MouseEvent) => {
+				const maxWidth = (window.innerWidth * SIDEBAR_DEFAULTS.MAX_WIDTH_PERCENTAGE) / SIDEBAR_DEFAULTS.REM_TO_PX;
+				const delta = (moveEvent.clientX - startX) / SIDEBAR_DEFAULTS.REM_TO_PX;
+				const newWidth = Math.min(maxWidth, Math.max(minWidth, startWidth + delta));
+				setSidebarWidth(newWidth);
+			};
 
-		const handleMouseUp = () => {
-			document.body.classList.remove('select-none'); // Re-enable text selection
-			localStorage.setItem('sidebarWidth', sidebarWidth.toString());
+			const handleMouseUp = () => {
+				document.body.classList.remove('select-none');
+				localStorage.setItem('sidebarWidth', sidebarWidthRef.current.toString());
+				document.removeEventListener('mousemove', handleMouseMove);
+				document.removeEventListener('mouseup', handleMouseUp);
+			};
 
-			document.removeEventListener('mousemove', handleMouseMove);
-			document.removeEventListener('mouseup', handleMouseUp);
-		};
-
-		document.addEventListener('mousemove', handleMouseMove);
-		document.addEventListener('mouseup', handleMouseUp);
-	};
+			document.addEventListener('mousemove', handleMouseMove);
+			document.addEventListener('mouseup', handleMouseUp);
+		},
+		[isCollapsed, sidebarWidth, minWidth]
+	);
 
 	return (
 		<div
 			className="relative h-full bg-secondary flex-shrink-0 flex flex-col"
-			style={{ width: isCollapsed ? '4rem' : `${sidebarWidth}rem` }}
+			style={{ width: isCollapsed ? `${SIDEBAR_DEFAULTS.COLLAPSED_WIDTH}rem` : `${sidebarWidth}rem` }}
 		>
-			{/* Header with Collapse/Expand Button */}
 			<div className="flex items-center justify-start px-4 py-2">
 				<button
 					onClick={toggleCollapse}
@@ -153,20 +190,29 @@ export function SideBarComponent({ userProfile }: SideBarComponentProps) {
 				</button>
 			</div>
 
-			{/* Sidebar Content */}
-			<div ref={contentRef} className={cn(isCollapsed && 'hidden')}>
-				<NavigationMenu orientation="vertical">
-					<NavigationMenuList className="w-full flex flex-col justify-start items-start gap-2">
-						<NavigationMenuItem>
-							<NavigationMenuTrigger className="w-full h-fit flex justify-start gap-4 text-primary truncate">
+			<div className={cn('w-full', isCollapsed && 'hidden')}>
+				<NavigationMenu
+					ref={contentRef}
+					className="w-full h-full"
+					orientation="vertical"
+					value={openMenuItem}
+					onValueChange={setOpenMenuItem}
+				>
+					<NavigationMenuList className="w-full flex flex-col justify-start items-start gap-2 px-4">
+						<NavigationMenuItem value="profile" className="w-full">
+							<NavigationMenuTrigger className="w-full h-fit flex justify-start gap-4 text-primary overflow-hidden pr-2">
 								{userProfile?.avatar_url ? (
-									<img src={userProfile.avatar_url} alt={displayName} className="w-8 h-8 rounded-md object-cover" />
+									<img
+										src={userProfile.avatar_url}
+										alt={displayName}
+										className="w-8 h-8 flex-shrink-0 rounded-md object-cover"
+									/>
 								) : (
-									<div className="w-8 h-8 rounded-md bg-gradient-to-br from-purple-500 to-pink-500 flex items-center justify-center text-white text-xs font-semibold">
+									<div className="w-8 h-8 flex-shrink-0 rounded-md bg-gradient-to-br from-purple-500 to-pink-500 flex items-center justify-center text-white text-xs font-semibold">
 										{displayInitials}
 									</div>
 								)}
-								<span className="truncate">{displayName}</span>
+								<span className="truncate min-w-0 flex-1">{displayName}</span>
 							</NavigationMenuTrigger>
 							<NavigationMenuContent className="w-fit bg-secondary-highlight rounded-md ml-2">
 								<ul className="flex flex-col gap-3 p-4 border-none min-w-[15rem]">
@@ -185,12 +231,11 @@ export function SideBarComponent({ userProfile }: SideBarComponentProps) {
 				</NavigationMenu>
 			</div>
 
-			{/* Resize Handle */}
 			{!isCollapsed && (
 				<div
 					className="absolute top-0 right-0 w-1 h-full cursor-col-resize bg-secondary-highlight hover:bg-secondary-muted transition-colors"
 					onMouseDown={handleMouseDown}
-				></div>
+				/>
 			)}
 		</div>
 	);
@@ -204,7 +249,7 @@ const ListItem = React.forwardRef<React.ComponentRef<'a'>, React.ComponentPropsW
 					<a
 						ref={ref}
 						className={cn(
-							'flex flex-col justify-center select-none rounded-md m-1 p-3 leading-none no-underline outline-none transition-colors hover:bg-accent hover:text-accent-foreground focus:bg-accent focus:text-accent-foreground',
+							'flex flex-col justify-center select-none rounded-md m-1 p-3 leading-none no-underline outline-none transition-colors hover:bg-primary-highlight focus:bg-accent focus:text-accent-foreground cursor-pointer',
 							className
 						)}
 						{...props}

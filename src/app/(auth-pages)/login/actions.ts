@@ -72,6 +72,25 @@ export async function signup(formData: FormData) {
 	redirect('/signup/success');
 }
 
+export async function loginAsGuest() {
+	const supabase = await createClient();
+
+	// Create an anonymous user session
+	const { data, error } = await supabase.auth.signInAnonymously();
+
+	if (error) {
+		return { error: error.message };
+	}
+
+	if (!data.user) {
+		return { error: 'Failed to create guest session' };
+	}
+
+	// Profile is automatically created by the database trigger with a random guest name
+	revalidatePath('/', 'layout');
+	redirect('/');
+}
+
 export async function signOut() {
 	const supabase = await createClient();
 	await supabase.auth.signOut();

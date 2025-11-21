@@ -14,6 +14,8 @@ CREATE TABLE public.users (
     email TEXT UNIQUE NOT NULL,
     full_name TEXT,
     avatar_url TEXT,
+    is_guest BOOLEAN DEFAULT false NOT NULL,
+    guest_name TEXT,
     created_at TIMESTAMP WITH TIME ZONE DEFAULT TIMEZONE('utc', NOW()) NOT NULL,
     updated_at TIMESTAMP WITH TIME ZONE DEFAULT TIMEZONE('utc', NOW()) NOT NULL
 );
@@ -53,13 +55,37 @@ USING (auth.uid() = id);
 
 -- Create function to automatically create profile on user signup
 -- SECURITY DEFINER allows the function to bypass RLS
+-- Supports both registered users and anonymous guest users
 CREATE OR REPLACE FUNCTION public.handle_new_user()
 RETURNS TRIGGER AS $$
+DECLARE
+    guest_names TEXT[] := ARRAY[
+        'Wandering Traveler',
+        'Mystery Guest',
+        'Anonymous Visitor',
+        'Curious Explorer',
+        'Digital Nomad',
+        'Silent Observer',
+        'Phantom User',
+        'Shadow Walker'
+    ];
+    random_guest_name TEXT;
+    is_anonymous BOOLEAN;
 BEGIN
-    INSERT INTO public.users (id, email, created_at, updated_at)
+    -- Determine if this is an anonymous/guest user
+    is_anonymous := (NEW.email IS NULL OR NEW.email = '');
+
+    -- Generate random guest name for anonymous users
+    IF is_anonymous THEN
+        random_guest_name := guest_names[1 + floor(random() * array_length(guest_names, 1))];
+    END IF;
+
+    INSERT INTO public.users (id, email, is_guest, guest_name, created_at, updated_at)
     VALUES (
         NEW.id,
-        NEW.email,
+        COALESCE(NEW.email, ''),
+        is_anonymous,
+        random_guest_name,
         NOW(),
         NOW()
     );
@@ -81,8 +107,9 @@ CREATE TRIGGER on_auth_user_created
     AFTER INSERT ON auth.users
     FOR EACH ROW EXECUTE FUNCTION public.handle_new_user();
 
--- Create index on email for faster lookups
+-- Create indexes for faster lookups
 CREATE INDEX IF NOT EXISTS users_email_idx ON public.users(email);
+CREATE INDEX IF NOT EXISTS users_is_guest_idx ON public.users(is_guest);
 
 -- Create function to update updated_at timestamp
 CREATE OR REPLACE FUNCTION public.update_updated_at_column()

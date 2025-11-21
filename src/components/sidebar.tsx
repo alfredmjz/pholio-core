@@ -15,21 +15,12 @@ import {
 } from '@/components/ui/navigation-menu';
 
 import type { UserProfile } from '@/lib/getUserProfile';
+import { signOut } from '@/app/(auth-pages)/login/actions';
+import { GuestConvertDialog } from '@/components/guest-convert-dialog';
 
 interface SideBarComponentProps {
 	userProfile: UserProfile | null;
 }
-
-const GUEST_NAMES = [
-	'Wandering Traveler',
-	'Mystery Guest',
-	'Anonymous Visitor',
-	'Curious Explorer',
-	'Digital Nomad',
-	'Silent Observer',
-	'Phantom User',
-	'Shadow Walker',
-];
 
 const SIDEBAR_DEFAULTS = {
 	WIDTH: 14,
@@ -40,10 +31,6 @@ const SIDEBAR_DEFAULTS = {
 	MIN_WIDTH_CALC_DELAY: 100,
 } as const;
 
-function getRandomGuestName(): string {
-	return GUEST_NAMES[Math.floor(Math.random() * GUEST_NAMES.length)];
-}
-
 function getInitials(name: string): string {
 	return name
 		.split(' ')
@@ -53,26 +40,17 @@ function getInitials(name: string): string {
 		.slice(0, 2);
 }
 
-function getOrCreateGuestName(): string {
-	const savedGuestName = localStorage.getItem('guestName');
-	if (savedGuestName) return savedGuestName;
-
-	const newGuestName = getRandomGuestName();
-	localStorage.setItem('guestName', newGuestName);
-	return newGuestName;
-}
-
 export function SideBarComponent({ userProfile }: SideBarComponentProps) {
 	const [sidebarWidth, setSidebarWidth] = React.useState<number>(SIDEBAR_DEFAULTS.WIDTH);
 	const [minWidth, setMinWidth] = React.useState<number>(SIDEBAR_DEFAULTS.WIDTH);
 	const [isCollapsed, setIsCollapsed] = React.useState<boolean>(false);
 	const [openMenuItem, setOpenMenuItem] = React.useState<string>('');
-	const [guestName] = React.useState<string>(getOrCreateGuestName);
 
 	const contentRef = React.useRef<HTMLDivElement>(null);
 	const sidebarWidthRef = React.useRef<number>(SIDEBAR_DEFAULTS.WIDTH);
 
-	const displayName = userProfile?.full_name || guestName;
+	// Determine display name: use full_name for registered users, guest_name for guests
+	const displayName = userProfile?.full_name || userProfile?.guest_name || 'Guest User';
 	const displayInitials = getInitials(displayName);
 
 	React.useEffect(() => {
@@ -174,6 +152,15 @@ export function SideBarComponent({ userProfile }: SideBarComponentProps) {
 		[isCollapsed, sidebarWidth, minWidth]
 	);
 
+	const handleSignOut = React.useCallback(async () => {
+		// Clear sidebar preferences
+		localStorage.removeItem('sidebarWidth');
+		localStorage.removeItem('sidebarCollapsed');
+
+		// Sign out (works for both registered users and guests)
+		await signOut();
+	}, []);
+
 	return (
 		<div
 			className="relative h-full bg-secondary flex-shrink-0 flex flex-col"
@@ -216,10 +203,14 @@ export function SideBarComponent({ userProfile }: SideBarComponentProps) {
 							</NavigationMenuTrigger>
 							<NavigationMenuContent className="w-fit bg-secondary-highlight rounded-md ml-2">
 								<ul className="flex flex-col gap-3 p-4 border-none min-w-[15rem]">
-									<ListItem title="Profile">View and edit your profile settings.</ListItem>
-									<ListItem title="Settings">Customize your preferences.</ListItem>
-									<ListItem title="Help">Get help and documentation.</ListItem>
-									<ListItem title="Sign Out">Log out of your account.</ListItem>
+									{userProfile?.is_guest && (
+										<GuestConvertDialog>
+											<ListItem title="Create Account">Save your progress permanently</ListItem>
+										</GuestConvertDialog>
+									)}
+									<ListItem title="Profile"></ListItem>
+									<ListItem title="Settings"></ListItem>
+									<ListItem title="Sign Out" onClick={handleSignOut}></ListItem>
 								</ul>
 							</NavigationMenuContent>
 						</NavigationMenuItem>
@@ -254,7 +245,7 @@ const ListItem = React.forwardRef<React.ComponentRef<'a'>, React.ComponentPropsW
 						)}
 						{...props}
 					>
-						<div className="text-sm font-medium leading-none">{title}</div>
+						<h1 className="text-sm font-medium leading-none">{title}</h1>
 						<p className="line-clamp-2 text-sm leading-snug text-muted-foreground">{children}</p>
 					</a>
 				</NavigationMenuLink>

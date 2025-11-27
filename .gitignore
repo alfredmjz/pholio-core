@@ -42,3 +42,6 @@
 
 # generated files
 database/generated/
+
+#Screenshot testing folders
+.playwright-mcp/

@@ -8,7 +8,6 @@ import { asyncHandler, UnauthorizedError, parseSupabaseError, InternalServerErro
 export const GET = asyncHandler(async () => {
 	const supabase = await createClient();
 
-	// Get current user
 	const {
 		data: { user },
 		error: userError,
@@ -18,7 +17,6 @@ export const GET = asyncHandler(async () => {
 		throw new UnauthorizedError('You must be logged in to view profile');
 	}
 
-	// Get user profile
 	const { data: profile, error: profileError } = await supabase
 		.from('users')
 		.select('*')
@@ -45,7 +43,6 @@ export const PATCH = asyncHandler(async (request: Request) => {
 
 	const supabase = await createClient();
 
-	// Get current user
 	const {
 		data: { user },
 		error: userError,
@@ -55,7 +52,7 @@ export const PATCH = asyncHandler(async (request: Request) => {
 		throw new UnauthorizedError('You must be logged in to update profile');
 	}
 
-	// Update profile (updated_at is automatically set by database trigger)
+	// Database trigger automatically sets updated_at timestamp
 	const { data: profile, error: profileError } = await supabase
 		.from('users')
 		.update({

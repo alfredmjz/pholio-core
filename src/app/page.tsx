@@ -1,16 +1,12 @@
-import { fetchData } from '@/lib/supabase/client';
-
 export default async function HomePage() {
-	const data = await fetchData('test');
-
-	if (!data) {
-		return <p>Failed to load data</p>;
-	}
-
 	return (
-		<div>
-			<h1>Data from Supabase</h1>
-			<pre>{JSON.stringify(data, null, 2)}</pre>
+		<div className="flex items-center justify-center h-full">
+			<div className="text-center space-y-4">
+				<h1 className="text-4xl font-bold">Welcome to Pholio</h1>
+				<p className="text-lg text-muted-foreground">
+					Your automated personal finance tracker
+				</p>
+			</div>
 		</div>
 	);
 }

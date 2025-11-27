@@ -16,7 +16,7 @@ import {
 
 import type { UserProfile } from '@/lib/getUserProfile';
 import { signOut } from '@/app/(auth-pages)/login/actions';
-import { GuestConvertDialog } from '@/components/guest-convert-dialog';
+import Link from 'next/link';
 
 interface SideBarComponentProps {
 	userProfile: UserProfile | null;
@@ -185,7 +185,7 @@ export function SideBarComponent({ userProfile }: SideBarComponentProps) {
 					value={openMenuItem}
 					onValueChange={setOpenMenuItem}
 				>
-					<NavigationMenuList className="w-full flex flex-col justify-start items-start gap-2 px-4">
+					<NavigationMenuList className="w-full flex flex-col justify-start items-start gap-2">
 						<NavigationMenuItem value="profile" className="w-full">
 							<NavigationMenuTrigger className="w-full h-fit flex justify-start gap-4 text-primary overflow-hidden pr-2">
 								{userProfile?.avatar_url ? (
@@ -203,13 +203,9 @@ export function SideBarComponent({ userProfile }: SideBarComponentProps) {
 							</NavigationMenuTrigger>
 							<NavigationMenuContent className="w-fit bg-secondary-highlight rounded-md ml-2">
 								<ul className="flex flex-col gap-3 p-4 border-none min-w-[15rem]">
-									{userProfile?.is_guest && (
-										<GuestConvertDialog>
-											<ListItem title="Create Account">Save your progress permanently</ListItem>
-										</GuestConvertDialog>
-									)}
-									<ListItem title="Profile"></ListItem>
-									<ListItem title="Settings"></ListItem>
+									<Link href="/profile" className="w-full">
+										<ListItem title="Profile">Manage your account settings</ListItem>
+									</Link>
 									<ListItem title="Sign Out" onClick={handleSignOut}></ListItem>
 								</ul>
 							</NavigationMenuContent>

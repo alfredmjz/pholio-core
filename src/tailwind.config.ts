@@ -31,6 +31,10 @@ const config: Config = {
 				destructive: {
 					DEFAULT: 'var(--destructive)',
 				},
+				informational: {
+					DEFAULT: 'var(--informational)',
+					muted: 'var(--informational-muted)',
+				},
 			},
 			textColor: {
 				primary: {
@@ -58,4 +62,3 @@ const config: Config = {
 };
 
 export default config;
-

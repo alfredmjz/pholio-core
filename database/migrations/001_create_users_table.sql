@@ -83,7 +83,7 @@ BEGIN
     INSERT INTO public.users (id, email, is_guest, guest_name, created_at, updated_at)
     VALUES (
         NEW.id,
-        COALESCE(NEW.email, ''),
+        COALESCE(NEW.email, 'guest-' || NEW.id || '@pholio.local'),
         is_anonymous,
         random_guest_name,
         NOW(),

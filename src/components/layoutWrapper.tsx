@@ -15,7 +15,7 @@ export default function LayoutWrapper({ children, sidebar }: LayoutWrapperProps)
 	return (
 		<>
 			{!isAuthPage && sidebar}
-			<main className="min-h-screen w-full">{children}</main>
+			<main className="h-screen w-full overflow-y-auto">{children}</main>
 		</>
 	);
 }

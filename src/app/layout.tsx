@@ -18,7 +18,7 @@ export default function RootLayout({ children }: { children: React.ReactNode }) 
 			<head>
 				<title>Folio</title>
 			</head>
-			<body className="w-screen h-screen min-h-screen flex flex-row bg-primary">
+			<body className="w-screen h-screen flex flex-row bg-primary overflow-hidden">
 				<LayoutWrapper sidebar={<SidebarWrapper />}>{children}</LayoutWrapper>
 				<footer>{/* Footer content */}</footer>
 			</body>

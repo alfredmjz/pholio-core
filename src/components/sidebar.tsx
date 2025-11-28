@@ -53,6 +53,23 @@ export function SideBarComponent({ userProfile }: SideBarComponentProps) {
 	const displayName = userProfile?.full_name || userProfile?.guest_name || 'Guest User';
 	const displayInitials = getInitials(displayName);
 
+	// Auto-collapse sidebar on mobile/tablet screens
+	React.useEffect(() => {
+		const handleResize = () => {
+			const isSmallScreen = window.innerWidth < 1024; // lg breakpoint
+			if (isSmallScreen && !isCollapsed) {
+				setIsCollapsed(true);
+			}
+		};
+
+		// Check on mount
+		handleResize();
+
+		// Add resize listener
+		window.addEventListener('resize', handleResize);
+		return () => window.removeEventListener('resize', handleResize);
+	}, [isCollapsed]);
+
 	React.useEffect(() => {
 		const savedWidth = localStorage.getItem('sidebarWidth');
 		const savedCollapsed = localStorage.getItem('sidebarCollapsed');
@@ -62,7 +79,8 @@ export function SideBarComponent({ userProfile }: SideBarComponentProps) {
 			setSidebarWidth(width);
 			sidebarWidthRef.current = width;
 		}
-		if (savedCollapsed) {
+		if (savedCollapsed && window.innerWidth >= 1024) {
+			// Only apply saved collapsed state on desktop
 			setIsCollapsed(savedCollapsed === 'true');
 		}
 	}, []);
@@ -163,7 +181,7 @@ export function SideBarComponent({ userProfile }: SideBarComponentProps) {
 
 	return (
 		<div
-			className="relative h-full bg-secondary flex-shrink-0 flex flex-col"
+			className="relative bg-secondary shrink-0 flex flex-col overflow-y-hidden h-screen"
 			style={{ width: isCollapsed ? `${SIDEBAR_DEFAULTS.COLLAPSED_WIDTH}rem` : `${sidebarWidth}rem` }}
 		>
 			<div className="flex items-center justify-start px-4 py-2">
@@ -203,9 +221,9 @@ export function SideBarComponent({ userProfile }: SideBarComponentProps) {
 							</NavigationMenuTrigger>
 							<NavigationMenuContent className="w-fit bg-secondary-highlight rounded-md ml-2">
 								<ul className="flex flex-col gap-3 p-4 border-none min-w-[15rem]">
-									<Link href="/profile" className="w-full">
-										<ListItem title="Profile">Manage your account settings</ListItem>
-									</Link>
+									<ListItem href="/profile" title="Profile">
+										Manage your account settings
+									</ListItem>
 									<ListItem title="Sign Out" onClick={handleSignOut}></ListItem>
 								</ul>
 							</NavigationMenuContent>
@@ -228,22 +246,32 @@ export function SideBarComponent({ userProfile }: SideBarComponentProps) {
 	);
 }
 
-const ListItem = React.forwardRef<React.ComponentRef<'a'>, React.ComponentPropsWithoutRef<'a'>>(
-	({ className, title, children, ...props }, ref) => {
+const ListItem = React.forwardRef<React.ComponentRef<'a'>, React.ComponentPropsWithoutRef<'a'> & { href?: string }>(
+	({ className, title, children, href, ...props }, ref) => {
+		const content = (
+			<>
+				<h1 className="text-sm font-medium leading-none">{title}</h1>
+				<p className="line-clamp-2 text-sm leading-snug text-muted-foreground">{children}</p>
+			</>
+		);
+
+		const itemClassName = cn(
+			'flex flex-col justify-center select-none rounded-md m-1 p-3 leading-none no-underline outline-none transition-colors hover:bg-primary-highlight focus:bg-accent focus:text-accent-foreground cursor-pointer',
+			className
+		);
+
 		return (
 			<li>
 				<NavigationMenuLink asChild>
-					<a
-						ref={ref}
-						className={cn(
-							'flex flex-col justify-center select-none rounded-md m-1 p-3 leading-none no-underline outline-none transition-colors hover:bg-primary-highlight focus:bg-accent focus:text-accent-foreground cursor-pointer',
-							className
-						)}
-						{...props}
-					>
-						<h1 className="text-sm font-medium leading-none">{title}</h1>
-						<p className="line-clamp-2 text-sm leading-snug text-muted-foreground">{children}</p>
-					</a>
+					{href ? (
+						<Link ref={ref} href={href} className={itemClassName} {...props}>
+							{content}
+						</Link>
+					) : (
+						<a ref={ref} className={itemClassName} {...props}>
+							{content}
+						</a>
+					)}
 				</NavigationMenuLink>
 			</li>
 		);

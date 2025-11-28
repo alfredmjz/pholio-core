@@ -38,16 +38,18 @@ See `/context/development-principles.md` for complete workflow, templates, and s
 
 ## AI Agents
 
+**CRITICAL: All development work must make use of the correct AI Agents available based on their responsibility and situation**
+
 Specialized agents located in `.claude/agents/` - invoke using Task tool. Full agent definitions contain complete instructions.
 
-| Agent                | Purpose                                            | Example Usage                                                     |
-| -------------------- | -------------------------------------------------- | ----------------------------------------------------------------- |
-| **ui-ux-designer**   | UI/UX design, component creation, accessibility    | `@agent-ui-ux-designer "Design dashboard for net worth tracking"` |
-| **design-review**    | Comprehensive UI review before PRs                 | `@agent-design-review` (use before merging UI changes)            |
-| **orchestrator**     | Break down complex tasks, coordinate specialists   | `@agent-orchestrator "Plan budgeting feature implementation"`     |
-| **system-architect** | Architecture decisions, data models, system design | `@agent-system-architect "Design transaction sync architecture"`  |
-| **senior-engineer**  | Implementation, coding, optimization, debugging    | `@agent-senior-engineer "Implement CSV import with validation"`   |
-| **code-reviewer**    | Code review, security, patterns, quality assurance | `@agent-code-reviewer "Review authentication refactor"`           |
+| Agent                | Purpose                                            |
+| -------------------- | -------------------------------------------------- |
+| **ui-ux-designer**   | UI/UX design, component creation, accessibility    |
+| **design-review**    | Comprehensive UI review before PRs                 |
+| **orchestrator**     | Break down complex tasks, coordinate specialists   |
+| **system-architect** | Architecture decisions, data models, system design |
+| **senior-engineer**  | Implementation, coding, optimization, debugging    |
+| **code-reviewer**    | Code review, security, patterns, quality assurance |
 
 **Agent workflow for complex features**: orchestrator → system-architect → ui-ux-designer → senior-engineer → code-reviewer → design-review
 
@@ -73,6 +75,59 @@ Reference documents in `context/` directory - comprehensive guides for standards
 **Template and guidelines**: See `/context/development-principles.md` for complete spec document structure.
 
 **Example**: `docs/profile-page-redesign-spec.md`
+
+### Progress Tracking Requirements
+
+**CRITICAL**: All spec documents MUST include progress tracking to provide clear visibility into work status.
+
+**Required elements in every spec file:**
+
+1. **Status Header** - At the top of the file:
+
+   ```markdown
+   **Status:** [✅ COMPLETE | 🟡 IN PROGRESS | 📋 PLANNED | ⏸️ PAUSED | ❌ BLOCKED]
+   **Created:** YYYY-MM-DD
+   **Last Updated:** YYYY-MM-DD
+   **Owner:** [agent-name or developer-name]
+   ```
+
+2. **Implementation Progress Table** - Mandatory section showing all phases:
+
+   ```markdown
+   ## Implementation Progress
+
+   | Phase | Task      | Estimated | Status         |
+   | ----- | --------- | --------- | -------------- |
+   | 1     | Task name | 15 min    | ✅ Complete    |
+   | 2     | Task name | 30 min    | 🟡 In Progress |
+   | 3     | Task name | 45 min    | 📋 Pending     |
+   ```
+
+3. **Testing Checklist** - With checkboxes for verification:
+
+   ```markdown
+   ## Testing Checklist
+
+   - [x] Test case 1
+   - [x] Test case 2
+   - [ ] Test case 3
+   ```
+
+**When working on a spec:**
+
+- ✅ Update the status header when starting/pausing/completing work
+- ✅ Check off phases in the progress table as you complete them (use ✅, 🟡, ❌ emojis)
+- ✅ Mark testing checklist items as completed
+- ✅ Update "Last Updated" date whenever you modify the spec
+- ✅ Add notes about blockers or challenges encountered
+
+**Why this matters:**
+
+- Provides instant visibility into project status
+- Enables seamless handoffs between engineers/agents
+- Tracks actual vs estimated time for future planning
+- Creates accountability and prevents forgotten tasks
+- Allows managers/stakeholders to check progress without interrupting work
 
 ## Development Commands
 

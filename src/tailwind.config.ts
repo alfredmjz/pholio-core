@@ -2,11 +2,7 @@ import type { Config } from 'tailwindcss';
 
 const config: Config = {
 	darkMode: ['class'],
-	content: [
-		'./app/**/*.{ts,tsx}',
-		'./components/**/*.{ts,tsx}',
-		'./styles/**/*.css',
-	],
+	content: ['./app/**/*.{ts,tsx}', './components/**/*.{ts,tsx}', './styles/**/*.css'],
 	theme: {
 		extend: {
 			colors: {
@@ -27,9 +23,15 @@ const config: Config = {
 				},
 				constructive: {
 					DEFAULT: 'var(--constructive)',
+					muted: 'var(--constructive-muted)',
+				},
+				warning: {
+					DEFAULT: 'var(--warning)',
+					muted: 'var(--warning-muted)',
 				},
 				destructive: {
 					DEFAULT: 'var(--destructive)',
+					muted: 'var(--destructive-muted)',
 				},
 				informational: {
 					DEFAULT: 'var(--informational)',

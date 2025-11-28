@@ -8,6 +8,7 @@ import { Label } from '@/components/ui/label';
 import { toast } from 'sonner';
 import { updateProfile } from '../actions';
 import type { UserProfile } from '@/lib/getUserProfile';
+import { cn } from '@/lib/utils';
 
 interface ProfileInformationCardProps {
   profile: UserProfile | null;
@@ -113,7 +114,12 @@ export default function ProfileInformationCard({ profile, userEmail }: ProfileIn
             {profile?.is_guest ? 'Display Name' : 'Full Name'}
           </Label>
           {!isEditingName ? (
-            <div className="flex items-center justify-between p-3 rounded-md border bg-card hover:bg-accent/50 transition-colors group">
+            <div className={cn(
+              "flex items-center justify-between p-3 rounded-md border bg-card transition-colors group",
+              profile?.is_guest
+                ? "opacity-60 cursor-not-allowed"
+                : "hover:bg-accent/50"
+            )}>
               <div>
                 <p className="text-sm">{displayName}</p>
               </div>
@@ -135,7 +141,10 @@ export default function ProfileInformationCard({ profile, userEmail }: ProfileIn
                 value={nameValue}
                 onChange={(e) => setNameValue(e.target.value)}
                 placeholder="Enter your full name"
-                disabled={isPending}
+                disabled={isPending || profile?.is_guest}
+                className={cn(
+                  profile?.is_guest && 'cursor-not-allowed opacity-60'
+                )}
                 maxLength={255}
               />
               <div className="flex gap-2">

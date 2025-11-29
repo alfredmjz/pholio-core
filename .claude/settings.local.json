@@ -1,24 +1,31 @@
 {
-  "permissions": {
-    "allow": [
-      "Bash(npx shadcn@latest:*)",
-      "Bash(npm run dev:*)",
-      "mcp__playwright__browser_navigate",
-      "mcp__playwright__browser_take_screenshot",
-      "mcp__playwright__browser_click",
-      "mcp__playwright__browser_console_messages",
-      "mcp__playwright__browser_snapshot",
-      "Bash(npx tsc:*)",
-      "Bash(node -e:*)",
-      "Bash(npm run build:*)",
-      "Bash(mkdir:*)",
-      "mcp__playwright__browser_resize",
-      "mcp__playwright__browser_hover",
-      "mcp__playwright__browser_wait_for",
-      "mcp__playwright__browser_press_key",
-      "mcp__playwright__browser_close",
-      "mcp__playwright__browser_evaluate"
-    ]
-  },
-  "outputStyle": "default"
+	"permissions": {
+		"allow": [
+			"mcp__playwright__browser_navigate",
+			"mcp__playwright__browser_take_screenshot",
+			"mcp__playwright__browser_click",
+			"mcp__playwright__browser_console_messages",
+			"mcp__playwright__browser_snapshot",
+			"mcp__playwright__browser_resize",
+			"mcp__playwright__browser_hover",
+			"mcp__playwright__browser_wait_for",
+			"mcp__playwright__browser_press_key",
+			"mcp__playwright__browser_close",
+			"mcp__playwright__browser_evaluate",
+			"Bash(npx shadcn@latest:*)",
+			"Bash(npm run dev:*)",
+			"Bash(npx tsc:*)",
+			"Bash(node -e:*)",
+			"Bash(npm run build:*)",
+			"Bash(mkdir:*)",
+			"Bash(npm run db:migrate:*)",
+			"Bash(cat:*)",
+			"Bash(find:*)",
+			"Bash(ls:*)",
+			"Bash(tasklist:*)",
+			"Bash(findstr:*)"
+		]
+	},
+	"outputStyle": "default"
 }
+

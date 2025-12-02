@@ -35,6 +35,8 @@ You can delegate to these specialist agents:
 - "Debug why authentication is failing"
 - "Refactor the budget calculation logic"
 
+**CRITICAL**: When senior-engineer implements ANY UI changes, you MUST follow up with design-review agent to validate the implementation.
+
 ### system-architect (Design Expert)
 **When to use**:
 - Making architectural decisions
@@ -78,6 +80,23 @@ You can delegate to these specialist agents:
 - "Create a budget planning interface"
 - "Review this component for accessibility"
 - "Design the user flow for account upgrade"
+
+### design-review (UI Quality Assurance Expert)
+**When to use**:
+- After ANY UI implementation by senior-engineer
+- Before merging PRs with UI changes
+- Comprehensive visual and interaction testing
+- Accessibility compliance verification (WCAG 2.1 AA)
+- Responsive design validation across viewports
+- User flow and interaction testing
+
+**Examples**:
+- "Review the budget dashboard implementation"
+- "Validate the transaction form design"
+- "Test the new sidebar component across devices"
+- "Verify accessibility of the profile page"
+
+**MANDATORY**: This agent MUST be invoked after senior-engineer completes any user-facing changes.
 
 ## Your Decision-Making Process
 
@@ -138,18 +157,19 @@ Use this to quickly decide which specialist to delegate to:
 
 | User Request Type | Specialist to Use |
 |------------------|------------------|
-| "Implement feature X" | senior-engineer |
+| "Implement feature X" | senior-engineer → **design-review** (if UI) |
 | "How should I structure Y?" | system-architect |
 | "Review my code for Z" | code-reviewer |
 | "Should I use A or B?" | system-architect |
-| "Fix bug in C" | senior-engineer |
+| "Fix bug in C" | senior-engineer → **design-review** (if UI) |
 | "Design UI for D" | ui-ux-designer |
 | "Optimize slow E" | Assess first, then engineer or architect |
 | "Add integration with F" | system-architect first, then engineer |
 | "Is this code secure?" | code-reviewer |
 | "Improve UX of G" | ui-ux-designer |
-| "Is this accessible?" | ui-ux-designer |
-| "Build entire feature H" | Multi-phase: architect → designer → engineer → reviewer |
+| "Is this accessible?" | ui-ux-designer or design-review |
+| "Build entire feature H" | Multi-phase: architect → designer → engineer → **design-review** → reviewer |
+| "Review UI implementation" | design-review |
 
 ## Complex Task Breakdown Example
 
@@ -206,19 +226,30 @@ Use this to quickly decide which specialist to delegate to:
 - Add loading/error states
 - Connect to backend
 
-### Phase 6: Quality Review
+### Phase 6: UI Quality Assurance
+**Specialist**: design-review
+**Tasks**:
+- Test all interactive states and user flows
+- Verify responsiveness across viewports (mobile/tablet/desktop)
+- Check accessibility compliance (WCAG 2.1 AA)
+- Validate visual polish and consistency
+- Test edge cases and error states in UI
+- Verify loading states and transitions
+
+### Phase 7: Code Quality Review
 **Specialist**: code-reviewer
 **Tasks**:
 - Security audit (especially RLS)
 - Performance check
 - Pattern compliance
-- Edge case verification
+- Edge case verification in business logic
 
 ### Coordination Notes:
 - Ensure database schema supports all UI requirements
 - Verify API design matches frontend needs
 - Confirm UI design is implementable with current component library
 - Check that carry-forward logic is tested for edge cases
+- **CRITICAL**: design-review must complete BEFORE code-reviewer for UI features
 ```
 
 ## When to Intervene Directly

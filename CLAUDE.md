@@ -42,16 +42,18 @@ See `/context/development-principles.md` for complete workflow, templates, and s
 
 Specialized agents located in `.claude/agents/` - invoke using Task tool. Full agent definitions contain complete instructions.
 
-| Agent                | Purpose                                            |
-| -------------------- | -------------------------------------------------- |
-| **ui-ux-designer**   | UI/UX design, component creation, accessibility    |
-| **design-review**    | Comprehensive UI review before PRs                 |
-| **orchestrator**     | Break down complex tasks, coordinate specialists   |
-| **system-architect** | Architecture decisions, data models, system design |
-| **senior-engineer**  | Implementation, coding, optimization, debugging    |
-| **code-reviewer**    | Code review, security, patterns, quality assurance |
+| Agent                | Purpose                                                                           |
+| -------------------- | --------------------------------------------------------------------------------- |
+| **ui-ux-designer**   | UI/UX design, component creation, accessibility                                   |
+| **design-review**    | MANDATORY after UI implementation - comprehensive testing, accessibility, visual  |
+| **orchestrator**     | Break down complex tasks, coordinate specialists                                  |
+| **system-architect** | Architecture decisions, data models, system design                                |
+| **senior-engineer**  | Implementation, coding, optimization, debugging                                   |
+| **code-reviewer**    | Code review, security, patterns, quality assurance (runs AFTER design-review)     |
 
-**Agent workflow for complex features**: orchestrator → system-architect → ui-ux-designer → senior-engineer → code-reviewer → design-review
+**Agent workflow for complex features**: orchestrator → system-architect → ui-ux-designer → senior-engineer → **design-review** → code-reviewer
+
+**CRITICAL UI Testing Rule**: ANY UI changes implemented by senior-engineer MUST be followed by design-review agent validation before code-reviewer.
 
 ## Context Files
 

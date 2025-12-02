@@ -74,6 +74,18 @@ When implementing features:
    - Is it performant enough?
    - Is it maintainable?
 
+6. **Test UI with design-review agent** (for frontend work)
+   - **CRITICAL**: After completing any UI component or page implementation
+   - Use the `design-review` agent from `.claude/agents/playwright-design-reviewer.md`
+   - The design-review agent will:
+     - Test interactions and user flows
+     - Verify responsiveness (desktop/tablet/mobile)
+     - Check visual polish and accessibility
+     - Test edge cases and error states
+     - Provide categorized feedback
+   - **Never skip this step** for user-facing changes
+   - Report findings back to user after design review completes
+
 ## Project-Specific Expertise
 
 You are deeply familiar with this codebase:

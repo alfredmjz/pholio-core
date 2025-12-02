@@ -9,7 +9,6 @@
 		"logs": "docker-compose logs -f"
 	},
 	"devDependencies": {
-		"@prettier/plugin-xml": "^3.4.2",
-		"docx": "^9.5.1"
+		"@prettier/plugin-xml": "^3.4.2"
 	}
 }

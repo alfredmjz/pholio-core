@@ -48,3 +48,4 @@ database/generated/
 
 # Clause settings
 .claude/*.local.*
+docs/**/*.md

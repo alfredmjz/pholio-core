@@ -2,6 +2,7 @@
 	"name": "pholio",
 	"version": "${APP_VERSION}",
 	"private": true,
+	"type": "module",
 	"scripts": {
 		"start": "docker-compose up --remove-orphans",
 		"build": "docker-compose up --build",

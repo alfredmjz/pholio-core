@@ -1,11 +1,10 @@
 {
 	"private": true,
 	"scripts": {
-		"dev": "next dev",
-		"build": "next build",
-		"start": "next start",
-		"db:migrate": "node ../scripts/migrate.js",
-		"db:migrate:ps": "powershell -ExecutionPolicy Bypass -File ../scripts/migrate.ps1"
+		"dev": "bun --bun next dev",
+		"build": "bun --bun next build",
+		"start": "bun --bun next start",
+		"db:migrate": "bun ../scripts/migrate.js"
 	},
 	"dependencies": {
 		"@dnd-kit/core": "^6.3.1",

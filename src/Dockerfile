@@ -1,9 +1,9 @@
 # syntax=docker/dockerfile:1
-ARG NODE_VERSION=22.13.1
+ARG BUN_VERSION=1.3.3
 
 ################################################################################
-# Use node image for base image for all stages.
-FROM node:${NODE_VERSION}-alpine AS base
+# Use Bun image for base image for all stages.
+FROM oven/bun:${BUN_VERSION}-alpine AS base
 
 LABEL org.opencontainers.image.authors="Alfred Mah <alfredmjz@gmail.com>"
 
@@ -11,17 +11,17 @@ LABEL org.opencontainers.image.authors="Alfred Mah <alfredmjz@gmail.com>"
 WORKDIR /usr/src/app
 
 ################################################################################
-# Create a stage for installing production dependecies.
+# Create a stage for installing production dependencies.
 FROM base as deps
 
 # Download dependencies as a separate step to take advantage of Docker's caching.
-# Leverage a cache mount to /root/.npm to speed up subsequent builds.
-# Leverage bind mounts to package.json and package-lock.json to avoid having to copy them
+# Leverage a cache mount to /root/.bun to speed up subsequent builds.
+# Leverage bind mounts to package.json and bun.lockb to avoid having to copy them
 # into this layer.
 RUN --mount=type=bind,source=package.json,target=package.json \
-  --mount=type=bind,source=package-lock.json,target=package-lock.json \
-  --mount=type=cache,target=/root/.npm \
-  npm ci --omit=dev
+  --mount=type=bind,source=bun.lockb,target=bun.lockb \
+  --mount=type=cache,target=/root/.bun/install/cache \
+  bun install --frozen-lockfile --production
 
 ################################################################################
 # Create a stage for building the application.
@@ -30,14 +30,14 @@ FROM deps AS build
 # Download additional development dependencies before building, as some projects require
 # "devDependencies" to be installed to build. If you don't need this, remove this step.
 RUN --mount=type=bind,source=package.json,target=package.json \
-  --mount=type=bind,source=package-lock.json,target=package-lock.json \
-  --mount=type=cache,target=/root/.npm \
-  npm ci
+  --mount=type=bind,source=bun.lockb,target=bun.lockb \
+  --mount=type=cache,target=/root/.bun/install/cache \
+  bun install --frozen-lockfile
 
 # Copy the rest of the source files into the image.
 COPY . .
 # Run the build script.
-RUN npm run build
+RUN bun run build
 
 ################################################################################
 # Create a new stage to run the application with minimal runtime dependencies
@@ -65,4 +65,4 @@ USER appuser
 EXPOSE 3000
 
 # Run the application.
-CMD ["npm", "start"]
+CMD ["bun", "start"]

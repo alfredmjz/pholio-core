@@ -137,30 +137,30 @@ Reference documents in `context/` directory - comprehensive guides for standards
 
 ```bash
 # Start development server (port 3000)
-cd src && npm run dev
+cd src && bun run dev
 
 # Build for production
-cd src && npm run build
+cd src && bun run build
 
 # Start production server
-cd src && npm start
+cd src && bun run start
 ```
 
 ### Docker Development
 
 ```bash
 # Start with Docker (from root)
-npm start              # Runs docker-compose up
-npm run build          # Runs docker-compose up --build
-npm run down           # Stops containers
-npm run logs           # View logs
+bun start              # Runs docker-compose up
+bun run build          # Runs docker-compose up --build
+bun run down           # Stops containers
+bun run logs           # View logs
 ```
 
 ### Database Migrations
 
 ```bash
 # Generate combined migration SQL file
-cd src && npm run db:migrate
+cd src && bun run db:migrate
 
 # Then manually apply:
 # 1. Open database/generated/combined-migrations.sql

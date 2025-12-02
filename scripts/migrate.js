@@ -2,15 +2,19 @@
  * Database Migration Script
  * Run this script to apply all database migrations to Supabase
  *
- * Usage: node scripts/migrate.js
+ * Usage: bun scripts/migrate.js
  *
  * Environment variables required:
  * - SUPABASE_URL or NEXT_PUBLIC_SUPABASE_URL
  * - SUPABASE_SERVICE_KEY (Service Role Key - NOT the anon key!)
  */
 
-const fs = require('fs');
-const path = require('path');
+import fs from 'fs';
+import path from 'path';
+import { fileURLToPath } from 'url';
+
+const __filename = fileURLToPath(import.meta.url);
+const __dirname = path.dirname(__filename);
 
 // Load environment variables
 function loadEnv() {

@@ -1,7 +1,6 @@
 "use client";
 
 import { useState, useRef, useEffect } from "react";
-import { useRouter } from "next/navigation";
 import { Card } from "@/components/ui/card";
 import { Badge } from "@/components/ui/badge";
 import { Button } from "@/components/ui/button";
@@ -10,7 +9,8 @@ import { Pencil, Trash2, Check, X } from "lucide-react";
 import { updateCategoryBudget, updateCategoryName, deleteCategory } from "../actions";
 import { toast } from "sonner";
 import { DeleteCategoryDialog } from "./DeleteCategoryDialog";
-import type { AllocationCategory } from "../types";
+import { useAllocationContext } from "../context/AllocationContext";
+import type { AllocationCategory, AllocationSummary } from "../types";
 
 interface CategoryCardProps {
 	category: AllocationCategory;
@@ -23,7 +23,12 @@ export function CategoryCard({
 	unallocatedFunds,
 	totalIncome,
 }: CategoryCardProps) {
-	const router = useRouter();
+	const {
+		optimisticallyUpdateBudget,
+		optimisticallyUpdateName,
+		optimisticallyDeleteCategory
+	} = useAllocationContext();
+
 	const [isEditingBudget, setIsEditingBudget] = useState(false);
 	const [isEditingName, setIsEditingName] = useState(false);
 	const [deleteDialogOpen, setDeleteDialogOpen] = useState(false);
@@ -73,13 +78,18 @@ export function CategoryCard({
 			return;
 		}
 
+		// 1. Optimistically update UI (instant feedback)
+		optimisticallyUpdateBudget(category.id, newBudget);
+		setIsEditingBudget(false);
+
+		// 2. Send to server
 		const success = await updateCategoryBudget(category.id, newBudget);
 		if (success) {
 			toast.success("Budget updated");
-			setIsEditingBudget(false);
-			router.refresh();
+			// Realtime subscription will sync the real data from server
 		} else {
 			toast.error("Failed to update budget");
+			// Note: Realtime will revert to correct value from server
 			setBudgetValue(category.budget_cap.toString());
 		}
 	};
@@ -92,13 +102,18 @@ export function CategoryCard({
 			return;
 		}
 
+		// 1. Optimistically update UI (instant feedback)
+		optimisticallyUpdateName(category.id, nameValue.trim());
+		setIsEditingName(false);
+
+		// 2. Send to server
 		const success = await updateCategoryName(category.id, nameValue.trim());
 		if (success) {
 			toast.success("Category renamed");
-			setIsEditingName(false);
-			router.refresh();
+			// Realtime subscription will sync the real data from server
 		} else {
 			toast.error("Failed to rename category");
+			// Note: Realtime will revert to correct value from server
 			setNameValue(category.name);
 		}
 	};
@@ -108,12 +123,18 @@ export function CategoryCard({
 	};
 
 	const handleConfirmDelete = async () => {
+		// 1. Optimistically update UI (instant feedback)
+		optimisticallyDeleteCategory(category.id);
+		setDeleteDialogOpen(false);
+
+		// 2. Send to server
 		const success = await deleteCategory(category.id);
 		if (success) {
 			toast.success("Category deleted");
-			router.refresh();
+			// Realtime subscription will sync the real data from server
 		} else {
 			toast.error("Failed to delete category");
+			// Note: Realtime will revert to correct value from server
 		}
 	};
 

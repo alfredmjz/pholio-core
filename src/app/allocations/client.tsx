@@ -1,22 +1,20 @@
 "use client";
 
-import { useState, useEffect } from "react";
-import { useRouter, useSearchParams } from "next/navigation";
+import { useState } from "react";
+import { useRouter } from "next/navigation";
 import { Button } from "@/components/ui/button";
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
-import { Sparkles, Plus } from "lucide-react";
+import { Badge } from "@/components/ui/badge";
+import { Sparkles, Plus, WifiOff, Loader2 } from "lucide-react";
 import { MonthSelector } from "./components/MonthSelector";
 import { SummaryCard } from "./components/SummaryCard";
 import { CategoryCard } from "./components/CategoryCard";
 import { TransactionsTable } from "./components/TransactionsTable";
 import { AddCategoryDialog } from "./components/AddCategoryDialog";
-import {
-	getOrCreateAllocation,
-	getAllocationSummary,
-	getTransactionsForMonth,
-	createCategory,
-} from "./actions";
+import { useAllocationSync } from "@/hooks/useAllocationSync";
+import { createCategory } from "./actions";
 import { toast } from "sonner";
+import { AllocationProvider } from "./context/AllocationContext";
 import type {
 	MonthYear,
 	AllocationSummary,
@@ -38,17 +36,32 @@ export function AllocationClient({
 	initialTransactions,
 }: AllocationClientProps) {
 	const router = useRouter();
-	const searchParams = useSearchParams();
 
 	const [currentMonth, setCurrentMonth] = useState<MonthYear>({
 		year: initialYear,
 		month: initialMonth,
 	});
 	const [view, setView] = useState<ViewMode>("overview");
-	const [summary, setSummary] = useState<AllocationSummary | null>(initialSummary);
-	const [transactions, setTransactions] = useState<Transaction[]>(initialTransactions);
-	const [isLoading, setIsLoading] = useState(false);
 	const [addCategoryDialogOpen, setAddCategoryDialogOpen] = useState(false);
+
+	// Use Realtime sync hook with optimistic updates
+	const {
+		summary,
+		transactions,
+		isConnected,
+		isRefetching,
+		optimisticallyAddCategory,
+		optimisticallyUpdateBudget,
+		optimisticallyUpdateName,
+		optimisticallyDeleteCategory,
+		rollback,
+	} = useAllocationSync(
+		initialSummary?.allocation.id || '',
+		currentMonth.year,
+		currentMonth.month,
+		initialSummary,
+		initialTransactions
+	);
 
 	// Handle month changes by navigating to new URL (triggers server-side data fetch)
 	const handleMonthChange = (newMonth: MonthYear) => {
@@ -66,6 +79,13 @@ export function AllocationClient({
 	const handleAddCategorySubmit = async (name: string, budgetCap: number) => {
 		if (!summary) return;
 
+		// Save current state for rollback
+		const previousSummary = summary;
+
+		// 1. Optimistically update UI (instant feedback)
+		const tempId = optimisticallyAddCategory(name, budgetCap);
+
+		// 2. Send to server
 		const newCategory = await createCategory(
 			summary.allocation.id,
 			name,
@@ -74,31 +94,19 @@ export function AllocationClient({
 
 		if (newCategory) {
 			toast.success("Category created");
-			router.refresh(); // Trigger server-side data refetch
+			// Realtime subscription will sync the real data from server
 		} else {
+			// Rollback optimistic update on failure
 			toast.error("Failed to create category");
+			rollback(previousSummary);
 		}
 	};
-
-	if (isLoading) {
-		return (
-			<div className="space-y-6 animate-pulse">
-				<div className="h-10 bg-neutral-200 rounded w-64" />
-				<div className="h-32 bg-neutral-200 rounded" />
-				<div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-4">
-					{[1, 2, 3, 4, 5, 6].map((i) => (
-						<div key={i} className="h-48 bg-neutral-200 rounded" />
-					))}
-				</div>
-			</div>
-		);
-	}
 
 	if (!summary) {
 		return (
 			<div className="text-center py-12">
 				<p className="text-neutral-600">Failed to load allocation data</p>
-				<Button onClick={() => router.refresh()} className="mt-4">
+				<Button onClick={() => window.location.reload()} className="mt-4">
 					Retry
 				</Button>
 			</div>
@@ -109,7 +117,31 @@ export function AllocationClient({
 	const transactionCount = transactions.length;
 
 	return (
-		<div className="max-w-7xl mx-auto w-full">
+		<AllocationProvider
+			value={{
+				optimisticallyUpdateBudget,
+				optimisticallyUpdateName,
+				optimisticallyDeleteCategory,
+				rollback,
+			}}
+		>
+			<div className="max-w-7xl mx-auto w-full relative">
+				{/* Connection Status Indicators */}
+				{!isConnected && (
+					<Badge variant="destructive" className="absolute top-0 right-0 z-10 gap-1.5">
+						<WifiOff className="h-3 w-3" />
+						Offline
+					</Badge>
+				)}
+				{isRefetching && isConnected && (
+					<div className="absolute top-0 right-0 z-10">
+						<Badge variant="secondary" className="gap-1.5">
+							<Loader2 className="h-3 w-3 animate-spin" />
+							Syncing...
+						</Badge>
+					</div>
+				)}
+
 			{/* Header */}
 			<div className="flex items-center justify-between mb-6">
 				<MonthSelector
@@ -205,5 +237,6 @@ export function AllocationClient({
 				unallocatedFunds={summary?.summary.unallocated_funds || 0}
 			/>
 		</div>
+		</AllocationProvider>
 	);
 }

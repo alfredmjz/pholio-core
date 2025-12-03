@@ -194,7 +194,6 @@ export function SideBarComponent({ userProfile }: SideBarComponentProps) {
 					{isCollapsed ? <ChevronRight className="w-4 h-4" /> : <ChevronLeft className="w-4 h-4" />}
 				</button>
 			</div>
-
 			<div className={cn('w-full', isCollapsed && 'hidden')}>
 				<NavigationMenu
 					ref={contentRef}
@@ -229,21 +228,22 @@ export function SideBarComponent({ userProfile }: SideBarComponentProps) {
 							</NavigationMenuContent>
 						</NavigationMenuItem>
 
-						<NavigationMenuItem>
-							<Link href="/allocations" legacyBehavior passHref>
-								<NavigationMenuLink className={navigationMenuTriggerStyle()}>
-									Allocations
-								</NavigationMenuLink>
-							</Link>
-						</NavigationMenuItem>
+						<NavigationMenuItem className="flex flex-col gap-2 w-full">
+							<NavigationMenuLink asChild>
+								<Link href="/" className={navigationMenuTriggerStyle()} onClick={(e) => e.stopPropagation()}>
+									Dashboard
+								</Link>
+							</NavigationMenuLink>
 
-						<NavigationMenuItem>
-							<NavigationMenuLink className={navigationMenuTriggerStyle()}>Documentation</NavigationMenuLink>
+							<NavigationMenuLink asChild>
+								<Link href="/allocations" className={navigationMenuTriggerStyle()} onClick={(e) => e.stopPropagation()}>
+									Allocations
+								</Link>
+							</NavigationMenuLink>
 						</NavigationMenuItem>
 					</NavigationMenuList>
 				</NavigationMenu>
 			</div>
-
 			{!isCollapsed && (
 				<div
 					className="absolute top-0 right-0 w-1 h-full cursor-col-resize bg-secondary-highlight hover:bg-secondary-muted transition-colors"

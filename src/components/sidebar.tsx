@@ -230,6 +230,14 @@ export function SideBarComponent({ userProfile }: SideBarComponentProps) {
 						</NavigationMenuItem>
 
 						<NavigationMenuItem>
+							<Link href="/allocations" legacyBehavior passHref>
+								<NavigationMenuLink className={navigationMenuTriggerStyle()}>
+									Allocations
+								</NavigationMenuLink>
+							</Link>
+						</NavigationMenuItem>
+
+						<NavigationMenuItem>
 							<NavigationMenuLink className={navigationMenuTriggerStyle()}>Documentation</NavigationMenuLink>
 						</NavigationMenuItem>
 					</NavigationMenuList>

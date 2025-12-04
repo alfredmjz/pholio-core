@@ -1,7 +1,14 @@
 "use client";
 
+import { useState } from "react";
 import { Button } from "@/components/ui/button";
-import { ChevronLeft, ChevronRight } from "lucide-react";
+import { Calendar } from "@/components/ui/calendar";
+import {
+	Popover,
+	PopoverContent,
+	PopoverTrigger,
+} from "@/components/ui/popover";
+import { ChevronLeft, ChevronRight, CalendarIcon } from "lucide-react";
 import type { MonthYear } from "../types";
 
 interface MonthSelectorProps {
@@ -25,6 +32,8 @@ const MONTH_NAMES = [
 ];
 
 export function MonthSelector({ currentMonth, onMonthChange }: MonthSelectorProps) {
+	const [isCalendarOpen, setIsCalendarOpen] = useState(false);
+
 	const handlePrevMonth = () => {
 		if (currentMonth.month === 1) {
 			onMonthChange({ year: currentMonth.year - 1, month: 12 });
@@ -40,6 +49,19 @@ export function MonthSelector({ currentMonth, onMonthChange }: MonthSelectorProp
 			onMonthChange({ year: currentMonth.year, month: currentMonth.month + 1 });
 		}
 	};
+
+	const handleDateSelect = (date: Date | undefined) => {
+		if (date) {
+			onMonthChange({
+				year: date.getFullYear(),
+				month: date.getMonth() + 1,
+			});
+			setIsCalendarOpen(false);
+		}
+	};
+
+	// Create a Date object for the current month
+	const currentDate = new Date(currentMonth.year, currentMonth.month - 1);
 
 	return (
 		<div className="flex items-center gap-4">
@@ -66,6 +88,27 @@ export function MonthSelector({ currentMonth, onMonthChange }: MonthSelectorProp
 			>
 				<ChevronRight className="h-4 w-4" />
 			</Button>
+
+			<Popover open={isCalendarOpen} onOpenChange={setIsCalendarOpen}>
+				<PopoverTrigger asChild>
+					<Button
+						variant="outline"
+						size="icon"
+						className="h-9 w-9"
+						aria-label="Pick a date"
+					>
+						<CalendarIcon className="h-4 w-4" />
+					</Button>
+				</PopoverTrigger>
+				<PopoverContent className="w-auto p-0" align="start">
+					<Calendar
+						mode="single"
+						selected={currentDate}
+						onSelect={handleDateSelect}
+						defaultMonth={currentDate}
+					/>
+				</PopoverContent>
+			</Popover>
 		</div>
 	);
 }

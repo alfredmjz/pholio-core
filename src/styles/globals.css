@@ -6,49 +6,71 @@
 
 @layer base {
 	:root {
-		--background: #1a1a1a;
+		/* Light theme (default) */
+		--background: #ffffff;
+		--foreground: #0a0a0a;
 
-		--primary: #242424;
-		--primary-highlight: #2e2e2e;
-		--primary-muted: #383838;
+		--primary: #f9fafb;
+		--primary-highlight: #f3f4f6;
+		--primary-muted: #e5e7eb;
 
-		--secondary: #2b2b2b;
-		--secondary-highlight: #353535;
-		--secondary-muted: #9b9b9b;
+		--secondary: #f3f4f6;
+		--secondary-highlight: #e5e7eb;
+		--secondary-muted: #6b7280;
 
-		--accent: #f6f6f6;
-		--constructive: #2ca04b;
-		--constructive-muted: #1f7a36;
-		--warning: #ffff00;
-		--warning-muted: #f59e0b;
-		--destructive: #e14646;
-		--destructive-muted: #a83232;
+		--accent: #111827;
+		--constructive: #10b981;
+		--constructive-muted: #059669;
+		--warning: #f59e0b;
+		--warning-muted: #d97706;
+		--destructive: #ef4444;
+		--destructive-muted: #dc2626;
 		--informational: #3b82f6;
-		--informational-muted: #1e3a8a;
+		--informational-muted: #2563eb;
 
-		--text-primary: #d9d9d9;
-		--text-secondary: #9c9c9ce5;
-		--text-secondary-highlight: #f6f6f6e5;
-		--ring: #a6b3c8;
+		--text-primary: #111827;
+		--text-secondary: #6b7280;
+		--text-secondary-highlight: #374151;
+		--ring: #3b82f6;
 		--radius: 0.5rem;
+
+		--border: #e5e7eb;
+		--card: #ffffff;
+		--card-foreground: #0a0a0a;
 	}
 
-	/* .light {
-		--primary: 36 36 36;
-		--primary-highlight: 46 46 46;
-		--primary-muted: 56 56 56;
+	.dark {
+		/* Dark theme */
+		--background: #0a0a0a;
+		--foreground: #f9fafb;
 
-		--secondary: 43 43 43;
-		--secondary-highlight: 53 53 53;
-		--secondary-muted: 155 155 155;
+		--primary: #1f2937;
+		--primary-highlight: #374151;
+		--primary-muted: #4b5563;
 
-		--accent: 246 246 246;
-		--constructive: 44 160 75;
-		--destructive: 255 70 70;
+		--secondary: #111827;
+		--secondary-highlight: #1f2937;
+		--secondary-muted: #9ca3af;
 
-		--ring: 215 20.2% 65.1%;
-		--radius: 0.5rem;
-	} */
+		--accent: #f9fafb;
+		--constructive: #10b981;
+		--constructive-muted: #059669;
+		--warning: #fbbf24;
+		--warning-muted: #f59e0b;
+		--destructive: #ef4444;
+		--destructive-muted: #dc2626;
+		--informational: #60a5fa;
+		--informational-muted: #3b82f6;
+
+		--text-primary: #f9fafb;
+		--text-secondary: #9ca3af;
+		--text-secondary-highlight: #d1d5db;
+		--ring: #3b82f6;
+
+		--border: #374151;
+		--card: #111827;
+		--card-foreground: #f9fafb;
+	}
 }
 
 @layer base {

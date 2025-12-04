@@ -8,6 +8,12 @@ const config: Config = {
 			colors: {
 				ring: 'var(--ring)',
 				background: 'var(--background)',
+				foreground: 'var(--foreground)',
+				border: 'var(--border)',
+				card: {
+					DEFAULT: 'var(--card)',
+					foreground: 'var(--card-foreground)',
+				},
 				primary: {
 					DEFAULT: 'var(--primary)',
 					highlight: 'var(--primary-highlight)',

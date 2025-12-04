@@ -131,7 +131,7 @@ export function AllocationClient({
 				)}
 
 				{/* Sticky Header */}
-				<div className="sticky top-0 z-20 bg-white pb-6 -mt-8 pt-8 mb-4">
+				<div className="sticky top-0 z-20 bg-background pb-6 -mt-8 pt-8 mb-4">
 					<div className="flex items-center justify-between">
 						<MonthSelector currentMonth={currentMonth} onMonthChange={handleMonthChange} />
 
@@ -154,15 +154,15 @@ export function AllocationClient({
 				{/* Tabs */}
 				<Tabs value={view} onValueChange={(v) => setView(v as ViewMode)} className="w-full">
 					{/* View Toggle - Sticky */}
-					<div className="sticky top-[72px] z-10 bg-white pb-6">
+					<div className="sticky top-[72px] z-10 bg-background pb-6">
 						<TabsList>
 							<TabsTrigger value="overview" className="gap-2">
 								<LayoutGrid className="h-4 w-4" />
-								Board
+								Allocations
 							</TabsTrigger>
 							<TabsTrigger value="transactions" className="gap-2">
 								<Table2 className="h-4 w-4" />
-								Table ({transactionCount})
+								Transactions
 							</TabsTrigger>
 						</TabsList>
 					</div>

@@ -11,7 +11,7 @@ import {
 	SelectTrigger,
 	SelectValue,
 } from "@/components/ui/select";
-import { Search, ArrowUpDown } from "lucide-react";
+import { Search, ArrowUpDown, Plus } from "lucide-react";
 import type { Transaction, AllocationCategory } from "../types";
 
 interface TransactionsTableProps {
@@ -21,6 +21,32 @@ interface TransactionsTableProps {
 
 type SortField = "name" | "amount" | "date" | "category";
 type SortDirection = "asc" | "desc";
+
+// Helper function to generate consistent color for each category based on hash
+function getCategoryBadgeColor(categoryName: string): string {
+	// Simple hash function to get consistent index from category name
+	let hash = 0;
+	for (let i = 0; i < categoryName.length; i++) {
+		hash = categoryName.charCodeAt(i) + ((hash << 5) - hash);
+	}
+
+	const colors = [
+		"bg-green-100 text-green-800 dark:bg-green-900/30 dark:text-green-400",
+		"bg-blue-100 text-blue-800 dark:bg-blue-900/30 dark:text-blue-400",
+		"bg-purple-100 text-purple-800 dark:bg-purple-900/30 dark:text-purple-400",
+		"bg-red-100 text-red-800 dark:bg-red-900/30 dark:text-red-400",
+		"bg-yellow-100 text-yellow-800 dark:bg-yellow-900/30 dark:text-yellow-400",
+		"bg-pink-100 text-pink-800 dark:bg-pink-900/30 dark:text-pink-400",
+		"bg-indigo-100 text-indigo-800 dark:bg-indigo-900/30 dark:text-indigo-400",
+		"bg-orange-100 text-orange-800 dark:bg-orange-900/30 dark:text-orange-400",
+		"bg-teal-100 text-teal-800 dark:bg-teal-900/30 dark:text-teal-400",
+		"bg-cyan-100 text-cyan-800 dark:bg-cyan-900/30 dark:text-cyan-400",
+	];
+
+	// Use absolute value of hash to get positive index
+	const index = Math.abs(hash) % colors.length;
+	return colors[index];
+}
 
 export function TransactionsTable({
 	transactions,
@@ -102,59 +128,66 @@ export function TransactionsTable({
 	return (
 		<div className="space-y-4">
 			{/* Filters */}
-			<div className="flex items-center gap-3">
-				<div className="relative flex-1 max-w-sm">
-					<Search className="absolute left-3 top-1/2 -translate-y-1/2 h-4 w-4 text-neutral-400" />
-					<Input
-						type="text"
-						placeholder="Search transactions..."
-						value={searchQuery}
-						onChange={(e) => setSearchQuery(e.target.value)}
-						className="pl-9"
-					/>
+			<div className="flex items-center justify-between gap-3">
+				<div className="flex items-center gap-3 flex-1">
+					<div className="relative flex-1 max-w-md">
+						<Search className="absolute left-3 top-1/2 -translate-y-1/2 h-4 w-4 text-gray-400" />
+						<Input
+							type="text"
+							placeholder="Search..."
+							value={searchQuery}
+							onChange={(e) => setSearchQuery(e.target.value)}
+							className="pl-9 bg-card border-gray-200"
+						/>
+					</div>
+
+					<Select value={categoryFilter} onValueChange={setCategoryFilter}>
+						<SelectTrigger className="w-48 bg-card border-gray-200">
+							<SelectValue placeholder="All Categories" />
+						</SelectTrigger>
+						<SelectContent>
+							<SelectItem value="all">All Categories</SelectItem>
+							{categories.map((cat) => (
+								<SelectItem key={cat.id} value={cat.id}>
+									{cat.name}
+								</SelectItem>
+							))}
+						</SelectContent>
+					</Select>
 				</div>
 
-				<Select value={categoryFilter} onValueChange={setCategoryFilter}>
-					<SelectTrigger className="w-48">
-						<SelectValue placeholder="All Categories" />
-					</SelectTrigger>
-					<SelectContent>
-						<SelectItem value="all">All Categories</SelectItem>
-						{categories.map((cat) => (
-							<SelectItem key={cat.id} value={cat.id}>
-								{cat.name}
-							</SelectItem>
-						))}
-					</SelectContent>
-				</Select>
+				<Button className="gap-2 bg-gray-900 hover:bg-gray-800 text-white dark:bg-gray-100 dark:hover:bg-gray-200 dark:text-gray-900">
+					<Plus className="h-4 w-4" />
+					New
+				</Button>
 			</div>
 
 			{/* Table */}
-			<div className="border border-neutral-200 rounded-lg overflow-hidden">
+			<div className="border border-gray-200 dark:border-gray-700 rounded-lg overflow-hidden bg-card">
 				<div className="overflow-x-auto">
 					<table className="w-full">
-						<thead className="bg-neutral-100 border-b border-neutral-200">
+						<thead className="bg-gray-50 dark:bg-gray-800/50 border-b border-gray-200 dark:border-gray-700">
 							<tr>
-								<th className="px-4 py-3 text-left text-xs font-semibold text-neutral-700 uppercase tracking-wider">
+								<th className="px-6 py-3 text-left text-xs font-semibold text-gray-600 dark:text-gray-400 uppercase tracking-wider">
+									<SortButton field="date">Date</SortButton>
+								</th>
+								<th className="px-6 py-3 text-left text-xs font-semibold text-gray-600 dark:text-gray-400 uppercase tracking-wider">
 									<SortButton field="name">Name</SortButton>
 								</th>
-								<th className="px-4 py-3 text-right text-xs font-semibold text-neutral-700 uppercase tracking-wider">
-									<SortButton field="amount">Amount</SortButton>
-								</th>
-								<th className="px-4 py-3 text-left text-xs font-semibold text-neutral-700 uppercase tracking-wider">
+								<th className="px-6 py-3 text-left text-xs font-semibold text-gray-600 dark:text-gray-400 uppercase tracking-wider">
 									<SortButton field="category">Category</SortButton>
 								</th>
-								<th className="px-4 py-3 text-right text-xs font-semibold text-neutral-700 uppercase tracking-wider">
-									<SortButton field="date">Date</SortButton>
+								<th className="px-6 py-3 text-right text-xs font-semibold text-gray-600 dark:text-gray-400 uppercase tracking-wider">
+									<SortButton field="amount">Amount</SortButton>
 								</th>
 							</tr>
 						</thead>
-						<tbody className="divide-y divide-neutral-200 bg-white">
+						<tbody className="divide-y divide-gray-200 dark:divide-gray-700 bg-card">
 							{filteredTransactions.length === 0 ? (
 								<tr>
 									<td
 										colSpan={4}
-										className="px-4 py-12 text-center text-neutral-500"
+										className="px-6 py-12 text-center text-gray-500"
 									>
 										{searchQuery || categoryFilter !== "all"
 											? "No transactions match your filters"
@@ -165,54 +198,42 @@ export function TransactionsTable({
 								filteredTransactions.map((transaction) => (
 									<tr
 										key={transaction.id}
-										className="hover:bg-neutral-50 transition-colors"
+										className="hover:bg-gray-50 dark:hover:bg-gray-800/30 transition-colors"
 									>
-										<td className="px-4 py-3">
-											<div className="text-sm font-medium text-neutral-900">
-												{transaction.name}
-											</div>
-											{transaction.source !== "manual" && (
-												<div className="text-xs text-neutral-500 mt-0.5">
-													{transaction.source}
-												</div>
-											)}
-										</td>
-										<td className="px-4 py-3 text-right">
-											<span
-												className={`text-sm font-semibold ${
-													transaction.amount > 0
-														? "text-green-600"
-														: "text-red-600"
-												}`}
-											>
-												{transaction.amount > 0 ? "+" : ""}$
-												{Math.abs(transaction.amount).toFixed(2)}
-											</span>
-										</td>
-										<td className="px-4 py-3">
-											{transaction.category_name ? (
-												<Badge
-													variant="outline"
-													className="bg-neutral-900 text-white border-neutral-900"
-												>
-													{transaction.category_name}
-												</Badge>
-											) : (
-												<span className="text-xs text-neutral-400">
-													Uncategorized
-												</span>
-											)}
-										</td>
-										<td className="px-4 py-3 text-right">
-											<span className="text-sm text-neutral-600">
+										<td className="px-6 py-4 whitespace-nowrap">
+											<span className="text-sm text-gray-900 dark:text-gray-100">
 												{new Date(transaction.transaction_date).toLocaleDateString(
 													"en-US",
 													{
 														year: "numeric",
-														month: "short",
-														day: "numeric",
+														month: "2-digit",
+														day: "2-digit",
 													}
 												)}
+											</span>
+										</td>
+										<td className="px-6 py-4">
+											<div className="text-sm font-medium text-gray-900 dark:text-gray-100">
+												{transaction.name}
+											</div>
+										</td>
+										<td className="px-6 py-4">
+											{transaction.category_name ? (
+												<Badge
+													variant="secondary"
+													className={getCategoryBadgeColor(transaction.category_name)}
+												>
+													{transaction.category_name}
+												</Badge>
+											) : (
+												<span className="text-xs text-gray-400">
+													Uncategorized
+												</span>
+											)}
+										</td>
+										<td className="px-6 py-4 text-right whitespace-nowrap">
+											<span className="text-sm font-semibold text-gray-900 dark:text-gray-100">
+												${Math.abs(transaction.amount).toFixed(2)}
 											</span>
 										</td>
 									</tr>
@@ -225,7 +246,7 @@ export function TransactionsTable({
 
 			{/* Count */}
 			{filteredTransactions.length > 0 && (
-				<div className="text-xs text-neutral-500 text-right">
+				<div className="text-xs text-gray-500 dark:text-gray-400 text-right">
 					Showing {filteredTransactions.length} of {transactions.length}{" "}
 					{transactions.length === 1 ? "transaction" : "transactions"}
 				</div>

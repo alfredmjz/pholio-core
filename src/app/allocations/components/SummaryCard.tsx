@@ -1,6 +1,7 @@
 "use client";
 
 import { Card } from "@/components/ui/card";
+import { FileText, TrendingDown, Clock } from "lucide-react";
 import type { AllocationSummary } from "../types";
 
 interface SummaryCardProps {
@@ -13,77 +14,50 @@ export function SummaryCard({ summary, expectedIncome }: SummaryCardProps) {
 		total_budget_caps,
 		total_actual_spend,
 		unallocated_funds,
-		overall_utilization,
 	} = summary;
 
+	const remaining = total_budget_caps - total_actual_spend;
+
 	return (
-		<Card className="p-6 border-2 border-neutral-900 bg-neutral-50 shadow-lg mb-6">
-			<div className="grid grid-cols-2 lg:grid-cols-4 gap-6">
-				{/* Unallocated Funds */}
-				<div>
-					<div className="text-xs uppercase tracking-wide text-neutral-600 font-medium mb-1">
-						Unallocated
-					</div>
-					<div className="text-3xl font-bold text-blue-600">
-						${unallocated_funds.toFixed(0)}
-					</div>
-					<div className="text-xs text-neutral-500 mt-0.5">
-						from ${expectedIncome.toFixed(0)} income
+		<div className="grid grid-cols-1 md:grid-cols-3 gap-4 mb-6">
+			{/* Total Budget */}
+			<Card className="p-6 border border-gray-200 bg-card hover:shadow-md transition-shadow">
+				<div className="flex items-start justify-between mb-2">
+					<div className="flex items-center gap-2 text-sm font-medium text-gray-600 uppercase tracking-wide">
+						<FileText className="h-4 w-4" />
+						Total Budget
 					</div>
 				</div>
+				<div className="text-3xl font-bold text-foreground">
+					${total_budget_caps.toFixed(2)}
+				</div>
+			</Card>
 
-				{/* Budget Cap */}
-				<div>
-					<div className="text-xs uppercase tracking-wide text-neutral-600 font-medium mb-1">
-						Budget Cap
+			{/* Total Spent */}
+			<Card className="p-6 border border-gray-200 bg-card hover:shadow-md transition-shadow">
+				<div className="flex items-start justify-between mb-2">
+					<div className="flex items-center gap-2 text-sm font-medium text-gray-600 uppercase tracking-wide">
+						<TrendingDown className="h-4 w-4" />
+						Total Spent
 					</div>
-					<div className="text-3xl font-bold text-neutral-900">
-						${total_budget_caps.toFixed(0)}
-					</div>
-					<div className="text-xs text-neutral-500 mt-0.5">total allocated</div>
 				</div>
+				<div className="text-3xl font-bold text-foreground">
+					${total_actual_spend.toFixed(2)}
+				</div>
+			</Card>
 
-				{/* Actual Spend */}
-				<div>
-					<div className="text-xs uppercase tracking-wide text-neutral-600 font-medium mb-1">
-						Actual Spend
-					</div>
-					<div className="text-3xl font-bold text-red-600">
-						${total_actual_spend.toFixed(0)}
-					</div>
-					<div className="text-xs text-neutral-500 mt-0.5">
-						{total_budget_caps > 0
-							? `${((total_actual_spend / total_budget_caps) * 100).toFixed(0)}% of budget`
-							: "no budget set"}
+			{/* Remaining */}
+			<Card className="p-6 border-2 border-gray-900 dark:border-gray-100 bg-card hover:shadow-md transition-shadow">
+				<div className="flex items-start justify-between mb-2">
+					<div className="flex items-center gap-2 text-sm font-medium text-gray-600 uppercase tracking-wide">
+						<Clock className="h-4 w-4" />
+						Remaining
 					</div>
 				</div>
-
-				{/* Utilization */}
-				<div>
-					<div className="text-xs uppercase tracking-wide text-neutral-600 font-medium mb-1">
-						Utilization
-					</div>
-					<div className="flex items-end gap-3">
-						<div className="text-3xl font-bold text-neutral-900">
-							{overall_utilization.toFixed(0)}%
-						</div>
-						<div className="mb-1.5 flex-1">
-							<div className="h-2 bg-neutral-300 rounded-full overflow-hidden">
-								<div
-									className={`h-full transition-all duration-300 rounded-full ${
-										overall_utilization <= 80
-											? "bg-green-500"
-											: overall_utilization <= 100
-											? "bg-yellow-500"
-											: "bg-red-500"
-									}`}
-									style={{ width: `${Math.min(overall_utilization, 100)}%` }}
-								/>
-							</div>
-						</div>
-					</div>
+				<div className="text-3xl font-bold text-foreground">
+					${remaining.toFixed(2)}
 				</div>
-			</div>
-		</Card>
+			</Card>
+		</div>
 	);
 }

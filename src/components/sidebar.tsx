@@ -13,6 +13,7 @@ import {
 	NavigationMenuTrigger,
 	navigationMenuTriggerStyle,
 } from '@/components/ui/navigation-menu';
+import { ThemeToggle } from '@/components/theme-toggle';
 
 import type { UserProfile } from '@/lib/getUserProfile';
 import { signOut } from '@/app/(auth-pages)/login/actions';
@@ -194,10 +195,10 @@ export function SideBarComponent({ userProfile }: SideBarComponentProps) {
 					{isCollapsed ? <ChevronRight className="w-4 h-4" /> : <ChevronLeft className="w-4 h-4" />}
 				</button>
 			</div>
-			<div className={cn('w-full', isCollapsed && 'hidden')}>
+			<div className={cn('w-full flex flex-1 flex-col', isCollapsed && 'hidden')}>
 				<NavigationMenu
 					ref={contentRef}
-					className="w-full h-full"
+					className="w-full flex-1"
 					orientation="vertical"
 					value={openMenuItem}
 					onValueChange={setOpenMenuItem}
@@ -239,6 +240,11 @@ export function SideBarComponent({ userProfile }: SideBarComponentProps) {
 						</NavigationMenuItem>
 					</NavigationMenuList>
 				</NavigationMenu>
+
+				{/* Theme Toggle at bottom */}
+				<div className="px-4 py-4 mt-auto border-t border-secondary-highlight">
+					<ThemeToggle />
+				</div>
 			</div>
 			{!isCollapsed && (
 				<div

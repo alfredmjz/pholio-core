@@ -833,6 +833,62 @@ try {
 
 ### Database Best Practices
 
+#### Query Parallelization
+
+**CRITICAL: Always parallelize independent queries using Promise.all()**
+
+Parallel queries provide significant performance improvements with minimal risk when done correctly.
+
+**When to Parallelize:**
+
+✅ **SAFE - Parallelize these:**
+
+- Multiple READ operations with no dependencies
+- Queries on different tables
+- Independent data fetches (e.g., user profile + user posts)
+- GET requests to different APIs
+
+❌ **NEVER parallelize these:**
+
+- Queries with data dependencies (second needs first's result)
+- Write operations that must be ordered (insert user → insert profile)
+- Operations requiring database transactions
+- Mutations where order matters
+
+**Examples:**
+
+```typescript
+// ✅ GOOD: Parallelize independent reads
+const [summary, transactions] = await Promise.all([
+	getAllocationSummary(allocationId), // Independent query
+	getTransactionsForMonth(year, month), // Independent query
+]);
+// Result: 50% faster (700ms vs 1400ms)
+
+// ✅ GOOD: Parallelize API calls
+const [user, posts, comments] = await Promise.all([fetchUser(id), fetchPosts(id), fetchComments(id)]);
+
+// ❌ BAD: Sequential when could be parallel
+const summary = await getAllocationSummary(allocationId); // Wait 700ms
+const transactions = await getTransactionsForMonth(year, month); // Wait 400ms
+// Total: 1100ms (wasted 400ms)
+
+// ❌ BAD: Parallelizing dependent queries
+const [user, profile] = await Promise.all([
+	supabase.auth.getUser(), // Need this first
+	supabase.from('users').select('*').eq('id', user.id), // ❌ user.id doesn't exist yet!
+]);
+
+// ❌ BAD: Parallelizing write operations with order dependency
+await Promise.all([
+	createUser(data), // Must happen first
+	createProfile(userId), // ❌ Needs user to exist
+]);
+```
+
+**Rule of Thumb:**
+If two queries don't need each other's results, run them in parallel.
+
 #### RLS Policies
 
 ```sql

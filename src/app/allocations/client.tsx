@@ -1,26 +1,21 @@
-"use client";
+'use client';
 
-import { useState } from "react";
-import { useRouter } from "next/navigation";
-import { Button } from "@/components/ui/button";
-import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
-import { Badge } from "@/components/ui/badge";
-import { Sparkles, Plus, WifiOff, Loader2 } from "lucide-react";
-import { MonthSelector } from "./components/MonthSelector";
-import { SummaryCard } from "./components/SummaryCard";
-import { CategoryCard } from "./components/CategoryCard";
-import { TransactionsTable } from "./components/TransactionsTable";
-import { AddCategoryDialog } from "./components/AddCategoryDialog";
-import { useAllocationSync } from "@/hooks/useAllocationSync";
-import { createCategory } from "./actions";
-import { toast } from "sonner";
-import { AllocationProvider } from "./context/AllocationContext";
-import type {
-	MonthYear,
-	AllocationSummary,
-	Transaction,
-	ViewMode,
-} from "./types";
+import { useState } from 'react';
+import { useRouter } from 'next/navigation';
+import { Button } from '@/components/ui/button';
+import { Tabs, TabsContent, TabsList, TabsTrigger } from '@/components/ui/tabs';
+import { Badge } from '@/components/ui/badge';
+import { Sparkles, Plus, WifiOff, Loader2, LayoutGrid, Table2 } from 'lucide-react';
+import { MonthSelector } from './components/MonthSelector';
+import { SummaryCard } from './components/SummaryCard';
+import { CategoryCard } from './components/CategoryCard';
+import { TransactionsTable } from './components/TransactionsTable';
+import { AddCategoryDialog } from './components/AddCategoryDialog';
+import { useAllocationSync } from '@/hooks/useAllocationSync';
+import { createCategory } from './actions';
+import { toast } from 'sonner';
+import { AllocationProvider } from './context/AllocationContext';
+import type { MonthYear, AllocationSummary, Transaction, ViewMode } from './types';
 
 interface AllocationClientProps {
 	initialYear: number;
@@ -41,7 +36,7 @@ export function AllocationClient({
 		year: initialYear,
 		month: initialMonth,
 	});
-	const [view, setView] = useState<ViewMode>("overview");
+	const [view, setView] = useState<ViewMode>('overview');
 	const [addCategoryDialogOpen, setAddCategoryDialogOpen] = useState(false);
 
 	// Use Realtime sync hook with optimistic updates
@@ -66,11 +61,8 @@ export function AllocationClient({
 	// Handle month changes by navigating to new URL (triggers server-side data fetch)
 	const handleMonthChange = (newMonth: MonthYear) => {
 		setCurrentMonth(newMonth);
-		router.push(
-			`/allocations?year=${newMonth.year}&month=${newMonth.month}`
-		);
+		router.push(`/allocations?year=${newMonth.year}&month=${newMonth.month}`);
 	};
-
 
 	const handleAddCategory = () => {
 		setAddCategoryDialogOpen(true);
@@ -86,18 +78,14 @@ export function AllocationClient({
 		const tempId = optimisticallyAddCategory(name, budgetCap);
 
 		// 2. Send to server
-		const newCategory = await createCategory(
-			summary.allocation.id,
-			name,
-			budgetCap
-		);
+		const newCategory = await createCategory(summary.allocation.id, name, budgetCap);
 
 		if (newCategory) {
-			toast.success("Category created");
+			toast.success('Category created');
 			// Realtime subscription will sync the real data from server
 		} else {
 			// Rollback optimistic update on failure
-			toast.error("Failed to create category");
+			toast.error('Failed to create category');
 			rollback(previousSummary);
 		}
 	};
@@ -142,101 +130,96 @@ export function AllocationClient({
 					</div>
 				)}
 
-			{/* Header */}
-			<div className="flex items-center justify-between mb-6">
-				<MonthSelector
-					currentMonth={currentMonth}
-					onMonthChange={handleMonthChange}
-				/>
+				{/* Sticky Header */}
+				<div className="sticky top-0 z-20 bg-white pb-6 -mt-8 pt-8 mb-4">
+					<div className="flex items-center justify-between">
+						<MonthSelector currentMonth={currentMonth} onMonthChange={handleMonthChange} />
 
-				<div className="flex items-center gap-3">
-					<Button
-						variant="outline"
-						className="gap-2"
-						onClick={() => toast.info("AI Insights coming soon!")}
-					>
-						<Sparkles className="h-4 w-4" />
-						AI Insights
-					</Button>
-					<Button
-						className="gap-2 bg-red-600 hover:bg-red-700"
-						onClick={() => toast.info("Quick add coming soon!")}
-					>
-						<Plus className="h-4 w-4" />
-						New
-					</Button>
-				</div>
-			</div>
-
-			{/* Tabs */}
-			<Tabs value={view} onValueChange={(v) => setView(v as ViewMode)} className="w-full">
-				<TabsList className="mb-6">
-					<TabsTrigger value="overview">Allocation Overview</TabsTrigger>
-					<TabsTrigger value="transactions">
-						All Transactions ({transactionCount})
-					</TabsTrigger>
-				</TabsList>
-
-				<TabsContent value="overview" className="space-y-6">
-					{/* Summary Card */}
-					<SummaryCard
-						summary={summary.summary}
-						expectedIncome={summary.allocation.expected_income}
-					/>
-
-					{/* Category Cards Grid */}
-					{categories.length === 0 ? (
-						<div className="text-center py-12 border-2 border-dashed border-neutral-300 rounded-lg">
-							<p className="text-neutral-600 mb-4">
-								No categories yet. Add your first category to start tracking your
-								budget.
-							</p>
+						<div className="flex items-center gap-3">
+							<Button variant="outline" className="gap-2" onClick={() => toast.info('AI Insights coming soon!')}>
+								<Sparkles className="h-4 w-4" />
+								AI Insights
+							</Button>
 							<Button
-								onClick={handleAddCategory}
-								className="gap-2"
+								className="gap-2 bg-red-600 hover:bg-red-700"
+								onClick={() => toast.info('Quick add coming soon!')}
 							>
 								<Plus className="h-4 w-4" />
-								Add Category
+								New
 							</Button>
 						</div>
-					) : (
-						<>
-							<div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-4 group">
-								{categories.map((category) => (
-									<CategoryCard
-										key={category.id}
-										category={category}
-										unallocatedFunds={summary.summary.unallocated_funds}
-										totalIncome={summary.allocation.expected_income}
-									/>
-								))}
+					</div>
+				</div>
+
+				{/* Tabs */}
+				<Tabs value={view} onValueChange={(v) => setView(v as ViewMode)} className="w-full">
+					{/* View Toggle - Sticky */}
+					<div className="sticky top-[72px] z-10 bg-white pb-6">
+						<TabsList>
+							<TabsTrigger value="overview" className="gap-2">
+								<LayoutGrid className="h-4 w-4" />
+								Board
+							</TabsTrigger>
+							<TabsTrigger value="transactions" className="gap-2">
+								<Table2 className="h-4 w-4" />
+								Table ({transactionCount})
+							</TabsTrigger>
+						</TabsList>
+					</div>
+
+					<TabsContent value="overview" className="space-y-6">
+						{/* Summary Card */}
+						<SummaryCard summary={summary.summary} expectedIncome={summary.allocation.expected_income} />
+
+						{/* Category Cards Grid */}
+						{categories.length === 0 ? (
+							<div className="text-center py-12 border-2 border-dashed border-neutral-300 rounded-lg">
+								<p className="text-neutral-600 mb-4">
+									No categories yet. Add your first category to start tracking your budget.
+								</p>
+								<Button onClick={handleAddCategory} className="gap-2">
+									<Plus className="h-4 w-4" />
+									Add Category
+								</Button>
 							</div>
+						) : (
+							<>
+								<div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-4 group">
+									{categories.map((category) => (
+										<CategoryCard
+											key={category.id}
+											category={category}
+											unallocatedFunds={summary.summary.unallocated_funds}
+											totalIncome={summary.allocation.expected_income}
+										/>
+									))}
+								</div>
 
-							{/* Add Category Button */}
-							<Button
-								onClick={handleAddCategory}
-								variant="outline"
-								className="w-full border-dashed border-2 h-12 gap-2 hover:bg-neutral-50"
-							>
-								<Plus className="h-4 w-4" />
-								Add Category
-							</Button>
-						</>
-					)}
-				</TabsContent>
+								{/* Add Category Button */}
+								<Button
+									onClick={handleAddCategory}
+									variant="outline"
+									className="w-full border-dashed border-2 h-12 gap-2 hover:bg-neutral-50"
+								>
+									<Plus className="h-4 w-4" />
+									Add Category
+								</Button>
+							</>
+						)}
+					</TabsContent>
 
-				<TabsContent value="transactions">
-					<TransactionsTable transactions={transactions} categories={categories} />
-				</TabsContent>
-			</Tabs>
+					<TabsContent value="transactions">
+						<TransactionsTable transactions={transactions} categories={categories} />
+					</TabsContent>
+				</Tabs>
 
-			<AddCategoryDialog
-				open={addCategoryDialogOpen}
-				onOpenChange={setAddCategoryDialogOpen}
-				onSubmit={handleAddCategorySubmit}
-				unallocatedFunds={summary?.summary.unallocated_funds || 0}
-			/>
-		</div>
+				<AddCategoryDialog
+					open={addCategoryDialogOpen}
+					onOpenChange={setAddCategoryDialogOpen}
+					onSubmit={handleAddCategorySubmit}
+					unallocatedFunds={summary?.summary.unallocated_funds || 0}
+				/>
+			</div>
 		</AllocationProvider>
 	);
 }

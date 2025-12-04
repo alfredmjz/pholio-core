@@ -324,6 +324,7 @@ CREATE OR REPLACE FUNCTION public.get_allocation_summary(
 DECLARE
     result JSON;
 BEGIN
+    -- Authorization check
     IF NOT EXISTS (
         SELECT 1 FROM public.allocations
         WHERE id = p_allocation_id AND user_id = auth.uid()
@@ -331,6 +332,18 @@ BEGIN
         RAISE EXCEPTION 'Allocation not found or unauthorized';
     END IF;
 
+    -- Single aggregation of transactions (used by both categories and summary)
+    -- This CTE eliminates duplicate transaction table scans for optimal performance
+    WITH transaction_spend AS (
+        SELECT
+            category_id,
+            SUM(ABS(amount)) as total_spend,
+            COUNT(*) as transaction_count
+        FROM public.transactions
+        WHERE user_id = auth.uid()
+          AND category_id IS NOT NULL
+        GROUP BY category_id
+    )
     SELECT json_build_object(
         'allocation', (
             SELECT row_to_json(a)
@@ -348,52 +361,39 @@ BEGIN
                     'color', ac.color,
                     'icon', ac.icon,
                     'notes', ac.notes,
-                    'actual_spend', COALESCE(spend.total, 0),
-                    'remaining', ac.budget_cap - COALESCE(spend.total, 0),
+                    'actual_spend', COALESCE(ts.total_spend, 0),
+                    'remaining', ac.budget_cap - COALESCE(ts.total_spend, 0),
                     'utilization_percentage', CASE
                         WHEN ac.budget_cap > 0 THEN
-                            ROUND((COALESCE(spend.total, 0) / ac.budget_cap * 100)::numeric, 2)
+                            ROUND((COALESCE(ts.total_spend, 0) / ac.budget_cap * 100)::numeric, 2)
                         ELSE 0
                     END,
-                    'transaction_count', COALESCE(spend.count, 0)
+                    'transaction_count', COALESCE(ts.transaction_count, 0),
+                    'allocation_id', ac.allocation_id,
+                    'user_id', ac.user_id,
+                    'created_at', ac.created_at,
+                    'updated_at', ac.updated_at
                 )
                 ORDER BY ac.display_order
             )
             FROM public.allocation_categories ac
-            LEFT JOIN (
-                SELECT
-                    category_id,
-                    SUM(ABS(amount)) as total,
-                    COUNT(*) as count
-                FROM public.transactions
-                WHERE user_id = auth.uid()
-                AND category_id IS NOT NULL
-                GROUP BY category_id
-            ) spend ON spend.category_id = ac.id
+            LEFT JOIN transaction_spend ts ON ts.category_id = ac.id
             WHERE ac.allocation_id = p_allocation_id
         ),
         'summary', (
             SELECT json_build_object(
                 'total_budget_caps', COALESCE(SUM(ac.budget_cap), 0),
-                'total_actual_spend', COALESCE(SUM(spend.total), 0),
+                'total_actual_spend', COALESCE(SUM(ts.total_spend), 0),
                 'unallocated_funds', a.expected_income - COALESCE(SUM(ac.budget_cap), 0),
                 'overall_utilization', CASE
                     WHEN COALESCE(SUM(ac.budget_cap), 0) > 0 THEN
-                        ROUND((COALESCE(SUM(spend.total), 0) / SUM(ac.budget_cap) * 100)::numeric, 2)
+                        ROUND((COALESCE(SUM(ts.total_spend), 0) / SUM(ac.budget_cap) * 100)::numeric, 2)
                     ELSE 0
                 END
             )
             FROM public.allocations a
             LEFT JOIN public.allocation_categories ac ON ac.allocation_id = a.id
-            LEFT JOIN (
-                SELECT
-                    category_id,
-                    SUM(ABS(amount)) as total
-                FROM public.transactions
-                WHERE user_id = auth.uid()
-                AND category_id IS NOT NULL
-                GROUP BY category_id
-            ) spend ON spend.category_id = ac.id
+            LEFT JOIN transaction_spend ts ON ts.category_id = ac.id
             WHERE a.id = p_allocation_id
             GROUP BY a.id, a.expected_income
         )
@@ -402,6 +402,25 @@ BEGIN
     RETURN result;
 END;
 $$ LANGUAGE plpgsql SECURITY DEFINER SET search_path = public;
+
+-- =============================================================================
+-- COMPOSITE INDEX FOR TRANSACTION QUERIES
+-- =============================================================================
+-- Optimizes the common query pattern: WHERE user_id = X AND category_id IS NOT NULL
+-- This partial index only includes rows where category_id IS NOT NULL (saves space)
+
+CREATE INDEX IF NOT EXISTS idx_transactions_user_category
+ON transactions(user_id, category_id)
+WHERE category_id IS NOT NULL;
+
+-- =============================================================================
+-- ANALYZE TABLES FOR QUERY PLANNER
+-- =============================================================================
+-- Update statistics so PostgreSQL can make better query planning decisions
+
+ANALYZE transactions;
+ANALYZE allocation_categories;
+ANALYZE allocations;
 
 -- =============================================================================
 -- GRANT PERMISSIONS
@@ -419,3 +438,17 @@ GRANT SELECT ON public.allocation_categories TO anon;
 GRANT SELECT ON public.transactions TO anon;
 GRANT SELECT ON public.allocation_templates TO anon;
 GRANT SELECT ON public.template_categories TO anon;
+
+-- =============================================================================
+-- REALTIME REPLICATION
+-- =============================================================================
+-- Enable Realtime for real-time data synchronization across clients
+
+-- Note: These commands should be run manually via Supabase Dashboard
+-- or executed after the tables are created:
+--
+-- ALTER PUBLICATION supabase_realtime ADD TABLE allocation_categories;
+-- ALTER PUBLICATION supabase_realtime ADD TABLE transactions;
+--
+-- Or via Supabase Dashboard:
+-- Database → Replication → Toggle "Realtime" for allocation_categories and transactions

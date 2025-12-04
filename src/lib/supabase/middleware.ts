@@ -35,17 +35,34 @@ export async function updateSession(request: NextRequest) {
 		data: { user },
 	} = await supabase.auth.getUser();
 
-	if (
-		!user &&
-		!request.nextUrl.pathname.startsWith('/login') &&
-		!request.nextUrl.pathname.startsWith('/auth') &&
-		!request.nextUrl.pathname.startsWith('/error') &&
-		!request.nextUrl.pathname.startsWith('/signup')
-	) {
-		// no user, potentially respond by redirecting the user to the login page
+	// List of public paths that don't require authentication
+	const publicPaths = ['/login', '/auth', '/error', '/signup', '/confirm'];
+	const isPublicPath = publicPaths.some(path => request.nextUrl.pathname.startsWith(path));
+
+	// Check if user is authenticated
+	if (!user && !isPublicPath) {
+		// no user, redirect to login page
 		const url = request.nextUrl.clone();
 		url.pathname = '/login';
 		return NextResponse.redirect(url);
+	}
+
+	// If user exists, verify profile exists in database (except for public paths)
+	if (user && !isPublicPath) {
+		const { data: profile, error: profileError } = await supabase
+			.from('users')
+			.select('id')
+			.eq('id', user.id)
+			.single();
+
+		// If profile doesn't exist, sign out and redirect to login
+		if (profileError || !profile) {
+			console.error('Profile not found for authenticated user, signing out:', profileError);
+			await supabase.auth.signOut();
+			const url = request.nextUrl.clone();
+			url.pathname = '/login';
+			return NextResponse.redirect(url);
+		}
 	}
 
 	// IMPORTANT: You *must* return the supabaseResponse object as it is.

@@ -16,7 +16,7 @@ export function useOptimisticAllocation(initialSummary: AllocationSummary | null
 	 */
 	const optimisticallyAddCategory = useCallback(
 		(name: string, budgetCap: number) => {
-			if (!summary) return null;
+			if (!summary || !summary.categories) return null;
 
 			const tempId = `temp-${Date.now()}`;
 			const newCategory: AllocationCategory = {

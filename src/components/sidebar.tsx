@@ -228,18 +228,14 @@ export function SideBarComponent({ userProfile }: SideBarComponentProps) {
 							</NavigationMenuContent>
 						</NavigationMenuItem>
 
-						<NavigationMenuItem className="flex flex-col gap-2 w-full">
-							<NavigationMenuLink asChild>
-								<Link href="/" className={navigationMenuTriggerStyle()} onClick={(e) => e.stopPropagation()}>
-									Dashboard
-								</Link>
-							</NavigationMenuLink>
+						<NavigationMenuItem value="navigation-links" className="flex flex-col gap-2 w-full">
+							<Link href="/" className={navigationMenuTriggerStyle()}>
+								Dashboard
+							</Link>
 
-							<NavigationMenuLink asChild>
-								<Link href="/allocations" className={navigationMenuTriggerStyle()} onClick={(e) => e.stopPropagation()}>
-									Allocations
-								</Link>
-							</NavigationMenuLink>
+							<Link href="/allocations" className={navigationMenuTriggerStyle()}>
+								Allocations
+							</Link>
 						</NavigationMenuItem>
 					</NavigationMenuList>
 				</NavigationMenu>

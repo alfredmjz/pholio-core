@@ -31,9 +31,9 @@ export function useOptimisticAllocation(initialSummary: AllocationSummary | null
 				transaction_count: 0,
 				is_recurring: false,
 				display_order: summary.categories.length,
-				color: null,
-				icon: null,
-				notes: null,
+				color: undefined,
+				icon: undefined,
+				notes: undefined,
 				created_at: new Date().toISOString(),
 				updated_at: new Date().toISOString(),
 			};
@@ -64,19 +64,25 @@ export function useOptimisticAllocation(initialSummary: AllocationSummary | null
 			const categoryIndex = summary.categories.findIndex((c) => c.id === categoryId);
 			if (categoryIndex === -1) return;
 
-			const oldBudget = summary.categories[categoryIndex].budget_cap;
+			const oldCategory = summary.categories[categoryIndex];
+			if (!oldCategory) return;
+			const oldBudget = oldCategory.budget_cap;
 			const budgetDiff = newBudget - oldBudget;
 
 			const updatedCategories = [...summary.categories];
+			const category = updatedCategories[categoryIndex];
+			if (!category) return;
+
+			const actualSpend = category.actual_spend || 0;
 			updatedCategories[categoryIndex] = {
-				...updatedCategories[categoryIndex],
+				...category,
 				budget_cap: newBudget,
-				remaining: newBudget - updatedCategories[categoryIndex].actual_spend,
+				remaining: newBudget - actualSpend,
 				utilization_percentage:
 					newBudget > 0
 						? Number(
 								(
-									(updatedCategories[categoryIndex].actual_spend / newBudget) *
+									(actualSpend / newBudget) *
 									100
 								).toFixed(2)
 						  )

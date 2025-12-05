@@ -14,23 +14,18 @@ export const metadata: Metadata = {
 
 export default async function RootLayout({ children }: { children: React.ReactNode }) {
 	const sidebar = await SidebarWrapper();
+	const themeScript = `function() {
+		const theme = localStorage.getItem('theme');
+		if (theme === 'dark') {
+			document.documentElement.classList.add('dark');
+		}
+	}`;
 
 	return (
 		<html lang="en" suppressHydrationWarning>
 			<head>
 				<title>Folio</title>
-				<script
-					dangerouslySetInnerHTML={{
-						__html: `
-							(function() {
-								const theme = localStorage.getItem('theme');
-								if (theme === 'dark') {
-									document.documentElement.classList.add('dark');
-								}
-							})();
-						`,
-					}}
-				/>
+				<script dangerouslySetInnerHTML={{ __html: themeScript }} />
 			</head>
 			<body className="w-screen h-screen flex flex-row bg-primary overflow-hidden">
 				<LayoutWrapper sidebar={sidebar}>{children}</LayoutWrapper>

@@ -5,7 +5,7 @@ import { useRouter } from 'next/navigation';
 import { Button } from '@/components/ui/button';
 import { Tabs, TabsContent, TabsList, TabsTrigger } from '@/components/ui/tabs';
 import { Badge } from '@/components/ui/badge';
-import { Sparkles, Plus, WifiOff, Loader2, LayoutGrid, Table2 } from 'lucide-react';
+import { Plus, WifiOff, Loader2, LayoutGrid, Table2 } from 'lucide-react';
 import { MonthSelector } from './components/MonthSelector';
 import { SummaryCard } from './components/SummaryCard';
 import { CategoryCard } from './components/CategoryCard';
@@ -102,7 +102,6 @@ export function AllocationClient({
 	}
 
 	const categories = summary.categories || [];
-	const transactionCount = transactions.length;
 
 	return (
 		<AllocationProvider
@@ -136,10 +135,18 @@ export function AllocationClient({
 						<MonthSelector currentMonth={currentMonth} onMonthChange={handleMonthChange} />
 
 						<div className="flex items-center gap-3">
-							<Button variant="outline" className="gap-2" onClick={() => toast.info('AI Insights coming soon!')}>
-								<Sparkles className="h-4 w-4" />
-								AI Insights
-							</Button>
+							<Tabs value={view} onValueChange={(v) => setView(v as ViewMode)}>
+								<TabsList>
+									<TabsTrigger value="overview" className="gap-2">
+										<LayoutGrid className="h-4 w-4" />
+										Allocations
+									</TabsTrigger>
+									<TabsTrigger value="transactions" className="gap-2">
+										<Table2 className="h-4 w-4" />
+										Transactions
+									</TabsTrigger>
+								</TabsList>
+							</Tabs>
 							<Button
 								className="gap-2 bg-error hover:bg-error/90"
 								onClick={() => toast.info('Quick add coming soon!')}
@@ -151,22 +158,8 @@ export function AllocationClient({
 					</div>
 				</div>
 
-				{/* Tabs */}
+				{/* Tabs Content */}
 				<Tabs value={view} onValueChange={(v) => setView(v as ViewMode)} className="w-full">
-					{/* View Toggle - Sticky */}
-					<div className="sticky top-[72px] z-10 bg-background pb-6">
-						<TabsList>
-							<TabsTrigger value="overview" className="gap-2">
-								<LayoutGrid className="h-4 w-4" />
-								Allocations
-							</TabsTrigger>
-							<TabsTrigger value="transactions" className="gap-2">
-								<Table2 className="h-4 w-4" />
-								Transactions
-							</TabsTrigger>
-						</TabsList>
-					</div>
-
 					<TabsContent value="overview" className="space-y-6">
 						{/* Summary Card */}
 						<SummaryCard summary={summary.summary} expectedIncome={summary.allocation.expected_income} />

@@ -28,7 +28,7 @@ import {
 	TRANSACTION_TYPE_CONFIG,
 	inferTransactionType,
 } from "./TransactionTypeIcon";
-import type { Transaction, AllocationCategory } from "../../types";
+import type { Transaction, AllocationCategory } from "../types";
 
 interface TransactionLedgerProps {
 	transactions: Transaction[];

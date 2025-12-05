@@ -16,9 +16,21 @@ export default async function RootLayout({ children }: { children: React.ReactNo
 	const sidebar = await SidebarWrapper();
 
 	return (
-		<html lang="en">
+		<html lang="en" suppressHydrationWarning>
 			<head>
 				<title>Folio</title>
+				<script
+					dangerouslySetInnerHTML={{
+						__html: `
+							(function() {
+								const theme = localStorage.getItem('theme');
+								if (theme === 'dark') {
+									document.documentElement.classList.add('dark');
+								}
+							})();
+						`,
+					}}
+				/>
 			</head>
 			<body className="w-screen h-screen flex flex-row bg-primary overflow-hidden">
 				<LayoutWrapper sidebar={sidebar}>{children}</LayoutWrapper>

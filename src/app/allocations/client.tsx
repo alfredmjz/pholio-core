@@ -1,21 +1,31 @@
-'use client';
+"use client";
 
-import { useState } from 'react';
-import { useRouter } from 'next/navigation';
-import { Button } from '@/components/ui/button';
-import { Tabs, TabsContent, TabsList, TabsTrigger } from '@/components/ui/tabs';
-import { Badge } from '@/components/ui/badge';
-import { Plus, WifiOff, Loader2, LayoutGrid, Table2 } from 'lucide-react';
-import { MonthSelector } from './components/MonthSelector';
-import { SummaryCard } from './components/SummaryCard';
-import { CategoryCard } from './components/CategoryCard';
-import { TransactionsTable } from './components/TransactionsTable';
-import { AddCategoryDialog } from './components/AddCategoryDialog';
-import { useAllocationSync } from '@/hooks/useAllocationSync';
-import { createCategory } from './actions';
-import { toast } from 'sonner';
-import { AllocationProvider } from './context/AllocationContext';
-import type { MonthYear, AllocationSummary, Transaction, ViewMode } from './types';
+import { useState, useEffect } from "react";
+import { useRouter } from "next/navigation";
+import { Button } from "@/components/ui/button";
+import { Badge } from "@/components/ui/badge";
+import { Card } from "@/components/ui/card";
+import {
+	Plus,
+	WifiOff,
+	Loader2,
+	Settings,
+	Download,
+	FileText,
+} from "lucide-react";
+import { MonthSelector } from "./components/MonthSelector";
+import { AddCategoryDialog } from "./components/AddCategoryDialog";
+import { BudgetSummaryCards } from "./components/BudgetSummaryCards";
+import { CategoryPerformance } from "./components/CategoryPerformance";
+import { AllocationDonutChart } from "./components/AllocationDonutChart";
+import { TransactionLedger } from "./components/TransactionLedger";
+import { TemplateImportDialog } from "./components/TemplateImportDialog";
+import type { TransactionType } from "./components/TransactionTypeIcon";
+import { useAllocationSync } from "@/hooks/useAllocationSync";
+import { createCategory } from "./actions";
+import { toast } from "sonner";
+import { AllocationProvider } from "./context/AllocationContext";
+import type { MonthYear, AllocationSummary, Transaction, ViewMode } from "./types";
 
 interface AllocationClientProps {
 	initialYear: number;
@@ -23,6 +33,21 @@ interface AllocationClientProps {
 	initialSummary: AllocationSummary | null;
 	initialTransactions: Transaction[];
 }
+
+const MONTH_NAMES = [
+	"January",
+	"February",
+	"March",
+	"April",
+	"May",
+	"June",
+	"July",
+	"August",
+	"September",
+	"October",
+	"November",
+	"December",
+];
 
 export function AllocationClient({
 	initialYear,
@@ -36,8 +61,9 @@ export function AllocationClient({
 		year: initialYear,
 		month: initialMonth,
 	});
-	const [view, setView] = useState<ViewMode>('overview');
 	const [addCategoryDialogOpen, setAddCategoryDialogOpen] = useState(false);
+	const [templateDialogOpen, setTemplateDialogOpen] = useState(false);
+	const [typeFilter, setTypeFilter] = useState<TransactionType | null>(null);
 
 	// Use Realtime sync hook with optimistic updates
 	const {
@@ -51,16 +77,30 @@ export function AllocationClient({
 		optimisticallyDeleteCategory,
 		rollback,
 	} = useAllocationSync(
-		initialSummary?.allocation.id || '',
+		initialSummary?.allocation.id || "",
 		currentMonth.year,
 		currentMonth.month,
 		initialSummary,
 		initialTransactions
 	);
 
-	// Handle month changes by navigating to new URL (triggers server-side data fetch)
+	// Show template dialog for new/empty months
+	useEffect(() => {
+		// Only show if we have no summary (truly empty month)
+		// In a real app, this would check if the allocation exists but has no categories
+		if (!summary && !templateDialogOpen) {
+			// Delay to avoid flash on initial load
+			const timer = setTimeout(() => {
+				setTemplateDialogOpen(true);
+			}, 500);
+			return () => clearTimeout(timer);
+		}
+	}, [summary, currentMonth]);
+
+	// Handle month changes by navigating to new URL
 	const handleMonthChange = (newMonth: MonthYear) => {
 		setCurrentMonth(newMonth);
+		setTypeFilter(null); // Reset filters on month change
 		router.push(`/allocations?year=${newMonth.year}&month=${newMonth.month}`);
 	};
 
@@ -71,33 +111,104 @@ export function AllocationClient({
 	const handleAddCategorySubmit = async (name: string, budgetCap: number) => {
 		if (!summary) return;
 
-		// Save current state for rollback
 		const previousSummary = summary;
-
-		// 1. Optimistically update UI (instant feedback)
 		const tempId = optimisticallyAddCategory(name, budgetCap);
 
-		// 2. Send to server
 		const newCategory = await createCategory(summary.allocation.id, name, budgetCap);
 
 		if (newCategory) {
-			toast.success('Category created');
-			// Realtime subscription will sync the real data from server
+			toast.success("Category created");
 		} else {
-			// Rollback optimistic update on failure
-			toast.error('Failed to create category');
+			toast.error("Failed to create category");
 			rollback(previousSummary);
 		}
 	};
 
+	// Template dialog handlers (placeholder implementations)
+	const handleImportPrevious = (expectedIncome: number) => {
+		toast.info("Import from previous month coming soon!");
+		setTemplateDialogOpen(false);
+	};
+
+	const handleUseTemplate = (templateId: string, expectedIncome: number) => {
+		toast.info("Template import coming soon!");
+		setTemplateDialogOpen(false);
+	};
+
+	const handleStartFresh = (expectedIncome: number) => {
+		toast.info("Creating new allocation...");
+		setTemplateDialogOpen(false);
+		// In real implementation, this would create the allocation
+	};
+
+	// Get previous month info for template dialog
+	const getPreviousMonth = () => {
+		const prevMonth = currentMonth.month === 1 ? 12 : currentMonth.month - 1;
+		const prevYear = currentMonth.month === 1 ? currentMonth.year - 1 : currentMonth.year;
+		return {
+			name: MONTH_NAMES[prevMonth - 1],
+			year: prevYear,
+			categoryCount: 5, // Placeholder
+			totalBudget: 3500, // Placeholder
+		};
+	};
+
+	// Error/Empty state
 	if (!summary) {
 		return (
-			<div className="text-center py-12">
-				<p className="text-muted-foreground">Failed to load allocation data</p>
-				<Button onClick={() => window.location.reload()} className="mt-4">
-					Retry
-				</Button>
-			</div>
+			<AllocationProvider
+				value={{
+					optimisticallyUpdateBudget,
+					optimisticallyUpdateName,
+					optimisticallyDeleteCategory,
+					rollback,
+				}}
+			>
+				<div className="max-w-7xl mx-auto w-full relative">
+					{/* Header */}
+					<div className="sticky top-0 z-20 bg-background pb-6 -mt-8 pt-8 mb-4">
+						<div className="flex items-center justify-between">
+							<MonthSelector currentMonth={currentMonth} onMonthChange={handleMonthChange} />
+							<div className="flex items-center gap-2">
+								<Button variant="outline" size="sm" className="gap-2">
+									<Settings className="h-4 w-4" />
+								</Button>
+							</div>
+						</div>
+					</div>
+
+					{/* Empty State */}
+					<Card className="p-12 text-center">
+						<div className="max-w-md mx-auto">
+							<div className="w-20 h-20 rounded-full bg-muted flex items-center justify-center mx-auto mb-6">
+								<FileText className="h-10 w-10 text-muted-foreground" />
+							</div>
+							<h2 className="text-2xl font-bold text-foreground mb-2">
+								No Budget for {MONTH_NAMES[currentMonth.month - 1]} {currentMonth.year}
+							</h2>
+							<p className="text-muted-foreground mb-6">
+								Set up your budget for this month to start tracking your spending.
+							</p>
+							<Button onClick={() => setTemplateDialogOpen(true)} className="gap-2">
+								<Plus className="h-4 w-4" />
+								Set Up Budget
+							</Button>
+						</div>
+					</Card>
+
+					<TemplateImportDialog
+						open={templateDialogOpen}
+						onOpenChange={setTemplateDialogOpen}
+						monthName={MONTH_NAMES[currentMonth.month - 1]}
+						year={currentMonth.year}
+						previousMonth={getPreviousMonth()}
+						templates={[]}
+						onImportPrevious={handleImportPrevious}
+						onUseTemplate={handleUseTemplate}
+						onStartFresh={handleStartFresh}
+					/>
+				</div>
+			</AllocationProvider>
 		);
 	}
 
@@ -134,83 +245,87 @@ export function AllocationClient({
 					<div className="flex items-center justify-between">
 						<MonthSelector currentMonth={currentMonth} onMonthChange={handleMonthChange} />
 
-						<div className="flex items-center gap-3">
-							<Tabs value={view} onValueChange={(v) => setView(v as ViewMode)}>
-								<TabsList>
-									<TabsTrigger value="overview" className="gap-2">
-										<LayoutGrid className="h-4 w-4" />
-										Allocations
-									</TabsTrigger>
-									<TabsTrigger value="transactions" className="gap-2">
-										<Table2 className="h-4 w-4" />
-										Transactions
-									</TabsTrigger>
-								</TabsList>
-							</Tabs>
+						<div className="flex items-center gap-2">
 							<Button
-								className="gap-2 bg-error hover:bg-error/90"
-								onClick={() => toast.info('Quick add coming soon!')}
+								variant="outline"
+								size="sm"
+								className="gap-2"
+								onClick={() => toast.info("Export coming soon!")}
+							>
+								<Download className="h-4 w-4" />
+								Export
+							</Button>
+							<Button
+								variant="outline"
+								size="sm"
+								className="gap-2"
+								onClick={() => toast.info("Settings coming soon!")}
+							>
+								<Settings className="h-4 w-4" />
+							</Button>
+							<Button
+								className="gap-2 bg-primary hover:bg-primary/90"
+								onClick={() => toast.info("Quick add coming soon!")}
 							>
 								<Plus className="h-4 w-4" />
-								New
+								Add Transaction
 							</Button>
 						</div>
 					</div>
 				</div>
 
-				{/* Tabs Content */}
-				<Tabs value={view} onValueChange={(v) => setView(v as ViewMode)} className="w-full">
-					<TabsContent value="overview" className="space-y-6">
-						{/* Summary Card */}
-						<SummaryCard summary={summary.summary} expectedIncome={summary.allocation.expected_income} />
+				{/* Main Content */}
+				<div className="space-y-6">
+					{/* Top Row: Left (Summary Cards + Category Performance) | Right (Allocation Donut) */}
+					<div className="grid grid-cols-1 lg:grid-cols-4 gap-6">
+						{/* Left Column: Summary Cards + Category Performance - 3/4 width */}
+						<div className="lg:col-span-3 space-y-6">
+							{/* Budget Summary Cards */}
+							<BudgetSummaryCards
+								totalBudget={summary.summary.total_budget_caps}
+								totalSpent={summary.summary.total_actual_spend}
+							/>
 
-						{/* Category Cards Grid */}
-						{categories.length === 0 ? (
-							<div className="text-center py-12 border-2 border-dashed border-border rounded-lg">
-								<p className="text-muted-foreground mb-4">
-									No categories yet. Add your first category to start tracking your budget.
-								</p>
-								<Button onClick={handleAddCategory} className="gap-2">
-									<Plus className="h-4 w-4" />
-									Add Category
-								</Button>
-							</div>
-						) : (
-							<>
-								<div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-4 group">
-									{categories.map((category) => (
-										<CategoryCard
-											key={category.id}
-											category={category}
-											unallocatedFunds={summary.summary.unallocated_funds}
-											totalIncome={summary.allocation.expected_income}
-										/>
-									))}
-								</div>
+							{/* Category Performance */}
+							<CategoryPerformance
+								categories={categories}
+								onAddCategory={handleAddCategory}
+							/>
+						</div>
 
-								{/* Add Category Button */}
-								<Button
-									onClick={handleAddCategory}
-									variant="outline"
-									className="w-full border-dashed border-2 h-12 gap-2 hover:bg-muted"
-								>
-									<Plus className="h-4 w-4" />
-									Add Category
-								</Button>
-							</>
-						)}
-					</TabsContent>
+						{/* Right Column: Allocation Donut Chart - 1/4 width, full height */}
+						<div className="lg:col-span-1 lg:row-span-2">
+							<AllocationDonutChart categories={categories} className="h-full" />
+						</div>
+					</div>
 
-					<TabsContent value="transactions">
-						<TransactionsTable transactions={transactions} categories={categories} />
-					</TabsContent>
-				</Tabs>
+					{/* Transaction Ledger - Full Width */}
+					<TransactionLedger
+						transactions={transactions}
+						categories={categories}
+						externalTypeFilter={typeFilter}
+						onClearExternalFilter={() => setTypeFilter(null)}
+					/>
+				</div>
 
+				{/* Dialogs */}
 				<AddCategoryDialog
 					open={addCategoryDialogOpen}
 					onOpenChange={setAddCategoryDialogOpen}
 					onSubmit={handleAddCategorySubmit}
-					unallocatedFunds={summary?.summary.unallocated_funds || 0}
+					unallocatedFunds={summary.summary.unallocated_funds}
+				/>
+
+				<TemplateImportDialog
+					open={templateDialogOpen}
+					onOpenChange={setTemplateDialogOpen}
+					monthName={MONTH_NAMES[currentMonth.month - 1]}
+					year={currentMonth.year}
+					previousMonth={getPreviousMonth()}
+					templates={[]}
+					onImportPrevious={handleImportPrevious}
+					onUseTemplate={handleUseTemplate}
+					onStartFresh={handleStartFresh}
 				/>
 			</div>
 		</AllocationProvider>

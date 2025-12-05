@@ -1,6 +1,6 @@
 import { Suspense } from 'react';
 import { requireAuth } from '@/lib/auth';
-import { AllocationClientV2 } from './client-v2';
+import { AllocationClient } from './client';
 import { getOrCreateAllocation, getAllocationSummary, getTransactionsForMonth } from './actions';
 
 export default async function AllocationsPage({
@@ -36,7 +36,7 @@ export default async function AllocationsPage({
 	return (
 		<div className="flex-1 w-full flex flex-col gap-6 px-4 py-8">
 			<Suspense fallback={<AllocationsLoadingSkeleton />}>
-				<AllocationClientV2
+				<AllocationClient
 					initialYear={year}
 					initialMonth={month}
 					initialSummary={summary}

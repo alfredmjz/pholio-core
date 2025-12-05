@@ -4,7 +4,7 @@ import { useMemo } from "react";
 import { Card } from "@/components/ui/card";
 import { cn } from "@/lib/utils";
 import { CATEGORY_COLORS, getCategoryColor } from "./CategoryPerformance";
-import type { AllocationCategory } from "../../types";
+import type { AllocationCategory } from "../types";
 
 interface AllocationDonutChartProps {
 	categories: AllocationCategory[];

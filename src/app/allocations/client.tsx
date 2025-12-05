@@ -93,7 +93,7 @@ export function AllocationClient({
 	if (!summary) {
 		return (
 			<div className="text-center py-12">
-				<p className="text-neutral-600">Failed to load allocation data</p>
+				<p className="text-muted-foreground">Failed to load allocation data</p>
 				<Button onClick={() => window.location.reload()} className="mt-4">
 					Retry
 				</Button>
@@ -141,7 +141,7 @@ export function AllocationClient({
 								AI Insights
 							</Button>
 							<Button
-								className="gap-2 bg-red-600 hover:bg-red-700"
+								className="gap-2 bg-error hover:bg-error/90"
 								onClick={() => toast.info('Quick add coming soon!')}
 							>
 								<Plus className="h-4 w-4" />
@@ -173,8 +173,8 @@ export function AllocationClient({
 
 						{/* Category Cards Grid */}
 						{categories.length === 0 ? (
-							<div className="text-center py-12 border-2 border-dashed border-neutral-300 rounded-lg">
-								<p className="text-neutral-600 mb-4">
+							<div className="text-center py-12 border-2 border-dashed border-border rounded-lg">
+								<p className="text-muted-foreground mb-4">
 									No categories yet. Add your first category to start tracking your budget.
 								</p>
 								<Button onClick={handleAddCategory} className="gap-2">
@@ -199,7 +199,7 @@ export function AllocationClient({
 								<Button
 									onClick={handleAddCategory}
 									variant="outline"
-									className="w-full border-dashed border-2 h-12 gap-2 hover:bg-neutral-50"
+									className="w-full border-dashed border-2 h-12 gap-2 hover:bg-muted"
 								>
 									<Plus className="h-4 w-4" />
 									Add Category

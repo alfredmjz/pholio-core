@@ -114,12 +114,12 @@ export function TransactionsTable({
 	const SortButton = ({ field, children }: { field: SortField; children: React.ReactNode }) => (
 		<button
 			onClick={() => toggleSort(field)}
-			className="flex items-center gap-1 hover:text-neutral-900 transition-colors"
+			className="flex items-center gap-1 hover:text-foreground transition-colors"
 		>
 			{children}
 			<ArrowUpDown
 				className={`h-3.5 w-3.5 ${
-					sortField === field ? "text-blue-600" : "text-neutral-400"
+					sortField === field ? "text-info" : "text-muted-foreground"
 				}`}
 			/>
 		</button>
@@ -131,18 +131,18 @@ export function TransactionsTable({
 			<div className="flex items-center justify-between gap-3">
 				<div className="flex items-center gap-3 flex-1">
 					<div className="relative flex-1 max-w-md">
-						<Search className="absolute left-3 top-1/2 -translate-y-1/2 h-4 w-4 text-gray-400" />
+						<Search className="absolute left-3 top-1/2 -translate-y-1/2 h-4 w-4 text-muted-foreground" />
 						<Input
 							type="text"
 							placeholder="Search..."
 							value={searchQuery}
 							onChange={(e) => setSearchQuery(e.target.value)}
-							className="pl-9 bg-card border-gray-200"
+							className="pl-9 bg-card border-border"
 						/>
 					</div>
 
 					<Select value={categoryFilter} onValueChange={setCategoryFilter}>
-						<SelectTrigger className="w-48 bg-card border-gray-200">
+						<SelectTrigger className="w-48 bg-card border-border">
 							<SelectValue placeholder="All Categories" />
 						</SelectTrigger>
 						<SelectContent>
@@ -156,38 +156,38 @@ export function TransactionsTable({
 					</Select>
 				</div>
 
-				<Button className="gap-2 bg-gray-900 hover:bg-gray-800 text-white dark:bg-gray-100 dark:hover:bg-gray-200 dark:text-gray-900">
+				<Button className="gap-2 bg-foreground hover:bg-foreground/90 text-background">
 					<Plus className="h-4 w-4" />
 					New
 				</Button>
 			</div>
 
 			{/* Table */}
-			<div className="border border-gray-200 dark:border-gray-700 rounded-lg overflow-hidden bg-card">
+			<div className="border border-border rounded-lg overflow-hidden bg-card">
 				<div className="overflow-x-auto">
 					<table className="w-full">
-						<thead className="bg-gray-50 dark:bg-gray-800/50 border-b border-gray-200 dark:border-gray-700">
+						<thead className="bg-muted border-b border-border">
 							<tr>
-								<th className="px-6 py-3 text-left text-xs font-semibold text-gray-600 dark:text-gray-400 uppercase tracking-wider">
+								<th className="px-6 py-3 text-left text-xs font-semibold text-muted-foreground uppercase tracking-wider">
 									<SortButton field="date">Date</SortButton>
 								</th>
-								<th className="px-6 py-3 text-left text-xs font-semibold text-gray-600 dark:text-gray-400 uppercase tracking-wider">
+								<th className="px-6 py-3 text-left text-xs font-semibold text-muted-foreground uppercase tracking-wider">
 									<SortButton field="name">Name</SortButton>
 								</th>
-								<th className="px-6 py-3 text-left text-xs font-semibold text-gray-600 dark:text-gray-400 uppercase tracking-wider">
+								<th className="px-6 py-3 text-left text-xs font-semibold text-muted-foreground uppercase tracking-wider">
 									<SortButton field="category">Category</SortButton>
 								</th>
-								<th className="px-6 py-3 text-right text-xs font-semibold text-gray-600 dark:text-gray-400 uppercase tracking-wider">
+								<th className="px-6 py-3 text-right text-xs font-semibold text-muted-foreground uppercase tracking-wider">
 									<SortButton field="amount">Amount</SortButton>
 								</th>
 							</tr>
 						</thead>
-						<tbody className="divide-y divide-gray-200 dark:divide-gray-700 bg-card">
+						<tbody className="divide-y divide-border bg-card">
 							{filteredTransactions.length === 0 ? (
 								<tr>
 									<td
 										colSpan={4}
-										className="px-6 py-12 text-center text-gray-500"
+										className="px-6 py-12 text-center text-muted-foreground"
 									>
 										{searchQuery || categoryFilter !== "all"
 											? "No transactions match your filters"
@@ -198,10 +198,10 @@ export function TransactionsTable({
 								filteredTransactions.map((transaction) => (
 									<tr
 										key={transaction.id}
-										className="hover:bg-gray-50 dark:hover:bg-gray-800/30 transition-colors"
+										className="hover:bg-muted/50 transition-colors"
 									>
 										<td className="px-6 py-4 whitespace-nowrap">
-											<span className="text-sm text-gray-900 dark:text-gray-100">
+											<span className="text-sm text-foreground">
 												{new Date(transaction.transaction_date).toLocaleDateString(
 													"en-US",
 													{
@@ -213,7 +213,7 @@ export function TransactionsTable({
 											</span>
 										</td>
 										<td className="px-6 py-4">
-											<div className="text-sm font-medium text-gray-900 dark:text-gray-100">
+											<div className="text-sm font-medium text-foreground">
 												{transaction.name}
 											</div>
 										</td>
@@ -226,13 +226,13 @@ export function TransactionsTable({
 													{transaction.category_name}
 												</Badge>
 											) : (
-												<span className="text-xs text-gray-400">
+												<span className="text-xs text-muted-foreground">
 													Uncategorized
 												</span>
 											)}
 										</td>
 										<td className="px-6 py-4 text-right whitespace-nowrap">
-											<span className="text-sm font-semibold text-gray-900 dark:text-gray-100">
+											<span className="text-sm font-semibold text-foreground">
 												${Math.abs(transaction.amount).toFixed(2)}
 											</span>
 										</td>
@@ -246,7 +246,7 @@ export function TransactionsTable({
 
 			{/* Count */}
 			{filteredTransactions.length > 0 && (
-				<div className="text-xs text-gray-500 dark:text-gray-400 text-right">
+				<div className="text-xs text-muted-foreground text-right">
 					Showing {filteredTransactions.length} of {transactions.length}{" "}
 					{transactions.length === 1 ? "transaction" : "transactions"}
 				</div>

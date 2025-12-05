@@ -48,9 +48,9 @@ export function CategoryCard({
 
 	// Determine progress bar color
 	const getProgressColor = () => {
-		if (utilization <= 80) return "bg-green-500";
-		if (utilization <= 100) return "bg-yellow-500";
-		return "bg-red-500";
+		if (utilization <= 80) return "bg-success";
+		if (utilization <= 100) return "bg-warning";
+		return "bg-error";
 	};
 
 	// Determine card background for over-budget
@@ -160,7 +160,7 @@ export function CategoryCard({
 		<>
 			<Card
 				className={`group p-5 hover:shadow-md transition-all duration-200 ${
-					isOverBudget ? "border-red-200 bg-red-50/30" : "border-neutral-200"
+					isOverBudget ? "border-error/30 bg-error-muted" : "border-border"
 				}`}
 			>
 			{/* Category Name */}
@@ -181,7 +181,7 @@ export function CategoryCard({
 							className="h-7 w-7 p-0"
 							onClick={handleNameSave}
 						>
-							<Check className="h-4 w-4 text-green-600" />
+							<Check className="h-4 w-4 text-success" />
 						</Button>
 						<Button
 							size="sm"
@@ -192,13 +192,13 @@ export function CategoryCard({
 								setIsEditingName(false);
 							}}
 						>
-							<X className="h-4 w-4 text-neutral-500" />
+							<X className="h-4 w-4 text-muted-foreground" />
 						</Button>
 					</div>
 				) : (
 					<>
 						<div className="flex items-center gap-2">
-							<h3 className="text-sm font-semibold text-neutral-900">
+							<h3 className="text-sm font-semibold text-foreground">
 								{category.name}
 							</h3>
 							<Button
@@ -208,13 +208,13 @@ export function CategoryCard({
 								onClick={() => setIsEditingName(true)}
 								aria-label={`Edit ${category.name} category name`}
 							>
-								<Pencil className="h-3 w-3 text-neutral-400" />
+								<Pencil className="h-3 w-3 text-muted-foreground" />
 							</Button>
 						</div>
 						<Button
 							size="sm"
 							variant="ghost"
-							className="h-6 w-6 p-0 text-neutral-400 hover:text-red-600"
+							className="h-6 w-6 p-0 text-muted-foreground hover:text-error"
 							onClick={handleDelete}
 							aria-label={`Delete ${category.name} category`}
 						>
@@ -228,15 +228,15 @@ export function CategoryCard({
 			<div className="space-y-2 mb-4">
 				<div className="flex items-baseline justify-between">
 					<div>
-						<span className="text-2xl font-bold text-neutral-900">
+						<span className="text-2xl font-bold text-foreground">
 							${actualSpend.toFixed(0)}
 						</span>
-						<span className="text-sm text-neutral-500 ml-1">spent</span>
+						<span className="text-sm text-muted-foreground ml-1">spent</span>
 					</div>
 					{isEditingBudget ? (
 						<div className="flex items-center gap-2">
 							<div className="flex items-center">
-								<span className="text-sm text-neutral-600 mr-1">$</span>
+								<span className="text-sm text-muted-foreground mr-1">$</span>
 								<Input
 									ref={budgetInputRef}
 									type="number"
@@ -254,7 +254,7 @@ export function CategoryCard({
 								className="h-7 w-7 p-0"
 								onClick={handleBudgetSave}
 							>
-								<Check className="h-4 w-4 text-green-600" />
+								<Check className="h-4 w-4 text-success" />
 							</Button>
 							<Button
 								size="sm"
@@ -265,13 +265,13 @@ export function CategoryCard({
 									setIsEditingBudget(false);
 								}}
 							>
-								<X className="h-4 w-4 text-neutral-500" />
+								<X className="h-4 w-4 text-muted-foreground" />
 							</Button>
 						</div>
 					) : (
 						<button
 							onClick={() => setIsEditingBudget(true)}
-							className="text-sm text-neutral-600 hover:text-neutral-900 transition-colors group/budget"
+							className="text-sm text-muted-foreground hover:text-foreground transition-colors group/budget"
 						>
 							Budget:{" "}
 							<span className="font-semibold group-hover/budget:underline">
@@ -285,7 +285,7 @@ export function CategoryCard({
 				{isEditingBudget && (
 					<div
 						className={`text-xs ${
-							remainingBudget < 0 ? "text-red-600" : "text-neutral-600"
+							remainingBudget < 0 ? "text-error" : "text-muted-foreground"
 						}`}
 					>
 						{remainingBudget < 0 ? (
@@ -300,7 +300,7 @@ export function CategoryCard({
 				)}
 
 				{/* Progress Bar */}
-				<div className="relative h-2 bg-neutral-200 rounded-full overflow-hidden">
+				<div className="relative h-2 bg-muted rounded-full overflow-hidden">
 					<div
 						className={`absolute top-0 left-0 h-full ${getProgressColor()} transition-all duration-300 rounded-full`}
 						style={{ width: `${Math.min(utilization, 100)}%` }}
@@ -311,13 +311,13 @@ export function CategoryCard({
 				<div className="flex items-center justify-between text-xs">
 					<span
 						className={`font-medium ${
-							isOverBudget ? "text-red-600" : "text-neutral-700"
+							isOverBudget ? "text-error" : "text-foreground"
 						}`}
 					>
 						{utilization.toFixed(0)}% used
 					</span>
 					<span
-						className={`${remaining >= 0 ? "text-green-600" : "text-red-600"}`}
+						className={`${remaining >= 0 ? "text-success" : "text-error"}`}
 					>
 						${Math.abs(remaining).toFixed(0)} {remaining >= 0 ? "left" : "over"}
 					</span>

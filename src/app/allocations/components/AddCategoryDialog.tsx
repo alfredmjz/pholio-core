@@ -104,7 +104,7 @@ export function AddCategoryDialog({
 						{/* Category Name */}
 						<div className="grid gap-2">
 							<Label htmlFor="category-name">
-								Category Name <span className="text-red-600">*</span>
+								Category Name <span className="text-error">*</span>
 							</Label>
 							<Input
 								id="category-name"
@@ -116,10 +116,10 @@ export function AddCategoryDialog({
 								onBlur={(e) => validateName(e.target.value)}
 								placeholder="e.g., Housing, Groceries, Entertainment"
 								maxLength={100}
-								className={nameError ? "border-red-500" : ""}
+								className={nameError ? "border-error" : ""}
 							/>
 							{nameError && (
-								<p className="text-xs text-red-600" role="alert">
+								<p className="text-xs text-error" role="alert">
 									{nameError}
 								</p>
 							)}
@@ -128,10 +128,10 @@ export function AddCategoryDialog({
 						{/* Budget Cap */}
 						<div className="grid gap-2">
 							<Label htmlFor="budget-cap">
-								Budget Cap <span className="text-red-600">*</span>
+								Budget Cap <span className="text-error">*</span>
 							</Label>
 							<div className="relative">
-								<span className="absolute left-3 top-1/2 -translate-y-1/2 text-neutral-500">
+								<span className="absolute left-3 top-1/2 -translate-y-1/2 text-muted-foreground">
 									$
 								</span>
 								<Input
@@ -146,16 +146,16 @@ export function AddCategoryDialog({
 									placeholder="0.00"
 									step="0.01"
 									min="0"
-									className={`pl-7 ${budgetError ? "border-red-500" : ""}`}
+									className={`pl-7 ${budgetError ? "border-error" : ""}`}
 								/>
 							</div>
 							{budgetError && (
-								<p className="text-xs text-red-600" role="alert">
+								<p className="text-xs text-error" role="alert">
 									{budgetError}
 								</p>
 							)}
 							{!budgetError && isOverAllocated && (
-								<p className="text-xs text-amber-600 flex items-center gap-1" role="alert">
+								<p className="text-xs text-warning flex items-center gap-1" role="alert">
 									<span>⚠</span>
 									<span>
 										This exceeds your unallocated funds by $
@@ -164,7 +164,7 @@ export function AddCategoryDialog({
 								</p>
 							)}
 							{!budgetError && !isOverAllocated && budgetNum > 0 && (
-								<p className="text-xs text-neutral-600" aria-describedby="budget-cap">
+								<p className="text-xs text-muted-foreground" aria-describedby="budget-cap">
 									You have ${unallocatedFunds.toFixed(2)} unallocated
 								</p>
 							)}

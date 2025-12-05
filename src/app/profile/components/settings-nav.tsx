@@ -44,7 +44,7 @@ export function SettingsNav() {
 		>
 			{/* Section title */}
 			<div className="mb-6">
-				<h2 className="text-sm font-semibold text-text-primary">Settings</h2>
+				<h2 className="text-sm font-semibold text-foreground">Settings</h2>
 			</div>
 
 			{/* Navigation items */}
@@ -59,13 +59,13 @@ export function SettingsNav() {
 								<div
 									className={cn(
 										'flex items-center gap-3 px-3 py-2 text-sm rounded-md',
-										'text-text-secondary opacity-50 cursor-not-allowed'
+										'text-muted-foreground opacity-50 cursor-not-allowed'
 									)}
 								>
 									<Icon className="w-4 h-4 flex-shrink-0" />
 									<span className="flex-1">{item.label}</span>
 									{item.badge && (
-										<span className="px-2 py-0.5 text-xs rounded bg-secondary text-text-secondary">
+										<span className="px-2 py-0.5 text-xs rounded bg-secondary text-muted-foreground">
 											{item.badge}
 										</span>
 									)}
@@ -83,8 +83,8 @@ export function SettingsNav() {
 									'flex items-center gap-3 px-3 py-2 text-sm rounded-md transition-all duration-200',
 									'border-l-2 border-transparent',
 									isActive
-										? 'bg-white/5 border-l-constructive text-text-primary font-medium'
-										: 'text-text-secondary hover:text-text-primary hover:bg-white/5'
+										? 'bg-accent/50 border-l-primary text-foreground font-medium'
+										: 'text-muted-foreground hover:text-foreground hover:bg-accent/50'
 								)}
 							>
 								<Icon className="w-4 h-4 flex-shrink-0" />
@@ -115,7 +115,7 @@ export function SettingsNavMobile() {
 
 	return (
 		<nav
-			className="lg:hidden mb-6 border-b border-white/10"
+			className="lg:hidden mb-6 border-b border-border"
 			aria-label="Settings navigation"
 		>
 			<div className="flex overflow-x-auto scrollbar-hide gap-1 pb-px">
@@ -128,7 +128,7 @@ export function SettingsNavMobile() {
 								key={item.href}
 								className={cn(
 									'flex items-center gap-2 px-4 py-3 text-sm whitespace-nowrap',
-									'text-text-secondary opacity-50 cursor-not-allowed'
+									'text-muted-foreground opacity-50 cursor-not-allowed'
 								)}
 							>
 								<span>{item.label}</span>
@@ -150,8 +150,8 @@ export function SettingsNavMobile() {
 								'flex items-center gap-2 px-4 py-3 text-sm whitespace-nowrap transition-colors',
 								'border-b-2',
 								isActive
-									? 'border-constructive text-text-primary font-medium'
-									: 'border-transparent text-text-secondary hover:text-text-primary'
+									? 'border-primary text-foreground font-medium'
+									: 'border-transparent text-muted-foreground hover:text-foreground'
 							)}
 						>
 							{item.label}

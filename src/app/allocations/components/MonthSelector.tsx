@@ -75,7 +75,7 @@ export function MonthSelector({ currentMonth, onMonthChange }: MonthSelectorProp
 				<ChevronLeft className="h-4 w-4" />
 			</Button>
 
-			<div className="text-2xl font-bold text-neutral-900 min-w-[200px] text-center">
+			<div className="text-2xl font-bold text-foreground min-w-[200px] text-center">
 				{MONTH_NAMES[currentMonth.month - 1]} {currentMonth.year}
 			</div>
 

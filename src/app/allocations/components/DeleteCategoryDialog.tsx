@@ -36,24 +36,24 @@ export function DeleteCategoryDialog({
 			<DialogContent className="sm:max-w-[425px]">
 				<DialogHeader>
 					<DialogTitle className="flex items-center gap-2">
-						<AlertTriangle className="h-5 w-5 text-red-600" />
+						<AlertTriangle className="h-5 w-5 text-error" />
 						Delete Category
 					</DialogTitle>
 					<DialogDescription asChild>
 						<div className="space-y-3 pt-2">
-							<p className="text-neutral-700">
+							<p className="text-foreground">
 								Are you sure you want to delete <span className="font-semibold">"{categoryName}"</span>?
 							</p>
 							{transactionCount > 0 && (
-								<div className="rounded-md bg-amber-50 border border-amber-200 p-3">
-									<p className="text-sm text-amber-900">
+								<div className="rounded-md bg-warning/10 border border-warning/30 p-3">
+									<p className="text-sm text-warning">
 										This category has <span className="font-semibold">{transactionCount}</span>{" "}
 										{transactionCount === 1 ? "transaction" : "transactions"} that will become
 										uncategorized.
 									</p>
 								</div>
 							)}
-							<p className="text-sm text-neutral-600">
+							<p className="text-sm text-muted-foreground">
 								This action cannot be undone.
 							</p>
 						</div>
@@ -72,7 +72,7 @@ export function DeleteCategoryDialog({
 						type="button"
 						variant="destructive"
 						onClick={handleConfirm}
-						className="bg-red-600 hover:bg-red-700"
+						className="bg-error hover:bg-error/90"
 					>
 						Delete Category
 					</Button>

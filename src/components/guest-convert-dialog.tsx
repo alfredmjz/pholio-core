@@ -71,9 +71,9 @@ export function GuestConvertDialog({ children }: GuestConvertDialogProps) {
 
 				{success ? (
 					<div className="flex flex-col items-center justify-center py-6 text-center">
-						<div className="mb-4 h-12 w-12 rounded-full bg-green-100 flex items-center justify-center">
+						<div className="mb-4 h-12 w-12 rounded-full bg-success-muted flex items-center justify-center">
 							<svg
-								className="h-6 w-6 text-green-600"
+								className="h-6 w-6 text-success"
 								fill="none"
 								strokeLinecap="round"
 								strokeLinejoin="round"
@@ -84,7 +84,7 @@ export function GuestConvertDialog({ children }: GuestConvertDialogProps) {
 								<path d="M5 13l4 4L19 7" />
 							</svg>
 						</div>
-						<p className="text-lg font-semibold text-green-600">Account upgraded successfully!</p>
+						<p className="text-lg font-semibold text-success">Account upgraded successfully!</p>
 						<p className="text-sm text-muted-foreground mt-2">Refreshing page...</p>
 					</div>
 				) : (
@@ -106,8 +106,8 @@ export function GuestConvertDialog({ children }: GuestConvertDialogProps) {
 						</div>
 
 						{error && (
-							<div className="rounded-md bg-red-50 p-3">
-								<p className="text-sm text-red-600">{error}</p>
+							<div className="rounded-md bg-error-muted p-3">
+								<p className="text-sm text-error">{error}</p>
 							</div>
 						)}
 

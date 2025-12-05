@@ -21,9 +21,9 @@ export function SummaryCard({ summary, expectedIncome }: SummaryCardProps) {
 	return (
 		<div className="grid grid-cols-1 md:grid-cols-3 gap-4 mb-6">
 			{/* Total Budget */}
-			<Card className="p-6 border border-gray-200 bg-card hover:shadow-md transition-shadow">
+			<Card className="p-6 border border-border bg-card hover:shadow-md transition-shadow">
 				<div className="flex items-start justify-between mb-2">
-					<div className="flex items-center gap-2 text-sm font-medium text-gray-600 uppercase tracking-wide">
+					<div className="flex items-center gap-2 text-sm font-medium text-muted-foreground uppercase tracking-wide">
 						<FileText className="h-4 w-4" />
 						Total Budget
 					</div>
@@ -34,9 +34,9 @@ export function SummaryCard({ summary, expectedIncome }: SummaryCardProps) {
 			</Card>
 
 			{/* Total Spent */}
-			<Card className="p-6 border border-gray-200 bg-card hover:shadow-md transition-shadow">
+			<Card className="p-6 border border-border bg-card hover:shadow-md transition-shadow">
 				<div className="flex items-start justify-between mb-2">
-					<div className="flex items-center gap-2 text-sm font-medium text-gray-600 uppercase tracking-wide">
+					<div className="flex items-center gap-2 text-sm font-medium text-muted-foreground uppercase tracking-wide">
 						<TrendingDown className="h-4 w-4" />
 						Total Spent
 					</div>
@@ -47,9 +47,9 @@ export function SummaryCard({ summary, expectedIncome }: SummaryCardProps) {
 			</Card>
 
 			{/* Remaining */}
-			<Card className="p-6 border-2 border-gray-900 dark:border-gray-100 bg-card hover:shadow-md transition-shadow">
+			<Card className="p-6 border-2 border-foreground bg-card hover:shadow-md transition-shadow">
 				<div className="flex items-start justify-between mb-2">
-					<div className="flex items-center gap-2 text-sm font-medium text-gray-600 uppercase tracking-wide">
+					<div className="flex items-center gap-2 text-sm font-medium text-muted-foreground uppercase tracking-wide">
 						<Clock className="h-4 w-4" />
 						Remaining
 					</div>

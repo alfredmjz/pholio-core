@@ -277,9 +277,9 @@ export function AllocationClient({
 				{/* Main Content */}
 				<div className="space-y-6">
 					{/* Top Row: Left (Summary Cards + Category Performance) | Right (Allocation Donut) */}
-					<div className="grid grid-cols-1 lg:grid-cols-4 gap-6">
+					<div className="flex flex-col lg:flex-row gap-6">
 						{/* Left Column: Summary Cards + Category Performance - 3/4 width */}
-						<div className="lg:col-span-3 space-y-6">
+						<div className="flex-1 lg:flex-[3] flex flex-col gap-6">
 							{/* Budget Summary Cards */}
 							<BudgetSummaryCards
 								totalBudget={summary.summary.total_budget_caps}
@@ -290,12 +290,13 @@ export function AllocationClient({
 							<CategoryPerformance
 								categories={categories}
 								onAddCategory={handleAddCategory}
+								className="flex-1"
 							/>
 						</div>
 
 						{/* Right Column: Allocation Donut Chart - 1/4 width, full height */}
-						<div className="lg:col-span-1 lg:row-span-2">
-							<AllocationDonutChart categories={categories} className="h-full" />
+						<div className="lg:flex-[1] flex">
+							<AllocationDonutChart categories={categories} className="flex-1" />
 						</div>
 					</div>
 

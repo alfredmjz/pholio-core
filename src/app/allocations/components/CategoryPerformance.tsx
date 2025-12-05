@@ -253,30 +253,32 @@ function CategoryRow({ category, colorIndex }: CategoryRowProps) {
 export function CategoryPerformance({ categories, onAddCategory, className }: CategoryPerformanceProps) {
 	if (categories.length === 0) {
 		return (
-			<Card className={cn('h-full p-6', className)}>
-				<div className="flex items-center justify-between mb-4">
+			<Card className={cn('h-full p-6 flex flex-col', className)}>
+				<div className="flex items-center justify-between mb-4 flex-shrink-0">
 					<h3 className="text-sm font-semibold text-foreground uppercase tracking-wide">Category Performance</h3>
 					<Button variant="outline" size="sm" onClick={onAddCategory} className="gap-1.5">
 						<Plus className="h-4 w-4" />
 						Add
 					</Button>
 				</div>
-				<div className="text-center py-8">
-					<p className="text-sm text-muted-foreground mb-4">
-						No categories yet. Add your first category to start tracking.
-					</p>
-					<Button onClick={onAddCategory} variant="outline" className="gap-2">
-						<Plus className="h-4 w-4" />
-						Add Category
-					</Button>
+				<div className="flex-1 flex items-center justify-center">
+					<div className="text-center">
+						<p className="text-sm text-muted-foreground mb-4">
+							No categories yet. Add your first category to start tracking.
+						</p>
+						<Button onClick={onAddCategory} variant="outline" className="gap-2">
+							<Plus className="h-4 w-4" />
+							Add Category
+						</Button>
+					</div>
 				</div>
 			</Card>
 		);
 	}
 
 	return (
-		<Card className={cn('p-6', className)}>
-			<div className="flex items-center justify-between mb-4">
+		<Card className={cn('h-full p-6 flex flex-col', className)}>
+			<div className="flex items-center justify-between mb-4 flex-shrink-0">
 				<h3 className="text-sm font-semibold text-foreground uppercase tracking-wide">Category Performance</h3>
 				<Button variant="outline" size="sm" onClick={onAddCategory} className="gap-1.5">
 					<Plus className="h-4 w-4" />
@@ -284,7 +286,7 @@ export function CategoryPerformance({ categories, onAddCategory, className }: Ca
 				</Button>
 			</div>
 
-			<div className="divide-y-0">
+			<div className="flex-1 overflow-y-auto divide-y-0">
 				{categories.map((category, index) => (
 					<CategoryRow key={category.id} category={category} colorIndex={index} />
 				))}

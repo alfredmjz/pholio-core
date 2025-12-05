@@ -12,14 +12,16 @@ export const metadata: Metadata = {
 	},
 };
 
-export default function RootLayout({ children }: { children: React.ReactNode }) {
+export default async function RootLayout({ children }: { children: React.ReactNode }) {
+	const sidebar = await SidebarWrapper();
+
 	return (
 		<html lang="en">
 			<head>
 				<title>Folio</title>
 			</head>
 			<body className="w-screen h-screen flex flex-row bg-primary overflow-hidden">
-				<LayoutWrapper sidebar={<SidebarWrapper />}>{children}</LayoutWrapper>
+				<LayoutWrapper sidebar={sidebar}>{children}</LayoutWrapper>
 				<footer>{/* Footer content */}</footer>
 			</body>
 		</html>

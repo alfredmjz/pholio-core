@@ -1,6 +1,19 @@
 import { createServerClient } from '@supabase/ssr';
 import { NextResponse, type NextRequest } from 'next/server';
 
+/**
+ * Wraps a promise with a timeout to prevent indefinite hanging.
+ * This is a known workaround for Supabase auth.getUser() hanging in Next.js middleware.
+ * @see https://github.com/supabase/supabase/issues/35754
+ * @see https://github.com/orgs/supabase/discussions/20905
+ */
+function withTimeout<T>(promise: Promise<T>, ms: number): Promise<T | null> {
+	const timeout = new Promise<null>((resolve) => {
+		setTimeout(() => resolve(null), ms);
+	});
+	return Promise.race([promise, timeout]);
+}
+
 export async function updateSession(request: NextRequest) {
 	let supabaseResponse = NextResponse.next({
 		request,
@@ -19,50 +32,23 @@ export async function updateSession(request: NextRequest) {
 					supabaseResponse = NextResponse.next({
 						request,
 					});
-					cookiesToSet.forEach(({ name, value, options }) => supabaseResponse.cookies.set(name, value, options));
+					cookiesToSet.forEach(({ name, value, options }) =>
+						supabaseResponse.cookies.set(name, value, options)
+					);
 				},
 			},
 		}
 	);
 
-	// Do not run code between createServerClient and
-	// supabase.auth.getUser(). A simple mistake could make it very hard to debug
-	// issues with users being randomly logged out.
+	// IMPORTANT: Refresh auth session with timeout to prevent hanging
+	// Known issue: auth.getUser() can hang indefinitely in Next.js middleware
+	// Timeout ensures middleware doesn't block forever - auth will still be
+	// verified in Server Components via requireAuth()
+	// @see https://github.com/supabase/supabase/issues/35754
+	const result = await withTimeout(supabase.auth.getUser(), 3000);
 
-	// IMPORTANT: DO NOT REMOVE auth.getUser()
-
-	const {
-		data: { user },
-	} = await supabase.auth.getUser();
-
-	// List of public paths that don't require authentication
-	const publicPaths = ['/login', '/auth', '/error', '/signup', '/confirm'];
-	const isPublicPath = publicPaths.some(path => request.nextUrl.pathname.startsWith(path));
-
-	// Check if user is authenticated
-	if (!user && !isPublicPath) {
-		// no user, redirect to login page
-		const url = request.nextUrl.clone();
-		url.pathname = '/login';
-		return NextResponse.redirect(url);
-	}
-
-	// If user exists, verify profile exists in database (except for public paths)
-	if (user && !isPublicPath) {
-		const { data: profile, error: profileError } = await supabase
-			.from('users')
-			.select('id')
-			.eq('id', user.id)
-			.single();
-
-		// If profile doesn't exist, sign out and redirect to login
-		if (profileError || !profile) {
-			console.error('Profile not found for authenticated user, signing out:', profileError);
-			await supabase.auth.signOut();
-			const url = request.nextUrl.clone();
-			url.pathname = '/login';
-			return NextResponse.redirect(url);
-		}
+	if (result === null) {
+		console.warn('[Middleware] auth.getUser() timed out after 3s - continuing without refresh');
 	}
 
 	// IMPORTANT: You *must* return the supabaseResponse object as it is.

@@ -1,23 +1,15 @@
-import { Suspense } from "react";
-import { redirect } from "next/navigation";
-import { createClient } from "@/lib/supabase/server";
-import { AllocationClient } from "./client";
-import { getOrCreateAllocation, getAllocationSummary, getTransactionsForMonth } from "./actions";
+import { Suspense } from 'react';
+import { requireAuth } from '@/lib/auth';
+import { AllocationClient } from './client';
+import { getOrCreateAllocation, getAllocationSummary, getTransactionsForMonth } from './actions';
 
 export default async function AllocationsPage({
 	searchParams,
 }: {
 	searchParams: Promise<{ year?: string; month?: string }>;
 }) {
-	const supabase = await createClient();
-
-	const {
-		data: { user },
-	} = await supabase.auth.getUser();
-
-	if (!user) {
-		return redirect("/login");
-	}
+	// Require authentication - automatically redirects to /login if not authenticated
+	await requireAuth();
 
 	// Await searchParams in Next.js 15
 	const params = await searchParams;
@@ -37,7 +29,7 @@ export default async function AllocationsPage({
 		// Parallelize independent queries for better performance (50% faster)
 		[summary, transactions] = await Promise.all([
 			getAllocationSummary(allocation.id),
-			getTransactionsForMonth(year, month)
+			getTransactionsForMonth(year, month),
 		]);
 	}
 

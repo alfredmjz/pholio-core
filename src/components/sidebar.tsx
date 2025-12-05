@@ -13,6 +13,7 @@ import {
 	NavigationMenuTrigger,
 	navigationMenuTriggerStyle,
 } from '@/components/ui/navigation-menu';
+import { ThemeToggle } from '@/components/theme-toggle';
 
 import type { UserProfile } from '@/lib/getUserProfile';
 import { signOut } from '@/app/(auth-pages)/login/actions';
@@ -187,18 +188,17 @@ export function SideBarComponent({ userProfile }: SideBarComponentProps) {
 			<div className="flex items-center justify-start px-4 py-2">
 				<button
 					onClick={toggleCollapse}
-					className="flex items-center justify-center w-8 h-8 rounded-md bg-secondary-highlight hover:bg-secondary-muted transition-colors shadow-sm"
+					className="flex items-center justify-center w-8 h-8 rounded-md bg-secondary hover:bg-secondary-hover transition-colors shadow-sm"
 					aria-label={isCollapsed ? 'Expand sidebar' : 'Collapse sidebar'}
 					title={isCollapsed ? 'Expand sidebar' : 'Collapse sidebar'}
 				>
 					{isCollapsed ? <ChevronRight className="w-4 h-4" /> : <ChevronLeft className="w-4 h-4" />}
 				</button>
 			</div>
-
-			<div className={cn('w-full', isCollapsed && 'hidden')}>
+			<div className={cn('w-full flex flex-1 flex-col', isCollapsed && 'hidden')}>
 				<NavigationMenu
 					ref={contentRef}
-					className="w-full h-full"
+					className="w-full flex-1"
 					orientation="vertical"
 					value={openMenuItem}
 					onValueChange={setOpenMenuItem}
@@ -213,13 +213,13 @@ export function SideBarComponent({ userProfile }: SideBarComponentProps) {
 										className="w-8 h-8 flex-shrink-0 rounded-md object-cover"
 									/>
 								) : (
-									<div className="w-8 h-8 flex-shrink-0 rounded-md bg-gradient-to-br from-purple-500 to-pink-500 flex items-center justify-center text-white text-xs font-semibold">
+									<div className="w-8 h-8 flex-shrink-0 rounded-md bg-gradient-to-br from-notion-purple-text-light to-notion-pink-text-light dark:from-notion-purple-text-dark dark:to-notion-pink-text-dark flex items-center justify-center text-background text-xs font-semibold">
 										{displayInitials}
 									</div>
 								)}
 								<span className="truncate min-w-0 flex-1">{displayName}</span>
 							</NavigationMenuTrigger>
-							<NavigationMenuContent className="w-fit bg-secondary-highlight rounded-md ml-2">
+							<NavigationMenuContent className="w-fit bg-secondary rounded-md ml-2">
 								<ul className="flex flex-col gap-3 p-4 border-none min-w-[15rem]">
 									<ListItem href="/profile" title="Profile">
 										Manage your account settings
@@ -229,16 +229,26 @@ export function SideBarComponent({ userProfile }: SideBarComponentProps) {
 							</NavigationMenuContent>
 						</NavigationMenuItem>
 
-						<NavigationMenuItem>
-							<NavigationMenuLink className={navigationMenuTriggerStyle()}>Documentation</NavigationMenuLink>
+						<NavigationMenuItem value="navigation-links" className="flex flex-col gap-2 w-full">
+							<Link href="/" className={navigationMenuTriggerStyle()}>
+								Dashboard
+							</Link>
+
+							<Link href="/allocations" className={navigationMenuTriggerStyle()}>
+								Allocations
+							</Link>
 						</NavigationMenuItem>
 					</NavigationMenuList>
 				</NavigationMenu>
-			</div>
 
+				{/* Theme Toggle at bottom */}
+				<div className="px-4 py-4 mt-auto border-t border-secondary-border">
+					<ThemeToggle />
+				</div>
+			</div>
 			{!isCollapsed && (
 				<div
-					className="absolute top-0 right-0 w-1 h-full cursor-col-resize bg-secondary-highlight hover:bg-secondary-muted transition-colors"
+					className="absolute top-0 right-0 w-1 h-full cursor-col-resize bg-secondary hover:bg-secondary-hover transition-colors"
 					onMouseDown={handleMouseDown}
 				/>
 			)}
@@ -256,7 +266,7 @@ const ListItem = React.forwardRef<React.ComponentRef<'a'>, React.ComponentPropsW
 		);
 
 		const itemClassName = cn(
-			'flex flex-col justify-center select-none rounded-md m-1 p-3 leading-none no-underline outline-none transition-colors hover:bg-primary-highlight focus:bg-accent focus:text-accent-foreground cursor-pointer',
+			'flex flex-col justify-center select-none rounded-md m-1 p-3 leading-none no-underline outline-none transition-colors hover:bg-primary-hover focus:bg-accent focus:text-accent-foreground cursor-pointer',
 			className
 		);
 

@@ -103,9 +103,9 @@ export default function ProfileInformationSection({
 	return (
 		<section className="space-y-6">
 			{/* Section Header */}
-			<div className="pb-3 border-b border-white/10">
-				<h2 className="text-lg font-semibold text-text-primary">Profile Information</h2>
-				<p className="text-sm text-text-secondary mt-1">
+			<div className="pb-3 border-b border-border">
+				<h2 className="text-lg font-semibold text-foreground">Profile Information</h2>
+				<p className="text-sm text-muted-foreground mt-1">
 					{profile?.is_guest
 						? 'Your guest account information'
 						: 'Update your personal details'}
@@ -118,8 +118,8 @@ export default function ProfileInformationSection({
 					{getInitials()}
 				</div>
 				<div>
-					<p className="text-sm font-medium text-text-primary">{displayName}</p>
-					<p className="text-xs text-text-secondary mt-0.5">
+					<p className="text-sm font-medium text-foreground">{displayName}</p>
+					<p className="text-xs text-muted-foreground mt-0.5">
 						{profile?.is_guest ? 'Guest Account' : userEmail}
 					</p>
 				</div>
@@ -129,20 +129,20 @@ export default function ProfileInformationSection({
 			<div className="space-y-5 max-w-md">
 				{/* Full Name Field */}
 				<div className="space-y-2">
-					<Label 
+					<Label
 						htmlFor="fullName"
-						className="text-sm font-medium text-text-primary"
+						className="text-sm font-medium text-foreground"
 					>
 						{profile?.is_guest ? 'Display Name' : 'Full Name'}
 					</Label>
 					{!isEditingName ? (
 						<div className={cn(
-							"flex items-center justify-between px-3 py-2.5 rounded-md border border-white/10 bg-white/5 transition-colors group",
+							"flex items-center justify-between px-3 py-2.5 rounded-md border bg-muted transition-colors group",
 							profile?.is_guest
 								? "opacity-60 cursor-not-allowed"
-								: "hover:bg-white/8"
+								: "hover:bg-accent/50"
 						)}>
-							<span className="text-sm text-text-primary">{displayName}</span>
+							<span className="text-sm text-foreground">{displayName}</span>
 							{!profile?.is_guest && (
 								<Button
 									variant="ghost"
@@ -163,7 +163,6 @@ export default function ProfileInformationSection({
 								placeholder="Enter your full name"
 								disabled={isPending || profile?.is_guest}
 								className={cn(
-									"bg-white/5 border-white/10 text-text-primary placeholder:text-text-secondary",
 									profile?.is_guest && 'cursor-not-allowed opacity-60'
 								)}
 								maxLength={255}
@@ -193,11 +192,11 @@ export default function ProfileInformationSection({
 
 				{/* Email Field (Read-only) */}
 				<div className="space-y-2">
-					<Label className="text-sm font-medium text-text-primary">Email</Label>
-					<div className="px-3 py-2.5 rounded-md border border-white/10 bg-white/5">
-						<p className="text-sm text-text-primary">
+					<Label className="text-sm font-medium text-foreground">Email</Label>
+					<div className="px-3 py-2.5 rounded-md border bg-muted">
+						<p className="text-sm text-foreground">
 							{profile?.is_guest ? (
-								<span className="text-text-secondary italic">
+								<span className="text-muted-foreground italic">
 									No email (Guest Account)
 								</span>
 							) : (
@@ -206,16 +205,16 @@ export default function ProfileInformationSection({
 						</p>
 					</div>
 					{!profile?.is_guest && (
-						<p className="text-xs text-text-secondary">
+						<p className="text-xs text-muted-foreground">
 							To change your email, use the Security section below
 						</p>
 					)}
 				</div>
 
 				{/* Member Since */}
-				<div className="pt-4 border-t border-white/10">
-					<p className="text-xs text-text-secondary">
-						Member since {formatDate(profile?.created_at)}
+				<div className="pt-4 border-t border-border">
+					<p className="text-xs text-muted-foreground">
+						Member since {profile?.created_at ? formatDate(profile.created_at) : 'N/A'}
 					</p>
 				</div>
 			</div>

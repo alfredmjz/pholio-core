@@ -269,8 +269,8 @@ function EmailChangeSection({ currentEmail }: { currentEmail: string }) {
                   </p>
                 </div>
 
-                <div className="rounded-md bg-blue-50 dark:bg-blue-950 p-3 border border-blue-200 dark:border-blue-900">
-                  <p className="text-xs text-blue-900 dark:text-blue-100">
+                <div className="rounded-md bg-info-muted p-3 border border-info/30">
+                  <p className="text-xs text-info-foreground">
                     After submitting, you'll receive a verification email at your new address.
                     Click the link in that email to complete the change.
                   </p>

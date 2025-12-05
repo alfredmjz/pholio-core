@@ -12,14 +12,23 @@ export const metadata: Metadata = {
 	},
 };
 
-export default function RootLayout({ children }: { children: React.ReactNode }) {
+export default async function RootLayout({ children }: { children: React.ReactNode }) {
+	const sidebar = await SidebarWrapper();
+	const themeScript = `function() {
+		const theme = localStorage.getItem('theme');
+		if (theme === 'dark') {
+			document.documentElement.classList.add('dark');
+		}
+	}`;
+
 	return (
-		<html lang="en">
+		<html lang="en" suppressHydrationWarning>
 			<head>
 				<title>Folio</title>
+				<script dangerouslySetInnerHTML={{ __html: themeScript }} />
 			</head>
 			<body className="w-screen h-screen flex flex-row bg-primary overflow-hidden">
-				<LayoutWrapper sidebar={<SidebarWrapper />}>{children}</LayoutWrapper>
+				<LayoutWrapper sidebar={sidebar}>{children}</LayoutWrapper>
 				<footer>{/* Footer content */}</footer>
 			</body>
 		</html>

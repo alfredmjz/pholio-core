@@ -192,7 +192,7 @@ export default function ProfileInformationCard({ profile, userEmail }: ProfileIn
         {/* Member Since */}
         <div className="pt-4 border-t">
           <p className="text-sm text-muted-foreground">
-            Member since {formatDate(profile?.created_at)}
+            Member since {profile?.created_at ? formatDate(profile.created_at) : 'N/A'}
           </p>
         </div>
       </CardContent>

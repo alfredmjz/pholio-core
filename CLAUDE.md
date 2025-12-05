@@ -42,14 +42,14 @@ See `/context/development-principles.md` for complete workflow, templates, and s
 
 Specialized agents located in `.claude/agents/` - invoke using Task tool. Full agent definitions contain complete instructions.
 
-| Agent                | Purpose                                                                           |
-| -------------------- | --------------------------------------------------------------------------------- |
-| **ui-ux-designer**   | UI/UX design, component creation, accessibility                                   |
-| **design-review**    | MANDATORY after UI implementation - comprehensive testing, accessibility, visual  |
-| **orchestrator**     | Break down complex tasks, coordinate specialists                                  |
-| **system-architect** | Architecture decisions, data models, system design                                |
-| **senior-engineer**  | Implementation, coding, optimization, debugging                                   |
-| **code-reviewer**    | Code review, security, patterns, quality assurance (runs AFTER design-review)     |
+| Agent                | Purpose                                                                          |
+| -------------------- | -------------------------------------------------------------------------------- |
+| **ui-ux-designer**   | UI/UX design, component creation, accessibility                                  |
+| **design-review**    | MANDATORY after UI implementation - comprehensive testing, accessibility, visual |
+| **orchestrator**     | Break down complex tasks, coordinate specialists                                 |
+| **system-architect** | Architecture decisions, data models, system design                               |
+| **senior-engineer**  | Implementation, coding, optimization, debugging                                  |
+| **code-reviewer**    | Code review, security, patterns, quality assurance (runs AFTER design-review)    |
 
 **Agent workflow for complex features**: orchestrator → system-architect → ui-ux-designer → senior-engineer → **design-review** → code-reviewer
 
@@ -513,3 +513,5 @@ NEXT_PUBLIC_SUPABASE_ANON_KEY=your-anon-key
 - Use `@/*` path alias for src imports
 - During the design stage, every agent should be involved in the discussion and come up with a proposed solution. Then, every agent will have to cast their vote on the proposal. If it is a draw, discussion should be held again and revoted.
 - Always create a to-do list before execution and check it off after each step
+- Always refer to `@src/tailwind.config.ts` for the project's default style
+- If a file does not exist, create first and write in it directly. Avoid using command line to read and write into a file unless necessary

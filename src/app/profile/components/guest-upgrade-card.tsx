@@ -7,10 +7,10 @@ import { CheckIcon, Target } from 'lucide-react';
 
 export default function GuestUpgradeCard() {
   return (
-    <Card className="border-green-500/30 bg-green-500/5">
+    <Card className="border-success/30 bg-success/5">
       <CardHeader>
         <CardTitle className="flex items-center gap-2">
-          <Target className="w-5 h-5 text-green-500" />
+          <Target className="w-5 h-5 text-success" />
           Upgrade Your Account
         </CardTitle>
         <CardDescription>You're currently using a guest account</CardDescription>
@@ -23,25 +23,25 @@ export default function GuestUpgradeCard() {
 
           <ul className="space-y-2">
             <li className="flex items-start gap-2 text-sm">
-              <CheckIcon className="w-4 h-4 text-green-500 mt-0.5 flex-shrink-0" />
+              <CheckIcon className="w-4 h-4 text-success mt-0.5 flex-shrink-0" />
               <span>Save your data permanently</span>
             </li>
             <li className="flex items-start gap-2 text-sm">
-              <CheckIcon className="w-4 h-4 text-green-500 mt-0.5 flex-shrink-0" />
+              <CheckIcon className="w-4 h-4 text-success mt-0.5 flex-shrink-0" />
               <span>Access from multiple devices</span>
             </li>
             <li className="flex items-start gap-2 text-sm">
-              <CheckIcon className="w-4 h-4 text-green-500 mt-0.5 flex-shrink-0" />
+              <CheckIcon className="w-4 h-4 text-success mt-0.5 flex-shrink-0" />
               <span>Connect financial institutions</span>
             </li>
             <li className="flex items-start gap-2 text-sm">
-              <CheckIcon className="w-4 h-4 text-green-500 mt-0.5 flex-shrink-0" />
+              <CheckIcon className="w-4 h-4 text-success mt-0.5 flex-shrink-0" />
               <span>Get personalized insights</span>
             </li>
           </ul>
 
           <GuestConvertDialog>
-            <Button className="w-full bg-green-600 hover:bg-green-700">
+            <Button className="w-full bg-success hover:bg-success/90">
               Create Account
             </Button>
           </GuestConvertDialog>

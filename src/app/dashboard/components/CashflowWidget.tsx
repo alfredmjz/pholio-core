@@ -8,6 +8,7 @@ import { formatCurrency, formatCompactCurrency } from '@/app/dashboard/utils';
 import { BarChart3, Plus } from 'lucide-react';
 import { BarChart, Bar, XAxis, YAxis, CartesianGrid, Tooltip, ResponsiveContainer } from 'recharts';
 import type { Period, CashflowDataPoint } from '../types';
+import { Skeleton } from '@/components/ui/skeleton';
 
 interface CashflowWidgetProps {
 	data: CashflowDataPoint[];
@@ -197,23 +198,23 @@ function EmptyState() {
 
 export function CashflowWidgetSkeleton({ className }: { className?: string }) {
 	return (
-		<Card className={cn('p-6 bg-card border border-border animate-pulse', className)}>
+		<Card className={cn('p-6 bg-card border border-border', className)}>
 			<div className="flex items-center justify-between mb-6">
 				<div>
-					<div className="h-6 bg-muted rounded w-32 mb-2" />
-					<div className="h-3 bg-muted rounded w-48" />
+					<Skeleton className="h-6 w-32 mb-2" />
+					<Skeleton className="h-3 w-48" />
 				</div>
-				<div className="h-9 bg-muted rounded w-40" />
+				<Skeleton className="h-9 w-40" />
 			</div>
 			<div className="grid grid-cols-3 gap-4 mb-6">
 				{[1, 2, 3].map((i) => (
 					<div key={i} className="p-4 bg-muted/50 rounded-lg">
-						<div className="h-3 bg-muted rounded w-20 mb-2" />
-						<div className="h-5 bg-muted rounded w-24" />
+						<Skeleton className="h-3 w-20 mb-2" />
+						<Skeleton className="h-5 w-24" />
 					</div>
 				))}
 			</div>
-			<div className="h-72 bg-muted rounded" />
+			<Skeleton className="h-72 w-full" />
 		</Card>
 	);
 }

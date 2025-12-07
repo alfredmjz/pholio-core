@@ -7,6 +7,7 @@ import { cn } from '@/lib/utils';
 import { formatCurrency, formatDate } from '@/app/dashboard/utils';
 import { ArrowRight, ArrowDownLeft, ArrowUpRight, Receipt } from 'lucide-react';
 import type { Transaction } from '../types';
+import { Skeleton } from '@/components/ui/skeleton';
 
 interface RecentTransactionsProps {
 	transactions: Transaction[];
@@ -99,20 +100,20 @@ export function RecentTransactionsSkeleton({ className }: { className?: string }
 	return (
 		<Card className={cn('p-6 bg-card border border-border', className)}>
 			<div className="flex items-center justify-between mb-4">
-				<div className="h-5 bg-muted rounded w-40 animate-pulse" />
-				<div className="h-8 bg-muted rounded w-20 animate-pulse" />
+				<Skeleton className="h-5 w-40" />
+				<Skeleton className="h-8 w-20" />
 			</div>
 			<div className="space-y-2">
 				{[1, 2, 3, 4, 5].map((i) => (
-					<div key={i} className="flex items-center justify-between p-3 animate-pulse">
+					<div key={i} className="flex items-center justify-between p-3">
 						<div className="flex items-center gap-3">
-							<div className="h-10 w-10 bg-muted rounded-lg" />
+							<Skeleton className="h-10 w-10 rounded-lg" />
 							<div className="space-y-2">
-								<div className="h-3.5 bg-muted rounded w-32" />
-								<div className="h-3 bg-muted rounded w-24" />
+								<Skeleton className="h-3.5 w-32" />
+								<Skeleton className="h-3 w-24" />
 							</div>
 						</div>
-						<div className="h-4 bg-muted rounded w-16" />
+						<Skeleton className="h-4 w-16" />
 					</div>
 				))}
 			</div>

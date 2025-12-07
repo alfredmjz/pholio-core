@@ -37,6 +37,7 @@ import {
 	ResponsiveContainer,
 } from 'recharts';
 import type { ChartType, Trend, AssetBreakdown, LiabilityBreakdown } from '../types';
+import { Skeleton } from '@/components/ui/skeleton';
 
 interface NetWorthWidgetProps {
 	netWorth: number;
@@ -460,22 +461,22 @@ function EmptyState() {
 
 export function NetWorthWidgetSkeleton({ className }: { className?: string }) {
 	return (
-		<Card className={cn('p-6 bg-card border border-border animate-pulse', className)}>
+		<Card className={cn('p-6 bg-card border border-border', className)}>
 			<div className="flex items-center justify-between mb-6">
 				<div className="flex items-center gap-3">
-					<div className="h-12 w-12 bg-muted rounded-lg" />
+					<Skeleton className="h-12 w-12 rounded-lg" />
 					<div>
-						<div className="h-6 bg-muted rounded w-28 mb-1" />
-						<div className="h-3 bg-muted rounded w-20" />
+						<Skeleton className="h-6 w-28 mb-1" />
+						<Skeleton className="h-3 w-20" />
 					</div>
 				</div>
-				<div className="h-9 bg-muted rounded w-20" />
+				<Skeleton className="h-9 w-20" />
 			</div>
-			<div className="h-24 bg-muted/50 rounded-xl mb-6" />
-			<div className="h-56 bg-muted rounded" />
+			<Skeleton className="h-24 w-full rounded-xl mb-6" />
+			<Skeleton className="h-56 w-full" />
 			<div className="grid grid-cols-2 gap-4 mt-6">
-				<div className="h-20 bg-muted/50 rounded-lg" />
-				<div className="h-20 bg-muted/50 rounded-lg" />
+				<Skeleton className="h-20 w-full rounded-lg" />
+				<Skeleton className="h-20 w-full rounded-lg" />
 			</div>
 		</Card>
 	);

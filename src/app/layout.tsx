@@ -1,16 +1,34 @@
 import React from 'react';
-import '@/styles/globals.css';
-import { SideBarComponent } from '@/components/sidebar';
+import type { Metadata } from 'next';
 
-export default function RootLayout({ children }: { children: React.ReactNode }) {
+import '@/styles/globals.css';
+import LayoutWrapper from '@/components/layoutWrapper';
+import { SidebarWrapper } from '@/components/sidebarWrapper';
+
+export const metadata: Metadata = {
+	title: 'Pholio',
+	icons: {
+		icon: '/pholio-icon.svg',
+	},
+};
+
+export default async function RootLayout({ children }: { children: React.ReactNode }) {
+	const sidebar = await SidebarWrapper();
+	const themeScript = `function() {
+		const theme = localStorage.getItem('theme');
+		if (theme === 'dark') {
+			document.documentElement.classList.add('dark');
+		}
+	}`;
+
 	return (
-		<html lang="en">
+		<html lang="en" suppressHydrationWarning>
 			<head>
 				<title>Folio</title>
+				<script dangerouslySetInnerHTML={{ __html: themeScript }} />
 			</head>
-			<body className="w-screen h-screen min-h-screen flex flex-row bg-primary">
-				<SideBarComponent />
-				<main>{children}</main>
+			<body className="w-screen h-screen flex flex-row bg-primary overflow-hidden">
+				<LayoutWrapper sidebar={sidebar}>{children}</LayoutWrapper>
 				<footer>{/* Footer content */}</footer>
 			</body>
 		</html>

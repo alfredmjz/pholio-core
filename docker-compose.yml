@@ -3,10 +3,10 @@ services:
     container_name: pholio-core-${APP_VERSION:-0.0.0}-${APP_ENV:-development}
     image: pholio-core:${APP_VERSION:-0.0.0}-${APP_ENV:-development}
     build:
-      context: ./main
+      context: ./src
       dockerfile: Dockerfile
     volumes:
-      - ./main:/app
+      - ./src:/app
     ports:
       - '3000:3000' #host_port:container_port
     labels:
@@ -14,5 +14,3 @@ services:
       - 'version=${APP_VERSION:-0.0.0}'
     env_file:
       - .env
-      - ./main/.env.local
-

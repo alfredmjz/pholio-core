@@ -6,41 +6,117 @@
 
 @layer base {
 	:root {
-		--primary: #242424;
-		--primary-highlight: #2e2e2e;
-		--primary-muted: #383838;
+		/* Light theme - Notion-inspired palette */
 
-		--secondary: #2b2b2b;
-		--secondary-highlight: #353535;
-		--secondary-muted: #9b9b9b;
-
-		--accent: #f6f6f6;
-		--constructive: #2ca04b;
-		--destructive: #e14646;
-
-		--text-primary: #d9d9d9;
-		--text-secondary: #9c9c9ce5;
-		--text-secondary-highlight: #f6f6f6e5;
-		--ring: #a6b3c8;
+		/* Base colors */
+		--background: #FFFFFF;
+		--foreground: #37352F;
+		--border: #E9E9E7;
+		--ring: #337EA9;
 		--radius: 0.5rem;
+
+		/* Primary - subtle backgrounds (sidebar, cards) */
+		--primary: #F7F7F5;
+		--primary-foreground: #37352F;
+		--primary-hover: #EFEFEF;
+		--primary-border: #E9E9E7;
+
+		/* Secondary - interactive states */
+		--secondary: #EFEFEF;
+		--secondary-foreground: #37352F;
+		--secondary-hover: #E9E9E7;
+		--secondary-border: #E9E9E7;
+
+		/* Accent - emphasis */
+		--accent: #37352F;
+		--accent-foreground: #FFFFFF;
+
+		/* Muted - de-emphasized content */
+		--muted: #F7F7F5;
+		--muted-foreground: #787774;
+
+		/* Card */
+		--card: #FFFFFF;
+		--card-foreground: #37352F;
+
+		/* Status colors - mapped to Notion accent palette */
+		--success: #448361;
+		--success-foreground: #FFFFFF;
+		--success-muted: #DBEDDB;
+
+		--warning: #CB912F;
+		--warning-foreground: #FFFFFF;
+		--warning-muted: #FDECC8;
+
+		--error: #D44C47;
+		--error-foreground: #FFFFFF;
+		--error-muted: #FFE2DD;
+
+		--info: #337EA9;
+		--info-foreground: #FFFFFF;
+		--info-muted: #D3E5EF;
+
+		/* Text colors */
+		--text-primary: #37352F;
+		--text-secondary: #787774;
+		--text-secondary-highlight: #37352F;
 	}
 
-	/* .light {
-		--primary: 36 36 36;
-		--primary-highlight: 46 46 46;
-		--primary-muted: 56 56 56;
+	.dark {
+		/* Dark theme - Notion-inspired palette */
 
-		--secondary: 43 43 43;
-		--secondary-highlight: 53 53 53;
-		--secondary-muted: 155 155 155;
+		/* Base colors */
+		--background: #191919;
+		--foreground: #D4D4D4;
+		--border: #373737;
+		--ring: #529CCA;
 
-		--accent: 246 246 246;
-		--constructive: 44 160 75;
-		--destructive: 255 70 70;
+		/* Primary - subtle backgrounds (sidebar, cards) */
+		--primary: #202020;
+		--primary-foreground: #D4D4D4;
+		--primary-hover: #2C2C2C;
+		--primary-border: #373737;
 
-		--ring: 215 20.2% 65.1%;
-		--radius: 0.5rem;
-	} */
+		/* Secondary - interactive states */
+		--secondary: #2C2C2C;
+		--secondary-foreground: #D4D4D4;
+		--secondary-hover: #373737;
+		--secondary-border: #373737;
+
+		/* Accent - emphasis */
+		--accent: #D4D4D4;
+		--accent-foreground: #191919;
+
+		/* Muted - de-emphasized content */
+		--muted: #202020;
+		--muted-foreground: #9B9B9B;
+
+		/* Card */
+		--card: #202020;
+		--card-foreground: #D4D4D4;
+
+		/* Status colors - mapped to Notion accent palette (dark) */
+		--success: #4DAB9A;
+		--success-foreground: #191919;
+		--success-muted: rgba(77, 171, 154, 0.1);
+
+		--warning: #FFDC49;
+		--warning-foreground: #191919;
+		--warning-muted: rgba(255, 220, 73, 0.1);
+
+		--error: #FF7369;
+		--error-foreground: #191919;
+		--error-muted: rgba(255, 115, 105, 0.1);
+
+		--info: #529CCA;
+		--info-foreground: #191919;
+		--info-muted: rgba(82, 156, 202, 0.1);
+
+		/* Text colors */
+		--text-primary: #D4D4D4;
+		--text-secondary: #9B9B9B;
+		--text-secondary-highlight: #D4D4D4;
+	}
 }
 
 @layer base {
@@ -60,3 +136,13 @@
 	}
 }
 
+@layer utilities {
+	/* Hide scrollbar but keep functionality for horizontal nav on mobile */
+	.scrollbar-hide {
+		-ms-overflow-style: none; /* IE and Edge */
+		scrollbar-width: none; /* Firefox */
+	}
+	.scrollbar-hide::-webkit-scrollbar {
+		display: none; /* Chrome, Safari and Opera */
+	}
+}

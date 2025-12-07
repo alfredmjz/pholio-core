@@ -12,24 +12,24 @@
 		--background: #FFFFFF;
 		--foreground: #37352F;
 		--border: #E9E9E7;
-		--ring: #337EA9;
+		--ring: #2EAADC;
 		--radius: 0.5rem;
 
-		/* Primary - subtle backgrounds (sidebar, cards) */
-		--primary: #F7F7F5;
-		--primary-foreground: #37352F;
-		--primary-hover: #EFEFEF;
-		--primary-border: #E9E9E7;
+		/* Primary - High contrast for interactive elements */
+		--primary: #37352F;
+		--primary-foreground: #FFFFFF;
+		--primary-hover: #2F2F2F;
+		--primary-border: #37352F;
 
 		/* Secondary - interactive states */
-		--secondary: #EFEFEF;
+		--secondary: #F7F7F5;
 		--secondary-foreground: #37352F;
-		--secondary-hover: #E9E9E7;
+		--secondary-hover: #EFEFEF;
 		--secondary-border: #E9E9E7;
 
 		/* Accent - emphasis */
-		--accent: #37352F;
-		--accent-foreground: #FFFFFF;
+		--accent: #F7F7F5;
+		--accent-foreground: #37352F;
 
 		/* Muted - de-emphasized content */
 		--muted: #F7F7F5;
@@ -39,7 +39,7 @@
 		--card: #FFFFFF;
 		--card-foreground: #37352F;
 
-		/* Status colors - mapped to Notion accent palette */
+		/* Status colors - Notion palette */
 		--success: #448361;
 		--success-foreground: #FFFFFF;
 		--success-muted: #DBEDDB;
@@ -52,7 +52,7 @@
 		--error-foreground: #FFFFFF;
 		--error-muted: #FFE2DD;
 
-		--info: #337EA9;
+		--info: #2EAADC;
 		--info-foreground: #FFFFFF;
 		--info-muted: #D3E5EF;
 
@@ -68,49 +68,49 @@
 		/* Base colors */
 		--background: #191919;
 		--foreground: #D4D4D4;
-		--border: #373737;
-		--ring: #529CCA;
+		--border: #2F2F2F;
+		--ring: #2EAADC;
 
-		/* Primary - subtle backgrounds (sidebar, cards) */
-		--primary: #202020;
-		--primary-foreground: #D4D4D4;
-		--primary-hover: #2C2C2C;
-		--primary-border: #373737;
+		/* Primary - White for high visibility against dark bg */
+		--primary: #FFFFFF;
+		--primary-foreground: #191919;
+		--primary-hover: #E0E0E0;
+		--primary-border: #FFFFFF;
 
-		/* Secondary - interactive states */
-		--secondary: #2C2C2C;
+		/* Secondary - interactive states & Sidebar */
+		--secondary: #202020;
 		--secondary-foreground: #D4D4D4;
-		--secondary-hover: #373737;
+		--secondary-hover: #2C2C2C;
 		--secondary-border: #373737;
 
 		/* Accent - emphasis */
-		--accent: #D4D4D4;
-		--accent-foreground: #191919;
+		--accent: #2C2C2C;
+		--accent-foreground: #D4D4D4;
 
 		/* Muted - de-emphasized content */
-		--muted: #202020;
+		--muted: #2C2C2C;
 		--muted-foreground: #9B9B9B;
 
 		/* Card */
 		--card: #202020;
 		--card-foreground: #D4D4D4;
 
-		/* Status colors - mapped to Notion accent palette (dark) */
+		/* Status colors - Notion palette (dark) */
 		--success: #4DAB9A;
 		--success-foreground: #191919;
-		--success-muted: rgba(77, 171, 154, 0.1);
+		--success-muted: rgba(77, 171, 154, 0.15);
 
 		--warning: #FFDC49;
 		--warning-foreground: #191919;
-		--warning-muted: rgba(255, 220, 73, 0.1);
+		--warning-muted: rgba(255, 220, 73, 0.15);
 
 		--error: #FF7369;
 		--error-foreground: #191919;
-		--error-muted: rgba(255, 115, 105, 0.1);
+		--error-muted: rgba(255, 115, 105, 0.15);
 
 		--info: #529CCA;
 		--info-foreground: #191919;
-		--info-muted: rgba(82, 156, 202, 0.1);
+		--info-muted: rgba(82, 156, 202, 0.15);
 
 		/* Text colors */
 		--text-primary: #D4D4D4;

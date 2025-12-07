@@ -76,7 +76,7 @@ export function CashflowWidget({
 	}
 
 	return (
-		<Card className={cn('p-6 bg-card border border-border', className)}>
+		<Card className={cn('p-6 bg-card border border-border min-w-0', className)}>
 			{/* Header */}
 			<div className="flex items-center justify-between mb-6">
 				<div>
@@ -151,7 +151,7 @@ export function CashflowWidget({
 									axisLine={false}
 									tickFormatter={formatCompactCurrency}
 								/>
-								<Tooltip content={<CustomTooltip />} cursor={{ fill: 'var(--muted)', opacity: 0.3 }} />
+								<Tooltip isAnimationActive={false} content={<CustomTooltip />} cursor={{ fill: 'var(--muted)', opacity: 0.3 }} />
 								<Bar dataKey="income" fill="var(--info)" radius={[4, 4, 0, 0]} maxBarSize={40} />
 								<Bar dataKey="expenses" fill="var(--error)" radius={[4, 4, 0, 0]} maxBarSize={40} />
 							</BarChart>

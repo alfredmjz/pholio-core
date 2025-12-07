@@ -102,7 +102,7 @@ export function NetWorthWidget({
 	}
 
 	return (
-		<Card className={cn('p-6 bg-card border border-border', className)}>
+		<Card className={cn('p-6 bg-card border border-border min-w-0', className)}>
 			{/* Header */}
 			<div className="flex items-center justify-between mb-6">
 				<div className="flex items-center gap-3">
@@ -257,8 +257,8 @@ function DonutChart({
 						data={data}
 						cx="50%"
 						cy="50%"
-						innerRadius={55}
-						outerRadius={85}
+						innerRadius={50}
+						outerRadius={80}
 						paddingAngle={2}
 						dataKey="value"
 						animationDuration={500}
@@ -268,6 +268,10 @@ function DonutChart({
 						))}
 					</Pie>
 					<Tooltip
+						isAnimationActive={false}
+						offset={10}
+						wrapperStyle={{ zIndex: 1000 }}
+						allowEscapeViewBox={{ x: true, y: true }}
 						content={({ active, payload }) => {
 							if (!active || !payload || payload.length === 0) return null;
 							const item = payload[0].payload;
@@ -327,6 +331,7 @@ function TrendChart({ data }: { data: { date: string; value: number }[] }) {
 						tickFormatter={formatCompactCurrency}
 					/>
 					<Tooltip
+						isAnimationActive={false}
 						content={({ active, payload, label }) => {
 							if (!active || !payload || payload.length === 0) return null;
 							return (

@@ -1,6 +1,6 @@
 'use client';
 
-import { useState, useMemo } from 'react';
+import { useState, useMemo, useEffect } from 'react';
 import { Card } from '@/components/ui/card';
 import { Button } from '@/components/ui/button';
 import { ToggleGroup, ToggleGroupItem } from '@/components/ui/toggle-group';
@@ -67,7 +67,12 @@ export function NetWorthWidget({
 	className,
 }: NetWorthWidgetProps) {
 	const [isExpanded, setIsExpanded] = useState(false);
+	const [mounted, setMounted] = useState(false);
 	const hasData = totalAssets > 0 || totalLiabilities > 0;
+
+	useEffect(() => {
+		setMounted(true);
+	}, []);
 
 	// Prepare donut chart data
 	const donutData = useMemo(() => {
@@ -177,9 +182,9 @@ export function NetWorthWidget({
 				<>
 					{/* Chart Area */}
 					{chartType === 'donut' ? (
-						<DonutChart data={donutData} netWorth={netWorth} />
+						<DonutChart data={donutData} netWorth={netWorth} mounted={mounted} />
 					) : (
-						<TrendChart data={trendData || []} />
+						<TrendChart data={trendData || []} mounted={mounted} />
 					)}
 
 					{/* Breakdown Summary */}
@@ -233,9 +238,11 @@ export function NetWorthWidget({
 function DonutChart({
 	data,
 	netWorth,
+	mounted,
 }: {
 	data: { name: string; value: number; color: string; type: 'asset' | 'liability' }[];
 	netWorth: number;
+	mounted: boolean;
 }) {
 	if (data.length === 0) {
 		return (
@@ -252,43 +259,49 @@ function DonutChart({
 
 	return (
 		<div className="h-56 relative">
-			<ResponsiveContainer width="100%" height="100%">
-				<RechartsPieChart>
-					<Pie
-						data={data}
-						cx="50%"
-						cy="50%"
-						innerRadius={50}
-						outerRadius={80}
-						paddingAngle={2}
-						dataKey="value"
-						animationDuration={500}
-					>
-						{data.map((entry, index) => (
-							<Cell key={`cell-${index}`} fill={entry.color} />
-						))}
-					</Pie>
-					<Tooltip
-						isAnimationActive={false}
-						offset={10}
-						wrapperStyle={{ zIndex: 1000 }}
-						allowEscapeViewBox={{ x: true, y: true }}
-						content={({ active, payload }) => {
-							if (!active || !payload || payload.length === 0) return null;
-							const item = payload[0].payload;
-							return (
-								<div className="bg-card border border-border rounded-lg shadow-lg p-3">
-									<p className="text-xs text-muted-foreground capitalize">{item.type}</p>
-									<p className="text-sm font-semibold text-foreground">{item.name}</p>
-									<p className={cn('text-sm font-bold', item.type === 'asset' ? 'text-info' : 'text-error')}>
-										{formatCurrency(item.value)}
-									</p>
-								</div>
-							);
-						}}
-					/>
-				</RechartsPieChart>
-			</ResponsiveContainer>
+			{mounted ? (
+				<ResponsiveContainer width="100%" height="100%">
+					<RechartsPieChart>
+						<Pie
+							data={data}
+							cx="50%"
+							cy="50%"
+							innerRadius={50}
+							outerRadius={80}
+							paddingAngle={2}
+							dataKey="value"
+							animationDuration={500}
+						>
+							{data.map((entry, index) => (
+								<Cell key={`cell-${index}`} fill={entry.color} />
+							))}
+						</Pie>
+						<Tooltip
+							isAnimationActive={false}
+							offset={10}
+							wrapperStyle={{ zIndex: 1000 }}
+							allowEscapeViewBox={{ x: true, y: true }}
+							content={({ active, payload }) => {
+								if (!active || !payload || payload.length === 0) return null;
+								const item = payload[0].payload;
+								return (
+									<div className="bg-card border border-border rounded-lg shadow-lg p-3">
+										<p className="text-xs text-muted-foreground capitalize">{item.type}</p>
+										<p className="text-sm font-semibold text-foreground">{item.name}</p>
+										<p className={cn('text-sm font-bold', item.type === 'asset' ? 'text-info' : 'text-error')}>
+											{formatCurrency(item.value)}
+										</p>
+									</div>
+								);
+							}}
+						/>
+					</RechartsPieChart>
+				</ResponsiveContainer>
+			) : (
+				<div className="h-full w-full flex items-center justify-center">
+					<Skeleton className="h-full w-full rounded-full" />
+				</div>
+			)}
 
 			{/* Center Label */}
 			<div className="absolute inset-0 flex items-center justify-center pointer-events-none">
@@ -301,7 +314,7 @@ function DonutChart({
 	);
 }
 
-function TrendChart({ data }: { data: { date: string; value: number }[] }) {
+function TrendChart({ data, mounted }: { data: { date: string; value: number }[]; mounted: boolean }) {
 	if (data.length === 0) {
 		return (
 			<div className="h-56 flex flex-col items-center justify-center text-center">
@@ -314,45 +327,51 @@ function TrendChart({ data }: { data: { date: string; value: number }[] }) {
 
 	return (
 		<div className="h-56">
-			<ResponsiveContainer width="100%" height="100%">
-				<AreaChart data={data} margin={{ top: 10, right: 10, left: -10, bottom: 0 }}>
-					<defs>
-						<linearGradient id="netWorthGradient" x1="0" y1="0" x2="0" y2="1">
-							<stop offset="5%" stopColor="var(--success)" stopOpacity={0.3} />
-							<stop offset="95%" stopColor="var(--success)" stopOpacity={0} />
-						</linearGradient>
-					</defs>
-					<CartesianGrid strokeDasharray="3 3" stroke="var(--border)" vertical={false} />
-					<XAxis dataKey="date" stroke="var(--muted-foreground)" fontSize={12} tickLine={false} axisLine={false} />
-					<YAxis
-						stroke="var(--muted-foreground)"
-						fontSize={12}
-						tickLine={false}
-						axisLine={false}
-						tickFormatter={formatCompactCurrency}
-					/>
-					<Tooltip
-						isAnimationActive={false}
-						content={({ active, payload, label }) => {
-							if (!active || !payload || payload.length === 0) return null;
-							return (
-								<div className="bg-card border border-border rounded-lg shadow-lg p-3">
-									<p className="text-xs text-muted-foreground">{label}</p>
-									<p className="text-sm font-semibold text-success">{formatCurrency(payload[0].value as number)}</p>
-								</div>
-							);
-						}}
-					/>
-					<Area
-						type="monotone"
-						dataKey="value"
-						stroke="var(--success)"
-						strokeWidth={2}
-						fill="url(#netWorthGradient)"
-						animationDuration={500}
-					/>
-				</AreaChart>
-			</ResponsiveContainer>
+			{mounted ? (
+				<ResponsiveContainer width="100%" height="100%">
+					<AreaChart data={data} margin={{ top: 10, right: 10, left: -10, bottom: 0 }}>
+						<defs>
+							<linearGradient id="netWorthGradient" x1="0" y1="0" x2="0" y2="1">
+								<stop offset="5%" stopColor="var(--success)" stopOpacity={0.3} />
+								<stop offset="95%" stopColor="var(--success)" stopOpacity={0} />
+							</linearGradient>
+						</defs>
+						<CartesianGrid strokeDasharray="3 3" stroke="var(--border)" vertical={false} />
+						<XAxis dataKey="date" stroke="var(--muted-foreground)" fontSize={12} tickLine={false} axisLine={false} />
+						<YAxis
+							stroke="var(--muted-foreground)"
+							fontSize={12}
+							tickLine={false}
+							axisLine={false}
+							tickFormatter={formatCompactCurrency}
+						/>
+						<Tooltip
+							isAnimationActive={false}
+							content={({ active, payload, label }) => {
+								if (!active || !payload || payload.length === 0) return null;
+								return (
+									<div className="bg-card border border-border rounded-lg shadow-lg p-3">
+										<p className="text-xs text-muted-foreground">{label}</p>
+										<p className="text-sm font-semibold text-success">{formatCurrency(payload[0].value as number)}</p>
+									</div>
+								);
+							}}
+						/>
+						<Area
+							type="monotone"
+							dataKey="value"
+							stroke="var(--success)"
+							strokeWidth={2}
+							fill="url(#netWorthGradient)"
+							animationDuration={500}
+						/>
+					</AreaChart>
+				</ResponsiveContainer>
+			) : (
+				<div className="h-full w-full flex items-center justify-center">
+					<Skeleton className="h-full w-full" />
+				</div>
+			)}
 		</div>
 	);
 }

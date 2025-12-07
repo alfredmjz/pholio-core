@@ -4,6 +4,7 @@ import { createClient } from "@/lib/supabase/server";
 import type {
 	DashboardData,
 	CashflowSummary,
+	AllCashflowData,
 	NetWorthData,
 	Transaction,
 	Period,
@@ -125,7 +126,7 @@ function getEmptyDashboardData(): DashboardData {
 			monthlyExpenses: { label: "Monthly Expenses", value: 0 },
 			savingsRate: { label: "Savings Rate", value: 0 },
 		},
-		cashflow: getEmptyCashflowData("month"),
+		cashflow: getEmptyAllCashflowData(),
 		netWorth: getEmptyNetWorthData(),
 		recentTransactions: [],
 	};
@@ -138,6 +139,14 @@ function getEmptyCashflowData(period: Period): CashflowSummary {
 		netCashflow: 0,
 		period,
 		data: [],
+	};
+}
+
+function getEmptyAllCashflowData(): AllCashflowData {
+	return {
+		month: getEmptyCashflowData("month"),
+		quarter: getEmptyCashflowData("quarter"),
+		year: getEmptyCashflowData("year"),
 	};
 }
 
@@ -180,7 +189,7 @@ function getMockDashboardData(): DashboardData {
 				trend: { value: 8.5, direction: "up", period: "vs last month" },
 			},
 		},
-		cashflow: getMockCashflowData("month"),
+		cashflow: getAllMockCashflowData(),
 		netWorth: getMockNetWorthData(),
 		recentTransactions: getMockTransactions(),
 	};
@@ -225,6 +234,14 @@ function getMockCashflowData(period: Period): CashflowSummary {
 		netCashflow: totalIncome - totalExpenses,
 		period,
 		data,
+	};
+}
+
+function getAllMockCashflowData(): AllCashflowData {
+	return {
+		month: getMockCashflowData("month"),
+		quarter: getMockCashflowData("quarter"),
+		year: getMockCashflowData("year"),
 	};
 }
 

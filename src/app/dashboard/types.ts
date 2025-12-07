@@ -38,6 +38,12 @@ export interface CashflowSummary {
 	data: CashflowDataPoint[];
 }
 
+export interface AllCashflowData {
+	month: CashflowSummary;
+	quarter: CashflowSummary;
+	year: CashflowSummary;
+}
+
 export interface AssetBreakdown {
 	category: string;
 	value: number;
@@ -86,7 +92,7 @@ export interface DashboardData {
 		monthlyExpenses: MetricCardData;
 		savingsRate: MetricCardData;
 	};
-	cashflow: CashflowSummary;
+	cashflow: AllCashflowData;
 	netWorth: NetWorthData;
 	recentTransactions: Transaction[];
 }

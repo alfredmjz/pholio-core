@@ -13,7 +13,6 @@ import {
 	PiggyBank,
 } from "lucide-react";
 import type { DashboardData, Period, ChartType } from "./types";
-import { getCashflowData } from "./actions";
 
 interface DashboardClientProps {
 	initialData: DashboardData;
@@ -23,20 +22,14 @@ export function DashboardClient({ initialData }: DashboardClientProps) {
 	const router = useRouter();
 	const [cashflowPeriod, setCashflowPeriod] = useState<Period>("month");
 	const [netWorthChartType, setNetWorthChartType] = useState<ChartType>("donut");
-	const [cashflowData, setCashflowData] = useState(initialData.cashflow);
-	const [isLoadingCashflow, setIsLoadingCashflow] = useState(false);
 
-	const handlePeriodChange = async (period: Period) => {
+	// Initialize with the month data, but we have all data available in initialData.cashflow
+	const [cashflowData, setCashflowData] = useState(initialData.cashflow.month);
+
+	const handlePeriodChange = (period: Period) => {
 		setCashflowPeriod(period);
-		setIsLoadingCashflow(true);
-		try {
-			const newData = await getCashflowData(period);
-			setCashflowData(newData);
-		} catch (error) {
-			console.error("Failed to fetch cashflow data:", error);
-		} finally {
-			setIsLoadingCashflow(false);
-		}
+		// Instantly switch data from the pre-fetched object
+		setCashflowData(initialData.cashflow[period]);
 	};
 
 	const handleViewAllTransactions = () => {
@@ -100,7 +93,6 @@ export function DashboardClient({ initialData }: DashboardClientProps) {
 					netCashflow={cashflowData.netCashflow}
 					selectedPeriod={cashflowPeriod}
 					onPeriodChange={handlePeriodChange}
-					loading={isLoadingCashflow}
 				/>
 				<NetWorthWidget
 					netWorth={initialData.netWorth.netWorth}

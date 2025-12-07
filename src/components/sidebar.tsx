@@ -230,7 +230,7 @@ export function SideBarComponent({ userProfile }: SideBarComponentProps) {
 						</NavigationMenuItem>
 
 						<NavigationMenuItem value="navigation-links" className="flex flex-col gap-2 w-full">
-							<Link href="/" className={navigationMenuTriggerStyle()}>
+							<Link href="/dashboard" className={navigationMenuTriggerStyle()}>
 								Dashboard
 							</Link>
 

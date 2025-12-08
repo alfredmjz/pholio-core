@@ -5,8 +5,7 @@ import { Card } from '@/components/ui/card';
 import { Button } from '@/components/ui/button';
 import { ToggleGroup, ToggleGroupItem } from '@/components/ui/toggle-group';
 import { cn } from '@/lib/utils';
-import { formatCurrency, formatCompactCurrency } from '@/app/dashboard/utils';
-import { ASSET_COLORS, LIABILITY_COLORS } from '@/app/dashboard/chart-colors';
+import { formatCurrency } from '@/app/dashboard/utils';
 import {
 	TrendingUp,
 	TrendingDown,
@@ -24,20 +23,10 @@ import {
 	Briefcase,
 	PiggyBank,
 } from 'lucide-react';
-import {
-	PieChart as RechartsPieChart,
-	Pie,
-	Cell,
-	AreaChart,
-	Area,
-	XAxis,
-	YAxis,
-	CartesianGrid,
-	Tooltip,
-	ResponsiveContainer,
-} from 'recharts';
+import { AreaChart, Area, XAxis, YAxis, CartesianGrid, Tooltip, ResponsiveContainer } from 'recharts';
 import type { ChartType, Trend, AssetBreakdown, LiabilityBreakdown } from '../types';
 import { Skeleton } from '@/components/ui/skeleton';
+import { DonutChart } from '@/components/common/DonutChart';
 
 interface NetWorthWidgetProps {
 	netWorth: number;
@@ -76,27 +65,39 @@ export function NetWorthWidget({
 
 	// Prepare donut chart data
 	const donutData = useMemo(() => {
-		const data: { name: string; value: number; color: string; type: 'asset' | 'liability' }[] = [];
+		const data: { name: string; value: number; color: string }[] = [];
+		const BRIGHT_COLORS = [
+			'#06b6d4', // cyan-500
+			'#10b981', // emerald-500
+			'#f59e0b', // amber-500
+			'#ec4899', // pink-500
+			'#3b82f6', // blue-500
+			'#ef4444', // red-500
+			'#8b5cf6', // purple-500
+			'#f97316', // orange-500
+		];
 
-		assetBreakdown.forEach((asset, index) => {
+		let colorIndex = 0;
+
+		assetBreakdown.forEach((asset) => {
 			if (asset.value > 0) {
 				data.push({
 					name: asset.category,
 					value: asset.value,
-					color: ASSET_COLORS[index % ASSET_COLORS.length],
-					type: 'asset',
+					color: BRIGHT_COLORS[colorIndex % BRIGHT_COLORS.length],
 				});
+				colorIndex++;
 			}
 		});
 
-		liabilityBreakdown.forEach((liability, index) => {
+		liabilityBreakdown.forEach((liability) => {
 			if (liability.value > 0) {
 				data.push({
 					name: liability.category,
 					value: liability.value,
-					color: LIABILITY_COLORS[index % LIABILITY_COLORS.length],
-					type: 'liability',
+					color: BRIGHT_COLORS[colorIndex % BRIGHT_COLORS.length],
 				});
+				colorIndex++;
 			}
 		});
 
@@ -106,6 +107,13 @@ export function NetWorthWidget({
 	if (loading) {
 		return <NetWorthWidgetSkeleton className={className} />;
 	}
+
+	const CenterContent = (
+		<div className="flex flex-col items-center justify-center">
+			<span className="text-xs text-muted-foreground">Net Worth</span>
+			<span className="text-xl font-bold text-foreground">{formatCurrency(netWorth)}</span>
+		</div>
+	);
 
 	return (
 		<Card className={cn('p-6 bg-card border border-border min-w-0', className)}>
@@ -182,7 +190,19 @@ export function NetWorthWidget({
 				<>
 					{/* Chart Area */}
 					{chartType === 'donut' ? (
-						<DonutChart data={donutData} netWorth={netWorth} mounted={mounted} />
+						<div className="h-56 flex items-center justify-center">
+							{mounted ? (
+								<DonutChart
+									data={donutData}
+									size={40}
+									strokeWidth={12}
+									centerContent={CenterContent}
+									showTooltip={true}
+								/>
+							) : (
+								<div className="w-40 h-40 rounded-full border-8 border-muted" />
+							)}
+						</div>
 					) : (
 						<TrendChart data={trendData || []} mounted={mounted} />
 					)}
@@ -235,86 +255,16 @@ export function NetWorthWidget({
 	);
 }
 
-function DonutChart({
-	data,
-	netWorth,
-	mounted,
-}: {
-	data: { name: string; value: number; color: string; type: 'asset' | 'liability' }[];
-	netWorth: number;
-	mounted: boolean;
-}) {
-	if (data.length === 0) {
-		return (
-			<div className="h-56 flex items-center justify-center">
-				<div className="w-40 h-40 rounded-full border-8 border-muted flex items-center justify-center">
-					<div className="text-center">
-						<p className="text-xs text-muted-foreground">Net Worth</p>
-						<p className="text-lg font-bold text-foreground">{formatCurrency(netWorth)}</p>
-					</div>
-				</div>
-			</div>
-		);
-	}
-
-	return (
-		<div className="h-56 relative">
-			{mounted ? (
-				<ResponsiveContainer width="100%" height="100%">
-					<RechartsPieChart>
-						<Pie
-							data={data}
-							cx="50%"
-							cy="50%"
-							innerRadius={50}
-							outerRadius={80}
-							paddingAngle={2}
-							dataKey="value"
-							animationDuration={500}
-						>
-							{data.map((entry, index) => (
-								<Cell key={`cell-${index}`} fill={entry.color} />
-							))}
-						</Pie>
-						<Tooltip
-							isAnimationActive={false}
-							offset={10}
-							wrapperStyle={{ zIndex: 1000 }}
-							allowEscapeViewBox={{ x: true, y: true }}
-							content={({ active, payload }) => {
-								if (!active || !payload || payload.length === 0) return null;
-								const item = payload[0].payload;
-								return (
-									<div className="bg-card border border-border rounded-lg shadow-lg p-3">
-										<p className="text-xs text-muted-foreground capitalize">{item.type}</p>
-										<p className="text-sm font-semibold text-foreground">{item.name}</p>
-										<p className={cn('text-sm font-bold', item.type === 'asset' ? 'text-info' : 'text-error')}>
-											{formatCurrency(item.value)}
-										</p>
-									</div>
-								);
-							}}
-						/>
-					</RechartsPieChart>
-				</ResponsiveContainer>
-			) : (
-				<div className="h-full w-full flex items-center justify-center">
-					<Skeleton className="h-full w-full rounded-full" />
-				</div>
-			)}
-
-			{/* Center Label */}
-			<div className="absolute inset-0 flex items-center justify-center pointer-events-none">
-				<div className="text-center">
-					<p className="text-xs text-muted-foreground">Net Worth</p>
-					<p className="text-lg font-bold text-foreground">{formatCurrency(netWorth)}</p>
-				</div>
-			</div>
-		</div>
-	);
-}
-
 function TrendChart({ data, mounted }: { data: { date: string; value: number }[]; mounted: boolean }) {
+	const formatCompactCurrency = (value: number) => {
+		return new Intl.NumberFormat('en-US', {
+			style: 'currency',
+			currency: 'USD',
+			notation: 'compact',
+			maximumFractionDigits: 1,
+		}).format(value);
+	};
+
 	if (data.length === 0) {
 		return (
 			<div className="h-56 flex flex-col items-center justify-center text-center">

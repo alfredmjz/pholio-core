@@ -12,6 +12,7 @@ import { BudgetSummaryCards } from "./components/BudgetSummaryCards";
 import { CategoryPerformance } from "./components/CategoryPerformance";
 import { AllocationDonutChart } from "./components/AllocationDonutChart";
 import { TransactionLedger } from "./components/TransactionLedger";
+import { AddTransactionButton } from "./components/AddTransactionButton";
 import { TemplateImportDialog } from "./components/TemplateImportDialog";
 import type { TransactionType } from "./components/TransactionTypeIcon";
 import { useAllocationSync } from "@/hooks/useAllocationSync";
@@ -239,20 +240,17 @@ export function AllocationClient({
 						<MonthSelector currentMonth={currentMonth} onMonthChange={handleMonthChange} />
 
 						<div className="flex items-center gap-2">
-							<Button variant="outline" size="sm" className="gap-2" onClick={() => toast.info("Export coming soon!")}>
+							<Button
+								className="gap-2 bg-foreground hover:bg-foreground/90 text-background"
+								onClick={() => toast.info("Export coming soon!")}
+							>
 								<Download className="h-4 w-4" />
 								Export
 							</Button>
-							<Button variant="outline" size="sm" className="gap-2" onClick={() => toast.info("Settings coming soon!")}>
+							<Button variant="outline" size="icon" onClick={() => toast.info("Settings coming soon!")}>
 								<Settings className="h-4 w-4" />
 							</Button>
-							<Button
-								className="gap-2 bg-primary hover:bg-primary/90"
-								onClick={() => toast.info("Quick add coming soon!")}
-							>
-								<Plus className="h-4 w-4" />
-								Add Transaction
-							</Button>
+							<AddTransactionButton categories={categories} className="bg-primary hover:bg-primary/90" />
 						</div>
 					</div>
 				</div>

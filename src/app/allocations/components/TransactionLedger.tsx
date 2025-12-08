@@ -16,6 +16,8 @@ import {
 } from "./TransactionTypeIcon";
 import type { Transaction, AllocationCategory } from "../types";
 import { getCategoryColor } from "./CategoryPerformance";
+import { TransactionDialog } from "./TransactionDialog";
+import { AddTransactionButton } from "./AddTransactionButton";
 
 interface TransactionLedgerProps {
 	transactions: Transaction[];
@@ -48,6 +50,15 @@ export function TransactionLedger({
 
 	// Effective type filter (external takes precedence)
 	const effectiveTypeFilter = externalTypeFilter || (typeFilter !== "all" ? typeFilter : null);
+
+	// Dialog State
+	const [dialogOpen, setDialogOpen] = useState(false);
+	const [selectedTransaction, setSelectedTransaction] = useState<Transaction | null>(null);
+
+	const handleEditTransaction = (transaction: Transaction) => {
+		setSelectedTransaction(transaction);
+		setDialogOpen(true);
+	};
 
 	// Filter and sort transactions
 	const filteredTransactions = useMemo(() => {
@@ -161,11 +172,10 @@ export function TransactionLedger({
 						{transactions.length} {transactions.length === 1 ? "transaction" : "transactions"} this month
 					</p>
 				</div>
-				{/* ... rest of header ... */}
-				<Button className="gap-2 bg-foreground hover:bg-foreground/90 text-background">
-					<Plus className="h-4 w-4" />
-					Add Transaction
-				</Button>
+				<AddTransactionButton
+					categories={categories}
+					className="bg-foreground hover:bg-foreground/90 text-background"
+				/>
 			</div>
 
 			{/* ... Filters ... */}
@@ -294,7 +304,7 @@ export function TransactionLedger({
 			)}
 
 			{/* Table */}
-			<div className="border border-border/60 rounded-lg overflow-hidden shadow-sm">
+			<div className="border border-border rounded-lg overflow-hidden shadow-sm">
 				<div className="overflow-x-auto">
 					<table className="w-full">
 						<thead className="bg-muted/50 border-b border-border">
@@ -335,7 +345,11 @@ export function TransactionLedger({
 											: { bg: "bg-secondary", text: "text-secondary-foreground", light: "bg-secondary/50" };
 
 									return (
-										<tr key={transaction.id} className="hover:bg-muted/30 transition-colors">
+										<tr
+											key={transaction.id}
+											className="hover:bg-muted/30 transition-colors cursor-pointer group"
+											onClick={() => handleEditTransaction(transaction)}
+										>
 											<td className="px-4 py-3 whitespace-nowrap">
 												<span className="text-sm text-foreground">
 													{new Date(transaction.transaction_date).toLocaleDateString("en-US", {
@@ -397,6 +411,13 @@ export function TransactionLedger({
 					{transactions.length === 1 ? "transaction" : "transactions"}
 				</div>
 			)}
+
+			<TransactionDialog
+				open={dialogOpen}
+				onOpenChange={setDialogOpen}
+				transaction={selectedTransaction}
+				categories={categories}
+			/>
 		</Card>
 	);
 }

@@ -27,7 +27,7 @@ export default async function RootLayout({ children }: { children: React.ReactNo
 				<title>Folio</title>
 				<script dangerouslySetInnerHTML={{ __html: themeScript }} />
 			</head>
-			<body className="w-screen h-screen flex flex-row bg-primary overflow-hidden">
+			<body className="w-screen h-screen flex flex-row bg-background overflow-hidden">
 				<LayoutWrapper sidebar={sidebar}>{children}</LayoutWrapper>
 				<footer>{/* Footer content */}</footer>
 			</body>

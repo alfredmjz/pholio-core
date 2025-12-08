@@ -9,57 +9,61 @@
 		/* Light theme - Notion-inspired palette */
 
 		/* Base colors */
-		--background: #FFFFFF;
-		--foreground: #37352F;
-		--border: #E9E9E7;
-		--ring: #337EA9;
+		--background: #ffffff;
+		--foreground: #37352f;
+		--border: #e9e9e7;
+		--ring: #2eaadc;
 		--radius: 0.5rem;
 
-		/* Primary - subtle backgrounds (sidebar, cards) */
-		--primary: #F7F7F5;
-		--primary-foreground: #37352F;
-		--primary-hover: #EFEFEF;
-		--primary-border: #E9E9E7;
+		/* Primary - High contrast for interactive elements */
+		--primary: #37352f;
+		--primary-foreground: #ffffff;
+		--primary-hover: #2f2f2f;
+		--primary-border: #37352f;
 
 		/* Secondary - interactive states */
-		--secondary: #EFEFEF;
-		--secondary-foreground: #37352F;
-		--secondary-hover: #E9E9E7;
-		--secondary-border: #E9E9E7;
+		--secondary: #f7f7f5;
+		--secondary-foreground: #37352f;
+		--secondary-hover: #efefef;
+		--secondary-border: #e9e9e7;
 
 		/* Accent - emphasis */
-		--accent: #37352F;
-		--accent-foreground: #FFFFFF;
+		--accent: #f7f7f5;
+		--accent-foreground: #37352f;
 
 		/* Muted - de-emphasized content */
-		--muted: #F7F7F5;
+		--muted: #f7f7f5;
 		--muted-foreground: #787774;
 
+		/* Popover */
+		--popover: #ffffff;
+		--popover-foreground: #37352f;
+
 		/* Card */
-		--card: #FFFFFF;
-		--card-foreground: #37352F;
+		--card: #ffffff;
+		--card-foreground: #37352f;
 
-		/* Status colors - mapped to Notion accent palette */
+		/* Status colors - Notion palette */
 		--success: #448361;
-		--success-foreground: #FFFFFF;
-		--success-muted: #DBEDDB;
+		--success-foreground: #ffffff;
+		--success-muted: #dbeddb;
 
-		--warning: #CB912F;
-		--warning-foreground: #FFFFFF;
-		--warning-muted: #FDECC8;
+		--warning: #cb912f;
+		--warning-foreground: #ffffff;
+		--warning-muted: #fdecc8;
 
-		--error: #D44C47;
-		--error-foreground: #FFFFFF;
-		--error-muted: #FFE2DD;
+		--error: #d44c47;
+		--error-foreground: #ffffff;
+		--error-muted: #ffe2dd;
 
-		--info: #337EA9;
-		--info-foreground: #FFFFFF;
-		--info-muted: #D3E5EF;
+		--info: #2eaadc;
+		--info-foreground: #ffffff;
+		--info-muted: #d3e5ef;
 
 		/* Text colors */
-		--text-primary: #37352F;
+		--text-primary: #37352f;
 		--text-secondary: #787774;
-		--text-secondary-highlight: #37352F;
+		--text-secondary-highlight: #37352f;
 	}
 
 	.dark {
@@ -67,55 +71,59 @@
 
 		/* Base colors */
 		--background: #191919;
-		--foreground: #D4D4D4;
-		--border: #373737;
-		--ring: #529CCA;
+		--foreground: #d4d4d4;
+		--border: #2f2f2f;
+		--ring: #2eaadc;
 
-		/* Primary - subtle backgrounds (sidebar, cards) */
-		--primary: #202020;
-		--primary-foreground: #D4D4D4;
-		--primary-hover: #2C2C2C;
-		--primary-border: #373737;
+		/* Primary - White for high visibility against dark bg */
+		--primary: #ffffff;
+		--primary-foreground: #191919;
+		--primary-hover: #e0e0e0;
+		--primary-border: #ffffff;
 
-		/* Secondary - interactive states */
-		--secondary: #2C2C2C;
-		--secondary-foreground: #D4D4D4;
-		--secondary-hover: #373737;
+		/* Secondary - interactive states & Sidebar */
+		--secondary: #202020;
+		--secondary-foreground: #d4d4d4;
+		--secondary-hover: #2c2c2c;
 		--secondary-border: #373737;
 
 		/* Accent - emphasis */
-		--accent: #D4D4D4;
-		--accent-foreground: #191919;
+		--accent: #2c2c2c;
+		--accent-foreground: #d4d4d4;
 
 		/* Muted - de-emphasized content */
-		--muted: #202020;
-		--muted-foreground: #9B9B9B;
+		--muted: #2c2c2c;
+		--muted-foreground: #9b9b9b;
+
+		/* Popover */
+		--popover: #262626;
+		--popover-foreground: #d4d4d4;
 
 		/* Card */
 		--card: #202020;
-		--card-foreground: #D4D4D4;
+		--card-foreground: #d4d4d4;
 
-		/* Status colors - mapped to Notion accent palette (dark) */
-		--success: #4DAB9A;
+		/* Status colors - Notion palette (dark) */
+		--success: #4dab9a;
 		--success-foreground: #191919;
-		--success-muted: rgba(77, 171, 154, 0.1);
+		--success-muted: rgba(77, 171, 154, 0.15);
 
-		--warning: #FFDC49;
+		--warning: #ffdc49;
 		--warning-foreground: #191919;
-		--warning-muted: rgba(255, 220, 73, 0.1);
+		--warning-muted: rgba(255, 220, 73, 0.15);
 
-		--error: #FF7369;
+		--error: #ff7369;
 		--error-foreground: #191919;
-		--error-muted: rgba(255, 115, 105, 0.1);
+		--error-muted: rgba(255, 115, 105, 0.15);
 
-		--info: #529CCA;
+		--info: #529cca;
 		--info-foreground: #191919;
-		--info-muted: rgba(82, 156, 202, 0.1);
+		--info-muted: rgba(82, 156, 202, 0.15);
 
 		/* Text colors */
-		--text-primary: #D4D4D4;
-		--text-secondary: #9B9B9B;
-		--text-secondary-highlight: #D4D4D4;
+		--text-primary: #d4d4d4;
+		--text-secondary: #9b9b9b;
+		--text-secondary-highlight: #d4d4d4;
 	}
 }
 

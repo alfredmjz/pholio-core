@@ -31,7 +31,7 @@ const config: Config = {
 						secondary: {
 							light: '#787774',
 							dark: '#9B9B9B',
-						}
+						},
 					},
 					// Notion Accent Colors (Backgrounds and Text)
 					red: {
@@ -69,7 +69,7 @@ const config: Config = {
 					brown: {
 						bg: { light: '#EFE3D5', dark: 'rgba(147, 114, 100, 0.1)' },
 						text: { light: '#9F6B53', dark: '#937264' },
-					}
+					},
 				},
 				// Semantic UI colors (mapped to Notion palette via CSS variables in globals.css)
 				// Use these for component styling instead of direct Notion colors
@@ -100,6 +100,10 @@ const config: Config = {
 				muted: {
 					DEFAULT: 'var(--muted)',
 					foreground: 'var(--muted-foreground)',
+				},
+				popover: {
+					DEFAULT: 'var(--popover)',
+					foreground: 'var(--popover-foreground)',
 				},
 				// Status colors for feedback and states
 				success: {

@@ -1,7 +1,7 @@
 'use client';
 
 import * as React from 'react';
-import { ChevronLeft, ChevronRight } from 'lucide-react';
+import { ChevronLeft, ChevronRight, LayoutDashboard, PieChart } from 'lucide-react';
 
 import { cn } from '@/lib/utils';
 import {
@@ -45,7 +45,7 @@ export function SideBarComponent({ userProfile }: SideBarComponentProps) {
 	const [sidebarWidth, setSidebarWidth] = React.useState<number>(SIDEBAR_DEFAULTS.WIDTH);
 	const [minWidth, setMinWidth] = React.useState<number>(SIDEBAR_DEFAULTS.WIDTH);
 	const [isCollapsed, setIsCollapsed] = React.useState<boolean>(false);
-	const [openMenuItem, setOpenMenuItem] = React.useState<string>('');
+	// const [openMenuItem, setOpenMenuItem] = React.useState<string>(''); // Removed as we are splitting the menu
 
 	const contentRef = React.useRef<HTMLDivElement>(null);
 	const sidebarWidthRef = React.useRef<number>(SIDEBAR_DEFAULTS.WIDTH);
@@ -90,24 +90,7 @@ export function SideBarComponent({ userProfile }: SideBarComponentProps) {
 		sidebarWidthRef.current = sidebarWidth;
 	}, [sidebarWidth]);
 
-	React.useEffect(() => {
-		if (!openMenuItem) return;
-
-		const handleClickOutside = (event: MouseEvent) => {
-			const target = event.target as Node;
-			const viewport = document.querySelector('[data-radix-navigation-menu-viewport]');
-
-			const isInsideMenu = contentRef.current?.contains(target);
-			const isInsideViewport = viewport?.contains(target);
-
-			if (!isInsideMenu && !isInsideViewport) {
-				setOpenMenuItem('');
-			}
-		};
-
-		document.addEventListener('mousedown', handleClickOutside);
-		return () => document.removeEventListener('mousedown', handleClickOutside);
-	}, [openMenuItem]);
+	// Removed click outside listener for NavigationMenu as we are using Popover which handles this.
 
 	React.useEffect(() => {
 		if (!contentRef.current || isCollapsed) return;
@@ -182,10 +165,10 @@ export function SideBarComponent({ userProfile }: SideBarComponentProps) {
 
 	return (
 		<div
-			className="relative bg-secondary shrink-0 flex flex-col overflow-y-hidden h-screen"
+			className="relative bg-secondary shrink-0 w-full flex flex-col h-screen border-r border-border z-40"
 			style={{ width: isCollapsed ? `${SIDEBAR_DEFAULTS.COLLAPSED_WIDTH}rem` : `${sidebarWidth}rem` }}
 		>
-			<div className="flex items-center justify-start px-4 py-2">
+			<div className="hidden lg:flex items-center justify-start px-4 py-2">
 				<button
 					onClick={toggleCollapse}
 					className="flex items-center justify-center w-8 h-8 rounded-md bg-secondary hover:bg-secondary-hover transition-colors shadow-sm"
@@ -195,17 +178,21 @@ export function SideBarComponent({ userProfile }: SideBarComponentProps) {
 					{isCollapsed ? <ChevronRight className="w-4 h-4" /> : <ChevronLeft className="w-4 h-4" />}
 				</button>
 			</div>
-			<div className={cn('w-full flex flex-1 flex-col', isCollapsed && 'hidden')}>
-				<NavigationMenu
-					ref={contentRef}
-					className="w-full flex-1"
-					orientation="vertical"
-					value={openMenuItem}
-					onValueChange={setOpenMenuItem}
-				>
-					<NavigationMenuList className="w-full flex flex-col justify-start items-start gap-2">
-						<NavigationMenuItem value="profile" className="w-full">
-							<NavigationMenuTrigger className="w-full h-fit flex justify-start gap-4 text-primary overflow-hidden pr-2">
+			<div className={cn('w-full flex flex-1 flex-col', isCollapsed ? 'items-center' : '')}>
+				{/* User Profile Navigation Menu */}
+				<NavigationMenu ref={contentRef} className="w-full px-2 flex-1" orientation="vertical">
+					<NavigationMenuList
+						className={cn('w-full flex flex-col gap-2', isCollapsed ? 'items-center' : 'items-start')}
+					>
+						{/* User Profile */}
+						<NavigationMenuItem className="w-full">
+							<NavigationMenuTrigger
+								hideChevron={isCollapsed}
+								className={cn(
+									'flex items-center gap-4 p-2 rounded-md w-full h-auto',
+									isCollapsed ? 'justify-center' : 'justify-start'
+								)}
+							>
 								{userProfile?.avatar_url ? (
 									<img
 										src={userProfile.avatar_url}
@@ -217,25 +204,56 @@ export function SideBarComponent({ userProfile }: SideBarComponentProps) {
 										{displayInitials}
 									</div>
 								)}
-								<span className="truncate min-w-0 flex-1">{displayName}</span>
+								{!isCollapsed && (
+									<span className="truncate min-w-0 flex-1 text-left text-sm font-medium text-primary">
+										{displayName}
+									</span>
+								)}
 							</NavigationMenuTrigger>
-							<NavigationMenuContent className="w-fit bg-secondary rounded-md ml-2">
-								<ul className="flex flex-col gap-3 p-4 border-none min-w-[15rem]">
-									<ListItem href="/profile" title="Profile">
-										Manage your account settings
-									</ListItem>
-									<ListItem title="Sign Out" onClick={handleSignOut}></ListItem>
-								</ul>
+							<NavigationMenuContent className="flex flex-col gap-1 p-2 w-full">
+								<NavigationMenuLink asChild>
+									<Link
+										href="/profile"
+										className="flex items-center w-full px-2 py-1.5 text-sm text-foreground rounded-sm hover:bg-accent hover:text-accent-foreground transition-colors"
+									>
+										Profile
+									</Link>
+								</NavigationMenuLink>
+								<NavigationMenuLink asChild>
+									<button
+										onClick={handleSignOut}
+										className="flex items-center w-full px-2 py-1.5 text-sm text-foreground rounded-sm hover:bg-accent hover:text-accent-foreground transition-colors text-left"
+									>
+										Sign Out
+									</button>
+								</NavigationMenuLink>
 							</NavigationMenuContent>
 						</NavigationMenuItem>
 
+						{/* Navigation Links */}
 						<NavigationMenuItem value="navigation-links" className="flex flex-col gap-2 w-full">
-							<Link href="/dashboard" className={navigationMenuTriggerStyle()}>
-								Dashboard
+							<Link
+								href="/dashboard"
+								className={cn(
+									navigationMenuTriggerStyle(),
+									'w-full',
+									isCollapsed ? 'justify-center px-2' : 'justify-start'
+								)}
+							>
+								<LayoutDashboard className="w-4 h-4 flex-shrink-0" />
+								{!isCollapsed && <span>Dashboard</span>}
 							</Link>
 
-							<Link href="/allocations" className={navigationMenuTriggerStyle()}>
-								Allocations
+							<Link
+								href="/allocations"
+								className={cn(
+									navigationMenuTriggerStyle(),
+									'w-full',
+									isCollapsed ? 'justify-center px-2' : 'justify-start'
+								)}
+							>
+								<PieChart className="w-4 h-4 flex-shrink-0" />
+								{!isCollapsed && <span>Allocations</span>}
 							</Link>
 						</NavigationMenuItem>
 					</NavigationMenuList>

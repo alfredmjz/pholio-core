@@ -7,7 +7,7 @@ A modern portfolio management platform built with Next.js 15 and Supabase.
 ### 1. Install Dependencies
 
 ```bash
-npm install
+bun install
 ```
 
 ### 2. Configure Environment
@@ -23,7 +23,7 @@ NEXT_PUBLIC_SUPABASE_ANON_KEY=your-anon-key
 
 ```bash
 # Generate migration file
-cd src && npm run db:migrate
+cd src && bun run db:migrate
 
 # Then apply in Supabase:
 # 1. Open database/generated/combined-migrations.sql
@@ -35,7 +35,8 @@ cd src && npm run db:migrate
 ### 4. Start Development Server
 
 ```bash
-npm run dev
+bun run dev (Runs with real data)
+bun run dev:mock (Runs with mock data)
 ```
 
 Visit [http://localhost:3000](http://localhost:3000)
@@ -215,7 +216,7 @@ export const POST = asyncHandler(
 3. Run migration script:
 
 ```bash
-cd src && npm run db:migrate
+bun run db:migrate
 ```
 
 4. Apply in Supabase SQL Editor (copy from `database/generated/combined-migrations.sql`)
@@ -233,16 +234,17 @@ cd src && npm run db:migrate
 
 ```bash
 # Development
-npm run dev
+bun run dev (Runs with real data)
+bun run dev:mock (Runs with mock data)
 
 # Build
-npm run build
+bun run build
 
 # Start production
-npm start
+bun start
 
 # Database migration
-cd src && npm run db:migrate
+bun run db:migrate
 ```
 
 ## Security Features

@@ -1,6 +1,6 @@
-# CLAUDE.md
+# Gemini Context
 
-This file provides guidance to Claude Code (claude.ai/code) when working with code in this repository.
+This file provides guidance to the AI Assistant when working with code in this repository.
 
 ## Project Overview
 
@@ -12,7 +12,7 @@ Pholio is an automated personal finance tracker and budgeting application built 
 
 ## Development Principles & Workflow
 
-**CRITICAL: All development work must follow the principles outlined in `/context/development-principles.md`**
+**CRITICAL: All development work must follow the principles outlined in `/.context/development-principles.md`**
 
 This comprehensive document establishes:
 
@@ -34,13 +34,13 @@ This comprehensive document establishes:
 5. **Test thoroughly** before requesting review (manual + visual verification)
 6. **Never skip planning** for multi-step or complex tasks
 
-See `/context/development-principles.md` for complete workflow, templates, and standards.
+See `/.context/development-principles.md` for complete workflow, templates, and standards.
 
 ## AI Agents
 
 **CRITICAL: All development work must make use of the correct AI Agents available based on their responsibility and situation**
 
-Specialized agents located in `.claude/agents/` - invoke using Task tool. Full agent definitions contain complete instructions.
+Specialized agents located in `.agents/` - invoke using Task tool. Full agent definitions contain complete instructions.
 
 | Agent                | Purpose                                                                          |
 | -------------------- | -------------------------------------------------------------------------------- |
@@ -57,7 +57,7 @@ Specialized agents located in `.claude/agents/` - invoke using Task tool. Full a
 
 ## Context Files
 
-Reference documents in `context/` directory - comprehensive guides for standards and workflows.
+Reference documents in `.context/` directory - comprehensive guides for standards and workflows.
 
 | File                          | Purpose                                                       | When to Reference                                                   |
 | ----------------------------- | ------------------------------------------------------------- | ------------------------------------------------------------------- |
@@ -74,7 +74,7 @@ Reference documents in `context/` directory - comprehensive guides for standards
 
 **Required for**: New features, refactors, UI redesigns, database changes, API modifications, performance work, multi-file fixes.
 
-**Template and guidelines**: See `/context/development-principles.md` for complete spec document structure.
+**Template and guidelines**: See `/.context/development-principles.md` for complete spec document structure.
 
 **Example**: `docs/profile-page-redesign-spec.md`
 
@@ -218,6 +218,8 @@ All API endpoints use centralized error handling from `src/lib/errors.ts`:
 
 ```
 pholio/
+├── .agents/                          # AI Agents
+├── .context/                         # Context and Principles
 ├── src/                              # Next.js application root
 │   ├── app/
 │   │   ├── (auth-pages)/             # Route group for auth pages
@@ -229,6 +231,7 @@ pholio/
 │   │   │   │   └── success/          # Post-signup success page
 │   │   │   ├── confirm/route.ts      # Email confirmation handler
 │   │   │   └── error/page.tsx        # Error page
+│   │   ├── allocations/              # Allocations feature
 │   │   ├── api/auth/users/
 │   │   │   ├── signup/route.ts       # POST - Register new user
 │   │   │   ├── profile/route.ts      # GET/PATCH - User profile
@@ -394,7 +397,7 @@ Located in `actions.ts` files alongside pages (e.g., `app/(auth-pages)/login/act
 
 The project follows S-Tier SaaS design standards inspired by Stripe, Airbnb, and Linear. All UI development must adhere to:
 
-- **Design Principles**: `/context/design-principles.md` - Comprehensive checklist for world-class UI
+- **Design Principles**: `/.context/design-principles.md` - Comprehensive checklist for world-class UI
 - **Component Library**: NextUI with custom Tailwind configuration
 
 ### Quick Visual Check
@@ -403,7 +406,7 @@ The project follows S-Tier SaaS design standards inspired by Stripe, Airbnb, and
 
 1. **Identify what changed** - Review the modified components/pages
 2. **Navigate to affected pages** - Use `mcp__playwright__browser_navigate` to visit each changed view
-3. **Verify design compliance** - Compare against `/context/design-principles.md`
+3. **Verify design compliance** - Compare against `/.context/design-principles.md`
 4. **Validate feature implementation** - Ensure the change fulfills the user's specific request
 5. **Check acceptance criteria** - Review any provided context files or requirements
 6. **Capture evidence** - Take full page screenshot at desktop viewport (1440px) of each changed view

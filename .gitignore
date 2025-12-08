@@ -29,6 +29,10 @@
 **/yarn-debug.log*
 **/yarn-error.log*
 **/.pnpm-debug.log*
+**/bun-debug.log*
+
+# bun
+.bun/
 
 # env files (can opt-in for committing if needed)
 **/.env.local

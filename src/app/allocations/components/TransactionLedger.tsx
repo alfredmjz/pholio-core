@@ -15,6 +15,7 @@ import {
 	inferTransactionType,
 } from "./TransactionTypeIcon";
 import type { Transaction, AllocationCategory } from "../types";
+import { getCategoryColor } from "./CategoryPerformance";
 
 interface TransactionLedgerProps {
 	transactions: Transaction[];
@@ -26,29 +27,7 @@ interface TransactionLedgerProps {
 type SortField = "date" | "name" | "amount" | "category" | "type";
 type SortDirection = "asc" | "desc";
 
-// Helper function to generate consistent color for each category based on hash
-function getCategoryBadgeColor(categoryName: string): string {
-	let hash = 0;
-	for (let i = 0; i < categoryName.length; i++) {
-		hash = categoryName.charCodeAt(i) + ((hash << 5) - hash);
-	}
-
-	const colors = [
-		"bg-green-100 text-green-800 dark:bg-green-900/30 dark:text-green-400",
-		"bg-blue-100 text-blue-800 dark:bg-blue-900/30 dark:text-blue-400",
-		"bg-purple-100 text-purple-800 dark:bg-purple-900/30 dark:text-purple-400",
-		"bg-red-100 text-red-800 dark:bg-red-900/30 dark:text-red-400",
-		"bg-yellow-100 text-yellow-800 dark:bg-yellow-900/30 dark:text-yellow-400",
-		"bg-pink-100 text-pink-800 dark:bg-pink-900/30 dark:text-pink-400",
-		"bg-indigo-100 text-indigo-800 dark:bg-indigo-900/30 dark:text-indigo-400",
-		"bg-orange-100 text-orange-800 dark:bg-orange-900/30 dark:text-orange-400",
-		"bg-teal-100 text-teal-800 dark:bg-teal-900/30 dark:text-teal-400",
-		"bg-cyan-100 text-cyan-800 dark:bg-cyan-900/30 dark:text-cyan-400",
-	];
-
-	const index = Math.abs(hash) % colors.length;
-	return colors[index];
-}
+// Helper removed, using getCategoryColor from CategoryPerformance
 
 export function TransactionLedger({
 	transactions,
@@ -177,16 +156,21 @@ export function TransactionLedger({
 			{/* Header */}
 			<div className="flex items-center justify-between mb-4">
 				<div>
-					<h3 className="text-sm font-semibold text-foreground">Transaction Ledger</h3>
+					<h3 className="text-sm font-semibold text-foreground uppercase tracking-wide">Transaction Ledger</h3>
 					<p className="text-xs text-muted-foreground mt-0.5">
 						{transactions.length} {transactions.length === 1 ? "transaction" : "transactions"} this month
 					</p>
 				</div>
+				{/* ... rest of header ... */}
 				<Button className="gap-2 bg-foreground hover:bg-foreground/90 text-background">
 					<Plus className="h-4 w-4" />
 					Add Transaction
 				</Button>
 			</div>
+
+			{/* ... Filters ... */}
+			{/* I will only replace the render part to avoid touching the whole file if possible, but the filters are in the middle. */}
+			{/* Let's do a larger replace to be safe with context. */}
 
 			{/* Filters Row */}
 			<div className="flex items-center gap-3 mb-4">
@@ -310,10 +294,10 @@ export function TransactionLedger({
 			)}
 
 			{/* Table */}
-			<div className="border border-border rounded-lg overflow-hidden">
+			<div className="border border-border/60 rounded-lg overflow-hidden shadow-sm">
 				<div className="overflow-x-auto">
 					<table className="w-full">
-						<thead className="bg-muted border-b border-border">
+						<thead className="bg-muted/50 border-b border-border">
 							<tr>
 								<th className="px-4 py-3 text-left text-xs font-semibold text-muted-foreground uppercase tracking-wider w-[100px]">
 									<SortButton field="date">Date</SortButton>
@@ -342,8 +326,16 @@ export function TransactionLedger({
 							) : (
 								filteredTransactions.map((transaction) => {
 									const txType = inferTransactionType(transaction);
+
+									// Resolve category color based on index in the categories array
+									const categoryIndex = categories.findIndex((c) => c.id === transaction.category_id);
+									const categoryStyle =
+										categoryIndex !== -1
+											? getCategoryColor(categoryIndex)
+											: { bg: "bg-secondary", text: "text-secondary-foreground", light: "bg-secondary/50" };
+
 									return (
-										<tr key={transaction.id} className="hover:bg-muted/50 transition-colors">
+										<tr key={transaction.id} className="hover:bg-muted/30 transition-colors">
 											<td className="px-4 py-3 whitespace-nowrap">
 												<span className="text-sm text-foreground">
 													{new Date(transaction.transaction_date).toLocaleDateString("en-US", {
@@ -362,7 +354,14 @@ export function TransactionLedger({
 											</td>
 											<td className="px-4 py-3">
 												{transaction.category_name ? (
-													<Badge variant="secondary" className={getCategoryBadgeColor(transaction.category_name)}>
+													<Badge
+														variant="secondary"
+														className={cn(
+															categoryIndex !== -1 ? categoryStyle.light : "bg-secondary",
+															categoryIndex !== -1 ? categoryStyle.text : "text-muted-foreground",
+															"font-medium border-0"
+														)}
+													>
 														{transaction.category_name}
 													</Badge>
 												) : (
@@ -376,10 +375,10 @@ export function TransactionLedger({
 												<span
 													className={cn(
 														"text-sm font-semibold",
-														transaction.amount > 0 ? "text-success" : "text-foreground"
+														transaction.amount > 0 ? "text-success" : "text-error"
 													)}
 												>
-													{transaction.amount > 0 ? "+" : ""}${Math.abs(transaction.amount).toFixed(2)}
+													{transaction.amount > 0 ? "+" : "-"}${Math.abs(transaction.amount).toFixed(2)}
 												</span>
 											</td>
 										</tr>

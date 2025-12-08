@@ -3,11 +3,7 @@
 import { useState } from "react";
 import { Button } from "@/components/ui/button";
 import { Calendar } from "@/components/ui/calendar";
-import {
-	Popover,
-	PopoverContent,
-	PopoverTrigger,
-} from "@/components/ui/popover";
+import { Popover, PopoverContent, PopoverTrigger } from "@/components/ui/popover";
 import { ChevronLeft, ChevronRight, CalendarIcon } from "lucide-react";
 import type { MonthYear } from "../types";
 
@@ -65,13 +61,7 @@ export function MonthSelector({ currentMonth, onMonthChange }: MonthSelectorProp
 
 	return (
 		<div className="flex items-center gap-4">
-			<Button
-				variant="outline"
-				size="icon"
-				onClick={handlePrevMonth}
-				className="h-9 w-9"
-				aria-label="Previous month"
-			>
+			<Button variant="outline" size="icon" onClick={handlePrevMonth} className="h-9 w-9" aria-label="Previous month">
 				<ChevronLeft className="h-4 w-4" />
 			</Button>
 
@@ -79,34 +69,18 @@ export function MonthSelector({ currentMonth, onMonthChange }: MonthSelectorProp
 				{MONTH_NAMES[currentMonth.month - 1]} {currentMonth.year}
 			</div>
 
-			<Button
-				variant="outline"
-				size="icon"
-				onClick={handleNextMonth}
-				className="h-9 w-9"
-				aria-label="Next month"
-			>
+			<Button variant="outline" size="icon" onClick={handleNextMonth} className="h-9 w-9" aria-label="Next month">
 				<ChevronRight className="h-4 w-4" />
 			</Button>
 
 			<Popover open={isCalendarOpen} onOpenChange={setIsCalendarOpen}>
 				<PopoverTrigger asChild>
-					<Button
-						variant="outline"
-						size="icon"
-						className="h-9 w-9"
-						aria-label="Pick a date"
-					>
+					<Button variant="outline" size="icon" className="h-9 w-9" aria-label="Pick a date">
 						<CalendarIcon className="h-4 w-4" />
 					</Button>
 				</PopoverTrigger>
 				<PopoverContent className="w-auto p-0" align="start">
-					<Calendar
-						mode="single"
-						selected={currentDate}
-						onSelect={handleDateSelect}
-						defaultMonth={currentDate}
-					/>
+					<Calendar mode="single" selected={currentDate} onSelect={handleDateSelect} defaultMonth={currentDate} />
 				</PopoverContent>
 			</Popover>
 		</div>

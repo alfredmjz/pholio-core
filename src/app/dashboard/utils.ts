@@ -57,11 +57,7 @@ export function formatCompactCurrency(value: number): string {
  * @param showSign - Whether to show + for positive values
  * @returns Formatted percentage string
  */
-export function formatPercentage(
-	value: number,
-	decimals: number = 1,
-	showSign: boolean = false
-): string {
+export function formatPercentage(value: number, decimals: number = 1, showSign: boolean = false): string {
 	const formatted = `${value.toFixed(decimals)}%`;
 	if (showSign && value > 0) {
 		return `+${formatted}`;
@@ -155,10 +151,7 @@ export function getPeriodDates(
  * @param previous - Previous value
  * @returns Percentage change
  */
-export function calculatePercentageChange(
-	current: number,
-	previous: number
-): number {
+export function calculatePercentageChange(current: number, previous: number): number {
 	if (previous === 0) {
 		return current === 0 ? 0 : 100;
 	}
@@ -171,10 +164,7 @@ export function calculatePercentageChange(
  * @param threshold - Threshold for neutral (default: 0.5%)
  * @returns Trend direction
  */
-export function getTrendDirection(
-	change: number,
-	threshold: number = 0.5
-): "up" | "down" | "neutral" {
+export function getTrendDirection(change: number, threshold: number = 0.5): "up" | "down" | "neutral" {
 	if (change > threshold) return "up";
 	if (change < -threshold) return "down";
 	return "neutral";

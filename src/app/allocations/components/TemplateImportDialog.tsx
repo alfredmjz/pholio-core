@@ -1,24 +1,12 @@
 "use client";
 
 import { useState } from "react";
-import {
-	Dialog,
-	DialogContent,
-	DialogHeader,
-	DialogTitle,
-	DialogDescription,
-} from "@/components/ui/dialog";
+import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogDescription } from "@/components/ui/dialog";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
 import { Card } from "@/components/ui/card";
-import {
-	FileText,
-	FolderOpen,
-	Sparkles,
-	ChevronRight,
-	Check,
-} from "lucide-react";
+import { FileText, FolderOpen, Sparkles, ChevronRight, Check } from "lucide-react";
 import { cn } from "@/lib/utils";
 
 interface TemplateImportDialogProps {
@@ -138,9 +126,7 @@ export function TemplateImportDialog({
 								className={cn(
 									"w-full text-left p-4 rounded-lg border-2 transition-all",
 									"hover:border-info hover:bg-info/5",
-									selectedOption === "previous"
-										? "border-info bg-info/5"
-										: "border-border"
+									selectedOption === "previous" ? "border-info bg-info/5" : "border-border"
 								)}
 							>
 								<div className="flex items-start gap-4">
@@ -149,14 +135,12 @@ export function TemplateImportDialog({
 									</div>
 									<div className="flex-1">
 										<div className="flex items-center justify-between">
-											<h4 className="font-semibold text-foreground">
-												Import from {previousMonth.name}
-											</h4>
+											<h4 className="font-semibold text-foreground">Import from {previousMonth.name}</h4>
 											<ChevronRight className="h-4 w-4 text-muted-foreground" />
 										</div>
 										<p className="text-sm text-muted-foreground mt-1">
-											Copy all {previousMonth.categoryCount} categories (
-											{formatCurrency(previousMonth.totalBudget)} total budget)
+											Copy all {previousMonth.categoryCount} categories ({formatCurrency(previousMonth.totalBudget)}{" "}
+											total budget)
 										</p>
 									</div>
 								</div>
@@ -169,9 +153,7 @@ export function TemplateImportDialog({
 							className={cn(
 								"w-full text-left p-4 rounded-lg border-2 transition-all",
 								"hover:border-info hover:bg-info/5",
-								selectedOption === "template"
-									? "border-info bg-info/5"
-									: "border-border"
+								selectedOption === "template" ? "border-info bg-info/5" : "border-border"
 							)}
 						>
 							<div className="flex items-start gap-4">
@@ -180,9 +162,7 @@ export function TemplateImportDialog({
 								</div>
 								<div className="flex-1">
 									<div className="flex items-center justify-between">
-										<h4 className="font-semibold text-foreground">
-											Use a Template
-										</h4>
+										<h4 className="font-semibold text-foreground">Use a Template</h4>
 										<ChevronRight className="h-4 w-4 text-muted-foreground" />
 									</div>
 									<p className="text-sm text-muted-foreground mt-1">
@@ -209,24 +189,17 @@ export function TemplateImportDialog({
 											className={cn(
 												"w-full text-left p-3 rounded-lg border transition-all",
 												"hover:border-info hover:bg-info/5",
-												selectedTemplateId === template.id
-													? "border-info bg-info/5"
-													: "border-border"
+												selectedTemplateId === template.id ? "border-info bg-info/5" : "border-border"
 											)}
 										>
 											<div className="flex items-center justify-between">
 												<div>
-													<h5 className="font-medium text-foreground">
-														{template.name}
-													</h5>
+													<h5 className="font-medium text-foreground">{template.name}</h5>
 													<p className="text-xs text-muted-foreground">
-														{template.categoryCount} categories &middot;{" "}
-														{formatCurrency(template.totalBudget)}
+														{template.categoryCount} categories &middot; {formatCurrency(template.totalBudget)}
 													</p>
 												</div>
-												{selectedTemplateId === template.id && (
-													<Check className="h-4 w-4 text-info" />
-												)}
+												{selectedTemplateId === template.id && <Check className="h-4 w-4 text-info" />}
 											</div>
 										</button>
 									))
@@ -240,9 +213,7 @@ export function TemplateImportDialog({
 							className={cn(
 								"w-full text-left p-4 rounded-lg border-2 transition-all",
 								"hover:border-info hover:bg-info/5",
-								selectedOption === "fresh"
-									? "border-info bg-info/5"
-									: "border-border"
+								selectedOption === "fresh" ? "border-info bg-info/5" : "border-border"
 							)}
 						>
 							<div className="flex items-start gap-4">
@@ -251,14 +222,10 @@ export function TemplateImportDialog({
 								</div>
 								<div className="flex-1">
 									<div className="flex items-center justify-between">
-										<h4 className="font-semibold text-foreground">
-											Start Fresh
-										</h4>
+										<h4 className="font-semibold text-foreground">Start Fresh</h4>
 										<ChevronRight className="h-4 w-4 text-muted-foreground" />
 									</div>
-									<p className="text-sm text-muted-foreground mt-1">
-										Create a new budget from scratch
-									</p>
+									<p className="text-sm text-muted-foreground mt-1">Create a new budget from scratch</p>
 								</div>
 							</div>
 						</button>
@@ -271,9 +238,7 @@ export function TemplateImportDialog({
 								Expected Income for {monthName}
 							</Label>
 							<div className="relative">
-								<span className="absolute left-3 top-1/2 -translate-y-1/2 text-muted-foreground">
-									$
-								</span>
+								<span className="absolute left-3 top-1/2 -translate-y-1/2 text-muted-foreground">$</span>
 								<Input
 									id="expectedIncome"
 									type="number"
@@ -284,16 +249,12 @@ export function TemplateImportDialog({
 									autoFocus
 								/>
 							</div>
-							<p className="text-xs text-muted-foreground">
-								This helps track your budget against your income
-							</p>
+							<p className="text-xs text-muted-foreground">This helps track your budget against your income</p>
 						</div>
 
 						{/* Summary Card */}
 						<Card className="p-4 bg-muted/50">
-							<h5 className="text-sm font-medium text-foreground mb-2">
-								Summary
-							</h5>
+							<h5 className="text-sm font-medium text-foreground mb-2">Summary</h5>
 							<div className="space-y-1 text-sm">
 								<div className="flex justify-between">
 									<span className="text-muted-foreground">Method</span>
@@ -301,8 +262,8 @@ export function TemplateImportDialog({
 										{selectedOption === "previous"
 											? `Import from ${previousMonth?.name}`
 											: selectedOption === "template"
-											? templates.find((t) => t.id === selectedTemplateId)?.name
-											: "Start fresh"}
+												? templates.find((t) => t.id === selectedTemplateId)?.name
+												: "Start fresh"}
 									</span>
 								</div>
 								{selectedOption !== "fresh" && (
@@ -311,17 +272,14 @@ export function TemplateImportDialog({
 										<span className="font-medium text-foreground">
 											{selectedOption === "previous"
 												? previousMonth?.categoryCount
-												: templates.find((t) => t.id === selectedTemplateId)
-														?.categoryCount}
+												: templates.find((t) => t.id === selectedTemplateId)?.categoryCount}
 										</span>
 									</div>
 								)}
 								<div className="flex justify-between">
 									<span className="text-muted-foreground">Expected Income</span>
 									<span className="font-medium text-foreground">
-										{expectedIncome
-											? formatCurrency(parseFloat(expectedIncome))
-											: "Not set"}
+										{expectedIncome ? formatCurrency(parseFloat(expectedIncome)) : "Not set"}
 									</span>
 								</div>
 							</div>

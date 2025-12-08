@@ -337,19 +337,19 @@ Use the `TodoWrite` tool with clear, actionable items:
 TodoWrite({
 	todos: [
 		{
-			content: 'Add user validation to signup endpoint',
-			activeForm: 'Adding user validation to signup endpoint',
-			status: 'pending',
+			content: "Add user validation to signup endpoint",
+			activeForm: "Adding user validation to signup endpoint",
+			status: "pending",
 		},
 		{
-			content: 'Write unit tests for validation logic',
-			activeForm: 'Writing unit tests for validation logic',
-			status: 'pending',
+			content: "Write unit tests for validation logic",
+			activeForm: "Writing unit tests for validation logic",
+			status: "pending",
 		},
 		{
-			content: 'Test signup flow end-to-end',
-			activeForm: 'Testing signup flow end-to-end',
-			status: 'pending',
+			content: "Test signup flow end-to-end",
+			activeForm: "Testing signup flow end-to-end",
+			status: "pending",
 		},
 	],
 });
@@ -374,16 +374,16 @@ Each to-do should:
 // When starting a task
 TodoWrite({
 	todos: [
-		{ content: 'Task 1', activeForm: 'Doing task 1', status: 'in_progress' },
-		{ content: 'Task 2', activeForm: 'Doing task 2', status: 'pending' },
+		{ content: "Task 1", activeForm: "Doing task 1", status: "in_progress" },
+		{ content: "Task 2", activeForm: "Doing task 2", status: "pending" },
 	],
 });
 
 // After completing Task 1
 TodoWrite({
 	todos: [
-		{ content: 'Task 1', activeForm: 'Doing task 1', status: 'completed' },
-		{ content: 'Task 2', activeForm: 'Doing task 2', status: 'in_progress' },
+		{ content: "Task 1", activeForm: "Doing task 1", status: "completed" },
+		{ content: "Task 2", activeForm: "Doing task 2", status: "in_progress" },
 	],
 });
 ```
@@ -411,14 +411,14 @@ Example:
 TodoWrite({
 	todos: [
 		{
-			content: 'Implement user search',
-			activeForm: 'Implementing user search',
-			status: 'in_progress', // Blocked, but keep in progress
+			content: "Implement user search",
+			activeForm: "Implementing user search",
+			status: "in_progress", // Blocked, but keep in progress
 		},
 		{
-			content: 'Fix database connection error blocking user search',
-			activeForm: 'Fixing database connection error',
-			status: 'pending',
+			content: "Fix database connection error blocking user search",
+			activeForm: "Fixing database connection error",
+			status: "pending",
 		},
 	],
 });
@@ -616,18 +616,18 @@ export async function validateSignup(email: string, password: string): Promise<V
 	// No inline comments needed - JSDoc explains everything
 	const emailRegex = /^[^\s@]+@[^\s@]+\.[^\s@]+$/;
 	if (!emailRegex.test(email)) {
-		throw new BadRequestError('Invalid email format');
+		throw new BadRequestError("Invalid email format");
 	}
 
 	// Only comment non-obvious logic
 	// Check existing users with case-insensitive email match
 	// This prevents duplicate accounts with different casing
 	const existing = await db.users.findOne({
-		email: { $regex: new RegExp(`^${email}$`, 'i') },
+		email: { $regex: new RegExp(`^${email}$`, "i") },
 	});
 
 	if (existing) {
-		throw new ConflictError('Email already registered');
+		throw new ConflictError("Email already registered");
 	}
 
 	return { valid: true };
@@ -747,7 +747,7 @@ function updateProfile(profile: any) {
 
 ```typescript
 // ✅ GOOD: Handle null/undefined
-const displayName = profile?.fullName ?? profile.guestName ?? 'Guest User';
+const displayName = profile?.fullName ?? profile.guestName ?? "Guest User";
 
 // ❌ BAD: Assume exists
 const displayName = profile.fullName;
@@ -794,7 +794,7 @@ const [canEdit, setCanEdit] = useState(!isGuest); // Derive this instead
 // ✅ GOOD: Use asyncHandler wrapper
 export const POST = asyncHandler(async (request: Request) => {
 	const body = await request.json();
-	validate(!body.email, 'Email is required');
+	validate(!body.email, "Email is required");
 
 	// ... implementation
 
@@ -806,7 +806,7 @@ export async function POST(request: Request) {
 	try {
 		// ...
 	} catch (error) {
-		return NextResponse.json({ error: 'Something went wrong' }, { status: 500 });
+		return NextResponse.json({ error: "Something went wrong" }, { status: 500 });
 	}
 }
 ```
@@ -817,16 +817,16 @@ export async function POST(request: Request) {
 // ✅ GOOD: User-friendly error messages
 try {
 	await updateProfile(data);
-	toast.success('Profile updated successfully');
+	toast.success("Profile updated successfully");
 } catch (error) {
-	toast.error(error instanceof Error ? error.message : 'Failed to update profile');
+	toast.error(error instanceof Error ? error.message : "Failed to update profile");
 }
 
 // ❌ BAD: Generic or technical errors
 try {
 	await updateProfile(data);
 } catch (error) {
-	alert('Error'); // Too vague
+	alert("Error"); // Too vague
 	console.log(error); // Technical details exposed
 }
 ```
@@ -876,7 +876,7 @@ const transactions = await getTransactionsForMonth(year, month); // Wait 400ms
 // ❌ BAD: Parallelizing dependent queries
 const [user, profile] = await Promise.all([
 	supabase.auth.getUser(), // Need this first
-	supabase.from('users').select('*').eq('id', user.id), // ❌ user.id doesn't exist yet!
+	supabase.from("users").select("*").eq("id", user.id), // ❌ user.id doesn't exist yet!
 ]);
 
 // ❌ BAD: Parallelizing write operations with order dependency
@@ -930,8 +930,8 @@ CREATE TABLE transactions (
 ```typescript
 // ✅ GOOD: Validate all inputs
 const email = body.email?.trim().toLowerCase();
-validate(!email, 'Email is required');
-validate(!emailRegex.test(email), 'Invalid email format');
+validate(!email, "Email is required");
+validate(!emailRegex.test(email), "Invalid email format");
 
 // ❌ BAD: Trust user input
 const email = body.email;
@@ -946,7 +946,7 @@ const supabase = await createClient();
 const {
 	data: { user },
 } = await supabase.auth.getUser();
-if (!user) throw new UnauthorizedError('Authentication required');
+if (!user) throw new UnauthorizedError("Authentication required");
 
 // ❌ BAD: Assume user is authenticated
 const supabase = await createClient();
@@ -986,7 +986,7 @@ Use Playwright for visual verification:
 
 ```typescript
 // Navigate to page
-mcp__playwright__browser_navigate('http://localhost:3000');
+mcp__playwright__browser_navigate("http://localhost:3000");
 
 // Take screenshot for evidence
 mcp__playwright__browser_take_screenshot({ fullPage: true });
@@ -995,7 +995,7 @@ mcp__playwright__browser_take_screenshot({ fullPage: true });
 mcp__playwright__browser_console_messages({ onlyErrors: true });
 
 // Test interactions
-mcp__playwright__browser_click({ element: 'Edit button', ref: '[ref]' });
+mcp__playwright__browser_click({ element: "Edit button", ref: "[ref]" });
 
 // Verify accessibility
 mcp__playwright__browser_snapshot();
@@ -1119,9 +1119,9 @@ Mark current progress:
 ```typescript
 TodoWrite({
 	todos: [
-		{ content: 'Phase 1 complete', status: 'completed' },
-		{ content: 'Phase 2 in progress - 60% done', status: 'in_progress' },
-		{ content: 'Phase 3 not started', status: 'pending' },
+		{ content: "Phase 1 complete", status: "completed" },
+		{ content: "Phase 2 in progress - 60% done", status: "in_progress" },
+		{ content: "Phase 3 not started", status: "pending" },
 	],
 });
 ```

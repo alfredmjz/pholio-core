@@ -1,7 +1,7 @@
-'use client';
+"use client";
 
-import { useMemo, useState } from 'react';
-import { cn } from '@/lib/utils';
+import { useMemo, useState } from "react";
+import { cn } from "@/lib/utils";
 
 export interface DonutChartData {
 	name: string;
@@ -65,9 +65,9 @@ export function DonutChart({
 	const describeArc = (x: number, y: number, radius: number, startAngle: number, endAngle: number) => {
 		const start = polarToCartesian(x, y, radius, endAngle);
 		const end = polarToCartesian(x, y, radius, startAngle);
-		const largeArcFlag = endAngle - startAngle <= 180 ? '0' : '1';
+		const largeArcFlag = endAngle - startAngle <= 180 ? "0" : "1";
 
-		return ['M', start.x, start.y, 'A', radius, radius, 0, largeArcFlag, 0, end.x, end.y].join(' ');
+		return ["M", start.x, start.y, "A", radius, radius, 0, largeArcFlag, 0, end.x, end.y].join(" ");
 	};
 
 	// Center point for SVG (50, 50 to allow scaling via viewBox)
@@ -78,16 +78,16 @@ export function DonutChart({
 	// Scale factor if user wants different sizes, but viewBox keeps it relative
 
 	const formatCurrency = (value: number) => {
-		return new Intl.NumberFormat('en-US', {
-			style: 'currency',
-			currency: 'USD',
+		return new Intl.NumberFormat("en-US", {
+			style: "currency",
+			currency: "USD",
 			minimumFractionDigits: 0,
 			maximumFractionDigits: 0,
 		}).format(value);
 	};
 
 	return (
-		<div className={cn('relative', className)} style={{ width: size * 4, height: size * 4 }}>
+		<div className={cn("relative", className)} style={{ width: size * 4, height: size * 4 }}>
 			<svg viewBox="0 0 100 100" className="w-full h-full -rotate-90">
 				{/* Background circle */}
 				<circle
@@ -129,9 +129,9 @@ export function DonutChart({
 				<div
 					className="absolute bg-popover text-popover-foreground px-2 py-1 rounded shadow-md text-xs z-50 whitespace-nowrap pointer-events-none border border-border"
 					style={{
-						top: '50%',
-						left: '50%',
-						transform: 'translate(-50%, -50%)', // Centered tooltip for donut usually looks best or follow mouse
+						top: "50%",
+						left: "50%",
+						transform: "translate(-50%, -50%)", // Centered tooltip for donut usually looks best or follow mouse
 					}}
 				>
 					<div className="font-semibold">{segments[hoveredIndex].name}</div>

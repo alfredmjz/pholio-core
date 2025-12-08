@@ -54,10 +54,7 @@ export const SEMANTIC_COLORS = {
  * @param type - 'asset' or 'liability'
  * @returns Hex color string
  */
-export function getCategoryColor(
-	index: number,
-	type: "asset" | "liability"
-): string {
+export function getCategoryColor(index: number, type: "asset" | "liability"): string {
 	const colors = type === "asset" ? ASSET_COLORS : LIABILITY_COLORS;
 	return colors[index % colors.length];
 }

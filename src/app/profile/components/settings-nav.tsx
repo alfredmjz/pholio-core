@@ -1,10 +1,10 @@
-'use client';
+"use client";
 
-import * as React from 'react';
-import Link from 'next/link';
-import { usePathname } from 'next/navigation';
-import { User, Shield, Settings, Lock, CreditCard } from 'lucide-react';
-import { cn } from '@/lib/utils';
+import * as React from "react";
+import Link from "next/link";
+import { usePathname } from "next/navigation";
+import { User, Shield, Settings, Lock, CreditCard } from "lucide-react";
+import { cn } from "@/lib/utils";
 
 interface NavItem {
 	label: string;
@@ -15,11 +15,11 @@ interface NavItem {
 }
 
 const navItems: NavItem[] = [
-	{ label: 'Profile', href: '/profile', icon: User },
-	{ label: 'Security', href: '/profile/security', icon: Shield },
-	{ label: 'Preferences', href: '/profile/preferences', icon: Settings },
-	{ label: 'Data & Privacy', href: '/profile/data-privacy', icon: Lock },
-	{ label: 'Billing', href: '/profile/billing', icon: CreditCard, disabled: true, badge: 'Soon' },
+	{ label: "Profile", href: "/profile", icon: User },
+	{ label: "Security", href: "/profile/security", icon: Shield },
+	{ label: "Preferences", href: "/profile/preferences", icon: Settings },
+	{ label: "Data & Privacy", href: "/profile/data-privacy", icon: Lock },
+	{ label: "Billing", href: "/profile/billing", icon: CreditCard, disabled: true, badge: "Soon" },
 ];
 
 /**
@@ -38,10 +38,7 @@ export function SettingsNav() {
 	const pathname = usePathname();
 
 	return (
-		<nav
-			className="hidden lg:block lg:w-[200px] flex-shrink-0 lg:pr-8"
-			aria-label="Settings navigation"
-		>
+		<nav className="hidden lg:block lg:w-[200px] flex-shrink-0 lg:pr-8" aria-label="Settings navigation">
 			{/* Section title */}
 			<div className="mb-6">
 				<h2 className="text-sm font-semibold text-foreground">Settings</h2>
@@ -58,16 +55,14 @@ export function SettingsNav() {
 							<li key={item.href}>
 								<div
 									className={cn(
-										'flex items-center gap-3 px-3 py-2 text-sm rounded-md',
-										'text-muted-foreground opacity-50 cursor-not-allowed'
+										"flex items-center gap-3 px-3 py-2 text-sm rounded-md",
+										"text-muted-foreground opacity-50 cursor-not-allowed"
 									)}
 								>
 									<Icon className="w-4 h-4 flex-shrink-0" />
 									<span className="flex-1">{item.label}</span>
 									{item.badge && (
-										<span className="px-2 py-0.5 text-xs rounded bg-secondary text-muted-foreground">
-											{item.badge}
-										</span>
+										<span className="px-2 py-0.5 text-xs rounded bg-secondary text-muted-foreground">{item.badge}</span>
 									)}
 								</div>
 							</li>
@@ -78,13 +73,13 @@ export function SettingsNav() {
 						<li key={item.href}>
 							<Link
 								href={item.href}
-								aria-current={isActive ? 'page' : undefined}
+								aria-current={isActive ? "page" : undefined}
 								className={cn(
-									'flex items-center gap-3 px-3 py-2 text-sm rounded-md transition-all duration-200',
-									'border-l-2 border-transparent',
+									"flex items-center gap-3 px-3 py-2 text-sm rounded-md transition-all duration-200",
+									"border-l-2 border-transparent",
 									isActive
-										? 'bg-accent/50 border-l-primary text-foreground font-medium'
-										: 'text-muted-foreground hover:text-foreground hover:bg-accent/50'
+										? "bg-accent/50 border-l-primary text-foreground font-medium"
+										: "text-muted-foreground hover:text-foreground hover:bg-accent/50"
 								)}
 							>
 								<Icon className="w-4 h-4 flex-shrink-0" />
@@ -114,10 +109,7 @@ export function SettingsNavMobile() {
 	const pathname = usePathname();
 
 	return (
-		<nav
-			className="lg:hidden mb-6 border-b border-border"
-			aria-label="Settings navigation"
-		>
+		<nav className="lg:hidden mb-6 border-b border-border" aria-label="Settings navigation">
 			<div className="flex overflow-x-auto scrollbar-hide gap-1 pb-px">
 				{navItems.map((item) => {
 					const isActive = pathname === item.href;
@@ -127,16 +119,12 @@ export function SettingsNavMobile() {
 							<div
 								key={item.href}
 								className={cn(
-									'flex items-center gap-2 px-4 py-3 text-sm whitespace-nowrap',
-									'text-muted-foreground opacity-50 cursor-not-allowed'
+									"flex items-center gap-2 px-4 py-3 text-sm whitespace-nowrap",
+									"text-muted-foreground opacity-50 cursor-not-allowed"
 								)}
 							>
 								<span>{item.label}</span>
-								{item.badge && (
-									<span className="px-2 py-0.5 text-xs rounded bg-secondary">
-										{item.badge}
-									</span>
-								)}
+								{item.badge && <span className="px-2 py-0.5 text-xs rounded bg-secondary">{item.badge}</span>}
 							</div>
 						);
 					}
@@ -145,13 +133,13 @@ export function SettingsNavMobile() {
 						<Link
 							key={item.href}
 							href={item.href}
-							aria-current={isActive ? 'page' : undefined}
+							aria-current={isActive ? "page" : undefined}
 							className={cn(
-								'flex items-center gap-2 px-4 py-3 text-sm whitespace-nowrap transition-colors',
-								'border-b-2',
+								"flex items-center gap-2 px-4 py-3 text-sm whitespace-nowrap transition-colors",
+								"border-b-2",
 								isActive
-									? 'border-primary text-foreground font-medium'
-									: 'border-transparent text-muted-foreground hover:text-foreground'
+									? "border-primary text-foreground font-medium"
+									: "border-transparent text-muted-foreground hover:text-foreground"
 							)}
 						>
 							{item.label}

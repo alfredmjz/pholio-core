@@ -1,9 +1,9 @@
-import { Suspense } from 'react';
-import { requireAuth } from '@/lib/auth';
-import { AllocationClient } from './client';
-import { getOrCreateAllocation, getAllocationSummary, getTransactionsForMonth } from './actions';
+import { Suspense } from "react";
+import { requireAuth } from "@/lib/auth";
+import { AllocationClient } from "./client";
+import { getOrCreateAllocation, getAllocationSummary, getTransactionsForMonth } from "./actions";
 
-import { sampleAllocationSummary, sampleTransactions } from './sample-data';
+import { sampleAllocationSummary, sampleTransactions } from "./sample-data";
 
 export default async function AllocationsPage({
 	searchParams,
@@ -12,7 +12,7 @@ export default async function AllocationsPage({
 }) {
 	// Require authentication - automatically redirects to /login if not authenticated
 	// Skip auth check if using sample data to allow easy dev
-	if (process.env.NEXT_PUBLIC_USE_SAMPLE_DATA !== 'true') {
+	if (process.env.NEXT_PUBLIC_USE_SAMPLE_DATA !== "true") {
 		await requireAuth();
 	}
 
@@ -27,7 +27,7 @@ export default async function AllocationsPage({
 	let summary = null;
 	let transactions: any[] = [];
 
-	if (process.env.NEXT_PUBLIC_USE_SAMPLE_DATA === 'true') {
+	if (process.env.NEXT_PUBLIC_USE_SAMPLE_DATA === "true") {
 		summary = sampleAllocationSummary;
 		transactions = sampleTransactions;
 	} else {

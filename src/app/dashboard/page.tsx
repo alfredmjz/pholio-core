@@ -1,15 +1,15 @@
-import { getDashboardData } from './actions';
-import { DashboardClient } from './client';
-import { sampleDashboardData } from './sample-data';
+import { getDashboardData } from "./actions";
+import { DashboardClient } from "./client";
+import { sampleDashboardData } from "./sample-data";
 
 export const metadata = {
-	title: 'Dashboard | Pholio',
-	description: 'Your personal finance overview',
+	title: "Dashboard | Pholio",
+	description: "Your personal finance overview",
 };
 
 export default async function DashboardPage() {
 	let dashboardData;
-	if (process.env.NEXT_PUBLIC_USE_SAMPLE_DATA === 'true') {
+	if (process.env.NEXT_PUBLIC_USE_SAMPLE_DATA === "true") {
 		dashboardData = sampleDashboardData;
 	} else {
 		dashboardData = await getDashboardData();

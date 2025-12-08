@@ -1,16 +1,16 @@
-'use client';
+"use client";
 
-import { useState } from 'react';
-import { Card } from '@/components/ui/card';
-import { Button } from '@/components/ui/button';
-import { Input } from '@/components/ui/input';
-import { Plus, Pencil, Trash2, Check, X } from 'lucide-react';
-import { cn } from '@/lib/utils';
-import { updateCategoryBudget, updateCategoryName, deleteCategory } from '../actions';
-import { toast } from 'sonner';
-import { useAllocationContext } from '../context/AllocationContext';
-import { DeleteCategoryDialog } from './DeleteCategoryDialog';
-import type { AllocationCategory } from '../types';
+import { useState } from "react";
+import { Card } from "@/components/ui/card";
+import { Button } from "@/components/ui/button";
+import { Input } from "@/components/ui/input";
+import { Plus, Pencil, Trash2, Check, X } from "lucide-react";
+import { cn } from "@/lib/utils";
+import { updateCategoryBudget, updateCategoryName, deleteCategory } from "../actions";
+import { toast } from "sonner";
+import { useAllocationContext } from "../context/AllocationContext";
+import { DeleteCategoryDialog } from "./DeleteCategoryDialog";
+import type { AllocationCategory } from "../types";
 
 interface CategoryPerformanceProps {
 	categories: AllocationCategory[];
@@ -20,14 +20,14 @@ interface CategoryPerformanceProps {
 
 // Color palette for categories (matching the screenshot)
 const CATEGORY_COLORS = [
-	{ bg: 'bg-cyan-500', text: 'text-cyan-500', light: 'bg-cyan-100' },
-	{ bg: 'bg-emerald-500', text: 'text-emerald-500', light: 'bg-emerald-100' },
-	{ bg: 'bg-amber-500', text: 'text-amber-500', light: 'bg-amber-100' },
-	{ bg: 'bg-pink-500', text: 'text-pink-500', light: 'bg-pink-100' },
-	{ bg: 'bg-blue-500', text: 'text-blue-500', light: 'bg-blue-100' },
-	{ bg: 'bg-red-500', text: 'text-red-500', light: 'bg-red-100' },
-	{ bg: 'bg-purple-500', text: 'text-purple-500', light: 'bg-purple-100' },
-	{ bg: 'bg-orange-500', text: 'text-orange-500', light: 'bg-orange-100' },
+	{ bg: "bg-cyan-500", text: "text-cyan-500", light: "bg-cyan-100" },
+	{ bg: "bg-emerald-500", text: "text-emerald-500", light: "bg-emerald-100" },
+	{ bg: "bg-amber-500", text: "text-amber-500", light: "bg-amber-100" },
+	{ bg: "bg-pink-500", text: "text-pink-500", light: "bg-pink-100" },
+	{ bg: "bg-blue-500", text: "text-blue-500", light: "bg-blue-100" },
+	{ bg: "bg-red-500", text: "text-red-500", light: "bg-red-100" },
+	{ bg: "bg-purple-500", text: "text-purple-500", light: "bg-purple-100" },
+	{ bg: "bg-orange-500", text: "text-orange-500", light: "bg-orange-100" },
 ];
 
 function getCategoryColor(index: number) {
@@ -53,13 +53,13 @@ function CategoryRow({ category, colorIndex }: CategoryRowProps) {
 	const color = getCategoryColor(colorIndex);
 
 	const formatCurrency = (value: number) => {
-		return `$${value.toLocaleString('en-US', { minimumFractionDigits: 0, maximumFractionDigits: 0 })}`;
+		return `$${value.toLocaleString("en-US", { minimumFractionDigits: 0, maximumFractionDigits: 0 })}`;
 	};
 
 	const handleBudgetSave = async () => {
 		const newBudget = parseFloat(budgetValue);
 		if (isNaN(newBudget) || newBudget < 0) {
-			toast.error('Please enter a valid budget amount');
+			toast.error("Please enter a valid budget amount");
 			setBudgetValue(category.budget_cap.toString());
 			setIsEditingBudget(false);
 			return;
@@ -70,16 +70,16 @@ function CategoryRow({ category, colorIndex }: CategoryRowProps) {
 
 		const success = await updateCategoryBudget(category.id, newBudget);
 		if (success) {
-			toast.success('Budget updated');
+			toast.success("Budget updated");
 		} else {
-			toast.error('Failed to update budget');
+			toast.error("Failed to update budget");
 			setBudgetValue(category.budget_cap.toString());
 		}
 	};
 
 	const handleNameSave = async () => {
 		if (!nameValue.trim()) {
-			toast.error('Category name cannot be empty');
+			toast.error("Category name cannot be empty");
 			setNameValue(category.name);
 			setIsEditingName(false);
 			return;
@@ -90,9 +90,9 @@ function CategoryRow({ category, colorIndex }: CategoryRowProps) {
 
 		const success = await updateCategoryName(category.id, nameValue.trim());
 		if (success) {
-			toast.success('Category renamed');
+			toast.success("Category renamed");
 		} else {
-			toast.error('Failed to rename category');
+			toast.error("Failed to rename category");
 			setNameValue(category.name);
 		}
 	};
@@ -103,17 +103,17 @@ function CategoryRow({ category, colorIndex }: CategoryRowProps) {
 
 		const success = await deleteCategory(category.id);
 		if (success) {
-			toast.success('Category deleted');
+			toast.success("Category deleted");
 		} else {
-			toast.error('Failed to delete category');
+			toast.error("Failed to delete category");
 		}
 	};
 
-	const handleKeyDown = (e: React.KeyboardEvent, type: 'budget' | 'name') => {
-		if (e.key === 'Enter') {
-			type === 'budget' ? handleBudgetSave() : handleNameSave();
-		} else if (e.key === 'Escape') {
-			if (type === 'budget') {
+	const handleKeyDown = (e: React.KeyboardEvent, type: "budget" | "name") => {
+		if (e.key === "Enter") {
+			type === "budget" ? handleBudgetSave() : handleNameSave();
+		} else if (e.key === "Escape") {
+			if (type === "budget") {
 				setBudgetValue(category.budget_cap.toString());
 				setIsEditingBudget(false);
 			} else {
@@ -128,7 +128,7 @@ function CategoryRow({ category, colorIndex }: CategoryRowProps) {
 			<div className="group py-3 border-b border-border last:border-b-0">
 				<div className="flex items-center gap-3">
 					{/* Color indicator */}
-					<div className={cn('w-2 h-2 rounded-full flex-shrink-0', color.bg)} />
+					<div className={cn("w-2 h-2 rounded-full flex-shrink-0", color.bg)} />
 
 					{/* Category name */}
 					<div className="flex-1 min-w-0">
@@ -137,7 +137,7 @@ function CategoryRow({ category, colorIndex }: CategoryRowProps) {
 								<Input
 									value={nameValue}
 									onChange={(e) => setNameValue(e.target.value)}
-									onKeyDown={(e) => handleKeyDown(e, 'name')}
+									onKeyDown={(e) => handleKeyDown(e, "name")}
 									className="h-7 text-sm font-medium max-w-[150px]"
 									maxLength={100}
 									autoFocus
@@ -177,7 +177,7 @@ function CategoryRow({ category, colorIndex }: CategoryRowProps) {
 									type="number"
 									value={budgetValue}
 									onChange={(e) => setBudgetValue(e.target.value)}
-									onKeyDown={(e) => handleKeyDown(e, 'budget')}
+									onKeyDown={(e) => handleKeyDown(e, "budget")}
 									className="h-6 w-20 text-sm"
 									autoFocus
 								/>
@@ -230,8 +230,8 @@ function CategoryRow({ category, colorIndex }: CategoryRowProps) {
 					<div className="h-2 bg-muted rounded-full overflow-hidden">
 						<div
 							className={cn(
-								'h-full rounded-full transition-all duration-500',
-								utilization > 100 ? 'bg-error' : color.bg
+								"h-full rounded-full transition-all duration-500",
+								utilization > 100 ? "bg-error" : color.bg
 							)}
 							style={{ width: `${Math.min(utilization, 100)}%` }}
 						/>
@@ -253,7 +253,7 @@ function CategoryRow({ category, colorIndex }: CategoryRowProps) {
 export function CategoryPerformance({ categories, onAddCategory, className }: CategoryPerformanceProps) {
 	if (categories.length === 0) {
 		return (
-			<Card className={cn('h-full p-6 flex flex-col', className)}>
+			<Card className={cn("h-full p-6 flex flex-col", className)}>
 				<div className="flex items-center justify-between mb-4 flex-shrink-0">
 					<h3 className="text-sm font-semibold text-foreground uppercase tracking-wide">Category Performance</h3>
 					<Button variant="outline" size="sm" onClick={onAddCategory} className="gap-1.5">
@@ -277,7 +277,7 @@ export function CategoryPerformance({ categories, onAddCategory, className }: Ca
 	}
 
 	return (
-		<Card className={cn('h-full p-6 flex flex-col', className)}>
+		<Card className={cn("h-full p-6 flex flex-col", className)}>
 			<div className="flex items-center justify-between mb-4 flex-shrink-0">
 				<h3 className="text-sm font-semibold text-foreground uppercase tracking-wide">Category Performance</h3>
 				<Button variant="outline" size="sm" onClick={onAddCategory} className="gap-1.5">

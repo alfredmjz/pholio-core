@@ -1,14 +1,14 @@
-import { requireAuth } from '@/lib/auth';
-import { sampleUser, sampleProfile } from './sample-data';
-import ProfileInformationSection from './components/profile-information-section';
-import SecurityCard from './components/security-card';
-import GuestUpgradeCard from './components/guest-upgrade-card';
-import { GuestInfoBanner } from './components/guest-info-banner';
+import { requireAuth } from "@/lib/auth";
+import { sampleUser, sampleProfile } from "./sample-data";
+import ProfileInformationSection from "./components/profile-information-section";
+import SecurityCard from "./components/security-card";
+import GuestUpgradeCard from "./components/guest-upgrade-card";
+import { GuestInfoBanner } from "./components/guest-info-banner";
 
 export default async function ProfilePage() {
 	let user, profile;
 
-	if (process.env.NEXT_PUBLIC_USE_SAMPLE_DATA === 'true') {
+	if (process.env.NEXT_PUBLIC_USE_SAMPLE_DATA === "true") {
 		user = sampleUser;
 		profile = sampleProfile;
 	} else {
@@ -35,10 +35,10 @@ export default async function ProfilePage() {
 			)}
 
 			{/* Profile Information Section */}
-			<ProfileInformationSection profile={profile} userEmail={user.email || ''} />
+			<ProfileInformationSection profile={profile} userEmail={user.email || ""} />
 
 			{/* Security Section (registered users only) */}
-			{!profile?.is_guest && <SecurityCard userEmail={user.email || ''} />}
+			{!profile?.is_guest && <SecurityCard userEmail={user.email || ""} />}
 		</div>
 	);
 }

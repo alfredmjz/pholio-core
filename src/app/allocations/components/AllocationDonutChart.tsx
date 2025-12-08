@@ -1,11 +1,11 @@
-'use client';
+"use client";
 
-import { useMemo } from 'react';
-import { Card } from '@/components/ui/card';
-import { cn } from '@/lib/utils';
-import { getCategoryColor } from './CategoryPerformance';
-import type { AllocationCategory } from '../types';
-import { DonutChart } from '@/components/common/DonutChart';
+import { useMemo } from "react";
+import { Card } from "@/components/ui/card";
+import { cn } from "@/lib/utils";
+import { getCategoryColor } from "./CategoryPerformance";
+import type { AllocationCategory } from "../types";
+import { DonutChart } from "@/components/common/DonutChart";
 
 interface AllocationDonutChartProps {
 	categories: AllocationCategory[];
@@ -20,14 +20,14 @@ export function AllocationDonutChart({ categories, className }: AllocationDonutC
 	// Prepare data for shared DonutChart component
 	// eslint-disable-next-line react-hooks/exhaustive-deps
 	const CHART_COLORS = [
-		'#06b6d4', // cyan-500
-		'#10b981', // emerald-500
-		'#f59e0b', // amber-500
-		'#ec4899', // pink-500
-		'#3b82f6', // blue-500
-		'#ef4444', // red-500
-		'#8b5cf6', // purple-500
-		'#f97316', // orange-500
+		"#06b6d4", // cyan-500
+		"#10b981", // emerald-500
+		"#f59e0b", // amber-500
+		"#ec4899", // pink-500
+		"#3b82f6", // blue-500
+		"#ef4444", // red-500
+		"#8b5cf6", // purple-500
+		"#f97316", // orange-500
 	];
 
 	const chartDataWithColors = useMemo(() => {
@@ -46,9 +46,9 @@ export function AllocationDonutChart({ categories, className }: AllocationDonutC
 	}, [categories, CHART_COLORS]);
 
 	const formatCurrency = (value: number) => {
-		return new Intl.NumberFormat('en-US', {
-			style: 'currency',
-			currency: 'USD',
+		return new Intl.NumberFormat("en-US", {
+			style: "currency",
+			currency: "USD",
 			minimumFractionDigits: 0,
 			maximumFractionDigits: 0,
 		}).format(value);
@@ -62,7 +62,7 @@ export function AllocationDonutChart({ categories, className }: AllocationDonutC
 	);
 
 	return (
-		<Card className={cn('p-6 flex flex-col', className)}>
+		<Card className={cn("p-6 flex flex-col", className)}>
 			<div className="mb-4">
 				<h3 className="text-sm font-semibold text-foreground uppercase tracking-wide">Allocation</h3>
 				<p className="text-xs text-muted-foreground mt-0.5">Spending distribution by category</p>
@@ -86,7 +86,7 @@ export function AllocationDonutChart({ categories, className }: AllocationDonutC
 						const color = getCategoryColor(index);
 						return (
 							<div key={category.id} className="flex items-center gap-2">
-								<div className={cn('w-2 h-2 rounded-full flex-shrink-0', color.bg)} />
+								<div className={cn("w-2 h-2 rounded-full flex-shrink-0", color.bg)} />
 								<span className="text-xs text-muted-foreground truncate">{category.name}</span>
 							</div>
 						);

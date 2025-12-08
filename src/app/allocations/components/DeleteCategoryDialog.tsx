@@ -48,32 +48,20 @@ export function DeleteCategoryDialog({
 								<div className="rounded-md bg-warning/10 border border-warning/30 p-3">
 									<p className="text-sm text-warning">
 										This category has <span className="font-semibold">{transactionCount}</span>{" "}
-										{transactionCount === 1 ? "transaction" : "transactions"} that will become
-										uncategorized.
+										{transactionCount === 1 ? "transaction" : "transactions"} that will become uncategorized.
 									</p>
 								</div>
 							)}
-							<p className="text-sm text-muted-foreground">
-								This action cannot be undone.
-							</p>
+							<p className="text-sm text-muted-foreground">This action cannot be undone.</p>
 						</div>
 					</DialogDescription>
 				</DialogHeader>
 
 				<DialogFooter className="gap-2 sm:gap-0">
-					<Button
-						type="button"
-						variant="outline"
-						onClick={() => onOpenChange(false)}
-					>
+					<Button type="button" variant="outline" onClick={() => onOpenChange(false)}>
 						Cancel
 					</Button>
-					<Button
-						type="button"
-						variant="destructive"
-						onClick={handleConfirm}
-						className="bg-error hover:bg-error/90"
-					>
+					<Button type="button" variant="destructive" onClick={handleConfirm} className="bg-error hover:bg-error/90">
 						Delete Category
 					</Button>
 				</DialogFooter>

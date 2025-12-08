@@ -1,7 +1,7 @@
-'use client';
+"use client";
 
-import { useState, useCallback } from 'react';
-import type { AllocationSummary, AllocationCategory } from '@/app/allocations/types';
+import { useState, useCallback } from "react";
+import type { AllocationSummary, AllocationCategory } from "@/app/allocations/types";
 
 /**
  * Hook for optimistic UI updates
@@ -78,15 +78,7 @@ export function useOptimisticAllocation(initialSummary: AllocationSummary | null
 				...category,
 				budget_cap: newBudget,
 				remaining: newBudget - actualSpend,
-				utilization_percentage:
-					newBudget > 0
-						? Number(
-								(
-									(actualSpend / newBudget) *
-									100
-								).toFixed(2)
-						  )
-						: 0,
+				utilization_percentage: newBudget > 0 ? Number(((actualSpend / newBudget) * 100).toFixed(2)) : 0,
 			};
 
 			const newSummary: AllocationSummary = {

@@ -1,8 +1,8 @@
-'use server';
+"use server";
 
-import { createClient } from '@/lib/supabase/server';
-import { revalidatePath } from 'next/cache';
-import { redirect } from 'next/navigation';
+import { createClient } from "@/lib/supabase/server";
+import { revalidatePath } from "next/cache";
+import { redirect } from "next/navigation";
 
 /**
  * Authenticates a user with email and password.
@@ -13,8 +13,8 @@ import { redirect } from 'next/navigation';
 export async function login(formData: FormData) {
 	const supabase = await createClient();
 
-	const email = formData.get('email') as string;
-	const password = formData.get('password') as string;
+	const email = formData.get("email") as string;
+	const password = formData.get("password") as string;
 
 	const { error } = await supabase.auth.signInWithPassword({
 		email,
@@ -25,8 +25,8 @@ export async function login(formData: FormData) {
 		return { error: error.message };
 	}
 
-	revalidatePath('/', 'layout');
-	redirect('/');
+	revalidatePath("/", "layout");
+	redirect("/");
 }
 
 /**
@@ -41,9 +41,9 @@ export async function login(formData: FormData) {
 export async function signup(formData: FormData) {
 	const supabase = await createClient();
 
-	const email = formData.get('email') as string;
-	const password = formData.get('password') as string;
-	const fullName = formData.get('fullName') as string | null;
+	const email = formData.get("email") as string;
+	const password = formData.get("password") as string;
+	const fullName = formData.get("fullName") as string | null;
 
 	// Database trigger automatically creates profile on auth.signUp
 	const { data: authData, error: authError } = await supabase.auth.signUp({
@@ -52,8 +52,8 @@ export async function signup(formData: FormData) {
 		options: {
 			data: {
 				full_name: fullName,
-			}
-		}
+			},
+		},
 	});
 
 	if (authError) {
@@ -61,27 +61,27 @@ export async function signup(formData: FormData) {
 	}
 
 	if (!authData.user) {
-		return { error: 'Failed to create user account' };
+		return { error: "Failed to create user account" };
 	}
 
 	// Trigger only sets id and email - update full_name separately if provided
 	if (fullName) {
 		// Wait for trigger to complete before updating
-		await new Promise(resolve => setTimeout(resolve, 100));
+		await new Promise((resolve) => setTimeout(resolve, 100));
 
 		const { error: updateError } = await supabase
-			.from('users')
+			.from("users")
 			.update({ full_name: fullName })
-			.eq('id', authData.user.id);
+			.eq("id", authData.user.id);
 
 		if (updateError) {
-			console.error('Failed to update full name:', updateError);
+			console.error("Failed to update full name:", updateError);
 			// Don't fail signup - user can update name later
 		}
 	}
 
-	revalidatePath('/', 'layout');
-	redirect('/signup/success');
+	revalidatePath("/", "layout");
+	redirect("/signup/success");
 }
 
 /**
@@ -102,49 +102,47 @@ export async function loginAsGuest() {
 	}
 
 	if (!data.user) {
-		return { error: 'Failed to create guest session' };
+		return { error: "Failed to create guest session" };
 	}
 
 	// Wait for database trigger to create profile
-	await new Promise(resolve => setTimeout(resolve, 200));
+	await new Promise((resolve) => setTimeout(resolve, 200));
 
 	const { data: existingProfile, error: profileError } = await supabase
-		.from('users')
-		.select('id')
-		.eq('id', data.user.id)
+		.from("users")
+		.select("id")
+		.eq("id", data.user.id)
 		.maybeSingle();
 
 	// Fallback: Create profile manually if trigger failed
 	if (!existingProfile && !profileError) {
 		const guestNames = [
-			'Wandering Traveler',
-			'Mystery Guest',
-			'Anonymous Visitor',
-			'Curious Explorer',
-			'Digital Nomad',
-			'Silent Observer',
-			'Phantom User',
-			'Shadow Walker'
+			"Wandering Traveler",
+			"Mystery Guest",
+			"Anonymous Visitor",
+			"Curious Explorer",
+			"Digital Nomad",
+			"Silent Observer",
+			"Phantom User",
+			"Shadow Walker",
 		];
 		const randomGuestName = guestNames[Math.floor(Math.random() * guestNames.length)];
 
-		const { error: insertError } = await supabase
-			.from('users')
-			.insert({
-				id: data.user.id,
-				email: data.user.email || `guest-${data.user.id}@pholio.local`,
-				is_guest: true,
-				guest_name: randomGuestName
-			});
+		const { error: insertError } = await supabase.from("users").insert({
+			id: data.user.id,
+			email: data.user.email || `guest-${data.user.id}@pholio.local`,
+			is_guest: true,
+			guest_name: randomGuestName,
+		});
 
 		if (insertError) {
-			console.error('Failed to create guest profile:', insertError);
+			console.error("Failed to create guest profile:", insertError);
 			// Don't fail login - app may still be usable
 		}
 	}
 
-	revalidatePath('/', 'layout');
-	redirect('/');
+	revalidatePath("/", "layout");
+	redirect("/");
 }
 
 /**
@@ -153,6 +151,6 @@ export async function loginAsGuest() {
 export async function signOut() {
 	const supabase = await createClient();
 	await supabase.auth.signOut();
-	revalidatePath('/', 'layout');
-	redirect('/login');
+	revalidatePath("/", "layout");
+	redirect("/login");
 }

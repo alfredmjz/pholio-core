@@ -20,12 +20,7 @@ interface AddCategoryDialogProps {
 	unallocatedFunds: number;
 }
 
-export function AddCategoryDialog({
-	open,
-	onOpenChange,
-	onSubmit,
-	unallocatedFunds,
-}: AddCategoryDialogProps) {
+export function AddCategoryDialog({ open, onOpenChange, onSubmit, unallocatedFunds }: AddCategoryDialogProps) {
 	const [name, setName] = useState("");
 	const [budgetCap, setBudgetCap] = useState("");
 	const [nameError, setNameError] = useState("");
@@ -95,9 +90,7 @@ export function AddCategoryDialog({
 			<DialogContent className="sm:max-w-[425px]">
 				<DialogHeader>
 					<DialogTitle>Add Category</DialogTitle>
-					<DialogDescription>
-						Create a new budget category to track your spending.
-					</DialogDescription>
+					<DialogDescription>Create a new budget category to track your spending.</DialogDescription>
 				</DialogHeader>
 				<form onSubmit={handleSubmit}>
 					<div className="grid gap-4 py-4">
@@ -131,9 +124,7 @@ export function AddCategoryDialog({
 								Budget Cap <span className="text-error">*</span>
 							</Label>
 							<div className="relative">
-								<span className="absolute left-3 top-1/2 -translate-y-1/2 text-muted-foreground">
-									$
-								</span>
+								<span className="absolute left-3 top-1/2 -translate-y-1/2 text-muted-foreground">$</span>
 								<Input
 									id="budget-cap"
 									type="number"
@@ -157,10 +148,7 @@ export function AddCategoryDialog({
 							{!budgetError && isOverAllocated && (
 								<p className="text-xs text-warning flex items-center gap-1" role="alert">
 									<span>⚠</span>
-									<span>
-										This exceeds your unallocated funds by $
-										{(budgetNum - unallocatedFunds).toFixed(2)}
-									</span>
+									<span>This exceeds your unallocated funds by ${(budgetNum - unallocatedFunds).toFixed(2)}</span>
 								</p>
 							)}
 							{!budgetError && !isOverAllocated && budgetNum > 0 && (
@@ -172,11 +160,7 @@ export function AddCategoryDialog({
 					</div>
 
 					<DialogFooter>
-						<Button
-							type="button"
-							variant="outline"
-							onClick={() => onOpenChange(false)}
-						>
+						<Button type="button" variant="outline" onClick={() => onOpenChange(false)}>
 							Cancel
 						</Button>
 						<Button type="submit" disabled={!isFormValid}>

@@ -8,7 +8,7 @@
  * - Type safety
  */
 
-import { NextResponse } from 'next/server';
+import { NextResponse } from "next/server";
 
 /**
  * Standard error response format
@@ -35,7 +35,7 @@ export class AppError extends Error {
 	constructor(
 		message: string,
 		statusCode: number = 500,
-		code: string = 'INTERNAL_ERROR',
+		code: string = "INTERNAL_ERROR",
 		details?: Record<string, unknown>,
 		isOperational: boolean = true
 	) {
@@ -55,8 +55,8 @@ export class AppError extends Error {
  * 400 Bad Request - Client sent invalid data
  */
 export class BadRequestError extends AppError {
-	constructor(message: string = 'Bad request', details?: Record<string, unknown>) {
-		super(message, 400, 'BAD_REQUEST', details);
+	constructor(message: string = "Bad request", details?: Record<string, unknown>) {
+		super(message, 400, "BAD_REQUEST", details);
 		Object.setPrototypeOf(this, BadRequestError.prototype);
 	}
 }
@@ -65,8 +65,8 @@ export class BadRequestError extends AppError {
  * 401 Unauthorized - User not authenticated
  */
 export class UnauthorizedError extends AppError {
-	constructor(message: string = 'Unauthorized', details?: Record<string, unknown>) {
-		super(message, 401, 'UNAUTHORIZED', details);
+	constructor(message: string = "Unauthorized", details?: Record<string, unknown>) {
+		super(message, 401, "UNAUTHORIZED", details);
 		Object.setPrototypeOf(this, UnauthorizedError.prototype);
 	}
 }
@@ -75,8 +75,8 @@ export class UnauthorizedError extends AppError {
  * 403 Forbidden - User doesn't have permission
  */
 export class ForbiddenError extends AppError {
-	constructor(message: string = 'Forbidden', details?: Record<string, unknown>) {
-		super(message, 403, 'FORBIDDEN', details);
+	constructor(message: string = "Forbidden", details?: Record<string, unknown>) {
+		super(message, 403, "FORBIDDEN", details);
 		Object.setPrototypeOf(this, ForbiddenError.prototype);
 	}
 }
@@ -85,8 +85,8 @@ export class ForbiddenError extends AppError {
  * 404 Not Found - Resource doesn't exist
  */
 export class NotFoundError extends AppError {
-	constructor(message: string = 'Resource not found', details?: Record<string, unknown>) {
-		super(message, 404, 'NOT_FOUND', details);
+	constructor(message: string = "Resource not found", details?: Record<string, unknown>) {
+		super(message, 404, "NOT_FOUND", details);
 		Object.setPrototypeOf(this, NotFoundError.prototype);
 	}
 }
@@ -95,8 +95,8 @@ export class NotFoundError extends AppError {
  * 409 Conflict - Resource already exists or state conflict
  */
 export class ConflictError extends AppError {
-	constructor(message: string = 'Conflict', details?: Record<string, unknown>) {
-		super(message, 409, 'CONFLICT', details);
+	constructor(message: string = "Conflict", details?: Record<string, unknown>) {
+		super(message, 409, "CONFLICT", details);
 		Object.setPrototypeOf(this, ConflictError.prototype);
 	}
 }
@@ -105,8 +105,8 @@ export class ConflictError extends AppError {
  * 422 Unprocessable Entity - Validation failed
  */
 export class ValidationError extends AppError {
-	constructor(message: string = 'Validation failed', details?: Record<string, unknown>) {
-		super(message, 422, 'VALIDATION_ERROR', details);
+	constructor(message: string = "Validation failed", details?: Record<string, unknown>) {
+		super(message, 422, "VALIDATION_ERROR", details);
 		Object.setPrototypeOf(this, ValidationError.prototype);
 	}
 }
@@ -115,8 +115,8 @@ export class ValidationError extends AppError {
  * 500 Internal Server Error - Unexpected server error
  */
 export class InternalServerError extends AppError {
-	constructor(message: string = 'Internal server error', details?: Record<string, unknown>) {
-		super(message, 500, 'INTERNAL_ERROR', details, false);
+	constructor(message: string = "Internal server error", details?: Record<string, unknown>) {
+		super(message, 500, "INTERNAL_ERROR", details, false);
 		Object.setPrototypeOf(this, InternalServerError.prototype);
 	}
 }
@@ -125,8 +125,8 @@ export class InternalServerError extends AppError {
  * 503 Service Unavailable - External service is down
  */
 export class ServiceUnavailableError extends AppError {
-	constructor(message: string = 'Service unavailable', details?: Record<string, unknown>) {
-		super(message, 503, 'SERVICE_UNAVAILABLE', details);
+	constructor(message: string = "Service unavailable", details?: Record<string, unknown>) {
+		super(message, 503, "SERVICE_UNAVAILABLE", details);
 		Object.setPrototypeOf(this, ServiceUnavailableError.prototype);
 	}
 }
@@ -136,14 +136,14 @@ export class ServiceUnavailableError extends AppError {
  */
 export function createErrorResponse(
 	error: Error | AppError,
-	includeStack: boolean = process.env.NODE_ENV === 'development'
+	includeStack: boolean = process.env.NODE_ENV === "development"
 ): ErrorResponse {
 	const isAppError = error instanceof AppError;
 
 	const errorResponse: ErrorResponse = {
 		error: {
-			message: isAppError ? error.message : 'An unexpected error occurred',
-			code: isAppError ? error.code : 'INTERNAL_ERROR',
+			message: isAppError ? error.message : "An unexpected error occurred",
+			code: isAppError ? error.code : "INTERNAL_ERROR",
 			statusCode: isAppError ? error.statusCode : 500,
 			details: isAppError ? error.details : undefined,
 			timestamp: new Date().toISOString(),
@@ -176,7 +176,7 @@ export function logError(
 	const logData = {
 		timestamp: new Date().toISOString(),
 		message: error.message,
-		code: isAppError ? error.code : 'UNKNOWN_ERROR',
+		code: isAppError ? error.code : "UNKNOWN_ERROR",
 		statusCode: isAppError ? error.statusCode : 500,
 		isOperational,
 		stack: error.stack,
@@ -186,9 +186,9 @@ export function logError(
 	// Use console.error for non-operational errors (bugs)
 	// Use console.warn for operational errors (expected issues)
 	if (isOperational) {
-		console.warn('Operational Error:', JSON.stringify(logData, null, 2));
+		console.warn("Operational Error:", JSON.stringify(logData, null, 2));
 	} else {
-		console.error('Non-Operational Error (Bug):', JSON.stringify(logData, null, 2));
+		console.error("Non-Operational Error (Bug):", JSON.stringify(logData, null, 2));
 	}
 }
 
@@ -246,11 +246,7 @@ export function handleApiError(
  * });
  * ```
  */
-export function validate(
-	condition: unknown,
-	message: string,
-	details?: Record<string, unknown>
-): asserts condition {
+export function validate(condition: unknown, message: string, details?: Record<string, unknown>): asserts condition {
 	if (!condition) {
 		throw new ValidationError(message, details);
 	}
@@ -292,21 +288,21 @@ export function asyncHandler(
  * Parse Supabase error and convert to appropriate AppError
  */
 export function parseSupabaseError(error: any): AppError {
-	const message = error?.message || 'Database error';
+	const message = error?.message || "Database error";
 	const code = error?.code;
 
 	// PostgreSQL error codes
 	switch (code) {
-		case '23505': // unique_violation
-			return new ConflictError('Resource already exists', { code, originalMessage: message });
-		case '23503': // foreign_key_violation
-			return new BadRequestError('Invalid reference', { code, originalMessage: message });
-		case '23514': // check_violation
-			return new ValidationError('Data validation failed', { code, originalMessage: message });
-		case '42501': // insufficient_privilege
-			return new ForbiddenError('Insufficient permissions', { code, originalMessage: message });
-		case 'PGRST116': // not found
-			return new NotFoundError('Resource not found', { code, originalMessage: message });
+		case "23505": // unique_violation
+			return new ConflictError("Resource already exists", { code, originalMessage: message });
+		case "23503": // foreign_key_violation
+			return new BadRequestError("Invalid reference", { code, originalMessage: message });
+		case "23514": // check_violation
+			return new ValidationError("Data validation failed", { code, originalMessage: message });
+		case "42501": // insufficient_privilege
+			return new ForbiddenError("Insufficient permissions", { code, originalMessage: message });
+		case "PGRST116": // not found
+			return new NotFoundError("Resource not found", { code, originalMessage: message });
 		default:
 			return new InternalServerError(message, { code, originalMessage: message });
 	}

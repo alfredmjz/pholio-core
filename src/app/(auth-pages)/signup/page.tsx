@@ -1,14 +1,14 @@
-'use client';
+"use client";
 
-import type React from 'react';
-import { signup } from '@/app/(auth-pages)/login/actions';
-import { Button } from '@/components/ui/button';
-import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/components/ui/card';
-import { Input } from '@/components/ui/input';
-import { Label } from '@/components/ui/label';
-import Link from 'next/link';
-import { useRouter } from 'next/navigation';
-import { useState } from 'react';
+import type React from "react";
+import { signup } from "@/app/(auth-pages)/login/actions";
+import { Button } from "@/components/ui/button";
+import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card";
+import { Input } from "@/components/ui/input";
+import { Label } from "@/components/ui/label";
+import Link from "next/link";
+import { useRouter } from "next/navigation";
+import { useState } from "react";
 
 export default function Page() {
 	const router = useRouter();
@@ -21,11 +21,11 @@ export default function Page() {
 		setError(null);
 
 		const formData = new FormData(e.currentTarget);
-		const password = formData.get('password') as string;
-		const repeatPassword = formData.get('repeat-password') as string;
+		const password = formData.get("password") as string;
+		const repeatPassword = formData.get("repeat-password") as string;
 
 		if (password !== repeatPassword) {
-			setError('Passwords do not match');
+			setError("Passwords do not match");
 			setIsLoading(false);
 			return;
 		}
@@ -39,7 +39,7 @@ export default function Page() {
 	};
 
 	const handleGuestLogin = () => {
-		router.push('/');
+		router.push("/");
 	};
 
 	return (
@@ -73,7 +73,7 @@ export default function Page() {
 									{error && <p className="text-sm text-red-500">{error}</p>}
 									<div className="flex flex-col gap-2">
 										<Button type="submit" className="w-full" disabled={isLoading}>
-											{isLoading ? 'Creating an account...' : 'Sign up'}
+											{isLoading ? "Creating an account..." : "Sign up"}
 										</Button>
 										<Button type="button" variant="ghost" className="text-xs w-full" onClick={handleGuestLogin}>
 											Continue as Guest
@@ -81,7 +81,7 @@ export default function Page() {
 									</div>
 								</div>
 								<div className="mt-4 text-center text-sm">
-									Already have an account?{' '}
+									Already have an account?{" "}
 									<Link href="/login" className="underline underline-offset-4">
 										Login
 									</Link>

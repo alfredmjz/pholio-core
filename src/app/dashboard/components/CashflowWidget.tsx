@@ -1,16 +1,16 @@
-'use client';
+"use client";
 
-import { useState, useEffect } from 'react';
+import { useState, useEffect } from "react";
 
-import { Card } from '@/components/ui/card';
-import { Button } from '@/components/ui/button';
-import { ToggleGroup, ToggleGroupItem } from '@/components/ui/toggle-group';
-import { cn } from '@/lib/utils';
-import { formatCurrency, formatCompactCurrency } from '@/app/dashboard/utils';
-import { BarChart3, Plus } from 'lucide-react';
-import { BarChart, Bar, XAxis, YAxis, CartesianGrid, Tooltip, ResponsiveContainer } from 'recharts';
-import type { Period, CashflowDataPoint } from '../types';
-import { Skeleton } from '@/components/ui/skeleton';
+import { Card } from "@/components/ui/card";
+import { Button } from "@/components/ui/button";
+import { ToggleGroup, ToggleGroupItem } from "@/components/ui/toggle-group";
+import { cn } from "@/lib/utils";
+import { formatCurrency, formatCompactCurrency } from "@/app/dashboard/utils";
+import { BarChart3, Plus } from "lucide-react";
+import { BarChart, Bar, XAxis, YAxis, CartesianGrid, Tooltip, ResponsiveContainer } from "recharts";
+import type { Period, CashflowDataPoint } from "../types";
+import { Skeleton } from "@/components/ui/skeleton";
 
 interface CashflowWidgetProps {
 	data: CashflowDataPoint[];
@@ -27,8 +27,8 @@ interface CashflowWidgetProps {
 function CustomTooltip({ active, payload, label }: any) {
 	if (!active || !payload || payload.length === 0) return null;
 
-	const income = payload.find((p: any) => p.dataKey === 'income')?.value || 0;
-	const expenses = payload.find((p: any) => p.dataKey === 'expenses')?.value || 0;
+	const income = payload.find((p: any) => p.dataKey === "income")?.value || 0;
+	const expenses = payload.find((p: any) => p.dataKey === "expenses")?.value || 0;
 	const net = income - expenses;
 
 	return (
@@ -52,7 +52,7 @@ function CustomTooltip({ active, payload, label }: any) {
 				<div className="border-t border-border pt-2 mt-2">
 					<div className="flex items-center justify-between">
 						<span className="text-xs font-medium text-muted-foreground">Net</span>
-						<span className={cn('text-sm font-semibold', net >= 0 ? 'text-success' : 'text-error')}>
+						<span className={cn("text-sm font-semibold", net >= 0 ? "text-success" : "text-error")}>
 							{formatCurrency(net)}
 						</span>
 					</div>
@@ -84,7 +84,7 @@ export function CashflowWidget({
 	}
 
 	return (
-		<Card className={cn('p-6 bg-card border border-border min-w-0', className)}>
+		<Card className={cn("p-6 bg-card border border-border min-w-0", className)}>
 			{/* Header */}
 			<div className="flex items-center justify-between mb-6">
 				<div>
@@ -132,7 +132,7 @@ export function CashflowWidget({
 				</div>
 				<div>
 					<p className="text-xs text-muted-foreground mb-1">Net Cashflow</p>
-					<p className={cn('text-lg font-semibold', netCashflow >= 0 ? 'text-success' : 'text-error')}>
+					<p className={cn("text-lg font-semibold", netCashflow >= 0 ? "text-success" : "text-error")}>
 						{formatCurrency(netCashflow)}
 					</p>
 				</div>
@@ -160,7 +160,11 @@ export function CashflowWidget({
 										axisLine={false}
 										tickFormatter={formatCompactCurrency}
 									/>
-									<Tooltip isAnimationActive={false} content={<CustomTooltip />} cursor={{ fill: 'var(--muted)', opacity: 0.3 }} />
+									<Tooltip
+										isAnimationActive={false}
+										content={<CustomTooltip />}
+										cursor={{ fill: "var(--muted)", opacity: 0.3 }}
+									/>
 									<Bar dataKey="income" fill="var(--info)" radius={[4, 4, 0, 0]} maxBarSize={40} />
 									<Bar dataKey="expenses" fill="var(--error)" radius={[4, 4, 0, 0]} maxBarSize={40} />
 								</BarChart>
@@ -211,7 +215,7 @@ function EmptyState() {
 
 export function CashflowWidgetSkeleton({ className }: { className?: string }) {
 	return (
-		<Card className={cn('p-6 bg-card border border-border', className)}>
+		<Card className={cn("p-6 bg-card border border-border", className)}>
 			<div className="flex items-center justify-between mb-6">
 				<div>
 					<Skeleton className="h-6 w-32 mb-2" />

@@ -1,7 +1,7 @@
-'use client';
+"use client";
 
-import React from 'react';
-import { usePathname } from 'next/navigation';
+import React from "react";
+import { usePathname } from "next/navigation";
 
 interface LayoutWrapperProps {
 	children: React.ReactNode;
@@ -10,7 +10,7 @@ interface LayoutWrapperProps {
 
 export default function LayoutWrapper({ children, sidebar }: LayoutWrapperProps) {
 	const pathname = usePathname();
-	const isAuthPage = pathname.includes('/login') || pathname.includes('/signup') || pathname.includes('/confirm');
+	const isAuthPage = pathname.includes("/login") || pathname.includes("/signup") || pathname.includes("/confirm");
 
 	return (
 		<>

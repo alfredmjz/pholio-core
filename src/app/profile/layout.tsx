@@ -1,4 +1,4 @@
-import { SettingsNav, SettingsNavMobile } from './components/settings-nav';
+import { SettingsNav, SettingsNavMobile } from "./components/settings-nav";
 
 /**
  * Profile Layout Component
@@ -35,4 +35,3 @@ export default function ProfileLayout({ children }: { children: React.ReactNode 
 		</div>
 	);
 }
-

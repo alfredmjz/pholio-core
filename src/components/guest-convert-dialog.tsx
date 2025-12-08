@@ -1,7 +1,7 @@
-'use client';
+"use client";
 
-import * as React from 'react';
-import { Button } from '@/components/ui/button';
+import * as React from "react";
+import { Button } from "@/components/ui/button";
 import {
 	Dialog,
 	DialogContent,
@@ -9,9 +9,9 @@ import {
 	DialogHeader,
 	DialogTitle,
 	DialogTrigger,
-} from '@/components/ui/dialog';
-import { Input } from '@/components/ui/input';
-import { Label } from '@/components/ui/label';
+} from "@/components/ui/dialog";
+import { Input } from "@/components/ui/input";
+import { Label } from "@/components/ui/label";
 
 interface GuestConvertDialogProps {
 	children: React.ReactNode;
@@ -29,15 +29,15 @@ export function GuestConvertDialog({ children }: GuestConvertDialogProps) {
 		setError(null);
 
 		const formData = new FormData(e.currentTarget);
-		const email = formData.get('email') as string;
-		const password = formData.get('password') as string;
-		const fullName = formData.get('fullName') as string;
+		const email = formData.get("email") as string;
+		const password = formData.get("password") as string;
+		const fullName = formData.get("fullName") as string;
 
 		try {
-			const response = await fetch('/api/auth/users/guest/convert', {
-				method: 'POST',
+			const response = await fetch("/api/auth/users/guest/convert", {
+				method: "POST",
 				headers: {
-					'Content-Type': 'application/json',
+					"Content-Type": "application/json",
 				},
 				body: JSON.stringify({ email, password, fullName }),
 			});
@@ -45,7 +45,7 @@ export function GuestConvertDialog({ children }: GuestConvertDialogProps) {
 			const data = await response.json();
 
 			if (!response.ok) {
-				throw new Error(data.error || 'Failed to upgrade account');
+				throw new Error(data.error || "Failed to upgrade account");
 			}
 
 			setSuccess(true);
@@ -53,7 +53,7 @@ export function GuestConvertDialog({ children }: GuestConvertDialogProps) {
 				window.location.reload();
 			}, 2000);
 		} catch (err) {
-			setError(err instanceof Error ? err.message : 'Failed to upgrade account');
+			setError(err instanceof Error ? err.message : "Failed to upgrade account");
 			setIsLoading(false);
 		}
 	};
@@ -116,7 +116,7 @@ export function GuestConvertDialog({ children }: GuestConvertDialogProps) {
 								Cancel
 							</Button>
 							<Button type="submit" disabled={isLoading}>
-								{isLoading ? 'Creating Account...' : 'Create Account'}
+								{isLoading ? "Creating Account..." : "Create Account"}
 							</Button>
 						</div>
 					</form>

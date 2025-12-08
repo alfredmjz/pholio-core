@@ -89,12 +89,7 @@ interface TransactionTypeIconProps {
 	className?: string;
 }
 
-export function TransactionTypeIcon({
-	type,
-	size = "md",
-	showLabel = false,
-	className,
-}: TransactionTypeIconProps) {
+export function TransactionTypeIcon({ type, size = "md", showLabel = false, className }: TransactionTypeIconProps) {
 	const config = TRANSACTION_TYPE_CONFIG[type];
 	const Icon = config.icon;
 
@@ -106,15 +101,7 @@ export function TransactionTypeIcon({
 
 	if (showLabel) {
 		return (
-			<Badge
-				variant="secondary"
-				className={cn(
-					config.bgColor,
-					config.textColor,
-					"gap-1.5 font-medium",
-					className
-				)}
-			>
+			<Badge variant="secondary" className={cn(config.bgColor, config.textColor, "gap-1.5 font-medium", className)}>
 				<Icon className={iconSizes[size]} />
 				{config.label}
 			</Badge>
@@ -123,11 +110,7 @@ export function TransactionTypeIcon({
 
 	return (
 		<div
-			className={cn(
-				"inline-flex items-center justify-center rounded-md p-1.5",
-				config.bgColor,
-				className
-			)}
+			className={cn("inline-flex items-center justify-center rounded-md p-1.5", config.bgColor, className)}
 			title={config.label}
 		>
 			<Icon className={cn(iconSizes[size], config.textColor)} />

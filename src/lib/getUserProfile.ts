@@ -1,7 +1,7 @@
-import { createClient } from '@/lib/supabase/server';
-import { Database } from '@/lib/database.types';
+import { createClient } from "@/lib/supabase/server";
+import { Database } from "@/lib/database.types";
 
-export type UserProfile = Database['public']['Tables']['users']['Row'];
+export type UserProfile = Database["public"]["Tables"]["users"]["Row"];
 
 /**
  * Fetches the authenticated user's profile from the database.
@@ -29,11 +29,7 @@ export async function getUserProfile(): Promise<UserProfile | null> {
 			return null;
 		}
 
-		const { data: profile, error: profileError } = await supabase
-			.from('users')
-			.select('*')
-			.eq('id', user.id)
-			.single();
+		const { data: profile, error: profileError } = await supabase.from("users").select("*").eq("id", user.id).single();
 
 		if (profileError || !profile) {
 			return null;
@@ -41,7 +37,7 @@ export async function getUserProfile(): Promise<UserProfile | null> {
 
 		return profile;
 	} catch (error) {
-		console.error('Error fetching user profile:', error);
+		console.error("Error fetching user profile:", error);
 		return null;
 	}
 }

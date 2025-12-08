@@ -1,17 +1,17 @@
-'use client';
+"use client";
 
-import { LuBookText } from 'react-icons/lu';
-import { DialogButton } from './dialog';
-import { Button } from './ui/button';
-import { KeyboardEvent, useState } from 'react';
-import { ToggleGroup, ToggleGroupItem } from './ui/toggle-group';
+import { LuBookText } from "react-icons/lu";
+import { DialogButton } from "./dialog";
+import { Button } from "./ui/button";
+import { KeyboardEvent, useState } from "react";
+import { ToggleGroup, ToggleGroupItem } from "./ui/toggle-group";
 
-import { cn } from '@/lib/utils';
+import { cn } from "@/lib/utils";
 
-type TransactionType = 'expense' | 'income';
+type TransactionType = "expense" | "income";
 
 const FormContent = () => {
-	const [selected, setSelected] = useState<TransactionType>('expense');
+	const [selected, setSelected] = useState<TransactionType>("expense");
 
 	const handleSubmit = (e: React.FormEvent<HTMLFormElement>) => {
 		e.preventDefault();
@@ -19,7 +19,7 @@ const FormContent = () => {
 	};
 
 	const transactionFilter = (event: KeyboardEvent<HTMLInputElement>) => {
-		const allowedKeys = ['Backspace', 'Delete', 'ArrowLeft', 'ArrowRight', 'Tab', '.', ','];
+		const allowedKeys = ["Backspace", "Delete", "ArrowLeft", "ArrowRight", "Tab", ".", ","];
 		if (!/[0-9]/.test(event.key) && !allowedKeys.includes(event.key) && !event.ctrlKey) {
 			event.preventDefault();
 		}
@@ -50,8 +50,8 @@ const FormContent = () => {
 				{/* Sliding background */}
 				<div
 					className={cn(
-						'absolute inset-y-1 w-[calc(50%-0.25rem)] rounded-3xl bg-primary-highlight transition-transform duration-300 ease-in-out',
-						selected === 'income' ? 'translate-x-[calc(100%+0.25rem)]' : 'translate-x-[0.25rem]'
+						"absolute inset-y-1 w-[calc(50%-0.25rem)] rounded-3xl bg-primary-highlight transition-transform duration-300 ease-in-out",
+						selected === "income" ? "translate-x-[calc(100%+0.25rem)]" : "translate-x-[0.25rem]"
 					)}
 					aria-hidden="true"
 				/>
@@ -59,9 +59,9 @@ const FormContent = () => {
 				<ToggleGroupItem
 					value="expense"
 					className={cn(
-						'flex-1 relative z-10 rounded-3xl transition-colors',
-						'data-[state=on]:text-primary-foreground',
-						'hover:text-primary data-[state=on]:bg-transparent'
+						"flex-1 relative z-10 rounded-3xl transition-colors",
+						"data-[state=on]:text-primary-foreground",
+						"hover:text-primary data-[state=on]:bg-transparent"
 					)}
 				>
 					Expense
@@ -69,9 +69,9 @@ const FormContent = () => {
 				<ToggleGroupItem
 					value="income"
 					className={cn(
-						'flex-1 relative z-10 rounded-3xl transition-colors',
-						'data-[state=on]:text-primary-foreground',
-						'hover:text-primary data-[state=on]:bg-transparent'
+						"flex-1 relative z-10 rounded-3xl transition-colors",
+						"data-[state=on]:text-primary-foreground",
+						"hover:text-primary data-[state=on]:bg-transparent"
 					)}
 				>
 					Income

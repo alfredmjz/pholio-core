@@ -1,13 +1,13 @@
-'use client';
+"use client";
 
-import { Card } from '@/components/ui/card';
-import { Button } from '@/components/ui/button';
-import { Badge } from '@/components/ui/badge';
-import { cn } from '@/lib/utils';
-import { formatCurrency, formatDate } from '@/app/dashboard/utils';
-import { ArrowRight, ArrowDownLeft, ArrowUpRight, Receipt } from 'lucide-react';
-import type { Transaction } from '../types';
-import { Skeleton } from '@/components/ui/skeleton';
+import { Card } from "@/components/ui/card";
+import { Button } from "@/components/ui/button";
+import { Badge } from "@/components/ui/badge";
+import { cn } from "@/lib/utils";
+import { formatCurrency, formatDate } from "@/app/dashboard/utils";
+import { ArrowRight, ArrowDownLeft, ArrowUpRight, Receipt } from "lucide-react";
+import type { Transaction } from "../types";
+import { Skeleton } from "@/components/ui/skeleton";
 
 interface RecentTransactionsProps {
 	transactions: Transaction[];
@@ -22,7 +22,7 @@ export function RecentTransactions({ transactions, onViewAll, loading = false, c
 	}
 
 	return (
-		<Card className={cn('p-6 bg-card border border-border', className)}>
+		<Card className={cn("p-6 bg-card border border-border", className)}>
 			{/* Header */}
 			<div className="flex items-center justify-between mb-4">
 				<h3 className="text-lg font-semibold text-foreground">Recent Transactions</h3>
@@ -49,13 +49,13 @@ export function RecentTransactions({ transactions, onViewAll, loading = false, c
 }
 
 function TransactionRow({ transaction }: { transaction: Transaction }) {
-	const isIncome = transaction.type === 'income';
+	const isIncome = transaction.type === "income";
 
 	return (
 		<div className="flex items-center justify-between p-3 rounded-lg hover:bg-muted/50 transition-colors duration-150 cursor-pointer">
 			{/* Left: Icon + Info */}
 			<div className="flex items-center gap-3 min-w-0 flex-1">
-				<div className={cn('p-2 rounded-lg flex-shrink-0', isIncome ? 'bg-success-muted' : 'bg-error-muted')}>
+				<div className={cn("p-2 rounded-lg flex-shrink-0", isIncome ? "bg-success-muted" : "bg-error-muted")}>
 					{isIncome ? (
 						<ArrowDownLeft className="h-4 w-4 text-success" />
 					) : (
@@ -76,8 +76,8 @@ function TransactionRow({ transaction }: { transaction: Transaction }) {
 			</div>
 
 			{/* Right: Amount */}
-			<span className={cn('text-sm font-semibold flex-shrink-0 ml-3', isIncome ? 'text-success' : 'text-foreground')}>
-				{isIncome ? '+' : '-'}
+			<span className={cn("text-sm font-semibold flex-shrink-0 ml-3", isIncome ? "text-success" : "text-foreground")}>
+				{isIncome ? "+" : "-"}
 				{formatCurrency(Math.abs(transaction.amount))}
 			</span>
 		</div>
@@ -98,7 +98,7 @@ function EmptyState() {
 
 export function RecentTransactionsSkeleton({ className }: { className?: string }) {
 	return (
-		<Card className={cn('p-6 bg-card border border-border', className)}>
+		<Card className={cn("p-6 bg-card border border-border", className)}>
 			<div className="flex items-center justify-between mb-4">
 				<Skeleton className="h-5 w-40" />
 				<Skeleton className="h-8 w-20" />

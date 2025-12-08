@@ -1,14 +1,14 @@
-import React from 'react';
-import type { Metadata } from 'next';
+import React from "react";
+import type { Metadata } from "next";
 
-import '@/styles/globals.css';
-import LayoutWrapper from '@/components/layoutWrapper';
-import { SidebarWrapper } from '@/components/sidebarWrapper';
+import "@/styles/globals.css";
+import LayoutWrapper from "@/components/layoutWrapper";
+import { SidebarWrapper } from "@/components/sidebarWrapper";
 
 export const metadata: Metadata = {
-	title: 'Pholio',
+	title: "Pholio",
 	icons: {
-		icon: '/pholio-icon.svg',
+		icon: "/pholio-icon.svg",
 	},
 };
 

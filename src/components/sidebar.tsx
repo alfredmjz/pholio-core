@@ -1,9 +1,9 @@
-'use client';
+"use client";
 
-import * as React from 'react';
-import { ChevronLeft, ChevronRight, LayoutDashboard, PieChart } from 'lucide-react';
+import * as React from "react";
+import { ChevronLeft, ChevronRight, LayoutDashboard, PieChart } from "lucide-react";
 
-import { cn } from '@/lib/utils';
+import { cn } from "@/lib/utils";
 import {
 	NavigationMenu,
 	NavigationMenuContent,
@@ -12,12 +12,12 @@ import {
 	NavigationMenuList,
 	NavigationMenuTrigger,
 	navigationMenuTriggerStyle,
-} from '@/components/ui/navigation-menu';
-import { ThemeToggle } from '@/components/theme-toggle';
+} from "@/components/ui/navigation-menu";
+import { ThemeToggle } from "@/components/theme-toggle";
 
-import type { UserProfile } from '@/lib/getUserProfile';
-import { signOut } from '@/app/(auth-pages)/login/actions';
-import Link from 'next/link';
+import type { UserProfile } from "@/lib/getUserProfile";
+import { signOut } from "@/app/(auth-pages)/login/actions";
+import Link from "next/link";
 
 interface SideBarComponentProps {
 	userProfile: UserProfile | null;
@@ -34,9 +34,9 @@ const SIDEBAR_DEFAULTS = {
 
 function getInitials(name: string): string {
 	return name
-		.split(' ')
+		.split(" ")
 		.map((part) => part[0])
-		.join('')
+		.join("")
 		.toUpperCase()
 		.slice(0, 2);
 }
@@ -51,7 +51,7 @@ export function SideBarComponent({ userProfile }: SideBarComponentProps) {
 	const sidebarWidthRef = React.useRef<number>(SIDEBAR_DEFAULTS.WIDTH);
 
 	// Determine display name: use full_name for registered users, guest_name for guests
-	const displayName = userProfile?.full_name || userProfile?.guest_name || 'Guest User';
+	const displayName = userProfile?.full_name || userProfile?.guest_name || "Guest User";
 	const displayInitials = getInitials(displayName);
 
 	// Auto-collapse sidebar on mobile/tablet screens
@@ -67,13 +67,13 @@ export function SideBarComponent({ userProfile }: SideBarComponentProps) {
 		handleResize();
 
 		// Add resize listener
-		window.addEventListener('resize', handleResize);
-		return () => window.removeEventListener('resize', handleResize);
+		window.addEventListener("resize", handleResize);
+		return () => window.removeEventListener("resize", handleResize);
 	}, [isCollapsed]);
 
 	React.useEffect(() => {
-		const savedWidth = localStorage.getItem('sidebarWidth');
-		const savedCollapsed = localStorage.getItem('sidebarCollapsed');
+		const savedWidth = localStorage.getItem("sidebarWidth");
+		const savedCollapsed = localStorage.getItem("sidebarCollapsed");
 
 		if (savedWidth) {
 			const width = parseFloat(savedWidth);
@@ -82,7 +82,7 @@ export function SideBarComponent({ userProfile }: SideBarComponentProps) {
 		}
 		if (savedCollapsed && window.innerWidth >= 1024) {
 			// Only apply saved collapsed state on desktop
-			setIsCollapsed(savedCollapsed === 'true');
+			setIsCollapsed(savedCollapsed === "true");
 		}
 	}, []);
 
@@ -96,7 +96,7 @@ export function SideBarComponent({ userProfile }: SideBarComponentProps) {
 		if (!contentRef.current || isCollapsed) return;
 
 		const timeoutId = setTimeout(() => {
-			const navList = contentRef.current?.querySelector('ul');
+			const navList = contentRef.current?.querySelector("ul");
 			if (!navList) return;
 
 			const totalWidthPx = navList.scrollWidth;
@@ -107,7 +107,7 @@ export function SideBarComponent({ userProfile }: SideBarComponentProps) {
 
 			if (sidebarWidth < finalMinWidth) {
 				setSidebarWidth(finalMinWidth);
-				localStorage.setItem('sidebarWidth', finalMinWidth.toString());
+				localStorage.setItem("sidebarWidth", finalMinWidth.toString());
 			}
 		}, SIDEBAR_DEFAULTS.MIN_WIDTH_CALC_DELAY);
 
@@ -117,11 +117,11 @@ export function SideBarComponent({ userProfile }: SideBarComponentProps) {
 	const toggleCollapse = React.useCallback(() => {
 		const newCollapsed = !isCollapsed;
 		setIsCollapsed(newCollapsed);
-		localStorage.setItem('sidebarCollapsed', newCollapsed.toString());
+		localStorage.setItem("sidebarCollapsed", newCollapsed.toString());
 
 		if (!newCollapsed && sidebarWidth < minWidth) {
 			setSidebarWidth(minWidth);
-			localStorage.setItem('sidebarWidth', minWidth.toString());
+			localStorage.setItem("sidebarWidth", minWidth.toString());
 		}
 	}, [isCollapsed, sidebarWidth, minWidth]);
 
@@ -129,7 +129,7 @@ export function SideBarComponent({ userProfile }: SideBarComponentProps) {
 		(e: React.MouseEvent) => {
 			if (isCollapsed) return;
 
-			document.body.classList.add('select-none');
+			document.body.classList.add("select-none");
 
 			const startX = e.clientX;
 			const startWidth = sidebarWidth;
@@ -142,22 +142,22 @@ export function SideBarComponent({ userProfile }: SideBarComponentProps) {
 			};
 
 			const handleMouseUp = () => {
-				document.body.classList.remove('select-none');
-				localStorage.setItem('sidebarWidth', sidebarWidthRef.current.toString());
-				document.removeEventListener('mousemove', handleMouseMove);
-				document.removeEventListener('mouseup', handleMouseUp);
+				document.body.classList.remove("select-none");
+				localStorage.setItem("sidebarWidth", sidebarWidthRef.current.toString());
+				document.removeEventListener("mousemove", handleMouseMove);
+				document.removeEventListener("mouseup", handleMouseUp);
 			};
 
-			document.addEventListener('mousemove', handleMouseMove);
-			document.addEventListener('mouseup', handleMouseUp);
+			document.addEventListener("mousemove", handleMouseMove);
+			document.addEventListener("mouseup", handleMouseUp);
 		},
 		[isCollapsed, sidebarWidth, minWidth]
 	);
 
 	const handleSignOut = React.useCallback(async () => {
 		// Clear sidebar preferences
-		localStorage.removeItem('sidebarWidth');
-		localStorage.removeItem('sidebarCollapsed');
+		localStorage.removeItem("sidebarWidth");
+		localStorage.removeItem("sidebarCollapsed");
 
 		// Sign out (works for both registered users and guests)
 		await signOut();
@@ -172,25 +172,25 @@ export function SideBarComponent({ userProfile }: SideBarComponentProps) {
 				<button
 					onClick={toggleCollapse}
 					className="flex items-center justify-center w-8 h-8 rounded-md bg-secondary hover:bg-secondary-hover transition-colors shadow-sm"
-					aria-label={isCollapsed ? 'Expand sidebar' : 'Collapse sidebar'}
-					title={isCollapsed ? 'Expand sidebar' : 'Collapse sidebar'}
+					aria-label={isCollapsed ? "Expand sidebar" : "Collapse sidebar"}
+					title={isCollapsed ? "Expand sidebar" : "Collapse sidebar"}
 				>
 					{isCollapsed ? <ChevronRight className="w-4 h-4" /> : <ChevronLeft className="w-4 h-4" />}
 				</button>
 			</div>
-			<div className={cn('w-full flex flex-1 flex-col', isCollapsed ? 'items-center' : '')}>
+			<div className={cn("w-full flex flex-1 flex-col", isCollapsed ? "items-center" : "")}>
 				{/* User Profile Navigation Menu */}
 				<NavigationMenu ref={contentRef} className="w-full px-2 flex-1" orientation="vertical">
 					<NavigationMenuList
-						className={cn('w-full flex flex-col gap-2', isCollapsed ? 'items-center' : 'items-start')}
+						className={cn("w-full flex flex-col gap-2", isCollapsed ? "items-center" : "items-start")}
 					>
 						{/* User Profile */}
 						<NavigationMenuItem className="w-full">
 							<NavigationMenuTrigger
 								hideChevron={isCollapsed}
 								className={cn(
-									'flex items-center gap-4 p-2 rounded-md w-full h-auto',
-									isCollapsed ? 'justify-center' : 'justify-start'
+									"flex items-center gap-4 p-2 rounded-md w-full h-auto",
+									isCollapsed ? "justify-center" : "justify-start"
 								)}
 							>
 								{userProfile?.avatar_url ? (
@@ -236,8 +236,8 @@ export function SideBarComponent({ userProfile }: SideBarComponentProps) {
 								href="/dashboard"
 								className={cn(
 									navigationMenuTriggerStyle(),
-									'w-full',
-									isCollapsed ? 'justify-center px-2' : 'justify-start'
+									"w-full",
+									isCollapsed ? "justify-center px-2" : "justify-start"
 								)}
 							>
 								<LayoutDashboard className="w-4 h-4 flex-shrink-0" />
@@ -248,8 +248,8 @@ export function SideBarComponent({ userProfile }: SideBarComponentProps) {
 								href="/allocations"
 								className={cn(
 									navigationMenuTriggerStyle(),
-									'w-full',
-									isCollapsed ? 'justify-center px-2' : 'justify-start'
+									"w-full",
+									isCollapsed ? "justify-center px-2" : "justify-start"
 								)}
 							>
 								<PieChart className="w-4 h-4 flex-shrink-0" />
@@ -274,7 +274,7 @@ export function SideBarComponent({ userProfile }: SideBarComponentProps) {
 	);
 }
 
-const ListItem = React.forwardRef<React.ComponentRef<'a'>, React.ComponentPropsWithoutRef<'a'> & { href?: string }>(
+const ListItem = React.forwardRef<React.ComponentRef<"a">, React.ComponentPropsWithoutRef<"a"> & { href?: string }>(
 	({ className, title, children, href, ...props }, ref) => {
 		const content = (
 			<>
@@ -284,7 +284,7 @@ const ListItem = React.forwardRef<React.ComponentRef<'a'>, React.ComponentPropsW
 		);
 
 		const itemClassName = cn(
-			'flex flex-col justify-center select-none rounded-md m-1 p-3 leading-none no-underline outline-none transition-colors hover:bg-primary-hover focus:bg-accent focus:text-accent-foreground cursor-pointer',
+			"flex flex-col justify-center select-none rounded-md m-1 p-3 leading-none no-underline outline-none transition-colors hover:bg-primary-hover focus:bg-accent focus:text-accent-foreground cursor-pointer",
 			className
 		);
 
@@ -305,4 +305,4 @@ const ListItem = React.forwardRef<React.ComponentRef<'a'>, React.ComponentPropsW
 		);
 	}
 );
-ListItem.displayName = 'ListItem';
+ListItem.displayName = "ListItem";

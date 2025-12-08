@@ -6,12 +6,7 @@ import { MetricCard } from "./components/MetricCard";
 import { CashflowWidget } from "./components/CashflowWidget";
 import { NetWorthWidget } from "./components/NetWorthWidget";
 import { RecentTransactions } from "./components/RecentTransactions";
-import {
-	TrendingUp,
-	Wallet,
-	CreditCard,
-	PiggyBank,
-} from "lucide-react";
+import { TrendingUp, Wallet, CreditCard, PiggyBank } from "lucide-react";
 import type { DashboardData, Period, ChartType } from "./types";
 
 interface DashboardClientProps {
@@ -41,12 +36,8 @@ export function DashboardClient({ initialData }: DashboardClientProps) {
 			{/* Page Header */}
 			<div className="flex items-center justify-between">
 				<div>
-					<h1 className="text-3xl font-bold tracking-tight text-foreground">
-						Dashboard
-					</h1>
-					<p className="text-sm text-muted-foreground mt-1">
-						Your financial overview at a glance
-					</p>
+					<h1 className="text-3xl font-bold tracking-tight text-foreground">Dashboard</h1>
+					<p className="text-sm text-muted-foreground mt-1">Your financial overview at a glance</p>
 				</div>
 			</div>
 
@@ -78,9 +69,7 @@ export function DashboardClient({ initialData }: DashboardClientProps) {
 					value={initialData.metrics.savingsRate.value}
 					trend={initialData.metrics.savingsRate.trend}
 					icon={<PiggyBank className="h-4 w-4" />}
-					variant={
-						initialData.metrics.savingsRate.value >= 0 ? "success" : "warning"
-					}
+					variant={initialData.metrics.savingsRate.value >= 0 ? "success" : "warning"}
 				/>
 			</div>
 
@@ -108,10 +97,7 @@ export function DashboardClient({ initialData }: DashboardClientProps) {
 			</div>
 
 			{/* Recent Transactions */}
-			<RecentTransactions
-				transactions={initialData.recentTransactions}
-				onViewAll={handleViewAllTransactions}
-			/>
+			<RecentTransactions transactions={initialData.recentTransactions} onViewAll={handleViewAllTransactions} />
 		</>
 	);
 }

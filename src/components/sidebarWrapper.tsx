@@ -1,6 +1,6 @@
-import * as React from 'react';
-import { getUserProfile } from '@/lib/getUserProfile';
-import { SideBarComponent } from '@/components/sidebar';
+import * as React from "react";
+import { getUserProfile } from "@/lib/getUserProfile";
+import { SideBarComponent } from "@/components/sidebar";
 
 /**
  * Server component wrapper for the sidebar that fetches user data

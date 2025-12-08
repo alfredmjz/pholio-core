@@ -1,14 +1,7 @@
 "use server";
 
 import { createClient } from "@/lib/supabase/server";
-import type {
-	DashboardData,
-	CashflowSummary,
-	AllCashflowData,
-	NetWorthData,
-	Transaction,
-	Period,
-} from "./types";
+import type { DashboardData, CashflowSummary, AllCashflowData, NetWorthData, Transaction, Period } from "./types";
 
 /**
  * Fetch all dashboard data for the current user
@@ -68,9 +61,7 @@ export async function getNetWorthData(): Promise<NetWorthData> {
 /**
  * Fetch recent transactions
  */
-export async function getRecentTransactions(
-	limit: number = 10
-): Promise<Transaction[]> {
+export async function getRecentTransactions(limit: number = 10): Promise<Transaction[]> {
 	const supabase = await createClient();
 	const {
 		data: { user },

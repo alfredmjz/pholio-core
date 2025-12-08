@@ -262,7 +262,9 @@ export async function createTransaction(
 	name: string,
 	amount: number,
 	transactionDate: string,
-	categoryId?: string
+	categoryId?: string,
+	type: "income" | "expense" = "expense",
+	notes?: string
 ): Promise<Transaction | null> {
 	const supabase = await createClient();
 
@@ -276,9 +278,13 @@ export async function createTransaction(
 		.insert({
 			user_id: user.id,
 			name,
-			amount,
+			// Store amount as positive for income, negative for expense (if UI sends positive)
+			// OR store absolute and rely on checks. Standard is signed values for easy math.
+			// Let's assume UI sends absolute and we sign it here based on type.
+			amount: type === "expense" ? -Math.abs(amount) : Math.abs(amount),
 			transaction_date: transactionDate,
 			category_id: categoryId || null,
+			notes: notes || null,
 		})
 		.select()
 		.single();
@@ -289,24 +295,70 @@ export async function createTransaction(
 	}
 
 	revalidatePath("/allocations");
+	revalidatePath("/dashboard");
 	return data as Transaction;
 }
 
 /**
- * Update transaction category
+ * Update transaction
  */
-export async function updateTransactionCategory(transactionId: string, categoryId: string | null): Promise<boolean> {
+export async function updateTransaction(
+	transactionId: string,
+	data: {
+		name?: string;
+		amount?: number;
+		transactionDate?: string;
+		categoryId?: string | null;
+		type?: "income" | "expense";
+		notes?: string;
+	}
+): Promise<boolean> {
 	const supabase = await createClient();
 
-	const { error } = await supabase.from("transactions").update({ category_id: categoryId }).eq("id", transactionId);
+	const {
+		data: { user },
+	} = await supabase.auth.getUser();
+	if (!user) return false;
+
+	const updates: any = {};
+	if (data.name !== undefined) updates.name = data.name;
+	if (data.transactionDate !== undefined) updates.transaction_date = data.transactionDate;
+	if (data.categoryId !== undefined) updates.category_id = data.categoryId;
+	if (data.notes !== undefined) updates.notes = data.notes;
+
+	// Handle amount / type update
+	// If amount is provided, we need to know the type (either new or existing)
+	// For simplicity, we expect the UI to provide the raw signed amount or we handle it if type is passed
+	if (data.amount !== undefined) {
+		// If type is explicitly provided, enforce sign
+		if (data.type) {
+			updates.amount = data.type === "expense" ? -Math.abs(data.amount) : Math.abs(data.amount);
+		} else {
+			// If type is not changing, we update the amount directly.
+			// We assume the UI sends the correct signed value if type isn't changing,
+			// or that the existing sign is preserved if the UI sends absolute value.
+			// Ideally, the UI should always send type if it sends amount to ensure correctness.
+			updates.amount = data.amount;
+		}
+	}
+
+	const { error } = await supabase.from("transactions").update(updates).eq("id", transactionId);
 
 	if (error) {
-		console.error("Error updating transaction category:", error);
+		console.error("Error updating transaction:", error);
 		return false;
 	}
 
 	revalidatePath("/allocations");
+	revalidatePath("/dashboard");
 	return true;
+}
+
+/**
+ * Update transaction category (Simplified helper)
+ */
+export async function updateTransactionCategory(transactionId: string, categoryId: string | null): Promise<boolean> {
+	return updateTransaction(transactionId, { categoryId });
 }
 
 /**

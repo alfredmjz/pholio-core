@@ -64,8 +64,11 @@ export function NetWorthWidget({
 	}, []);
 
 	// Prepare donut chart data
-	const donutData = useMemo(() => {
+	const { donutData, assetColors, liabilityColors } = useMemo(() => {
 		const data: { name: string; value: number; color: string }[] = [];
+		const assetColors: Record<string, string> = {};
+		const liabilityColors: Record<string, string> = {};
+
 		const BRIGHT_COLORS = [
 			"#06b6d4", // cyan-500
 			"#10b981", // emerald-500
@@ -81,27 +84,31 @@ export function NetWorthWidget({
 
 		assetBreakdown.forEach((asset) => {
 			if (asset.value > 0) {
+				const color = BRIGHT_COLORS[colorIndex % BRIGHT_COLORS.length];
 				data.push({
 					name: asset.category,
 					value: asset.value,
-					color: BRIGHT_COLORS[colorIndex % BRIGHT_COLORS.length],
+					color,
 				});
+				assetColors[asset.category] = color;
 				colorIndex++;
 			}
 		});
 
 		liabilityBreakdown.forEach((liability) => {
 			if (liability.value > 0) {
+				const color = BRIGHT_COLORS[colorIndex % BRIGHT_COLORS.length];
 				data.push({
 					name: liability.category,
 					value: liability.value,
-					color: BRIGHT_COLORS[colorIndex % BRIGHT_COLORS.length],
+					color,
 				});
+				liabilityColors[liability.category] = color;
 				colorIndex++;
 			}
 		});
 
-		return data;
+		return { donutData: data, assetColors, liabilityColors };
 	}, [assetBreakdown, liabilityBreakdown]);
 
 	if (loading) {
@@ -244,7 +251,12 @@ export function NetWorthWidget({
 						</button>
 
 						{isExpanded && (
-							<DetailedBreakdown assetBreakdown={assetBreakdown} liabilityBreakdown={liabilityBreakdown} />
+							<DetailedBreakdown
+								assetBreakdown={assetBreakdown}
+								liabilityBreakdown={liabilityBreakdown}
+								assetColors={assetColors}
+								liabilityColors={liabilityColors}
+							/>
 						)}
 					</div>
 				</>
@@ -329,9 +341,13 @@ function TrendChart({ data, mounted }: { data: { date: string; value: number }[]
 function DetailedBreakdown({
 	assetBreakdown,
 	liabilityBreakdown,
+	assetColors,
+	liabilityColors,
 }: {
 	assetBreakdown: AssetBreakdown[];
 	liabilityBreakdown: LiabilityBreakdown[];
+	assetColors: Record<string, string>;
+	liabilityColors: Record<string, string>;
 }) {
 	const getCategoryIcon = (category: string) => {
 		const iconMap: Record<string, React.ReactNode> = {
@@ -356,7 +372,12 @@ function DetailedBreakdown({
 							<div key={asset.category}>
 								<div className="flex items-center justify-between mb-1">
 									<div className="flex items-center gap-2">
-										<span className="text-muted-foreground">{getCategoryIcon(asset.category)}</span>
+										<span
+											className={cn(!assetColors[asset.category] && "text-muted-foreground")}
+											style={{ color: assetColors[asset.category] }}
+										>
+											{getCategoryIcon(asset.category)}
+										</span>
 										<span className="text-sm font-medium text-foreground capitalize">{asset.category}</span>
 									</div>
 									<span className="text-sm font-semibold text-info">{formatCurrency(asset.value)}</span>
@@ -386,7 +407,12 @@ function DetailedBreakdown({
 							<div key={liability.category}>
 								<div className="flex items-center justify-between mb-1">
 									<div className="flex items-center gap-2">
-										<span className="text-muted-foreground">{getCategoryIcon(liability.category)}</span>
+										<span
+											className={cn(!liabilityColors[liability.category] && "text-muted-foreground")}
+											style={{ color: liabilityColors[liability.category] }}
+										>
+											{getCategoryIcon(liability.category)}
+										</span>
 										<span className="text-sm font-medium text-foreground capitalize">{liability.category}</span>
 									</div>
 									<span className="text-sm font-semibold text-error">{formatCurrency(liability.value)}</span>

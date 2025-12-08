@@ -3,13 +3,18 @@ import { requireAuth } from '@/lib/auth';
 import { AllocationClient } from './client';
 import { getOrCreateAllocation, getAllocationSummary, getTransactionsForMonth } from './actions';
 
+import { sampleAllocationSummary, sampleTransactions } from './sample-data';
+
 export default async function AllocationsPage({
 	searchParams,
 }: {
 	searchParams: Promise<{ year?: string; month?: string }>;
 }) {
 	// Require authentication - automatically redirects to /login if not authenticated
-	await requireAuth();
+	// Skip auth check if using sample data to allow easy dev
+	if (process.env.NEXT_PUBLIC_USE_SAMPLE_DATA !== 'true') {
+		await requireAuth();
+	}
 
 	// Await searchParams in Next.js 15
 	const params = await searchParams;
@@ -19,18 +24,23 @@ export default async function AllocationsPage({
 	const year = params.year ? parseInt(params.year) : now.getFullYear();
 	const month = params.month ? parseInt(params.month) : now.getMonth() + 1;
 
-	// Fetch data on server side
-	const allocation = await getOrCreateAllocation(year, month, 9000);
-
 	let summary = null;
 	let transactions: any[] = [];
 
-	if (allocation) {
-		// Parallelize independent queries for better performance (50% faster)
-		[summary, transactions] = await Promise.all([
-			getAllocationSummary(allocation.id),
-			getTransactionsForMonth(year, month),
-		]);
+	if (process.env.NEXT_PUBLIC_USE_SAMPLE_DATA === 'true') {
+		summary = sampleAllocationSummary;
+		transactions = sampleTransactions;
+	} else {
+		// Fetch data on server side
+		const allocation = await getOrCreateAllocation(year, month, 9000);
+
+		if (allocation) {
+			// Parallelize independent queries for better performance (50% faster)
+			[summary, transactions] = await Promise.all([
+				getAllocationSummary(allocation.id),
+				getTransactionsForMonth(year, month),
+			]);
+		}
 	}
 
 	return (

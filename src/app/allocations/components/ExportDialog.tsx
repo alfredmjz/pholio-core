@@ -15,7 +15,7 @@ import { FileText, Download, Loader2, Calendar } from "lucide-react";
 import { exportTransactions } from "../utils/exportUtils";
 import { toast } from "sonner";
 import { supabase } from "@/lib/supabase/client";
-import { MonthPicker } from "@/components/ui/month-picker";
+import { MonthPicker } from "@/components/month-picker";
 import { format } from "date-fns";
 import { useRouter } from "next/navigation";
 import Image from "next/image";

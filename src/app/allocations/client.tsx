@@ -14,6 +14,7 @@ import { AllocationDonutChart } from "./components/AllocationDonutChart";
 import { TransactionLedger } from "./components/TransactionLedger";
 import { AddTransactionButton } from "./components/AddTransactionButton";
 import { TemplateImportDialog } from "./components/TemplateImportDialog";
+import { ExportDialog } from "./components/ExportDialog";
 import type { TransactionType } from "./components/TransactionTypeIcon";
 import { useAllocationSync } from "@/hooks/useAllocationSync";
 import { createCategory } from "./actions";
@@ -57,6 +58,7 @@ export function AllocationClient({
 	});
 	const [addCategoryDialogOpen, setAddCategoryDialogOpen] = useState(false);
 	const [templateDialogOpen, setTemplateDialogOpen] = useState(false);
+	const [exportDialogOpen, setExportDialogOpen] = useState(false);
 	const [typeFilter, setTypeFilter] = useState<TransactionType | null>(null);
 
 	// Use Realtime sync hook with optimistic updates
@@ -242,7 +244,7 @@ export function AllocationClient({
 						<div className="flex items-center gap-2">
 							<Button
 								className="gap-2 bg-foreground hover:bg-foreground/90 text-background"
-								onClick={() => toast.info("Export coming soon!")}
+								onClick={() => setExportDialogOpen(true)}
 							>
 								<Download className="h-4 w-4" />
 								Export
@@ -304,6 +306,13 @@ export function AllocationClient({
 					onImportPrevious={handleImportPrevious}
 					onUseTemplate={handleUseTemplate}
 					onStartFresh={handleStartFresh}
+				/>
+
+				<ExportDialog
+					open={exportDialogOpen}
+					onOpenChange={setExportDialogOpen}
+					currentYear={currentMonth.year}
+					currentMonth={currentMonth.month}
 				/>
 			</div>
 		</AllocationProvider>

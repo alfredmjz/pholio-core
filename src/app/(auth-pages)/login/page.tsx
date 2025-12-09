@@ -7,9 +7,11 @@ import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/com
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
 import Link from "next/link";
+import { useRouter } from "next/navigation";
 import { useState } from "react";
 
 export default function Page() {
+	const router = useRouter();
 	const [error, setError] = useState<string | null>(null);
 	const [isLoading, setIsLoading] = useState(false);
 	const [isGuestLoading, setIsGuestLoading] = useState(false);
@@ -37,6 +39,8 @@ export default function Page() {
 		if (result?.error) {
 			setError(result.error);
 			setIsGuestLoading(false);
+		} else {
+			router.push("/dashboard");
 		}
 	};
 

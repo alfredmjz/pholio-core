@@ -2,7 +2,7 @@
 
 import { AlertCircle } from "lucide-react";
 import { Button } from "@/components/ui/button";
-import { GuestConvertDialog } from "@/components/guest-convert-dialog";
+import { GuestConvertDialog } from "./guest-convert-dialog";
 
 /**
  * GuestInfoBanner Component

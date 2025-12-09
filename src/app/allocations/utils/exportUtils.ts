@@ -4,10 +4,12 @@ import { format } from "date-fns";
 
 export type ExportRange = {
 	type: "current" | "custom";
-	startYear: number;
-	startMonth: number;
-	endYear: number;
-	endMonth: number;
+	startYear?: number;
+	startMonth?: number;
+	endYear?: number;
+	endMonth?: number;
+	startDate?: Date;
+	endDate?: Date;
 };
 
 interface ExportTransaction {
@@ -22,12 +24,24 @@ interface ExportTransaction {
 export async function exportTransactions(range: ExportRange, filename: string = "transactions") {
 	// Use the shared supabase instance
 
-	// Calculate start and end dates based on range
-	const startDate = new Date(range.startYear, range.startMonth - 1, 1);
-	// For end date, we want the last day of the end month
-	// new Date(year, month, 0) gives the last day of the previous month
-	// So we use endMonth (which is 1-indexed, so it points to next month in 0-indexed Date) and day 0
-	const endDate = new Date(range.endYear, range.endMonth, 0);
+	let startDate: Date;
+	let endDate: Date;
+
+	if (range.startDate && range.endDate) {
+		startDate = range.startDate;
+		endDate = range.endDate;
+	} else if (range.startYear && range.startMonth && range.endYear && range.endMonth) {
+		// Calculate start and end dates based on range
+		startDate = new Date(range.startYear, range.startMonth - 1, 1);
+		// For end date, we want the last day of the end month
+		// new Date(year, month, 0) gives the last day of the PREVIOUS month (when month is 1-indexed in param but 0-indexed in constructor? No, constructor is 0-indexed month)
+		// Date(year, monthIndex, 0) -> last day of monthIndex-1.
+		// range.endMonth is 1-indexed (e.g. 12 for Dec).
+		// new Date(range.endYear, range.endMonth, 0) -> new Date(2024, 12, 0) -> Jan 0 2025 -> Dec 31 2024. Correct.
+		endDate = new Date(range.endYear, range.endMonth, 0);
+	} else {
+		throw new Error("Invalid date range provided");
+	}
 
 	// Fetch transactions
 	const { data: transactions, error } = await supabase

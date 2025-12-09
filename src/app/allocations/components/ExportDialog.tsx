@@ -1,6 +1,6 @@
 "use client";
 
-import { useState } from "react";
+import { useState, useEffect } from "react";
 import {
 	Dialog,
 	DialogContent,
@@ -11,11 +11,15 @@ import {
 } from "@/components/ui/dialog";
 import { Button } from "@/components/ui/button";
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
-import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
-import { Label } from "@/components/ui/label";
-import { Download, FileText, Calendar, Loader2 } from "lucide-react";
+import { FileText, Download, Loader2, Calendar } from "lucide-react";
 import { exportTransactions } from "../utils/exportUtils";
 import { toast } from "sonner";
+import { supabase } from "@/lib/supabase/client";
+import { MonthPicker } from "@/components/ui/month-picker";
+import { format } from "date-fns";
+import { useRouter } from "next/navigation";
+import Image from "next/image";
+import googleIcon from "@/public/gsheets-icon48x48.svg";
 
 interface ExportDialogProps {
 	open: boolean;
@@ -41,55 +45,92 @@ const MONTHS = [
 
 export function ExportDialog({ open, onOpenChange, currentYear, currentMonth }: ExportDialogProps) {
 	const [isExporting, setIsExporting] = useState(false);
+	const [isGoogleExporting, setIsGoogleExporting] = useState(false);
 	const [activeTab, setActiveTab] = useState("quick");
+	const router = useRouter();
 
 	// Custom range state
-	const [startYear, setStartYear] = useState(currentYear.toString());
-	const [startMonth, setStartMonth] = useState(currentMonth.toString());
-	const [endYear, setEndYear] = useState(currentYear.toString());
-	const [endMonth, setEndMonth] = useState(currentMonth.toString());
+	const [startDate, setStartDate] = useState<Date | undefined>(new Date(currentYear, currentMonth - 1, 1));
+	const [endDate, setEndDate] = useState<Date | undefined>(new Date(currentYear, currentMonth, 0)); // Last day of month
 
-	// Generate year options (last 5 years + next year)
-	const years = Array.from({ length: 6 }, (_, i) => currentYear - 4 + i);
+	const [isGuest, setIsGuest] = useState(false);
+
+	// Check if user is guest on mount/open
+	useEffect(() => {
+		if (open) {
+			const checkGuestStatus = async () => {
+				const {
+					data: { user },
+				} = await supabase.auth.getUser();
+				if (user) {
+					const { data: profile } = await supabase.from("users").select("is_guest").eq("id", user.id).single();
+
+					if (profile?.is_guest) {
+						setIsGuest(true);
+					} else {
+						// Check if we came back from registration for this purpose
+						// This logic runs if the user is registered (not guest)
+						const pending = localStorage.getItem("pendingGoogleExport");
+						if (pending === "true") {
+							localStorage.removeItem("pendingGoogleExport");
+							toast.info("Registration Complete", {
+								description:
+									"Your account is upgraded. Please click 'Open in Sheets' again to connect your Google Account and finish the export.",
+								duration: 8000,
+							});
+						}
+					}
+				}
+			};
+			checkGuestStatus();
+		}
+	}, [open]);
+
+	const getRange = () => {
+		if (activeTab === ("quick" as string)) {
+			return {
+				type: "current" as const,
+				startYear: currentYear,
+				startMonth: currentMonth,
+				endYear: currentYear,
+				endMonth: currentMonth,
+			};
+		} else {
+			if (!startDate || !endDate) {
+				throw new Error("Please select both start and end dates");
+			}
+			if (endDate < startDate) {
+				throw new Error("End date cannot be before start date");
+			}
+			// Extract Year/Month from the Date objects (MonthPicker returns 1st of month)
+			return {
+				type: "custom" as const,
+				startYear: startDate.getFullYear(),
+				startMonth: startDate.getMonth() + 1,
+				endYear: endDate.getFullYear(),
+				endMonth: endDate.getMonth() + 1,
+			};
+		}
+	};
 
 	const handleExport = async () => {
 		setIsExporting(true);
 		try {
-			if (activeTab === "quick") {
-				await exportTransactions(
-					{
-						type: "current",
-						startYear: currentYear,
-						startMonth: currentMonth,
-						endYear: currentYear,
-						endMonth: currentMonth,
-					},
-					`pholio_export_${currentYear}_${currentMonth}`
-				);
-				toast.success("Export successful");
+			const range = getRange();
+			let filename = "";
+
+			// Format filename nicely for months
+			const startStr = `${MONTHS[range.startMonth - 1].value < 10 ? "0" : ""}${MONTHS[range.startMonth - 1].value}_${range.startYear}`;
+			const endStr = `${MONTHS[range.endMonth - 1].value < 10 ? "0" : ""}${MONTHS[range.endMonth - 1].value}_${range.endYear}`;
+
+			if (activeTab === "quick" || startStr === endStr) {
+				filename = `pholio_export_${startStr}`;
 			} else {
-				// Validate range
-				const start = new Date(parseInt(startYear), parseInt(startMonth) - 1);
-				const end = new Date(parseInt(endYear), parseInt(endMonth) - 1);
-
-				if (end < start) {
-					toast.error("End date cannot be before start date");
-					setIsExporting(false);
-					return;
-				}
-
-				await exportTransactions(
-					{
-						type: "custom",
-						startYear: parseInt(startYear),
-						startMonth: parseInt(startMonth),
-						endYear: parseInt(endYear),
-						endMonth: parseInt(endMonth),
-					},
-					`pholio_custom_export`
-				);
-				toast.success("Export successful");
+				filename = `pholio_export_${startStr}_to_${endStr}`;
 			}
+
+			await exportTransactions(range, filename);
+			toast.success("Export successful");
 			onOpenChange(false);
 		} catch (error) {
 			console.error(error);
@@ -99,116 +140,177 @@ export function ExportDialog({ open, onOpenChange, currentYear, currentMonth }: 
 		}
 	};
 
+	const handleGoogleExport = async () => {
+		setIsGoogleExporting(true);
+		try {
+			// GUEST CHECK: Gate feature for guests
+			if (isGuest) {
+				const confirmed = window.confirm(
+					"You need to be registered user with Google Account connected to export to Google Sheets. Proceed to register?"
+				);
+
+				if (!confirmed) {
+					setIsGoogleExporting(false);
+					return;
+				}
+
+				// Redirect to signup
+				localStorage.setItem("pendingGoogleExport", "true");
+				router.push("/signup");
+				return;
+			}
+
+			const range = getRange();
+
+			// Check for Google connection first
+			const {
+				data: { session },
+			} = await supabase.auth.getSession();
+
+			// Pass the provider token explicitly in the body if available
+			// This works around server-side cookie persistence issues for tokens
+			const providerToken = session?.provider_token;
+
+			// Send Year/Month params to API
+			const body: any = {
+				token: providerToken,
+				startYear: range.startYear,
+				startMonth: range.startMonth,
+				endYear: range.endYear,
+				endMonth: range.endMonth,
+			};
+
+			const response = await fetch("/api/google/export", {
+				method: "POST",
+				headers: { "Content-Type": "application/json" },
+				body: JSON.stringify(body),
+			});
+
+			const data = await response.json();
+
+			if (!response.ok) {
+				// Relaxed check: any 401 triggers auth flow
+				if (response.status === 401) {
+					toast.info("Connecting to Google...", {
+						description: "You will be redirected to approve access.",
+						duration: 5000,
+					});
+
+					// Use signInWithOAuth due to manual linking restrictions
+					const { error: authError } = await supabase.auth.signInWithOAuth({
+						provider: "google",
+						options: {
+							redirectTo: window.location.href, // Return here
+							scopes: "https://www.googleapis.com/auth/spreadsheets",
+							queryParams: {
+								access_type: "offline",
+								prompt: "consent",
+							},
+						},
+					});
+
+					if (authError) {
+						console.error("Link/Auth Error:", authError);
+						throw authError;
+					}
+					// The user will be redirected, so we can stop here.
+					return;
+				}
+				throw new Error(data.error || "Failed to create Google Sheet");
+			}
+
+			// Success
+			if (data.url) {
+				window.open(data.url, "_blank");
+				toast.success("Spreadsheet created!", { description: "Opened in a new tab." });
+				onOpenChange(false);
+			}
+		} catch (error) {
+			console.error(error);
+			toast.error(error instanceof Error ? error.message : "Google Export failed");
+		} finally {
+			setIsGoogleExporting(false);
+		}
+	};
+
 	const currentMonthName = MONTHS.find((m) => m.value === currentMonth)?.label;
 
 	return (
 		<Dialog open={open} onOpenChange={onOpenChange}>
-			<DialogContent className="sm:max-w-[450px]">
+			<DialogContent className="sm:max-w-[625px]">
 				<DialogHeader>
 					<DialogTitle>Export Transactions</DialogTitle>
-					<DialogDescription>Download your transaction history as an Excel file.</DialogDescription>
+					<DialogDescription>
+						Download your transaction history as an Excel file or open in Google Sheets.
+					</DialogDescription>
 				</DialogHeader>
 
-				<Tabs defaultValue="quick" value={activeTab} onValueChange={setActiveTab} className="w-full">
-					<TabsList className="grid w-full grid-cols-2">
-						<TabsTrigger value="quick">Current Month</TabsTrigger>
-						<TabsTrigger value="custom">Custom Range</TabsTrigger>
-					</TabsList>
+				{/* Min height container to prevent jumping */}
+				<div className="min-h-[300px]">
+					<Tabs defaultValue="quick" value={activeTab} onValueChange={setActiveTab} className="w-full">
+						<TabsList className="grid w-full grid-cols-2">
+							<TabsTrigger value="quick">Current Month</TabsTrigger>
+							<TabsTrigger value="custom">Custom Range</TabsTrigger>
+						</TabsList>
 
-					<TabsContent value="quick" className="space-y-4 py-4">
-						<div className="flex flex-col items-center justify-center p-6 border-2 border-dashed rounded-lg bg-muted/30">
-							<div className="h-12 w-12 rounded-full bg-primary/10 flex items-center justify-center mb-3">
-								<FileText className="h-6 w-6 text-primary" />
+						<TabsContent value="quick" className="space-y-4 py-4">
+							<div className="flex flex-col items-center justify-center p-6 border-2 border-dashed rounded-lg bg-muted/30 min-h-[220px]">
+								<div className="h-12 w-12 rounded-full bg-primary/10 flex items-center justify-center mb-3">
+									<FileText className="h-6 w-6 text-primary" />
+								</div>
+								<h3 className="font-medium text-lg">
+									{currentMonthName} {currentYear}
+								</h3>
+								<p className="text-sm text-muted-foreground text-center mt-1">
+									Export all transactions for the currently viewed month.
+								</p>
 							</div>
-							<h3 className="font-medium text-lg">
-								{currentMonthName} {currentYear}
-							</h3>
-							<p className="text-sm text-muted-foreground text-center mt-1">
-								Export all transactions for the currently viewed month.
-							</p>
-						</div>
-					</TabsContent>
+						</TabsContent>
 
-					<TabsContent value="custom" className="space-y-4 py-4">
-						<div className="grid grid-cols-2 gap-4">
-							<div className="space-y-2">
-								<Label>Start Date</Label>
-								<div className="grid grid-cols-2 gap-2">
-									<Select value={startMonth} onValueChange={setStartMonth}>
-										<SelectTrigger>
-											<SelectValue placeholder="Month" />
-										</SelectTrigger>
-										<SelectContent>
-											{MONTHS.map((month) => (
-												<SelectItem key={month.value} value={month.value.toString()}>
-													{month.label.substring(0, 3)}
-												</SelectItem>
-											))}
-										</SelectContent>
-									</Select>
-									<Select value={startYear} onValueChange={setStartYear}>
-										<SelectTrigger>
-											<SelectValue placeholder="Year" />
-										</SelectTrigger>
-										<SelectContent>
-											{years.map((year) => (
-												<SelectItem key={year} value={year.toString()}>
-													{year}
-												</SelectItem>
-											))}
-										</SelectContent>
-									</Select>
+						<TabsContent value="custom" className="space-y-4 py-4">
+							<div className="grid grid-cols-2 gap-4">
+								<div className="space-y-2">
+									<div className="text-sm font-medium">Start Month</div>
+									<MonthPicker date={startDate} setDate={setStartDate} placeholder="Select start month" />
+								</div>
+
+								<div className="space-y-2">
+									<div className="text-sm font-medium">End Month</div>
+									<MonthPicker date={endDate} setDate={setEndDate} placeholder="Select end month" />
 								</div>
 							</div>
 
-							<div className="space-y-2">
-								<Label>End Date</Label>
-								<div className="grid grid-cols-2 gap-2">
-									<Select value={endMonth} onValueChange={setEndMonth}>
-										<SelectTrigger>
-											<SelectValue placeholder="Month" />
-										</SelectTrigger>
-										<SelectContent>
-											{MONTHS.map((month) => (
-												<SelectItem key={month.value} value={month.value.toString()}>
-													{month.label.substring(0, 3)}
-												</SelectItem>
-											))}
-										</SelectContent>
-									</Select>
-									<Select value={endYear} onValueChange={setEndYear}>
-										<SelectTrigger>
-											<SelectValue placeholder="Year" />
-										</SelectTrigger>
-										<SelectContent>
-											{years.map((year) => (
-												<SelectItem key={year} value={year.toString()}>
-													{year}
-												</SelectItem>
-											))}
-										</SelectContent>
-									</Select>
-								</div>
+							<div className="flex items-center justify-center gap-2 px-4 py-2 mt-4 mx-auto w-fit rounded-full bg-blue-50 text-blue-700 text-sm max-w-full">
+								<Calendar className="h-4 w-4 shrink-0" />
+								<span className="font-medium truncate">
+									{startDate ? format(startDate, "MMMM yyyy") : "..."} -{" "}
+									{endDate ? format(endDate, "MMMM yyyy") : "..."}
+								</span>
 							</div>
-						</div>
+						</TabsContent>
+					</Tabs>
+				</div>
 
-						<div className="flex items-center gap-2 p-3 rounded-md bg-blue-50 text-blue-800 text-sm">
-							<Calendar className="h-4 w-4" />
-							<span>
-								Selected: {MONTHS.find((m) => m.value.toString() === startMonth)?.label} {startYear} -{" "}
-								{MONTHS.find((m) => m.value.toString() === endMonth)?.label} {endYear}
-							</span>
-						</div>
-					</TabsContent>
-				</Tabs>
-
-				<DialogFooter>
-					<Button variant="outline" onClick={() => onOpenChange(false)}>
+				<DialogFooter className="flex-col sm:flex-row gap-2">
+					<Button variant="outline" onClick={() => onOpenChange(false)} className="sm:mr-auto">
 						Cancel
 					</Button>
-					<Button onClick={handleExport} disabled={isExporting} className="gap-2">
+					<Button
+						variant="outline"
+						onClick={handleGoogleExport}
+						disabled={isGoogleExporting || isExporting}
+						className="gap-2"
+					>
+						{isGoogleExporting ? (
+							<Loader2 className="h-4 w-4 animate-spin" />
+						) : (
+							<Image src={googleIcon} alt="Google Sheets" width={16} height={16} className="h-4 w-4" />
+						)}
+						Open in Sheets
+					</Button>
+					<Button onClick={handleExport} disabled={isExporting || isGoogleExporting} className="gap-2">
 						{isExporting ? <Loader2 className="h-4 w-4 animate-spin" /> : <Download className="h-4 w-4" />}
-						{activeTab === "quick" ? "Export Month" : "Export Range"}
+						Download
 					</Button>
 				</DialogFooter>
 			</DialogContent>

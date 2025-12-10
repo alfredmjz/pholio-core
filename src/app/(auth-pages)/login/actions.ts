@@ -3,6 +3,7 @@
 import { createClient } from "@/lib/supabase/server";
 import { revalidatePath } from "next/cache";
 import { redirect } from "next/navigation";
+import { headers } from "next/headers";
 
 /**
  * Authenticates a user with email and password.
@@ -40,12 +41,66 @@ export async function login(formData: FormData) {
  */
 export async function signup(formData: FormData) {
 	const supabase = await createClient();
+	const origin = (await headers()).get("origin");
 
 	const email = formData.get("email") as string;
 	const password = formData.get("password") as string;
 	const fullName = formData.get("fullName") as string | null;
 
-	// Database trigger automatically creates profile on auth.signUp
+	// Check if current user is a guest
+	const {
+		data: { user },
+	} = await supabase.auth.getUser();
+
+	if (user) {
+		const { data: profile } = await supabase.from("users").select("is_guest").eq("id", user.id).single();
+
+		if (profile?.is_guest) {
+			const { data: existingUser } = await supabase
+				.from("users")
+				.select("id")
+				.eq("email", email)
+				.neq("id", user.id)
+				.single();
+			if (existingUser) {
+				return { error: "An account with this email already exists" };
+			}
+
+			const { error: updateAuthError } = await supabase.auth.updateUser(
+				{
+					email,
+					password,
+					data: { full_name: fullName },
+				},
+				{
+					emailRedirectTo: `${origin}/auth/callback?next=/allocations`,
+				}
+			);
+
+			if (updateAuthError) {
+				return { error: updateAuthError.message };
+			}
+
+			const { error: updateProfileError } = await supabase
+				.from("users")
+				.update({
+					email,
+					is_guest: false,
+					guest_name: null,
+					full_name: fullName || null,
+				})
+				.eq("id", user.id);
+
+			if (updateProfileError) {
+				return { error: "Failed to update user profile" };
+			}
+
+			revalidatePath("/", "layout");
+		}
+
+		return { error: "You are already logged in." };
+	}
+
 	const { data: authData, error: authError } = await supabase.auth.signUp({
 		email,
 		password,
@@ -64,7 +119,6 @@ export async function signup(formData: FormData) {
 		return { error: "Failed to create user account" };
 	}
 
-	// Trigger only sets id and email - update full_name separately if provided
 	if (fullName) {
 		// Wait for trigger to complete before updating
 		await new Promise((resolve) => setTimeout(resolve, 100));
@@ -76,7 +130,6 @@ export async function signup(formData: FormData) {
 
 		if (updateError) {
 			console.error("Failed to update full name:", updateError);
-			// Don't fail signup - user can update name later
 		}
 	}
 
@@ -88,7 +141,7 @@ export async function signup(formData: FormData) {
  * Creates an anonymous guest session.
  *
  * Generates guest user with random name. Creates profile manually if database
- * trigger fails (fallback for edge cases).
+ * trigger fails.
  *
  * @returns Error object if guest creation fails, redirects to home on success
  */
@@ -137,12 +190,10 @@ export async function loginAsGuest() {
 
 		if (insertError) {
 			console.error("Failed to create guest profile:", insertError);
-			// Don't fail login - app may still be usable
 		}
 	}
 
 	revalidatePath("/", "layout");
-	redirect("/");
 }
 
 /**
@@ -152,5 +203,4 @@ export async function signOut() {
 	const supabase = await createClient();
 	await supabase.auth.signOut();
 	revalidatePath("/", "layout");
-	redirect("/login");
 }

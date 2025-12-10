@@ -2,7 +2,7 @@
 
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
-import { GuestConvertDialog } from "@/components/guest-convert-dialog";
+import { GuestConvertDialog } from "./guest-convert-dialog";
 import { CheckIcon, Target } from "lucide-react";
 
 export default function GuestUpgradeCard() {

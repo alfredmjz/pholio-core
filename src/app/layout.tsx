@@ -24,7 +24,6 @@ export default async function RootLayout({ children }: { children: React.ReactNo
 	return (
 		<html lang="en" suppressHydrationWarning>
 			<head>
-				<title>Folio</title>
 				<script dangerouslySetInnerHTML={{ __html: themeScript }} />
 			</head>
 			<body className="w-screen h-screen flex flex-row bg-background overflow-hidden">

@@ -5,8 +5,13 @@ services:
     build:
       context: ./src
       dockerfile: Dockerfile
+      args:
+        NEXT_PUBLIC_SUPABASE_URL: ${NEXT_PUBLIC_SUPABASE_URL}
+        NEXT_PUBLIC_SUPABASE_ANON_KEY: ${NEXT_PUBLIC_SUPABASE_ANON_KEY}
     volumes:
-      - ./src:/app
+      - ./src:/usr/src/app
+      - /usr/src/app/node_modules
+      - /usr/src/app/.next
     ports:
       - "3000:3000" #host_port:container_port
     labels:
@@ -14,3 +19,6 @@ services:
       - "version=${APP_VERSION:-0.0.0}"
     env_file:
       - .env
+      - src/.env.local
+    environment:
+      - SUPABASE_URL=http://host.docker.internal:54321

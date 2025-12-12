@@ -1,23 +1,89 @@
-import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card";
+"use client";
+
+import { resendConfirmationEmail } from "@/app/(auth-pages)/login/actions";
+import { Button } from "@/components/ui/button";
+import { Card, CardContent } from "@/components/ui/card";
+import { Mail } from "lucide-react";
+import Link from "next/link";
+import { useSearchParams } from "next/navigation";
+import { useState, Suspense } from "react";
+import { toast } from "sonner";
+
+function SuccessContent() {
+	const searchParams = useSearchParams();
+	const email = searchParams.get("email");
+	const [isResending, setIsResending] = useState(false);
+
+	const handleResend = async () => {
+		if (!email) {
+			toast.error("Email not found. Please try logging in.");
+			return;
+		}
+
+		setIsResending(true);
+		try {
+			const result = await resendConfirmationEmail(email);
+			if (result?.error) {
+				toast.error(result.error);
+			} else {
+				toast.success("Confirmation email resent!");
+			}
+		} catch (error) {
+			toast.error("Failed to resend email");
+		} finally {
+			setIsResending(false);
+		}
+	};
+
+	return (
+		<div className="flex min-h-svh w-full items-center justify-center p-6 md:p-10">
+			<div className="w-full max-w-[380px]">
+				<Card className="border-none shadow-xl shadow-black/5 bg-white/80 backdrop-blur-sm">
+					<CardContent className="pt-6 pb-6 flex flex-col items-center text-center gap-4">
+						<div className="p-3 rounded-full bg-blue-50 text-blue-600 mb-2">
+							<Mail size={24} />
+						</div>
+
+						<div className="space-y-2">
+							<h1 className="text-2xl font-semibold tracking-tight text-[#37352f]">Check your email</h1>
+							<p className="text-[#787774] text-sm max-w-[280px] mx-auto leading-relaxed">
+								We've sent a confirmation link{" "}
+								{email ? <span className="font-medium text-[#37352f]">to {email}</span> : "to your inbox"}. Please click
+								the link to confirm your account.
+							</p>
+						</div>
+
+						<div className="w-full pt-4">
+							<Button
+								asChild
+								variant="outline"
+								className="w-full h-10 border-[#E9E9E7] text-[#37352f] hover:bg-[#F7F7F5] bg-white shadow-sm font-medium"
+							>
+								<Link href="/login">Back to Login</Link>
+							</Button>
+						</div>
+
+						<p className="text-xs text-[#787774] mt-2">
+							Did not receive the email?{" "}
+							<button
+								onClick={handleResend}
+								disabled={isResending}
+								className="underline cursor-pointer hover:text-[#37352f] disabled:opacity-50 disabled:cursor-not-allowed"
+							>
+								{isResending ? "Sending..." : "Resend"}
+							</button>
+						</p>
+					</CardContent>
+				</Card>
+			</div>
+		</div>
+	);
+}
 
 export default function Page() {
 	return (
-		<div className="flex min-h-svh w-full items-center justify-center p-6 md:p-10">
-			<div className="w-full max-w-sm">
-				<div className="flex flex-col gap-6">
-					<Card>
-						<CardHeader>
-							<CardTitle className="text-2xl">Thank you for signing up!</CardTitle>
-							<CardDescription>Check your email to confirm</CardDescription>
-						</CardHeader>
-						<CardContent>
-							<p className="text-sm text-muted-foreground">
-								You&apos;ve successfully signed up. Please check your email to confirm your account before signing in.
-							</p>
-						</CardContent>
-					</Card>
-				</div>
-			</div>
-		</div>
+		<Suspense fallback={<div>Loading...</div>}>
+			<SuccessContent />
+		</Suspense>
 	);
 }

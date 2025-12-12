@@ -1,93 +1,141 @@
 "use client";
 
-import type React from "react";
 import { login, loginAsGuest } from "@/app/(auth-pages)/login/actions";
+import { AuthCard } from "@/app/(auth-pages)/components/auth-card";
 import { Button } from "@/components/ui/button";
-import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card";
-import { Input } from "@/components/ui/input";
-import { Label } from "@/components/ui/label";
+import { FloatingLabelInput } from "@/components/floating-label-input";
 import Link from "next/link";
+import { toast } from "sonner";
 import { useState } from "react";
+import { useAuthForm } from "@/hooks/use-auth-form";
 
 export default function Page() {
-	const [error, setError] = useState<string | null>(null);
-	const [isLoading, setIsLoading] = useState(false);
 	const [isGuestLoading, setIsGuestLoading] = useState(false);
 
-	const handleLogin = async (e: React.FormEvent<HTMLFormElement>) => {
-		e.preventDefault();
-		setIsLoading(true);
-		setError(null);
+	const validate = (formData: FormData): string | null => {
+		const email = formData.get("email") as string;
+		const password = formData.get("password") as string;
+		const emailRegex = /^[^\s@]+@[^\s@]+\.[^\s@]+$/;
 
-		const formData = new FormData(e.currentTarget);
-		const result = await login(formData);
-
-		if (result?.error) {
-			setError(result.error);
-			setIsLoading(false);
+		if (!email || !emailRegex.test(email)) {
+			toast.error("Invalid Email", {
+				description: "Please enter a valid email address.",
+			});
+			return "Invalid Email";
 		}
+
+		if (!password) {
+			toast.error("Password Required", {
+				description: "Please enter your password.",
+			});
+			return "Password Required";
+		}
+		return null;
 	};
 
+	const { handleSubmit, isLoading, error, setError, isMounted } = useAuthForm({
+		action: login,
+		validate,
+	});
+
 	const handleGuestLogin = async () => {
+		if (!isMounted) return;
 		setIsGuestLoading(true);
 		setError(null);
 
-		const result = await loginAsGuest();
+		try {
+			const result = await loginAsGuest();
 
-		if (result?.error) {
-			setError(result.error);
+			if (result?.error) {
+				setError(result.error);
+				toast.error("Guest Login Failed", {
+					description: result.error,
+				});
+				setIsGuestLoading(false);
+			}
+		} catch (err) {
+			toast.error("Something went wrong", {
+				description: "Please try again later.",
+			});
 			setIsGuestLoading(false);
 		}
 	};
 
 	return (
 		<div className="flex min-h-svh w-full items-center justify-center p-6 md:p-10">
-			<div className="w-full max-w-sm">
+			<div className="w-full max-w-[450px]">
 				<div className="flex flex-col gap-6">
-					<Card>
-						<CardHeader>
-							<CardTitle className="text-2xl">Login</CardTitle>
-							<CardDescription>Enter your email below to login to your account</CardDescription>
-						</CardHeader>
-						<CardContent>
-							<form onSubmit={handleLogin}>
-								<div className="flex flex-col gap-6">
-									<div className="grid gap-2">
-										<Label htmlFor="email">Email</Label>
-										<Input id="email" name="email" type="email" placeholder="m@example.com" required />
-									</div>
-									<div className="grid gap-2">
-										<Label htmlFor="password">Password</Label>
-										<Input id="password" name="password" type="password" required />
-									</div>
-									{error && <p className="text-sm text-red-500">{error}</p>}
-									<div className="flex flex-col justify-center items-center gap-2">
-										<Button type="submit" className="w-1/3 border border-white" disabled={isLoading || isGuestLoading}>
-											{isLoading ? "Logging in..." : "Login"}
-										</Button>
-										<Button
-											type="button"
-											className="text-xs w-fit"
-											onClick={handleGuestLogin}
-											disabled={isLoading || isGuestLoading}
-										>
-											{isGuestLoading ? "Creating guest session..." : "Continue as Guest"}
-										</Button>
+					<AuthCard
+						title="Welcome to Pholio!"
+						description="Enter your email below to log in"
+						className="shadow-[0px_0px_25px_rgba(0,0,0,0.08)] bg-card backdrop-blur-sm"
+					>
+						<form onSubmit={handleSubmit} noValidate>
+							<div className="flex flex-col gap-5">
+								<div className="grid gap-2">
+									<FloatingLabelInput
+										id="email"
+										name="email"
+										type="email"
+										label="Email"
+										required
+										className="border-border focus-visible:ring-offset-0 focus-visible:ring-ring bg-card/80"
+									/>
+								</div>
+								<div className="grid gap-2">
+									<FloatingLabelInput
+										id="password"
+										name="password"
+										type="password"
+										label="Password"
+										required
+										className="border-border focus-visible:ring-offset-0 focus-visible:ring-ring bg-card/80"
+									/>
+									<div className="pl-1 flex justify-start">
+										<Link href="/forgot-password" className="font-medium text-xs text-foreground underline-animation">
+											Forgot password?
+										</Link>
 									</div>
 								</div>
-								<div className="mt-4 text-center text-sm">
-									Don&apos;t have an account?{" "}
-									<Link
-										href="/signup"
-										className="underline underline-offset-4"
-										onClick={() => console.log("Link clicked")}
+								{error && (
+									<div className="p-3 text-sm text-destructive bg-destructive/10 rounded-md border border-destructive/20">
+										{error}
+									</div>
+								)}
+								<div className="flex flex-col gap-3 pt-2">
+									<Button
+										type="submit"
+										className="w-full h-10 bg-primary hover:bg-primary/90 text-primary-foreground shadow-sm font-medium transition-all"
+										disabled={isLoading || isGuestLoading || !isMounted}
 									>
-										Sign up
-									</Link>
+										{isLoading ? "Logging in..." : "Log in"}
+									</Button>
+
+									<div className="flex items-center gap-4 py-2">
+										<span className="h-px flex-1 bg-border" />
+										<span className="text-xs uppercase text-muted-foreground">Or</span>
+										<span className="h-px flex-1 bg-border" />
+									</div>
+
+									<Button
+										type="button"
+										variant="outline"
+										className="text-xs font-normal text-muted-foreground hover:bg-secondary/80 bg-secondary"
+										onClick={handleGuestLogin}
+										disabled={isLoading || isGuestLoading || !isMounted}
+									>
+										{isGuestLoading ? "Creating session..." : "Continue as Guest"}
+									</Button>
 								</div>
-							</form>
-						</CardContent>
-					</Card>
+							</div>
+							<div className="mt-6 text-center text-sm text-muted-foreground">
+								Don't have an account?{" "}
+								<Link href="/signup" className="font-medium text-foreground underline-animation">
+									Sign up
+								</Link>
+							</div>
+						</form>
+					</AuthCard>
 				</div>
 			</div>
 		</div>

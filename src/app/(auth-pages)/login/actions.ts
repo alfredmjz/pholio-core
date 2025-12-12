@@ -3,6 +3,7 @@
 import { createClient } from "@/lib/supabase/server";
 import { revalidatePath } from "next/cache";
 import { redirect } from "next/navigation";
+import { headers } from "next/headers";
 
 /**
  * Authenticates a user with email and password.
@@ -16,13 +17,18 @@ export async function login(formData: FormData) {
 	const email = formData.get("email") as string;
 	const password = formData.get("password") as string;
 
-	const { error } = await supabase.auth.signInWithPassword({
+	const { data, error } = await supabase.auth.signInWithPassword({
 		email,
 		password,
 	});
 
 	if (error) {
 		return { error: error.message };
+	}
+
+	if (data.user && !data.user.email_confirmed_at) {
+		await supabase.auth.signOut();
+		return { error: "Please verify your email address before logging in." };
 	}
 
 	revalidatePath("/", "layout");
@@ -45,11 +51,14 @@ export async function signup(formData: FormData) {
 	const password = formData.get("password") as string;
 	const fullName = formData.get("fullName") as string | null;
 
+	const origin = (await headers()).get("origin");
+
 	// Database trigger automatically creates profile on auth.signUp
 	const { data: authData, error: authError } = await supabase.auth.signUp({
 		email,
 		password,
 		options: {
+			emailRedirectTo: `${origin}/auth/callback?next=/`,
 			data: {
 				full_name: fullName,
 			},
@@ -81,7 +90,33 @@ export async function signup(formData: FormData) {
 	}
 
 	revalidatePath("/", "layout");
-	redirect("/signup/success");
+	redirect(`/signup/success?email=${encodeURIComponent(email)}`);
+}
+
+/**
+ * Resends the confirmation email to the user.
+ *
+ * @param email - The email address to resend the confirmation to
+ * @returns Error object if resend fails, message on success
+ */
+export async function resendConfirmationEmail(email: string) {
+	const supabase = await createClient();
+
+	const origin = (await headers()).get("origin");
+
+	const { error } = await supabase.auth.resend({
+		type: "signup",
+		email,
+		options: {
+			emailRedirectTo: `${origin}/auth/callback?next=/`,
+		},
+	});
+
+	if (error) {
+		return { error: error.message };
+	}
+
+	return { success: "Confirmation email sent" };
 }
 
 /**

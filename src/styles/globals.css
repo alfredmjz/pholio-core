@@ -7,125 +7,127 @@
 @import "./animations.css";
 
 @layer base {
-	:root {
-		/* Light theme - Notion-inspired palette */
+	:root,
+	.light-theme {
+		/* Light theme - Notion-inspired palette - HSL Format for Opacity Support */
 
 		/* Base colors */
-		--background: #ffffff;
-		--foreground: #37352f;
-		--border: #e9e9e7;
-		--ring: #2eaadc;
+		--background: 0 0% 100%; /* #ffffff */
+		--foreground: 30 6% 25%; /* #37352f */
+		--border: 60 4% 91%; /* #e9e9e7 */
+		--ring: 200 75% 52%; /* #2eaadc */
 		--radius: 0.5rem;
 
-		/* Primary - High contrast for interactive elements */
-		--primary: #37352f;
-		--primary-foreground: #ffffff;
-		--primary-hover: #2f2f2f;
-		--primary-border: #37352f;
+		/* Primary */
+		--primary: 30 6% 25%; /* #37352f */
+		--primary-foreground: 0 0% 100%; /* #ffffff */
+		--primary-hover: 0 0% 18%; /* #2f2f2f */
+		--primary-border: 30 6% 25%; /* #37352f */
 
-		/* Secondary - interactive states */
-		--secondary: #f7f7f5;
-		--secondary-foreground: #37352f;
-		--secondary-hover: #efefef;
-		--secondary-border: #e9e9e7;
+		/* Secondary */
+		--secondary: 40 10% 96%; /* #f7f7f5 */
+		--secondary-foreground: 30 6% 25%; /* #37352f */
+		--secondary-hover: 0 0% 94%; /* #efefef */
+		--secondary-border: 60 4% 91%; /* #e9e9e7 */
 
-		/* Accent - emphasis */
-		--accent: #f7f7f5;
-		--accent-foreground: #37352f;
+		/* Accent */
+		--accent: 40 10% 96%; /* #f7f7f5 */
+		--accent-foreground: 30 6% 25%; /* #37352f */
 
-		/* Muted - de-emphasized content */
-		--muted: #f7f7f5;
-		--muted-foreground: #787774;
+		/* Muted */
+		--muted: 40 10% 96%; /* #f7f7f5 */
+		--muted-foreground: 30 2% 47%; /* #787774 */
 
 		/* Popover */
-		--popover: #ffffff;
-		--popover-foreground: #37352f;
+		--popover: 0 0% 100%; /* #ffffff */
+		--popover-foreground: 30 6% 25%; /* #37352f */
 
 		/* Card */
-		--card: #ffffff;
-		--card-foreground: #37352f;
+		--card: 0 0% 100%; /* #ffffff */
+		--card-foreground: 30 6% 25%; /* #37352f */
 
-		/* Status colors - Notion palette */
-		--success: #448361;
-		--success-foreground: #ffffff;
-		--success-muted: #dbeddb;
+		/* Status */
+		--success: 124 38% 45%; /* #489f4e */
+		--success-foreground: 0 0% 100%; /* #ffffff */
+		--success-muted: 120 33% 89%; /* #dbeddb */
 
-		--warning: #cb912f;
-		--warning-foreground: #ffffff;
-		--warning-muted: #fdecc8;
+		--warning: 45 61% 49%; /* #cb912f */
+		--warning-foreground: 0 0% 100%; /* #ffffff */
+		--warning-muted: 41 87% 89%; /* #fdecc8 */
 
-		--error: #d44c47;
-		--error-foreground: #ffffff;
-		--error-muted: #ffe2dd;
+		--error: 2 60% 55%; /* #d44c47 */
+		--error-foreground: 0 0% 100%; /* #ffffff */
+		--error-muted: 10 100% 93%; /* #ffe2dd */
 
-		--info: #2eaadc;
-		--info-foreground: #ffffff;
-		--info-muted: #d3e5ef;
+		--info: 200 75% 52%; /* #2eaadc */
+		--info-foreground: 0 0% 100%; /* #ffffff */
+		--info-muted: 201 54% 88%; /* #d3e5ef */
 
-		/* Text colors */
-		--text-primary: #37352f;
-		--text-secondary: #787774;
-		--text-secondary-highlight: #37352f;
+		/* Text */
+		--text-primary: 30 6% 25%; /* #37352f */
+		--text-secondary: 30 2% 47%; /* #787774 */
+		--text-secondary-highlight: 30 6% 25%; /* #37352f */
 	}
 
 	.dark {
 		/* Dark theme - Notion-inspired palette */
 
 		/* Base colors */
-		--background: #191919;
-		--foreground: #d4d4d4;
-		--border: #2f2f2f;
-		--ring: #2eaadc;
+		--background: 0 0% 10%; /* #191919 */
+		--foreground: 0 0% 83%; /* #d4d4d4 */
+		--border: 0 0% 18%; /* #2f2f2f */
+		--ring: 200 75% 52%; /* #2eaadc */
 
-		/* Primary - White for high visibility against dark bg */
-		--primary: #ffffff;
-		--primary-foreground: #191919;
-		--primary-hover: #e0e0e0;
-		--primary-border: #ffffff;
+		/* Primary */
+		--primary: 0 0% 100%; /* #ffffff */
+		--primary-foreground: 0 0% 10%; /* #191919 */
+		--primary-hover: 0 0% 88%; /* #e0e0e0 */
+		--primary-border: 0 0% 100%; /* #ffffff */
 
-		/* Secondary - interactive states & Sidebar */
-		--secondary: #202020;
-		--secondary-foreground: #d4d4d4;
-		--secondary-hover: #2c2c2c;
-		--secondary-border: #373737;
+		/* Secondary */
+		--secondary: 0 0% 13%; /* #202020 */
+		--secondary-foreground: 0 0% 83%; /* #d4d4d4 */
+		--secondary-hover: 0 0% 17%; /* #2c2c2c */
+		--secondary-border: 0 0% 22%; /* #373737 */
 
-		/* Accent - emphasis */
-		--accent: #2c2c2c;
-		--accent-foreground: #d4d4d4;
+		/* Accent */
+		--accent: 0 0% 17%; /* #2c2c2c */
+		--accent-foreground: 0 0% 83%; /* #d4d4d4 */
 
-		/* Muted - de-emphasized content */
-		--muted: #2c2c2c;
-		--muted-foreground: #9b9b9b;
+		/* Muted */
+		--muted: 0 0% 17%; /* #2c2c2c */
+		--muted-foreground: 0 0% 61%; /* #9b9b9b */
 
 		/* Popover */
-		--popover: #262626;
-		--popover-foreground: #d4d4d4;
+		--popover: 0 0% 15%; /* #262626 */
+		--popover-foreground: 0 0% 83%; /* #d4d4d4 */
 
 		/* Card */
-		--card: #202020;
-		--card-foreground: #d4d4d4;
+		--card: 0 0% 13%; /* #202020 */
+		--card-foreground: 0 0% 83%; /* #d4d4d4 */
 
-		/* Status colors - Notion palette (dark) */
-		--success: #4dab9a;
-		--success-foreground: #191919;
-		--success-muted: rgba(77, 171, 154, 0.15);
+		/* Status */
+		--success: 153 38% 49%; /* #4dab73 */
+		--success-foreground: 0 0% 10%; /* #191919 */
+		--success-muted: 153 38% 49%; /* #4dab9a with opacity handled in component or usage */
+		/* Note: For dark mode muted backgrounds with opacity, we use the base color + opacity utility */
 
-		--warning: #ffdc49;
-		--warning-foreground: #191919;
-		--warning-muted: rgba(255, 220, 73, 0.15);
+		--warning: 48 100% 64%; /* #ffdc49 */
+		--warning-foreground: 0 0% 10%; /* #191919 */
+		--warning-muted: 48 100% 64%;
 
-		--error: #ff7369;
-		--error-foreground: #191919;
-		--error-muted: rgba(255, 115, 105, 0.15);
+		--error: 4 100% 71%; /* #ff7369 */
+		--error-foreground: 0 0% 10%; /* #191919 */
+		--error-muted: 4 100% 71%;
 
-		--info: #529cca;
-		--info-foreground: #191919;
-		--info-muted: rgba(82, 156, 202, 0.15);
+		--info: 203 52% 56%; /* #529cca */
+		--info-foreground: 0 0% 10%; /* #191919 */
+		--info-muted: 203 52% 56%;
 
-		/* Text colors */
-		--text-primary: #d4d4d4;
-		--text-secondary: #9b9b9b;
-		--text-secondary-highlight: #d4d4d4;
+		/* Text */
+		--text-primary: 0 0% 83%; /* #d4d4d4 */
+		--text-secondary: 0 0% 61%; /* #9b9b9b */
+		--text-secondary-highlight: 0 0% 83%; /* #d4d4d4 */
 	}
 }
 

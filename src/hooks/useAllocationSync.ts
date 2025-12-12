@@ -1,12 +1,11 @@
 "use client";
 
-import { useEffect, useRef } from "react";
-import { createClient } from "@supabase/supabase-js";
+import { useEffect, useRef, useState } from "react";
+import { supabase } from "@/lib/supabase/client";
 import type { AllocationSummary, Transaction } from "@/app/allocations/types";
 import { getAllocationSummary, getTransactionsForMonth } from "@/app/allocations/actions";
 import { toast } from "sonner";
 import { useOptimisticAllocation } from "./useOptimisticAllocation";
-import { useState } from "react";
 
 interface UseAllocationSyncReturn {
 	summary: AllocationSummary | null;
@@ -56,7 +55,6 @@ export function useAllocationSync(
 		syncWithServer,
 	} = useOptimisticAllocation(initialSummary);
 
-	const supabase = createClient(process.env.NEXT_PUBLIC_SUPABASE_URL!, process.env.NEXT_PUBLIC_SUPABASE_ANON_KEY!);
 	const refetchTimeoutRef = useRef<NodeJS.Timeout | null>(null);
 	const hasShownDisconnectToast = useRef(false);
 
@@ -108,12 +106,12 @@ export function useAllocationSync(
 					table: "allocation_categories",
 					filter: `allocation_id=eq.${allocationId}`,
 				},
-				(payload) => {
+				(payload: any) => {
 					console.log("Category changed:", payload);
 					scheduleRefetch();
 				}
 			)
-			.subscribe((status) => {
+			.subscribe((status: any) => {
 				if (status === "SUBSCRIBED") {
 					console.log("Subscribed to allocation_categories changes");
 				}
@@ -133,12 +131,12 @@ export function useAllocationSync(
 					// TODO: Add filter when transactions table has proper year/month columns
 					// filter: `year=eq.${year},month=eq.${month}`,
 				},
-				(payload) => {
+				(payload: any) => {
 					console.log("Transaction changed:", payload);
 					scheduleRefetch();
 				}
 			)
-			.subscribe((status) => {
+			.subscribe((status: any) => {
 				if (status === "SUBSCRIBED") {
 					console.log("Subscribed to transactions changes");
 				}
@@ -148,7 +146,7 @@ export function useAllocationSync(
 		const connectionChannel = supabase.channel("connection-monitor");
 
 		connectionChannel
-			.on("system", { event: "*" }, (payload) => {
+			.on("system", { event: "*" }, (payload: any) => {
 				if (payload.type === "connected") {
 					setIsConnected(true);
 					if (hasShownDisconnectToast.current) {

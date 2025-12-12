@@ -18,6 +18,7 @@ import { ThemeToggle } from "@/components/theme-toggle";
 import type { UserProfile } from "@/lib/getUserProfile";
 import { signOut } from "@/app/(auth-pages)/login/actions";
 import Link from "next/link";
+import { useRouter } from "next/navigation";
 
 interface SideBarComponentProps {
 	userProfile: UserProfile | null;
@@ -42,6 +43,7 @@ function getInitials(name: string): string {
 }
 
 export function SideBarComponent({ userProfile }: SideBarComponentProps) {
+	const router = useRouter();
 	const [sidebarWidth, setSidebarWidth] = React.useState<number>(SIDEBAR_DEFAULTS.WIDTH);
 	const [minWidth, setMinWidth] = React.useState<number>(SIDEBAR_DEFAULTS.WIDTH);
 	const [isCollapsed, setIsCollapsed] = React.useState<boolean>(false);
@@ -161,7 +163,8 @@ export function SideBarComponent({ userProfile }: SideBarComponentProps) {
 
 		// Sign out (works for both registered users and guests)
 		await signOut();
-	}, []);
+		router.push("/login");
+	}, [router]);
 
 	return (
 		<div

@@ -54,7 +54,7 @@ if (SUPABASE_URL) {
 
 // Read all migration files
 function getMigrationFiles() {
-	const migrationsDir = path.join(__dirname, "../database/migrations");
+	const migrationsDir = path.join(__dirname, "../supabase/migrations");
 
 	if (!fs.existsSync(migrationsDir)) {
 		console.error("❌ Error: migrations directory not found at", migrationsDir);
@@ -83,7 +83,7 @@ async function runMigrations() {
 
 	if (migrations.length === 0) {
 		console.error("❌ Error: No migration files found");
-		console.error("   Expected location: database/migrations/*.sql");
+		console.error("   Expected location: supabase/migrations/*.sql");
 		process.exit(1);
 	}
 
@@ -94,7 +94,12 @@ async function runMigrations() {
 	console.log("");
 
 	// Combine all migrations into a single SQL file
-	const outputPath = path.join(__dirname, "..", "database", "generated", "combined-migrations.sql");
+	const outputDir = path.join(__dirname, "..", "supabase", "generated");
+	if (!fs.existsSync(outputDir)) {
+		fs.mkdirSync(outputDir, { recursive: true });
+	}
+
+	const outputPath = path.join(outputDir, "combined-migrations.sql");
 
 	let combinedSQL = "-- ════════════════════════════════════════════════════════════\n";
 	combinedSQL += "-- Combined Database Migrations for Pholio\n";
@@ -137,7 +142,7 @@ async function runMigrations() {
 	console.log("  📋 NEXT STEPS:");
 	console.log("━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━");
 	console.log("");
-	console.log("  1. Open: database/generated/combined-migrations.sql");
+	console.log("  1. Open: supabase/generated/combined-migrations.sql");
 	console.log("  2. Select all content (Ctrl+A) and copy (Ctrl+C)");
 	console.log("  3. Go to: https://supabase.com/dashboard");
 	console.log("  4. Select your project → SQL Editor → New query");

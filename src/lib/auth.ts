@@ -27,37 +27,32 @@ export interface AuthResult {
  * ```
  */
 export async function requireAuth(): Promise<AuthResult> {
-	console.log("[requireAuth] Start");
 	const supabase = await createClient();
 
 	// Check if user is authenticated
-	console.log("[requireAuth] Calling auth.getUser()");
+
 	const {
 		data: { user },
 		error: authError,
 	} = await supabase.auth.getUser();
-	console.log("[requireAuth] auth.getUser() result:", { hasUser: !!user, error: authError?.message });
 
 	if (authError || !user) {
-		console.log("[requireAuth] No user, redirecting to /login");
 		redirect("/login");
 	}
 
 	// Fetch user profile
-	console.log("[requireAuth] Fetching user profile for:", user.id);
+
 	const { data: profile, error: profileError } = await supabase.from("users").select("*").eq("id", user.id).single();
-	console.log("[requireAuth] Profile fetch result:", { hasProfile: !!profile, error: profileError?.message });
 
 	if (profileError || !profile) {
 		console.error("[requireAuth] Profile not found for authenticated user:", profileError);
 		// User is authenticated but has no profile - should never happen due to DB trigger
 		// Sign them out and redirect to login
 		await supabase.auth.signOut();
-		console.log("[requireAuth] Signed out user, redirecting to /login");
+
 		redirect("/login");
 	}
 
-	console.log("[requireAuth] Success, returning user and profile");
 	return { user, profile: profile as UserProfile };
 }
 

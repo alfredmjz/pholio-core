@@ -46,12 +46,11 @@ export async function login(formData: FormData) {
  */
 export async function signup(formData: FormData) {
 	const supabase = await createClient();
+	const origin = (await headers()).get("origin");
 
 	const email = formData.get("email") as string;
 	const password = formData.get("password") as string;
 	const fullName = formData.get("fullName") as string | null;
-
-	const origin = (await headers()).get("origin");
 
 	// Database trigger automatically creates profile on auth.signUp
 	const { data: authData, error: authError } = await supabase.auth.signUp({
@@ -73,7 +72,6 @@ export async function signup(formData: FormData) {
 		return { error: "Failed to create user account" };
 	}
 
-	// Trigger only sets id and email - update full_name separately if provided
 	if (fullName) {
 		// Wait for trigger to complete before updating
 		await new Promise((resolve) => setTimeout(resolve, 100));
@@ -85,7 +83,6 @@ export async function signup(formData: FormData) {
 
 		if (updateError) {
 			console.error("Failed to update full name:", updateError);
-			// Don't fail signup - user can update name later
 		}
 	}
 
@@ -123,7 +120,7 @@ export async function resendConfirmationEmail(email: string) {
  * Creates an anonymous guest session.
  *
  * Generates guest user with random name. Creates profile manually if database
- * trigger fails (fallback for edge cases).
+ * trigger fails.
  *
  * @returns Error object if guest creation fails, redirects to home on success
  */
@@ -172,12 +169,10 @@ export async function loginAsGuest() {
 
 		if (insertError) {
 			console.error("Failed to create guest profile:", insertError);
-			// Don't fail login - app may still be usable
 		}
 	}
 
 	revalidatePath("/", "layout");
-	redirect("/");
 }
 
 /**
@@ -187,5 +182,4 @@ export async function signOut() {
 	const supabase = await createClient();
 	await supabase.auth.signOut();
 	revalidatePath("/", "layout");
-	redirect("/login");
 }

@@ -46,6 +46,7 @@
 
 #supabase
 supabase/.*/
+supabase/generated/
 
 # generated files
 database/generated/

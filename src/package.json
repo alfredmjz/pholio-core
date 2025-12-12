@@ -4,7 +4,6 @@
 		"dev": "bun --bun next dev",
 		"build": "bun --bun next build",
 		"start": "bun --bun next start",
-		"db:migrate": "bun ../scripts/migrate.js",
 		"dev:mock": "cross-env NEXT_PUBLIC_USE_SAMPLE_DATA=true bun --bun next dev"
 	},
 	"dependencies": {
@@ -29,6 +28,7 @@
 		"@supabase/ssr": "^0.8.0",
 		"@supabase/supabase-js": "^2.86.2",
 		"autoprefixer": "^10.4.20",
+		"canvas-confetti": "^1.9.4",
 		"class-variance-authority": "^0.7.1",
 		"clsx": "^2.1.1",
 		"date-fns": "^4.1.0",
@@ -47,6 +47,7 @@
 	},
 	"devDependencies": {
 		"@tailwindcss/postcss": "^4.0.3",
+		"@types/canvas-confetti": "^1.9.0",
 		"@types/node": "^22.13.1",
 		"@types/react": "^19.2.2",
 		"@types/react-dom": "^19.2.2",
@@ -59,3 +60,4 @@
 		"typescript": "^5.9.3"
 	}
 }
+

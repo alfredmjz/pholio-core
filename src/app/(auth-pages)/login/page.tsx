@@ -5,11 +5,13 @@ import { AuthCard } from "@/app/(auth-pages)/components/auth-card";
 import { Button } from "@/components/ui/button";
 import { FloatingLabelInput } from "@/components/floating-label-input";
 import Link from "next/link";
+import { useRouter } from "next/navigation";
 import { toast } from "sonner";
 import { useState } from "react";
 import { useAuthForm } from "@/hooks/use-auth-form";
 
 export default function Page() {
+	const router = useRouter();
 	const [isGuestLoading, setIsGuestLoading] = useState(false);
 
 	const validate = (formData: FormData): string | null => {
@@ -36,6 +38,9 @@ export default function Page() {
 	const { handleSubmit, isLoading, error, setError, isMounted } = useAuthForm({
 		action: login,
 		validate,
+		onSuccess: () => {
+			router.push("/");
+		},
 	});
 
 	const handleGuestLogin = async () => {
@@ -52,8 +57,11 @@ export default function Page() {
 					description: result.error,
 				});
 				setIsGuestLoading(false);
+			} else {
+				router.push("/");
 			}
 		} catch (err) {
+			console.error("[Guest Login Client] Error caught:", err);
 			toast.error("Something went wrong", {
 				description: "Please try again later.",
 			});
@@ -120,7 +128,7 @@ export default function Page() {
 									<Button
 										type="button"
 										variant="outline"
-										className="text-xs font-normal text-muted-foreground hover:bg-secondary/80 bg-secondary"
+										className="text-xs font-medium text-primary hover:bg-secondary bg-background border-border shadow-sm"
 										onClick={handleGuestLogin}
 										disabled={isLoading || isGuestLoading || !isMounted}
 									>

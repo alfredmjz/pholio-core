@@ -5,17 +5,19 @@ import { loginAsGuest, signup } from "@/app/(auth-pages)/login/actions";
 import { AuthCard } from "@/app/(auth-pages)/components/auth-card";
 import { Button } from "@/components/ui/button";
 import Link from "next/link";
+import { useRouter } from "next/navigation";
 import { useState } from "react";
 import { FloatingLabelInput } from "@/components/floating-label-input";
 import { toast } from "sonner";
 import { useAuthForm } from "@/hooks/use-auth-form";
 
 export default function Page() {
+	const router = useRouter();
 	const [isGuestLoading, setIsGuestLoading] = useState(false);
 
 	const validate = (formData: FormData): string | null => {
 		const password = formData.get("password") as string;
-		const repeatPassword = formData.get("repeat-password") as string;
+		const repeatPassword = formData.get("repeatPassword") as string;
 		const email = formData.get("email") as string;
 		const fullName = formData.get("fullName") as string;
 
@@ -54,19 +56,32 @@ export default function Page() {
 	const { handleSubmit, isLoading, error, setError, isMounted } = useAuthForm({
 		action: signup,
 		validate,
+		onSuccess: (result: any) => {
+			if (result?.redirectUrl) {
+				router.push(result.redirectUrl);
+			}
+		},
 	});
 
 	const handleGuestLogin = async () => {
 		setIsGuestLoading(true);
 		setError(null);
 
-		const result = await loginAsGuest();
+		try {
+			const result = await loginAsGuest();
 
-		if (result?.error) {
-			setError(result.error);
-			toast.error("Guest Login Failed", {
-				description: result.error,
-			});
+			if (result?.error) {
+				setError(result.error);
+				toast.error("Guest Login Failed", {
+					description: result.error,
+				});
+				setIsGuestLoading(false);
+			} else {
+				router.push("/");
+			}
+		} catch (err) {
+			console.error("[Signup Guest Login] Error caught:", err);
+			toast.error("Something went wrong");
 			setIsGuestLoading(false);
 		}
 	};
@@ -131,7 +146,7 @@ export default function Page() {
 									<Button
 										type="button"
 										variant="outline"
-										className="text-xs font-normal text-muted-foreground hover:bg-secondary/80 bg-secondary"
+										className="text-xs font-medium text-primary hover:bg-secondary bg-background border-border shadow-sm"
 										onClick={handleGuestLogin}
 										disabled={isLoading || isGuestLoading || !isMounted}
 									>

@@ -45,10 +45,10 @@ function SuccessContent() {
 						</div>
 
 						<div className="space-y-2">
-							<h1 className="text-2xl font-semibold tracking-tight text-[#37352f]">Check your email</h1>
+							<h1 className="text-2xl font-semibold tracking-tight text-primary">Check your email</h1>
 							<p className="text-[#787774] text-sm max-w-[280px] mx-auto leading-relaxed">
 								We've sent a confirmation link{" "}
-								{email ? <span className="font-medium text-[#37352f]">to {email}</span> : "to your inbox"}. Please click
+								{email ? <span className="font-medium text-primary">to {email}</span> : "to your inbox"}. Please click
 								the link to confirm your account.
 							</p>
 						</div>
@@ -57,7 +57,7 @@ function SuccessContent() {
 							<Button
 								asChild
 								variant="outline"
-								className="w-full h-10 border-[#E9E9E7] text-[#37352f] hover:bg-[#F7F7F5] bg-white shadow-sm font-medium"
+								className="w-full h-10 font-medium text-primary hover:bg-secondary bg-background border-border shadow-sm"
 							>
 								<Link href="/login">Back to Login</Link>
 							</Button>
@@ -68,7 +68,7 @@ function SuccessContent() {
 							<button
 								onClick={handleResend}
 								disabled={isResending}
-								className="underline cursor-pointer hover:text-[#37352f] disabled:opacity-50 disabled:cursor-not-allowed"
+								className="font-medium text-secondary after:bg-primary/50 disabled:opacity-50 disabled:cursor-not-allowed underline-animation"
 							>
 								{isResending ? "Sending..." : "Resend"}
 							</button>

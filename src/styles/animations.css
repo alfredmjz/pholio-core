@@ -1,0 +1,39 @@
+/* Bobbing/Swaying animation for tethered balloons */
+.animate-hover-sway {
+	animation: hover-sway 3s ease-in-out infinite;
+}
+
+@keyframes hover-sway {
+	0% {
+		transform: translateY(0) rotate(-4deg);
+	}
+	50% {
+		transform: translateY(-15px) rotate(4deg);
+	}
+	100% {
+		transform: translateY(0) rotate(-4deg);
+	}
+}
+
+/* Original float-up (kept for confetti or unwanted balloons) */
+.animate-float-up {
+	animation: float-up 4s ease-in-out infinite;
+}
+
+@keyframes float-up {
+	0% {
+		transform: translateY(10%) translateX(0) rotate(0deg) scaleX(var(--scale-x, 1));
+		opacity: 0;
+	}
+	10% {
+		opacity: 1;
+	}
+	80% {
+		opacity: 1;
+	}
+	100% {
+		transform: translateY(-600px) translateX(calc(var(--float-x, 0) * 1px)) rotate(calc(var(--float-r, 10) * 1deg))
+			scaleX(var(--scale-x, 1));
+		opacity: 0;
+	}
+}

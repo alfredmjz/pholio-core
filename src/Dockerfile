@@ -10,6 +10,12 @@ LABEL org.opencontainers.image.authors="Alfred Mah <alfredmjz@gmail.com>"
 # Set working directory for all build stages.
 WORKDIR /usr/src/app
 
+# Define build arguments for Next.js (Best Practice)
+ARG NEXT_PUBLIC_SUPABASE_URL
+ARG NEXT_PUBLIC_SUPABASE_ANON_KEY
+ARG SUPABASE_URL
+ENV SUPABASE_URL=${SUPABASE_URL}
+
 ################################################################################
 # Create a stage for installing production dependencies.
 FROM base as deps
@@ -19,7 +25,7 @@ FROM base as deps
 # Leverage bind mounts to package.json and bun.lockb to avoid having to copy them
 # into this layer.
 RUN --mount=type=bind,source=package.json,target=package.json \
-  --mount=type=bind,source=bun.lockb,target=bun.lockb \
+  --mount=type=bind,source=bun.lock,target=bun.lock \
   --mount=type=cache,target=/root/.bun/install/cache \
   bun install --frozen-lockfile --production
 
@@ -30,7 +36,7 @@ FROM deps AS build
 # Download additional development dependencies before building, as some projects require
 # "devDependencies" to be installed to build. If you don't need this, remove this step.
 RUN --mount=type=bind,source=package.json,target=package.json \
-  --mount=type=bind,source=bun.lockb,target=bun.lockb \
+  --mount=type=bind,source=bun.lock,target=bun.lock \
   --mount=type=cache,target=/root/.bun/install/cache \
   bun install --frozen-lockfile
 

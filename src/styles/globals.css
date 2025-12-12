@@ -157,4 +157,8 @@
 	.scrollbar-hide::-webkit-scrollbar {
 		display: none; /* Chrome, Safari and Opera */
 	}
+
+	.underline-animation {
+		@apply relative after:absolute after:bottom-0 after:left-0 after:h-[1px] after:w-full after:origin-bottom-left after:scale-x-0 after:bg-primary after:transition-transform after:duration-300 hover:after:scale-x-100;
+	}
 }

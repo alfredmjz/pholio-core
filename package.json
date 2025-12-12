@@ -4,10 +4,12 @@
 	"private": true,
 	"type": "module",
 	"scripts": {
-		"start": "docker-compose up --remove-orphans",
-		"build": "docker-compose up --build",
-		"down": "docker-compose down",
-		"logs": "docker-compose logs -f"
+		"start": "docker-compose --env-file .env --env-file src/.env.local up --remove-orphans",
+		"build": "docker-compose --env-file .env --env-file src/.env.local build",
+		"clean-rebuild": "docker-compose --env-file .env --env-file src/.env.local build --no-cache && docker-compose --env-file .env --env-file src/.env.local up",
+		"down": "docker-compose --env-file .env --env-file src/.env.local down",
+		"logs": "docker-compose logs -f",
+		"db:migrate": "bun ./scripts/migrate.js"
 	},
 	"devDependencies": {
 		"@prettier/plugin-xml": "^3.4.2"

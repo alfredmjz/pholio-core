@@ -44,12 +44,14 @@
 **/*.tsbuildinfo
 **/next-env.d.ts
 
+#supabase
+supabase/.*/
+
 # generated files
 database/generated/
 
 #Screenshot testing folders
 .playwright-mcp/
 
-# Clause settings
+# Claude settings
 .claude/*.local.*
-# docs/**/*.md

@@ -2,6 +2,7 @@
 
 import React from "react";
 import { usePathname } from "next/navigation";
+import { isAuthRoute } from "@/lib/routes";
 
 interface LayoutWrapperProps {
 	children: React.ReactNode;
@@ -10,7 +11,7 @@ interface LayoutWrapperProps {
 
 export default function LayoutWrapper({ children, sidebar }: LayoutWrapperProps) {
 	const pathname = usePathname();
-	const isAuthPage = pathname.includes("/login") || pathname.includes("/signup") || pathname.includes("/confirm");
+	const isAuthPage = isAuthRoute(pathname);
 
 	return (
 		<>

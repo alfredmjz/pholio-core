@@ -34,9 +34,6 @@ export default async function ProfilePage() {
 
 			{/* Profile Information Section */}
 			<ProfileInformationSection profile={profile} userEmail={user.email || ""} />
-
-			{/* Security Section (registered users only) */}
-			{!profile?.is_guest && <SecurityCard userEmail={user.email || ""} />}
 		</div>
 	);
 }

@@ -6,8 +6,8 @@ services:
       context: ./src
       dockerfile: Dockerfile
       args:
-        NEXT_PUBLIC_SUPABASE_URL: ${NEXT_PUBLIC_SUPABASE_URL}
-        NEXT_PUBLIC_SUPABASE_ANON_KEY: ${NEXT_PUBLIC_SUPABASE_ANON_KEY}
+        NEXT_PUBLIC_SUPABASE_URL: ${LOCAL_SUPABASE_URL}
+        NEXT_PUBLIC_SUPABASE_ANON_KEY: ${LOCAL_SUPABASE_ANON_KEY}
     volumes:
       - ./src:/usr/src/app
       - /usr/src/app/node_modules
@@ -21,4 +21,5 @@ services:
       - .env
       - src/.env.local
     environment:
-      - SUPABASE_URL=http://host.docker.internal:54321
+      - NEXT_PUBLIC_SUPABASE_URL=${LOCAL_SUPABASE_URL}
+      - NEXT_PUBLIC_SUPABASE_ANON_KEY=${LOCAL_SUPABASE_ANON_KEY}

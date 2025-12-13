@@ -165,8 +165,8 @@ export function CashflowWidget({
 										content={<CustomTooltip />}
 										cursor={{ fill: "var(--muted)", opacity: 0.3 }}
 									/>
-									<Bar dataKey="income" fill="var(--info)" radius={[4, 4, 0, 0]} maxBarSize={40} />
-									<Bar dataKey="expenses" fill="var(--error)" radius={[4, 4, 0, 0]} maxBarSize={40} />
+									<Bar dataKey="income" fill="hsl(var(--info))" radius={[4, 4, 0, 0]} maxBarSize={40} />
+									<Bar dataKey="expenses" fill="hsl(var(--error))" radius={[4, 4, 0, 0]} maxBarSize={40} />
 								</BarChart>
 							</ResponsiveContainer>
 						) : (

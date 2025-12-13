@@ -2,8 +2,10 @@ import React from "react";
 import type { Metadata } from "next";
 
 import "@/styles/globals.css";
+import "sonner/dist/styles.css";
 import LayoutWrapper from "@/components/layoutWrapper";
 import { SidebarWrapper } from "@/components/sidebarWrapper";
+import { Toaster } from "@/components/ui/sonner";
 
 export const metadata: Metadata = {
 	title: "Pholio",
@@ -28,6 +30,7 @@ export default async function RootLayout({ children }: { children: React.ReactNo
 			</head>
 			<body className="w-screen h-screen flex flex-row bg-background overflow-hidden">
 				<LayoutWrapper sidebar={sidebar}>{children}</LayoutWrapper>
+				<Toaster />
 				<footer>{/* Footer content */}</footer>
 			</body>
 		</html>

@@ -3,10 +3,6 @@
  * Run this script to apply all database migrations to Supabase
  *
  * Usage: bun scripts/migrate.js
- *
- * Environment variables required:
- * - SUPABASE_URL or NEXT_PUBLIC_SUPABASE_URL
- * - SUPABASE_SERVICE_KEY (Service Role Key - NOT the anon key!)
  */
 
 import fs from "fs";
@@ -36,21 +32,6 @@ function loadEnv() {
 }
 
 loadEnv();
-
-const SUPABASE_URL = process.env.SUPABASE_URL || process.env.NEXT_PUBLIC_SUPABASE_URL;
-
-// Note: We don't need SUPABASE_SERVICE_KEY for this script since it just displays migrations
-// The user will copy and paste them into Supabase SQL Editor manually
-
-if (SUPABASE_URL) {
-	console.log(`✅ Supabase URL detected: ${SUPABASE_URL}\n`);
-} else {
-	console.warn("⚠️  Warning: NEXT_PUBLIC_SUPABASE_URL not found in .env.local");
-	console.warn("   This is optional - migrations will still be displayed.\n");
-}
-
-// Note: SQL execution functions removed - this script only displays migrations
-// For automated execution in the future, you would need SUPABASE_SERVICE_KEY
 
 // Read all migration files
 function getMigrationFiles() {

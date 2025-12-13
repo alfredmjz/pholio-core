@@ -7,7 +7,7 @@ A modern portfolio management platform built with Next.js 15 and Supabase.
 ### 1. Install Dependencies
 
 ```bash
-npm install
+bun install
 ```
 
 ### 2. Configure Environment
@@ -23,7 +23,7 @@ NEXT_PUBLIC_SUPABASE_ANON_KEY=your-anon-key
 
 ```bash
 # Generate migration file
-cd src && npm run db:migrate
+cd src && bun run db:migrate
 
 # Then apply in Supabase:
 # 1. Open database/generated/combined-migrations.sql
@@ -35,7 +35,8 @@ cd src && npm run db:migrate
 ### 4. Start Development Server
 
 ```bash
-npm run dev
+bun run dev (Runs with real data)
+bun run dev:mock (Runs with mock data)
 ```
 
 Visit [http://localhost:3000](http://localhost:3000)
@@ -99,15 +100,18 @@ pholio/
 ### Authentication
 
 **POST /api/auth/users/signup**
+
 - Register new user
 - Body: `{ email, password, fullName? }`
 - Returns: `{ success, message, user: { id, email } }`
 
 **GET /api/auth/users/profile**
+
 - Get authenticated user profile (requires login)
 - Returns: `{ profile: { id, email, full_name, avatar_url, created_at, updated_at } }`
 
 **PATCH /api/auth/users/profile**
+
 - Update authenticated user profile (requires login)
 - Body: `{ fullName?, avatarUrl? }`
 - Returns: `{ success, message, profile }`
@@ -155,44 +159,47 @@ All API endpoints use a centralized error handling system with standardized resp
 
 ```json
 {
-  "error": {
-    "message": "Email and password are required",
-    "code": "VALIDATION_ERROR",
-    "statusCode": 422,
-    "details": {
-      "hasEmail": false,
-      "hasPassword": true
-    },
-    "timestamp": "2025-01-08T12:34:56.789Z"
-  }
+	"error": {
+		"message": "Email and password are required",
+		"code": "VALIDATION_ERROR",
+		"statusCode": 422,
+		"details": {
+			"hasEmail": false,
+			"hasPassword": true
+		},
+		"timestamp": "2025-01-08T12:34:56.789Z"
+	}
 }
 ```
 
 ### Error Codes
 
-| Code | Status | Description |
-|------|--------|-------------|
-| `BAD_REQUEST` | 400 | Invalid request data |
-| `UNAUTHORIZED` | 401 | Not authenticated |
-| `FORBIDDEN` | 403 | No permission |
-| `NOT_FOUND` | 404 | Resource not found |
-| `CONFLICT` | 409 | Resource already exists |
-| `VALIDATION_ERROR` | 422 | Input validation failed |
-| `INTERNAL_ERROR` | 500 | Server error |
-| `SERVICE_UNAVAILABLE` | 503 | External service down |
+| Code                  | Status | Description             |
+| --------------------- | ------ | ----------------------- |
+| `BAD_REQUEST`         | 400    | Invalid request data    |
+| `UNAUTHORIZED`        | 401    | Not authenticated       |
+| `FORBIDDEN`           | 403    | No permission           |
+| `NOT_FOUND`           | 404    | Resource not found      |
+| `CONFLICT`            | 409    | Resource already exists |
+| `VALIDATION_ERROR`    | 422    | Input validation failed |
+| `INTERNAL_ERROR`      | 500    | Server error            |
+| `SERVICE_UNAVAILABLE` | 503    | External service down   |
 
 ### Using Error Handlers in Code
 
 See JSDoc comments in `src/lib/errors.ts` for detailed usage examples.
 
 ```typescript
-import { asyncHandler, validate } from '@/lib/errors';
+import { asyncHandler, validate } from "@/lib/errors";
 
-export const POST = asyncHandler(async (request: Request) => {
-  const body = await request.json();
-  validate(body.email, 'Email is required');
-  // ... your logic
-}, { endpoint: '/api/example' });
+export const POST = asyncHandler(
+	async (request: Request) => {
+		const body = await request.json();
+		validate(body.email, "Email is required");
+		// ... your logic
+	},
+	{ endpoint: "/api/example" }
+);
 ```
 
 ## Database Migrations
@@ -207,8 +214,9 @@ export const POST = asyncHandler(async (request: Request) => {
    - Comments describing the migration
 
 3. Run migration script:
+
 ```bash
-cd src && npm run db:migrate
+bun run db:migrate
 ```
 
 4. Apply in Supabase SQL Editor (copy from `database/generated/combined-migrations.sql`)
@@ -226,33 +234,37 @@ cd src && npm run db:migrate
 
 ```bash
 # Development
-npm run dev
+bun run dev (Runs with real data)
+bun run dev:mock (Runs with mock data)
 
 # Build
-npm run build
+bun run build
 
 # Start production
-npm start
+bun start
 
 # Database migration
-cd src && npm run db:migrate
+bun run db:migrate
 ```
 
 ## Security Features
 
 ### Authentication
+
 - Password hashing by Supabase Auth
 - Minimum 6 characters password requirement
 - Email validation
 - Session-based authentication with httpOnly cookies
 
 ### Database Security
+
 - Row Level Security (RLS) on all tables
 - Users can only access their own data
 - Triggers use `SECURITY DEFINER` to bypass RLS safely
 - Foreign key constraints with `ON DELETE CASCADE`
 
 ### API Security
+
 - Input validation on all endpoints
 - Proper HTTP status codes
 - Error messages don't leak sensitive information
@@ -272,18 +284,22 @@ NEXT_PUBLIC_SUPABASE_ANON_KEY=<your-anon-key>
 ## Troubleshooting
 
 ### "Could not find the table 'public.users'"
+
 - **Cause**: Migrations haven't been run yet
 - **Solution**: Run migration script and apply SQL in Supabase Dashboard
 
 ### "Unauthorized" error on profile access
+
 - **Cause**: User not logged in or session expired
 - **Solution**: Ensure user is logged in via `/login` page
 
 ### "Profile was not created by trigger"
+
 - **Cause**: Database trigger not created or not firing
 - **Solution**: Verify trigger exists on `auth.users` table in Supabase Dashboard
 
 ### Migration script errors
+
 - **Cause**: Migration files not found or invalid
 - **Solution**: Ensure `.sql` files exist in `database/migrations/` directory
 

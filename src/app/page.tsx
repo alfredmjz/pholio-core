@@ -1,18 +1,21 @@
-import { requireAuth } from '@/lib/auth';
+import { requireAuth } from "@/lib/auth";
+import { redirect } from "next/navigation";
 
-export default async function HomePage() {
+export default async function HomePage({
+	searchParams,
+}: {
+	searchParams: Promise<{ [key: string]: string | string[] | undefined }>;
+}) {
 	// Require authentication - automatically redirects to /login if not authenticated
-	const { profile } = await requireAuth();
+	await requireAuth();
 
-	return (
-		<div className="flex items-center justify-center h-full">
-			<div className="text-center space-y-4">
-				<h1 className="text-4xl font-bold">Welcome to Pholio</h1>
-				<p className="text-lg text-muted-foreground">Your automated personal finance tracker</p>
-				{profile.is_guest && (
-					<p className="text-sm text-muted-foreground">You're using a guest account. Visit your profile to upgrade.</p>
-				)}
-			</div>
-		</div>
-	);
+	const resolvedParams = await searchParams;
+	const queryString = new URLSearchParams(
+		Object.entries(resolvedParams).map(([key, value]) => [key, Array.isArray(value) ? value[0] : (value ?? "")])
+	).toString();
+
+	const destination = queryString ? `/dashboard?${queryString}` : "/dashboard";
+
+	// If authenticated, redirect to dashboard
+	redirect(destination);
 }

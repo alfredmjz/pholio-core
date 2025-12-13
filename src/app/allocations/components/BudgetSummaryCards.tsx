@@ -10,11 +10,7 @@ interface BudgetSummaryCardsProps {
 	className?: string;
 }
 
-export function BudgetSummaryCards({
-	totalBudget,
-	totalSpent,
-	className,
-}: BudgetSummaryCardsProps) {
+export function BudgetSummaryCards({ totalBudget, totalSpent, className }: BudgetSummaryCardsProps) {
 	const leftToSpend = totalBudget - totalSpent;
 	const spentPercentage = totalBudget > 0 ? (totalSpent / totalBudget) * 100 : 0;
 
@@ -39,10 +35,7 @@ export function BudgetSummaryCards({
 				{/* Decorative gradient background */}
 				<div className="absolute top-0 right-0 w-32 h-32 opacity-10">
 					<svg viewBox="0 0 100 100" className="w-full h-full">
-						<path
-							d="M0,50 Q25,30 50,50 T100,50 V100 H0 Z"
-							fill="url(#gradient1)"
-						/>
+						<path d="M0,50 Q25,30 50,50 T100,50 V100 H0 Z" fill="url(#gradient1)" />
 						<defs>
 							<linearGradient id="gradient1" x1="0%" y1="0%" x2="100%" y2="0%">
 								<stop offset="0%" stopColor="#10b981" />
@@ -54,12 +47,8 @@ export function BudgetSummaryCards({
 				</div>
 
 				<div className="relative">
-					<p className="text-sm text-muted-foreground font-medium mb-1">
-						Total Budget
-					</p>
-					<p className="text-3xl font-bold text-foreground">
-						{formatCurrency(totalBudget)}
-					</p>
+					<p className="text-sm text-muted-foreground font-medium mb-1">Total Budget</p>
+					<p className="text-3xl font-bold text-foreground">{formatCurrency(totalBudget)}</p>
 					<div className="flex items-center gap-1.5 mt-2">
 						<CheckCircle2 className="h-4 w-4 text-success" />
 						<span className="text-xs text-success font-medium">Verified</span>
@@ -69,22 +58,19 @@ export function BudgetSummaryCards({
 
 			{/* Left to Spend Card */}
 			<Card className="p-5 bg-card border border-border">
-				<p className="text-sm text-muted-foreground font-medium mb-1">
-					Left to Spend
-				</p>
-				<p className={cn(
-					"text-3xl font-bold",
-					isOverBudget ? "text-error" : "text-success"
-				)}>
+				<p className="text-sm text-muted-foreground font-medium mb-1">Left to Spend</p>
+				<p className={cn("text-3xl font-bold", isOverBudget ? "text-error" : "text-success")}>
 					{formatCurrency(Math.abs(leftToSpend))}
 					{isOverBudget && <span className="text-lg ml-1">over</span>}
 				</p>
-				<p className={cn(
-					"text-xs font-medium mt-2",
-					isOnTrack && "text-success",
-					isWarning && "text-warning",
-					isOverBudget && "text-error"
-				)}>
+				<p
+					className={cn(
+						"text-xs font-medium mt-2",
+						isOnTrack && "text-success",
+						isWarning && "text-warning",
+						isOverBudget && "text-error"
+					)}
+				>
 					{isOnTrack && "On track"}
 					{isWarning && "Getting close"}
 					{isOverBudget && "Over budget"}
@@ -93,12 +79,8 @@ export function BudgetSummaryCards({
 
 			{/* Total Spent Card */}
 			<Card className="p-5 bg-card border border-border">
-				<p className="text-sm text-muted-foreground font-medium mb-1">
-					Total Spent
-				</p>
-				<p className="text-3xl font-bold text-foreground">
-					{formatCurrency(totalSpent)}
-				</p>
+				<p className="text-sm text-muted-foreground font-medium mb-1">Total Spent</p>
+				<p className="text-3xl font-bold text-foreground">{formatCurrency(totalSpent)}</p>
 				{/* Progress bar */}
 				<div className="mt-3">
 					<div className="h-2 bg-muted rounded-full overflow-hidden">

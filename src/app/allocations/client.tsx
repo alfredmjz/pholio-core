@@ -5,21 +5,16 @@ import { useRouter } from "next/navigation";
 import { Button } from "@/components/ui/button";
 import { Badge } from "@/components/ui/badge";
 import { Card } from "@/components/ui/card";
-import {
-	Plus,
-	WifiOff,
-	Loader2,
-	Settings,
-	Download,
-	FileText,
-} from "lucide-react";
+import { Plus, WifiOff, Loader2, Settings, Download, FileText } from "lucide-react";
 import { MonthSelector } from "./components/MonthSelector";
 import { AddCategoryDialog } from "./components/AddCategoryDialog";
 import { BudgetSummaryCards } from "./components/BudgetSummaryCards";
 import { CategoryPerformance } from "./components/CategoryPerformance";
 import { AllocationDonutChart } from "./components/AllocationDonutChart";
 import { TransactionLedger } from "./components/TransactionLedger";
+import { AddTransactionButton } from "./components/AddTransactionButton";
 import { TemplateImportDialog } from "./components/TemplateImportDialog";
+import { ExportDialog } from "./components/ExportDialog";
 import type { TransactionType } from "./components/TransactionTypeIcon";
 import { useAllocationSync } from "@/hooks/useAllocationSync";
 import { createCategory } from "./actions";
@@ -63,6 +58,7 @@ export function AllocationClient({
 	});
 	const [addCategoryDialogOpen, setAddCategoryDialogOpen] = useState(false);
 	const [templateDialogOpen, setTemplateDialogOpen] = useState(false);
+	const [exportDialogOpen, setExportDialogOpen] = useState(false);
 	const [typeFilter, setTypeFilter] = useState<TransactionType | null>(null);
 
 	// Use Realtime sync hook with optimistic updates
@@ -247,29 +243,16 @@ export function AllocationClient({
 
 						<div className="flex items-center gap-2">
 							<Button
-								variant="outline"
-								size="sm"
-								className="gap-2"
-								onClick={() => toast.info("Export coming soon!")}
+								className="gap-2 bg-foreground hover:bg-foreground/90 text-background"
+								onClick={() => setExportDialogOpen(true)}
 							>
 								<Download className="h-4 w-4" />
 								Export
 							</Button>
-							<Button
-								variant="outline"
-								size="sm"
-								className="gap-2"
-								onClick={() => toast.info("Settings coming soon!")}
-							>
+							<Button variant="outline" size="icon" onClick={() => toast.info("Settings coming soon!")}>
 								<Settings className="h-4 w-4" />
 							</Button>
-							<Button
-								className="gap-2 bg-primary hover:bg-primary/90"
-								onClick={() => toast.info("Quick add coming soon!")}
-							>
-								<Plus className="h-4 w-4" />
-								Add Transaction
-							</Button>
+							<AddTransactionButton categories={categories} className="bg-primary hover:bg-primary/90" />
 						</div>
 					</div>
 				</div>
@@ -287,11 +270,7 @@ export function AllocationClient({
 							/>
 
 							{/* Category Performance */}
-							<CategoryPerformance
-								categories={categories}
-								onAddCategory={handleAddCategory}
-								className="flex-1"
-							/>
+							<CategoryPerformance categories={categories} onAddCategory={handleAddCategory} className="flex-1" />
 						</div>
 
 						{/* Right Column: Allocation Donut Chart - 1/4 width, full height */}
@@ -327,6 +306,13 @@ export function AllocationClient({
 					onImportPrevious={handleImportPrevious}
 					onUseTemplate={handleUseTemplate}
 					onStartFresh={handleStartFresh}
+				/>
+
+				<ExportDialog
+					open={exportDialogOpen}
+					onOpenChange={setExportDialogOpen}
+					currentYear={currentMonth.year}
+					currentMonth={currentMonth.month}
 				/>
 			</div>
 		</AllocationProvider>

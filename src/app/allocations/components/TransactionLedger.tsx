@@ -5,22 +5,8 @@ import { Card } from "@/components/ui/card";
 import { Input } from "@/components/ui/input";
 import { Button } from "@/components/ui/button";
 import { Badge } from "@/components/ui/badge";
-import {
-	Select,
-	SelectContent,
-	SelectItem,
-	SelectTrigger,
-	SelectValue,
-} from "@/components/ui/select";
-import {
-	Search,
-	ArrowUpDown,
-	Plus,
-	Filter,
-	X,
-	ChevronDown,
-	ChevronUp,
-} from "lucide-react";
+import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
+import { Search, ArrowUpDown, Plus, Filter, X, ChevronDown, ChevronUp } from "lucide-react";
 import { cn } from "@/lib/utils";
 import {
 	TransactionType,
@@ -29,6 +15,9 @@ import {
 	inferTransactionType,
 } from "./TransactionTypeIcon";
 import type { Transaction, AllocationCategory } from "../types";
+import { getCategoryColor } from "./CategoryPerformance";
+import { TransactionDialog } from "./TransactionDialog";
+import { AddTransactionButton } from "./AddTransactionButton";
 
 interface TransactionLedgerProps {
 	transactions: Transaction[];
@@ -40,29 +29,7 @@ interface TransactionLedgerProps {
 type SortField = "date" | "name" | "amount" | "category" | "type";
 type SortDirection = "asc" | "desc";
 
-// Helper function to generate consistent color for each category based on hash
-function getCategoryBadgeColor(categoryName: string): string {
-	let hash = 0;
-	for (let i = 0; i < categoryName.length; i++) {
-		hash = categoryName.charCodeAt(i) + ((hash << 5) - hash);
-	}
-
-	const colors = [
-		"bg-green-100 text-green-800 dark:bg-green-900/30 dark:text-green-400",
-		"bg-blue-100 text-blue-800 dark:bg-blue-900/30 dark:text-blue-400",
-		"bg-purple-100 text-purple-800 dark:bg-purple-900/30 dark:text-purple-400",
-		"bg-red-100 text-red-800 dark:bg-red-900/30 dark:text-red-400",
-		"bg-yellow-100 text-yellow-800 dark:bg-yellow-900/30 dark:text-yellow-400",
-		"bg-pink-100 text-pink-800 dark:bg-pink-900/30 dark:text-pink-400",
-		"bg-indigo-100 text-indigo-800 dark:bg-indigo-900/30 dark:text-indigo-400",
-		"bg-orange-100 text-orange-800 dark:bg-orange-900/30 dark:text-orange-400",
-		"bg-teal-100 text-teal-800 dark:bg-teal-900/30 dark:text-teal-400",
-		"bg-cyan-100 text-cyan-800 dark:bg-cyan-900/30 dark:text-cyan-400",
-	];
-
-	const index = Math.abs(hash) % colors.length;
-	return colors[index];
-}
+// Helper removed, using getCategoryColor from CategoryPerformance
 
 export function TransactionLedger({
 	transactions,
@@ -83,6 +50,15 @@ export function TransactionLedger({
 
 	// Effective type filter (external takes precedence)
 	const effectiveTypeFilter = externalTypeFilter || (typeFilter !== "all" ? typeFilter : null);
+
+	// Dialog State
+	const [dialogOpen, setDialogOpen] = useState(false);
+	const [selectedTransaction, setSelectedTransaction] = useState<Transaction | null>(null);
+
+	const handleEditTransaction = (transaction: Transaction) => {
+		setSelectedTransaction(transaction);
+		setDialogOpen(true);
+	};
 
 	// Filter and sort transactions
 	const filteredTransactions = useMemo(() => {
@@ -106,9 +82,7 @@ export function TransactionLedger({
 
 		// Type filter
 		if (effectiveTypeFilter) {
-			filtered = filtered.filter(
-				(t) => inferTransactionType(t) === effectiveTypeFilter
-			);
+			filtered = filtered.filter((t) => inferTransactionType(t) === effectiveTypeFilter);
 		}
 
 		// Amount range filter
@@ -133,9 +107,7 @@ export function TransactionLedger({
 					comparison = Math.abs(a.amount) - Math.abs(b.amount);
 					break;
 				case "date":
-					comparison =
-						new Date(a.transaction_date).getTime() -
-						new Date(b.transaction_date).getTime();
+					comparison = new Date(a.transaction_date).getTime() - new Date(b.transaction_date).getTime();
 					break;
 				case "category":
 					comparison = (a.category_name || "").localeCompare(b.category_name || "");
@@ -149,16 +121,7 @@ export function TransactionLedger({
 		});
 
 		return filtered;
-	}, [
-		transactions,
-		searchQuery,
-		categoryFilter,
-		effectiveTypeFilter,
-		sortField,
-		sortDirection,
-		minAmount,
-		maxAmount,
-	]);
+	}, [transactions, searchQuery, categoryFilter, effectiveTypeFilter, sortField, sortDirection, minAmount, maxAmount]);
 
 	const toggleSort = (field: SortField) => {
 		if (sortField === field) {
@@ -179,20 +142,9 @@ export function TransactionLedger({
 	};
 
 	const hasActiveFilters =
-		searchQuery ||
-		categoryFilter !== "all" ||
-		typeFilter !== "all" ||
-		externalTypeFilter ||
-		minAmount ||
-		maxAmount;
+		searchQuery || categoryFilter !== "all" || typeFilter !== "all" || externalTypeFilter || minAmount || maxAmount;
 
-	const SortButton = ({
-		field,
-		children,
-	}: {
-		field: SortField;
-		children: React.ReactNode;
-	}) => (
+	const SortButton = ({ field, children }: { field: SortField; children: React.ReactNode }) => (
 		<button
 			onClick={() => toggleSort(field)}
 			className="flex items-center gap-1 hover:text-foreground transition-colors"
@@ -215,18 +167,20 @@ export function TransactionLedger({
 			{/* Header */}
 			<div className="flex items-center justify-between mb-4">
 				<div>
-					<h3 className="text-sm font-semibold text-foreground">
-						Transaction Ledger
-					</h3>
+					<h3 className="text-sm font-semibold text-foreground uppercase tracking-wide">Transaction Ledger</h3>
 					<p className="text-xs text-muted-foreground mt-0.5">
 						{transactions.length} {transactions.length === 1 ? "transaction" : "transactions"} this month
 					</p>
 				</div>
-				<Button className="gap-2 bg-foreground hover:bg-foreground/90 text-background">
-					<Plus className="h-4 w-4" />
-					Add Transaction
-				</Button>
+				<AddTransactionButton
+					categories={categories}
+					className="bg-foreground hover:bg-foreground/90 text-background"
+				/>
 			</div>
+
+			{/* ... Filters ... */}
+			{/* I will only replace the render part to avoid touching the whole file if possible, but the filters are in the middle. */}
+			{/* Let's do a larger replace to be safe with context. */}
 
 			{/* Filters Row */}
 			<div className="flex items-center gap-3 mb-4">
@@ -342,10 +296,7 @@ export function TransactionLedger({
 						)}
 					>
 						{TRANSACTION_TYPE_CONFIG[externalTypeFilter].label}
-						<button
-							onClick={onClearExternalFilter}
-							className="ml-1 hover:opacity-70"
-						>
+						<button onClick={onClearExternalFilter} className="ml-1 hover:opacity-70">
 							<X className="h-3 w-3" />
 						</button>
 					</Badge>
@@ -353,10 +304,10 @@ export function TransactionLedger({
 			)}
 
 			{/* Table */}
-			<div className="border border-border rounded-lg overflow-hidden">
+			<div className="border border-border rounded-lg overflow-hidden shadow-sm">
 				<div className="overflow-x-auto">
 					<table className="w-full">
-						<thead className="bg-muted border-b border-border">
+						<thead className="bg-muted/50 border-b border-border">
 							<tr>
 								<th className="px-4 py-3 text-left text-xs font-semibold text-muted-foreground uppercase tracking-wider w-[100px]">
 									<SortButton field="date">Date</SortButton>
@@ -378,37 +329,37 @@ export function TransactionLedger({
 						<tbody className="divide-y divide-border bg-card">
 							{filteredTransactions.length === 0 ? (
 								<tr>
-									<td
-										colSpan={5}
-										className="px-4 py-12 text-center text-muted-foreground"
-									>
-										{hasActiveFilters
-											? "No transactions match your filters"
-											: "No transactions for this month"}
+									<td colSpan={5} className="px-4 py-12 text-center text-muted-foreground">
+										{hasActiveFilters ? "No transactions match your filters" : "No transactions for this month"}
 									</td>
 								</tr>
 							) : (
 								filteredTransactions.map((transaction) => {
 									const txType = inferTransactionType(transaction);
+
+									// Resolve category color based on index in the categories array
+									const categoryIndex = categories.findIndex((c) => c.id === transaction.category_id);
+									const categoryStyle =
+										categoryIndex !== -1
+											? getCategoryColor(categoryIndex)
+											: { bg: "bg-secondary", text: "text-secondary-foreground", light: "bg-secondary/50" };
+
 									return (
 										<tr
 											key={transaction.id}
-											className="hover:bg-muted/50 transition-colors"
+											className="hover:bg-muted/30 transition-colors cursor-pointer group"
+											onClick={() => handleEditTransaction(transaction)}
 										>
 											<td className="px-4 py-3 whitespace-nowrap">
 												<span className="text-sm text-foreground">
-													{new Date(
-														transaction.transaction_date
-													).toLocaleDateString("en-US", {
+													{new Date(transaction.transaction_date).toLocaleDateString("en-US", {
 														month: "short",
 														day: "numeric",
 													})}
 												</span>
 											</td>
 											<td className="px-4 py-3">
-												<div className="text-sm font-medium text-foreground">
-													{transaction.name}
-												</div>
+												<div className="text-sm font-medium text-foreground">{transaction.name}</div>
 												{transaction.notes && (
 													<div className="text-xs text-muted-foreground truncate max-w-[200px]">
 														{transaction.notes}
@@ -419,36 +370,29 @@ export function TransactionLedger({
 												{transaction.category_name ? (
 													<Badge
 														variant="secondary"
-														className={getCategoryBadgeColor(
-															transaction.category_name
+														className={cn(
+															categoryIndex !== -1 ? categoryStyle.light : "bg-secondary",
+															categoryIndex !== -1 ? categoryStyle.text : "text-muted-foreground",
+															"font-medium border-0"
 														)}
 													>
 														{transaction.category_name}
 													</Badge>
 												) : (
-													<span className="text-xs text-muted-foreground">
-														Uncategorized
-													</span>
+													<span className="text-xs text-muted-foreground">Uncategorized</span>
 												)}
 											</td>
 											<td className="px-4 py-3">
-												<TransactionTypeIcon
-													type={txType}
-													size="sm"
-													showLabel
-												/>
+												<TransactionTypeIcon type={txType} size="sm" showLabel />
 											</td>
 											<td className="px-4 py-3 text-right whitespace-nowrap">
 												<span
 													className={cn(
 														"text-sm font-semibold",
-														transaction.amount > 0
-															? "text-success"
-															: "text-foreground"
+														transaction.amount > 0 ? "text-success" : "text-error"
 													)}
 												>
-													{transaction.amount > 0 ? "+" : ""}$
-													{Math.abs(transaction.amount).toFixed(2)}
+													{transaction.amount > 0 ? "+" : "-"}${Math.abs(transaction.amount).toFixed(2)}
 												</span>
 											</td>
 										</tr>
@@ -467,6 +411,13 @@ export function TransactionLedger({
 					{transactions.length === 1 ? "transaction" : "transactions"}
 				</div>
 			)}
+
+			<TransactionDialog
+				open={dialogOpen}
+				onOpenChange={setDialogOpen}
+				transaction={selectedTransaction}
+				categories={categories}
+			/>
 		</Card>
 	);
 }

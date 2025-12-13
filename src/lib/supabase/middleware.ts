@@ -1,5 +1,5 @@
-import { createServerClient } from '@supabase/ssr';
-import { NextResponse, type NextRequest } from 'next/server';
+import { createServerClient } from "@supabase/ssr";
+import { NextResponse, type NextRequest } from "next/server";
 
 /**
  * Wraps a promise with a timeout to prevent indefinite hanging.
@@ -32,9 +32,7 @@ export async function updateSession(request: NextRequest) {
 					supabaseResponse = NextResponse.next({
 						request,
 					});
-					cookiesToSet.forEach(({ name, value, options }) =>
-						supabaseResponse.cookies.set(name, value, options)
-					);
+					cookiesToSet.forEach(({ name, value, options }) => supabaseResponse.cookies.set(name, value, options));
 				},
 			},
 		}
@@ -48,7 +46,7 @@ export async function updateSession(request: NextRequest) {
 	const result = await withTimeout(supabase.auth.getUser(), 3000);
 
 	if (result === null) {
-		console.warn('[Middleware] auth.getUser() timed out after 3s - continuing without refresh');
+		console.warn("[Middleware] auth.getUser() timed out after 3s - continuing without refresh");
 	}
 
 	// IMPORTANT: You *must* return the supabaseResponse object as it is.

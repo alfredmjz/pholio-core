@@ -2,13 +2,7 @@
 
 import { createClient } from "@/lib/supabase/server";
 import { revalidatePath } from "next/cache";
-import type {
-	Allocation,
-	AllocationCategory,
-	AllocationSummary,
-	AllocationTemplate,
-	Transaction,
-} from "./types";
+import type { Allocation, AllocationCategory, AllocationSummary, AllocationTemplate, Transaction } from "./types";
 
 /**
  * Get or create allocation for a specific month
@@ -60,9 +54,7 @@ export async function getOrCreateAllocation(
  * Get allocation summary with categories and calculations
  * Uses the database RPC function for proper JSON serialization
  */
-export async function getAllocationSummary(
-	allocationId: string
-): Promise<AllocationSummary | null> {
+export async function getAllocationSummary(allocationId: string): Promise<AllocationSummary | null> {
 	const supabase = await createClient();
 
 	const { data, error } = await supabase.rpc("get_allocation_summary", {
@@ -80,10 +72,7 @@ export async function getAllocationSummary(
 /**
  * Update allocation expected income
  */
-export async function updateExpectedIncome(
-	allocationId: string,
-	expectedIncome: number
-): Promise<boolean> {
+export async function updateExpectedIncome(allocationId: string, expectedIncome: number): Promise<boolean> {
 	const supabase = await createClient();
 
 	const { error } = await supabase
@@ -154,16 +143,10 @@ export async function createCategory(
 /**
  * Update category budget cap
  */
-export async function updateCategoryBudget(
-	categoryId: string,
-	budgetCap: number
-): Promise<boolean> {
+export async function updateCategoryBudget(categoryId: string, budgetCap: number): Promise<boolean> {
 	const supabase = await createClient();
 
-	const { error } = await supabase
-		.from("allocation_categories")
-		.update({ budget_cap: budgetCap })
-		.eq("id", categoryId);
+	const { error } = await supabase.from("allocation_categories").update({ budget_cap: budgetCap }).eq("id", categoryId);
 
 	if (error) {
 		console.error("Error updating category budget:", error);
@@ -177,16 +160,10 @@ export async function updateCategoryBudget(
 /**
  * Update category name
  */
-export async function updateCategoryName(
-	categoryId: string,
-	name: string
-): Promise<boolean> {
+export async function updateCategoryName(categoryId: string, name: string): Promise<boolean> {
 	const supabase = await createClient();
 
-	const { error } = await supabase
-		.from("allocation_categories")
-		.update({ name })
-		.eq("id", categoryId);
+	const { error } = await supabase.from("allocation_categories").update({ name }).eq("id", categoryId);
 
 	if (error) {
 		console.error("Error updating category name:", error);
@@ -203,10 +180,7 @@ export async function updateCategoryName(
 export async function deleteCategory(categoryId: string): Promise<boolean> {
 	const supabase = await createClient();
 
-	const { error } = await supabase
-		.from("allocation_categories")
-		.delete()
-		.eq("id", categoryId);
+	const { error } = await supabase.from("allocation_categories").delete().eq("id", categoryId);
 
 	if (error) {
 		console.error("Error deleting category:", error);
@@ -220,9 +194,7 @@ export async function deleteCategory(categoryId: string): Promise<boolean> {
 /**
  * Reorder categories
  */
-export async function reorderCategories(
-	categoryOrders: { id: string; display_order: number }[]
-): Promise<boolean> {
+export async function reorderCategories(categoryOrders: { id: string; display_order: number }[]): Promise<boolean> {
 	const supabase = await createClient();
 
 	// Update each category's display order
@@ -244,10 +216,7 @@ export async function reorderCategories(
 /**
  * Get transactions for a specific month
  */
-export async function getTransactionsForMonth(
-	year: number,
-	month: number
-): Promise<Transaction[]> {
+export async function getTransactionsForMonth(year: number, month: number): Promise<Transaction[]> {
 	const supabase = await createClient();
 
 	const {
@@ -293,7 +262,9 @@ export async function createTransaction(
 	name: string,
 	amount: number,
 	transactionDate: string,
-	categoryId?: string
+	categoryId?: string,
+	type: "income" | "expense" = "expense",
+	notes?: string
 ): Promise<Transaction | null> {
 	const supabase = await createClient();
 
@@ -307,9 +278,13 @@ export async function createTransaction(
 		.insert({
 			user_id: user.id,
 			name,
-			amount,
+			// Store amount as positive for income, negative for expense (if UI sends positive)
+			// OR store absolute and rely on checks. Standard is signed values for easy math.
+			// Let's assume UI sends absolute and we sign it here based on type.
+			amount: type === "expense" ? -Math.abs(amount) : Math.abs(amount),
 			transaction_date: transactionDate,
 			category_id: categoryId || null,
+			notes: notes || null,
 		})
 		.select()
 		.single();
@@ -320,30 +295,70 @@ export async function createTransaction(
 	}
 
 	revalidatePath("/allocations");
+	revalidatePath("/dashboard");
 	return data as Transaction;
 }
 
 /**
- * Update transaction category
+ * Update transaction
  */
-export async function updateTransactionCategory(
+export async function updateTransaction(
 	transactionId: string,
-	categoryId: string | null
+	data: {
+		name?: string;
+		amount?: number;
+		transactionDate?: string;
+		categoryId?: string | null;
+		type?: "income" | "expense";
+		notes?: string;
+	}
 ): Promise<boolean> {
 	const supabase = await createClient();
 
-	const { error } = await supabase
-		.from("transactions")
-		.update({ category_id: categoryId })
-		.eq("id", transactionId);
+	const {
+		data: { user },
+	} = await supabase.auth.getUser();
+	if (!user) return false;
+
+	const updates: any = {};
+	if (data.name !== undefined) updates.name = data.name;
+	if (data.transactionDate !== undefined) updates.transaction_date = data.transactionDate;
+	if (data.categoryId !== undefined) updates.category_id = data.categoryId;
+	if (data.notes !== undefined) updates.notes = data.notes;
+
+	// Handle amount / type update
+	// If amount is provided, we need to know the type (either new or existing)
+	// For simplicity, we expect the UI to provide the raw signed amount or we handle it if type is passed
+	if (data.amount !== undefined) {
+		// If type is explicitly provided, enforce sign
+		if (data.type) {
+			updates.amount = data.type === "expense" ? -Math.abs(data.amount) : Math.abs(data.amount);
+		} else {
+			// If type is not changing, we update the amount directly.
+			// We assume the UI sends the correct signed value if type isn't changing,
+			// or that the existing sign is preserved if the UI sends absolute value.
+			// Ideally, the UI should always send type if it sends amount to ensure correctness.
+			updates.amount = data.amount;
+		}
+	}
+
+	const { error } = await supabase.from("transactions").update(updates).eq("id", transactionId);
 
 	if (error) {
-		console.error("Error updating transaction category:", error);
+		console.error("Error updating transaction:", error);
 		return false;
 	}
 
 	revalidatePath("/allocations");
+	revalidatePath("/dashboard");
 	return true;
+}
+
+/**
+ * Update transaction category (Simplified helper)
+ */
+export async function updateTransactionCategory(transactionId: string, categoryId: string | null): Promise<boolean> {
+	return updateTransaction(transactionId, { categoryId });
 }
 
 /**
@@ -374,11 +389,7 @@ export async function getUserTemplates(): Promise<AllocationTemplate[]> {
 	} = await supabase.auth.getUser();
 	if (!user) return [];
 
-	const { data, error } = await supabase
-		.from("allocation_templates")
-		.select("*")
-		.eq("user_id", user.id)
-		.order("name");
+	const { data, error } = await supabase.from("allocation_templates").select("*").eq("user_id", user.id).order("name");
 
 	if (error) {
 		console.error("Error fetching templates:", error);
@@ -391,10 +402,7 @@ export async function getUserTemplates(): Promise<AllocationTemplate[]> {
 /**
  * Apply template to allocation
  */
-export async function applyTemplateToAllocation(
-	templateId: string,
-	allocationId: string
-): Promise<boolean> {
+export async function applyTemplateToAllocation(templateId: string, allocationId: string): Promise<boolean> {
 	const supabase = await createClient();
 
 	const { data, error } = await supabase.rpc("apply_template_to_allocation", {
@@ -462,9 +470,7 @@ export async function createTemplateFromAllocation(
 			notes: cat.notes,
 		}));
 
-		const { error: categoriesError } = await supabase
-			.from("template_categories")
-			.insert(templateCategories);
+		const { error: categoriesError } = await supabase.from("template_categories").insert(templateCategories);
 
 		if (categoriesError) {
 			console.error("Error creating template categories:", categoriesError);

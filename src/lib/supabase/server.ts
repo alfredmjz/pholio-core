@@ -25,12 +25,12 @@ export async function createClient() {
 			setAll(cookiesToSet) {
 				try {
 					cookiesToSet.forEach(({ name, value, options }) => cookieStore.set(name, value, options));
-				} catch {
+				} catch (e) {
 					// GOTCHA: setAll called from Server Component cannot set cookies
 					// This is expected - middleware handles session refresh
+					console.error("[createClient] Failed to set cookies:", e);
 				}
 			},
 		},
 	});
 }
-

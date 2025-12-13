@@ -1,12 +1,11 @@
-'use client';
+"use client";
 
-import { useEffect, useRef } from 'react';
-import { createClient } from '@supabase/supabase-js';
-import type { AllocationSummary, Transaction } from '@/app/allocations/types';
-import { getAllocationSummary, getTransactionsForMonth } from '@/app/allocations/actions';
-import { toast } from 'sonner';
-import { useOptimisticAllocation } from './useOptimisticAllocation';
-import { useState } from 'react';
+import { useEffect, useRef, useState } from "react";
+import { supabase } from "@/lib/supabase/client";
+import type { AllocationSummary, Transaction } from "@/app/allocations/types";
+import { getAllocationSummary, getTransactionsForMonth } from "@/app/allocations/actions";
+import { toast } from "sonner";
+import { useOptimisticAllocation } from "./useOptimisticAllocation";
 
 interface UseAllocationSyncReturn {
 	summary: AllocationSummary | null;
@@ -56,7 +55,6 @@ export function useAllocationSync(
 		syncWithServer,
 	} = useOptimisticAllocation(initialSummary);
 
-	const supabase = createClient(process.env.NEXT_PUBLIC_SUPABASE_URL!, process.env.NEXT_PUBLIC_SUPABASE_ANON_KEY!);
 	const refetchTimeoutRef = useRef<NodeJS.Timeout | null>(null);
 	const hasShownDisconnectToast = useRef(false);
 
@@ -79,8 +77,8 @@ export function useAllocationSync(
 				if (freshSummary) syncWithServer(freshSummary);
 				setTransactions(freshTransactions);
 			} catch (error) {
-				console.error('Error refetching allocation data:', error);
-				toast.error('Failed to sync data. Please refresh the page.');
+				console.error("Error refetching allocation data:", error);
+				toast.error("Failed to sync data. Please refresh the page.");
 			} finally {
 				setIsRefetching(false);
 			}
@@ -101,21 +99,21 @@ export function useAllocationSync(
 		const categoriesChannel = supabase
 			.channel(`allocation-categories-${allocationId}`)
 			.on(
-				'postgres_changes',
+				"postgres_changes",
 				{
-					event: '*', // INSERT, UPDATE, DELETE
-					schema: 'public',
-					table: 'allocation_categories',
+					event: "*", // INSERT, UPDATE, DELETE
+					schema: "public",
+					table: "allocation_categories",
 					filter: `allocation_id=eq.${allocationId}`,
 				},
-				(payload) => {
-					console.log('Category changed:', payload);
+				(payload: any) => {
+					console.log("Category changed:", payload);
 					scheduleRefetch();
 				}
 			)
-			.subscribe((status) => {
-				if (status === 'SUBSCRIBED') {
-					console.log('Subscribed to allocation_categories changes');
+			.subscribe((status: any) => {
+				if (status === "SUBSCRIBED") {
+					console.log("Subscribed to allocation_categories changes");
 				}
 			});
 
@@ -125,40 +123,40 @@ export function useAllocationSync(
 		const transactionsChannel = supabase
 			.channel(`transactions-${year}-${month}`)
 			.on(
-				'postgres_changes',
+				"postgres_changes",
 				{
-					event: '*',
-					schema: 'public',
-					table: 'transactions',
+					event: "*",
+					schema: "public",
+					table: "transactions",
 					// TODO: Add filter when transactions table has proper year/month columns
 					// filter: `year=eq.${year},month=eq.${month}`,
 				},
-				(payload) => {
-					console.log('Transaction changed:', payload);
+				(payload: any) => {
+					console.log("Transaction changed:", payload);
 					scheduleRefetch();
 				}
 			)
-			.subscribe((status) => {
-				if (status === 'SUBSCRIBED') {
-					console.log('Subscribed to transactions changes');
+			.subscribe((status: any) => {
+				if (status === "SUBSCRIBED") {
+					console.log("Subscribed to transactions changes");
 				}
 			});
 
 		// Monitor connection status
-		const connectionChannel = supabase.channel('connection-monitor');
+		const connectionChannel = supabase.channel("connection-monitor");
 
 		connectionChannel
-			.on('system', { event: '*' }, (payload) => {
-				if (payload.type === 'connected') {
+			.on("system", { event: "*" }, (payload: any) => {
+				if (payload.type === "connected") {
 					setIsConnected(true);
 					if (hasShownDisconnectToast.current) {
-						toast.success('Connected. Data synced.');
+						toast.success("Connected. Data synced.");
 						hasShownDisconnectToast.current = false;
 					}
-				} else if (payload.type === 'disconnected') {
+				} else if (payload.type === "disconnected") {
 					setIsConnected(false);
 					if (!hasShownDisconnectToast.current) {
-						toast.warning('Connection lost. Reconnecting...');
+						toast.warning("Connection lost. Reconnecting...");
 						hasShownDisconnectToast.current = true;
 					}
 				}

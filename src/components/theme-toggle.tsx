@@ -1,51 +1,65 @@
 "use client";
 
-import { useState, useEffect } from "react";
-import { Moon, Sun } from "lucide-react";
+import { Monitor, Moon, Sun } from "lucide-react";
+import { useTheme } from "next-themes";
+import { useEffect, useState } from "react";
+
+import { cn } from "@/lib/utils";
 import { Button } from "@/components/ui/button";
 
 export function ThemeToggle() {
-	const [theme, setTheme] = useState<"light" | "dark">("light");
+	const { theme, setTheme } = useTheme();
+	const [mounted, setMounted] = useState(false);
 
 	useEffect(() => {
-		// Check localStorage and system preference on mount
-		const stored = localStorage.getItem("theme") as "light" | "dark" | null;
-		const prefersDark = window.matchMedia("(prefers-color-scheme: dark)").matches;
-		const initialTheme = stored || (prefersDark ? "dark" : "light");
-
-		setTheme(initialTheme);
-		applyTheme(initialTheme);
+		setMounted(true);
 	}, []);
 
-	const applyTheme = (newTheme: "light" | "dark") => {
-		const root = document.documentElement;
-		if (newTheme === "dark") {
-			root.classList.add("dark");
-		} else {
-			root.classList.remove("dark");
-		}
-	};
-
-	const toggleTheme = () => {
-		const newTheme = theme === "light" ? "dark" : "light";
-		setTheme(newTheme);
-		applyTheme(newTheme);
-		localStorage.setItem("theme", newTheme);
-	};
+	if (!mounted) {
+		return <div className="w-[88px] h-8 bg-secondary/50 rounded-full animate-pulse" />;
+	}
 
 	return (
-		<Button
-			variant="outline"
-			size="icon"
-			onClick={toggleTheme}
-			className="h-9 w-9"
-			aria-label={`Switch to ${theme === "light" ? "dark" : "light"} mode`}
-		>
-			{theme === "light" ? (
-				<Moon className="h-4 w-4" />
-			) : (
+		<div className="flex items-center p-0.5 bg-secondary border border-border rounded-full w-fit">
+			<Button
+				variant="ghost"
+				size="icon"
+				type="button"
+				onClick={() => setTheme("light")}
+				className={cn(
+					"relative h-auto w-auto p-1.5 rounded-full text-muted-foreground transition-all duration-200 hover:bg-transparent hover:text-foreground",
+					theme === "light" && "bg-background text-foreground shadow-sm ring-1 ring-black/5"
+				)}
+				aria-label="Light theme"
+			>
 				<Sun className="h-4 w-4" />
-			)}
-		</Button>
+			</Button>
+			<Button
+				variant="ghost"
+				size="icon"
+				type="button"
+				onClick={() => setTheme("dark")}
+				className={cn(
+					"relative h-auto w-auto p-1.5 rounded-full text-muted-foreground transition-all duration-200 hover:bg-transparent hover:text-foreground",
+					theme === "dark" && "bg-background text-foreground shadow-sm ring-1 ring-black/5"
+				)}
+				aria-label="Dark theme"
+			>
+				<Moon className="h-4 w-4" />
+			</Button>
+			<Button
+				variant="ghost"
+				size="icon"
+				type="button"
+				onClick={() => setTheme("system")}
+				className={cn(
+					"relative h-auto w-auto p-1.5 rounded-full text-muted-foreground transition-all duration-200 hover:bg-transparent hover:text-foreground",
+					theme === "system" && "bg-background text-foreground shadow-sm ring-1 ring-black/5"
+				)}
+				aria-label="System theme"
+			>
+				<Monitor className="h-4 w-4" />
+			</Button>
+		</div>
 	);
 }

@@ -3,7 +3,15 @@ import { createBrowserClient } from "@supabase/ssr";
 const supabaseUrl = process.env.NEXT_PUBLIC_SUPABASE_URL!;
 const supabaseAnonKey = process.env.NEXT_PUBLIC_SUPABASE_ANON_KEY!;
 
-const supabase = createBrowserClient(supabaseUrl, supabaseAnonKey);
+// Use a global variable to store the Supabase client during development
+// to prevent multiple instances from being created during hot-reloading.
+const globalAny = globalThis as any;
+
+const supabase = globalAny.supabase ?? createBrowserClient(supabaseUrl, supabaseAnonKey);
+
+if (process.env.NODE_ENV !== "production") {
+	globalAny.supabase = supabase;
+}
 
 /**
  * Fetches all records from a specified table.
@@ -70,4 +78,3 @@ export async function deleteData(table: string, id: string) {
 }
 
 export { supabase };
-

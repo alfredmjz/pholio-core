@@ -190,9 +190,6 @@ export default function ProfileInformationSection({ profile, userEmail }: Profil
 							)}
 						</p>
 					</div>
-					{!profile?.is_guest && (
-						<p className="text-xs text-muted-foreground">To change your email, use the Security section below</p>
-					)}
 				</div>
 
 				{/* Member Since */}

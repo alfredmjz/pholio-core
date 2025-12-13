@@ -277,8 +277,13 @@ export function SideBarComponent({ userProfile }: SideBarComponentProps) {
 				</NavigationMenu>
 
 				{/* Theme Toggle at bottom */}
-				<div className="px-4 py-4 mt-auto border-t border-secondary-border">
-					<ThemeToggle />
+				<div
+					className={cn(
+						"py-4 mt-auto border-t border-secondary-border",
+						isCollapsed ? "px-2 flex justify-center" : "px-4"
+					)}
+				>
+					<ThemeToggle isCollapsed={isCollapsed} />
 				</div>
 			</div>
 			{!isCollapsed && (

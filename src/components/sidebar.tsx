@@ -19,6 +19,7 @@ import type { UserProfile } from "@/lib/getUserProfile";
 import { signOut } from "@/app/(auth-pages)/login/actions";
 import Link from "next/link";
 import { useRouter } from "next/navigation";
+import { GuestLogoutAlert } from "./guest-logout-alert";
 
 interface SideBarComponentProps {
 	userProfile: UserProfile | null;
@@ -47,6 +48,7 @@ export function SideBarComponent({ userProfile }: SideBarComponentProps) {
 	const [sidebarWidth, setSidebarWidth] = React.useState<number>(SIDEBAR_DEFAULTS.WIDTH);
 	const [minWidth, setMinWidth] = React.useState<number>(SIDEBAR_DEFAULTS.WIDTH);
 	const [isCollapsed, setIsCollapsed] = React.useState<boolean>(false);
+	const [showGuestLogoutAlert, setShowGuestLogoutAlert] = React.useState(false);
 	// const [openMenuItem, setOpenMenuItem] = React.useState<string>(''); // Removed as we are splitting the menu
 
 	const contentRef = React.useRef<HTMLDivElement>(null);
@@ -156,7 +158,7 @@ export function SideBarComponent({ userProfile }: SideBarComponentProps) {
 		[isCollapsed, sidebarWidth, minWidth]
 	);
 
-	const handleSignOut = React.useCallback(async () => {
+	const performSignOut = React.useCallback(async () => {
 		// Clear sidebar preferences
 		localStorage.removeItem("sidebarWidth");
 		localStorage.removeItem("sidebarCollapsed");
@@ -165,6 +167,18 @@ export function SideBarComponent({ userProfile }: SideBarComponentProps) {
 		await signOut();
 		router.push("/login");
 	}, [router]);
+
+	const handleSignOutClick = React.useCallback(
+		(e: React.MouseEvent) => {
+			e.preventDefault();
+			if (userProfile?.is_guest) {
+				setShowGuestLogoutAlert(true);
+			} else {
+				performSignOut();
+			}
+		},
+		[userProfile, performSignOut]
+	);
 
 	return (
 		<div
@@ -224,7 +238,7 @@ export function SideBarComponent({ userProfile }: SideBarComponentProps) {
 								</NavigationMenuLink>
 								<NavigationMenuLink asChild>
 									<button
-										onClick={handleSignOut}
+										onClick={handleSignOutClick}
 										className="flex items-center w-full px-2 py-1.5 text-sm text-foreground rounded-sm hover:bg-accent hover:text-accent-foreground transition-colors text-left"
 									>
 										Sign Out
@@ -273,6 +287,8 @@ export function SideBarComponent({ userProfile }: SideBarComponentProps) {
 					onMouseDown={handleMouseDown}
 				/>
 			)}
+
+			<GuestLogoutAlert open={showGuestLogoutAlert} onOpenChange={setShowGuestLogoutAlert} onConfirm={performSignOut} />
 		</div>
 	);
 }

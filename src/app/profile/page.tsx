@@ -3,7 +3,6 @@ import { sampleUser, sampleProfile } from "./sample-data";
 import ProfileInformationSection from "./components/profile-information-section";
 import SecurityCard from "./components/security-card";
 import GuestUpgradeCard from "./components/guest-upgrade-card";
-import { GuestInfoBanner } from "./components/guest-info-banner";
 
 export default async function ProfilePage() {
 	let user, profile;
@@ -29,7 +28,6 @@ export default async function ProfilePage() {
 			{/* Guest-specific components */}
 			{profile?.is_guest && (
 				<>
-					<GuestInfoBanner />
 					<GuestUpgradeCard />
 				</>
 			)}

@@ -38,7 +38,10 @@ export function SettingsNav() {
 	const pathname = usePathname();
 
 	return (
-		<nav className="hidden lg:block lg:w-[200px] flex-shrink-0 lg:pr-8" aria-label="Settings navigation">
+		<nav
+			className="hidden lg:block lg:w-[200px] flex-shrink-0 lg:pr-8 sticky top-8 self-start"
+			aria-label="Settings navigation"
+		>
 			{/* Section title */}
 			<div className="mb-6">
 				<h2 className="text-sm font-semibold text-foreground">Settings</h2>
@@ -109,7 +112,10 @@ export function SettingsNavMobile() {
 	const pathname = usePathname();
 
 	return (
-		<nav className="lg:hidden mb-6 border-b border-border" aria-label="Settings navigation">
+		<nav
+			className="lg:hidden mb-6 border-b border-border sticky top-0 z-50 bg-background pt-4 -mt-4 pb-0"
+			aria-label="Settings navigation"
+		>
 			<div className="flex overflow-x-auto scrollbar-hide gap-1 pb-px">
 				{navItems.map((item) => {
 					const isActive = pathname === item.href;

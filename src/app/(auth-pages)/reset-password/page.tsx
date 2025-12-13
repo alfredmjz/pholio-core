@@ -67,9 +67,7 @@ export default function ResetPasswordPage() {
 									/>
 								</div>
 								{error && (
-									<div className="p-3 text-sm text-destructive bg-destructive/10 rounded-md border border-destructive/20">
-										{error}
-									</div>
+									<div className="p-3 text-sm text-error bg-error/10 rounded-md border border-error/20">{error}</div>
 								)}
 								<div className="flex flex-col gap-3 pt-2">
 									<Button

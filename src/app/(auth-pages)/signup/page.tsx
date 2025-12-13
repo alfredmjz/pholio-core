@@ -135,18 +135,14 @@ export default function Page() {
 								)}
 
 								<div className="flex flex-col gap-3 pt-2">
-									<Button
-										type="submit"
-										className="w-full h-10 bg-primary hover:bg-primary/90 text-primary-foreground shadow-sm font-medium transition-all"
-										disabled={isLoading || !isMounted}
-									>
+									<Button type="submit" className="w-full h-10" disabled={isLoading || !isMounted}>
 										{isLoading ? "creating account..." : "Sign up"}
 									</Button>
 
 									<Button
 										type="button"
 										variant="outline"
-										className="text-xs font-medium text-primary hover:bg-secondary bg-background border-border shadow-sm"
+										className="w-full h-10 text-xs"
 										onClick={handleGuestLogin}
 										disabled={isLoading || isGuestLoading || !isMounted}
 									>

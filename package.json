@@ -12,6 +12,9 @@
 		"db:migrate": "bun ./scripts/migrate.js"
 	},
 	"devDependencies": {
-		"@prettier/plugin-xml": "^3.4.2"
+		"@prettier/plugin-xml": "^3.4.2",
+		"@semantic-release/exec": "^7.1.0",
+		"@semantic-release/git": "^10.0.1",
+		"semantic-release": "^25.0.2"
 	}
 }

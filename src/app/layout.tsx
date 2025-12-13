@@ -6,6 +6,7 @@ import "sonner/dist/styles.css";
 import LayoutWrapper from "@/components/layoutWrapper";
 import { SidebarWrapper } from "@/components/sidebarWrapper";
 import { Toaster } from "@/components/ui/sonner";
+import { ThemeProvider } from "@/components/theme-provider";
 
 export const metadata: Metadata = {
 	title: "Pholio",
@@ -16,22 +17,14 @@ export const metadata: Metadata = {
 
 export default async function RootLayout({ children }: { children: React.ReactNode }) {
 	const sidebar = await SidebarWrapper();
-	const themeScript = `(function() {
-		const theme = localStorage.getItem('theme');
-		if (theme === 'dark') {
-			document.documentElement.classList.add('dark');
-		}
-	})()`;
 
 	return (
-		<html lang="en" suppressHydrationWarning>
-			<head>
-				<script dangerouslySetInnerHTML={{ __html: themeScript }} />
-			</head>
+		<html lang="en">
 			<body className="w-screen h-screen flex flex-row bg-background overflow-hidden">
-				<LayoutWrapper sidebar={sidebar}>{children}</LayoutWrapper>
-				<Toaster />
-				<footer>{/* Footer content */}</footer>
+				<ThemeProvider attribute="class" defaultTheme="system" enableSystem disableTransitionOnChange>
+					<LayoutWrapper sidebar={sidebar}>{children}</LayoutWrapper>
+					<Toaster />
+				</ThemeProvider>
 			</body>
 		</html>
 	);

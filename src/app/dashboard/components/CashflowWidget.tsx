@@ -145,16 +145,16 @@ export function CashflowWidget({
 						{mounted ? (
 							<ResponsiveContainer width="100%" height="100%">
 								<BarChart data={data} margin={{ top: 10, right: 10, left: -10, bottom: 0 }} barGap={4}>
-									<CartesianGrid strokeDasharray="3 3" stroke="var(--border)" vertical={false} />
+									<CartesianGrid strokeDasharray="3 3" stroke="hsl(var(--border))" vertical={false} />
 									<XAxis
 										dataKey="label"
-										stroke="var(--muted-foreground)"
+										stroke="hsl(var(--muted-foreground))"
 										fontSize={12}
 										tickLine={false}
 										axisLine={false}
 									/>
 									<YAxis
-										stroke="var(--muted-foreground)"
+										stroke="hsl(var(--muted-foreground))"
 										fontSize={12}
 										tickLine={false}
 										axisLine={false}
@@ -163,7 +163,7 @@ export function CashflowWidget({
 									<Tooltip
 										isAnimationActive={false}
 										content={<CustomTooltip />}
-										cursor={{ fill: "var(--muted)", opacity: 0.3 }}
+										cursor={{ fill: "hsl(var(--muted))", opacity: 0.3 }}
 									/>
 									<Bar dataKey="income" fill="hsl(var(--info))" radius={[4, 4, 0, 0]} maxBarSize={40} />
 									<Bar dataKey="expenses" fill="hsl(var(--error))" radius={[4, 4, 0, 0]} maxBarSize={40} />

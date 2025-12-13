@@ -109,20 +109,20 @@
 		/* Status */
 		--success: 153 38% 49%; /* #4dab73 */
 		--success-foreground: 0 0% 10%; /* #191919 */
-		--success-muted: 153 38% 49%; /* #4dab9a with opacity handled in component or usage */
+		--success-muted: 153 30% 15%; /* Darker green for background */
 		/* Note: For dark mode muted backgrounds with opacity, we use the base color + opacity utility */
 
 		--warning: 48 100% 64%; /* #ffdc49 */
 		--warning-foreground: 0 0% 10%; /* #191919 */
-		--warning-muted: 48 100% 64%;
+		--warning-muted: 48 30% 15%; /* Darker yellow/brown for background */
 
 		--error: 4 100% 71%; /* #ff7369 */
 		--error-foreground: 0 0% 10%; /* #191919 */
-		--error-muted: 4 100% 71%;
+		--error-muted: 4 30% 18%; /* Darker red for background */
 
 		--info: 203 52% 56%; /* #529cca */
 		--info-foreground: 0 0% 10%; /* #191919 */
-		--info-muted: 203 52% 56%;
+		--info-muted: 203 30% 18%; /* Darker blue for background */
 
 		/* Text */
 		--text-primary: 0 0% 83%; /* #d4d4d4 */

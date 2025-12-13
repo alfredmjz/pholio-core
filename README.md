@@ -1,6 +1,6 @@
 # Pholio - Portfolio Management Platform
 
-A modern portfolio management platform built with Next.js 15 and Supabase.
+Extensive portfolio management platform built with Next.js 15 and Supabase.
 
 ## Quick Start
 
@@ -26,7 +26,7 @@ NEXT_PUBLIC_SUPABASE_ANON_KEY=your-anon-key
 cd src && bun run db:migrate
 
 # Then apply in Supabase:
-# 1. Open database/generated/combined-migrations.sql
+# 1. Open supabase/generated/combined-migrations.sql
 # 2. Copy all content (Ctrl+A, Ctrl+C)
 # 3. Go to Supabase Dashboard → SQL Editor → New query
 # 4. Paste (Ctrl+V) and click "Run"
@@ -35,8 +35,13 @@ cd src && bun run db:migrate
 ### 4. Start Development Server
 
 ```bash
+# Development server (Inside /src)
 bun run dev (Runs with real data)
 bun run dev:mock (Runs with mock data)
+
+# Hosted server (Outside /src)
+bun run start
+bun run clean-rebuild
 ```
 
 Visit [http://localhost:3000](http://localhost:3000)
@@ -44,12 +49,16 @@ Visit [http://localhost:3000](http://localhost:3000)
 ## Features
 
 ✅ User authentication (signup/login/logout)
+✅ Guest account access (try before you signup)
 ✅ User profile management
+✅ Theme system (Light/Dark/System modes)
+✅ Toast notifications (Sonner)
 ✅ Row Level Security (RLS)
 ✅ Automatic profile creation
 ✅ RESTful API endpoints
 ✅ Server Actions support
 ✅ Centralized error handling
+✅ CI/CD Automation (Semantic Release)
 ✅ TypeScript type safety
 
 ## Technology Stack
@@ -57,42 +66,36 @@ Visit [http://localhost:3000](http://localhost:3000)
 - **Framework**: Next.js 15 (App Router)
 - **Database**: Supabase (PostgreSQL)
 - **Authentication**: Supabase Auth
+- **Styling**: Tailwind CSS, Shadcn UI, next-themes
+- **Notifications**: Sonner
+- **DevOps**: Docker, GitHub Actions, Semantic Release
 - **Language**: TypeScript
-- **Error Handling**: Custom error classes with standardized responses
 
 ## Project Structure
 
 ```
 pholio/
+├── .agents/                   # AI Agents & Workflows
+├── .context/                  # Development Principles & Context
+├── .github/                   # GitHub Actions (CI/CD)
+├── database/                  # Migration files
+├── docs/                      # Feature Specifications
+├── scripts/                   # Helper scripts
 ├── src/
 │   ├── app/
-│   │   ├── (auth-pages)/      # Authentication pages
-│   │   │   └── login/
-│   │   │       ├── page.tsx   # Login UI
-│   │   │       └── actions.ts # Server actions (login, signup, signOut)
-│   │   └── api/
-│   │       └── auth/
-│   │           └── users/
-│   │               ├── profile/route.ts # GET/PATCH profile
-│   │               └── signup/route.ts  # POST signup
+│   │   ├── (auth-pages)/      # Auth: Login, Signup, Welcome, etc.
+│   │   ├── api/               # API Routes (Auth, Google, etc.)
+│   │   └── ...
+│   ├── components/
+│   │   ├── ui/                # Shadcn UI primitive components
+│   │   └── ...
+│   ├── hooks/                 # Custom React hooks
 │   ├── lib/
-│   │   ├── errors.ts          # Error handling system
-│   │   ├── database.types.ts  # TypeScript database types
-│   │   └── supabase/
-│   │       └── server.ts      # Supabase server client
+│   │   ├── supabase/          # Supabase clients (Server/Client)
+│   │   └── ...
 │   └── .env.local             # Environment variables
-├── database/
-│   ├── migrations/                # Source migration files
-│   │   └── 001_create_users_table.sql
-│   ├── generated/                 # Generated SQL (git ignored)
-│   │   └── combined-migrations.sql
-│   └── README.md                  # Database documentation
-├── scripts/
-│   ├── migrate.js             # Generate migration SQL
-│   ├── migrate.ps1            # PowerShell migration helper
-│   └── migrate.bat            # Windows batch wrapper
-├── PHOLIO_API_DOCUMENTATION.docx  # Detailed API documentation
-└── README.md                  # This file
+├── docker-compose.yml         # Docker configuration
+└── README.md                  # Project documentation
 ```
 
 ## API Endpoints
@@ -116,6 +119,19 @@ pholio/
 - Body: `{ fullName?, avatarUrl? }`
 - Returns: `{ success, message, profile }`
 
+**POST /api/auth/users/guest/convert**
+
+- Upgrade guest account to permanent user
+- Body: `{ email, password, fullName? }`
+- Returns: `{ success, message, user }`
+
+### Google Integration
+
+**POST /api/google/export**
+
+- Export portfolio data to Google Sheets
+- Requires authenticated session
+
 ### Server Actions
 
 Located in `src/app/(auth-pages)/login/actions.ts`:
@@ -124,89 +140,11 @@ Located in `src/app/(auth-pages)/login/actions.ts`:
 - **signup(formData)** - Register new account
 - **signOut()** - Logout user
 
-## Database Schema
-
-### Users Table
-
-```sql
-CREATE TABLE public.users (
-  id UUID REFERENCES auth.users(id) ON DELETE CASCADE PRIMARY KEY,
-  email TEXT UNIQUE NOT NULL,
-  full_name TEXT,
-  avatar_url TEXT,
-  created_at TIMESTAMP WITH TIME ZONE DEFAULT NOW() NOT NULL,
-  updated_at TIMESTAMP WITH TIME ZONE DEFAULT NOW() NOT NULL
-);
-```
-
-### Database Triggers
-
-1. **on_auth_user_created** - Automatically creates profile in `public.users` when user signs up in `auth.users`
-2. **update_users_updated_at** - Automatically updates `updated_at` timestamp on profile changes
-
-### Row Level Security Policies
-
-- Users can view their own profile (`auth.uid() = id`)
-- Users can insert their own profile (`auth.uid() = id`)
-- Service role can insert profiles (for triggers)
-- Users can update their own profile (`auth.uid() = id`)
-
-## Error Handling
-
-All API endpoints use a centralized error handling system with standardized responses.
-
-### Error Response Format
-
-```json
-{
-	"error": {
-		"message": "Email and password are required",
-		"code": "VALIDATION_ERROR",
-		"statusCode": 422,
-		"details": {
-			"hasEmail": false,
-			"hasPassword": true
-		},
-		"timestamp": "2025-01-08T12:34:56.789Z"
-	}
-}
-```
-
-### Error Codes
-
-| Code                  | Status | Description             |
-| --------------------- | ------ | ----------------------- |
-| `BAD_REQUEST`         | 400    | Invalid request data    |
-| `UNAUTHORIZED`        | 401    | Not authenticated       |
-| `FORBIDDEN`           | 403    | No permission           |
-| `NOT_FOUND`           | 404    | Resource not found      |
-| `CONFLICT`            | 409    | Resource already exists |
-| `VALIDATION_ERROR`    | 422    | Input validation failed |
-| `INTERNAL_ERROR`      | 500    | Server error            |
-| `SERVICE_UNAVAILABLE` | 503    | External service down   |
-
-### Using Error Handlers in Code
-
-See JSDoc comments in `src/lib/errors.ts` for detailed usage examples.
-
-```typescript
-import { asyncHandler, validate } from "@/lib/errors";
-
-export const POST = asyncHandler(
-	async (request: Request) => {
-		const body = await request.json();
-		validate(body.email, "Email is required");
-		// ... your logic
-	},
-	{ endpoint: "/api/example" }
-);
-```
-
 ## Database Migrations
 
 ### Creating New Migrations
 
-1. Create file in `database/migrations/`: `002_your_migration_name.sql`
+1. Create file in `supabase/migrations/`: `00X_your_migration_name.sql`
 2. Write SQL migration with:
    - `CREATE TABLE IF NOT EXISTS`
    - `DROP POLICY IF EXISTS` before creating policies
@@ -219,7 +157,7 @@ export const POST = asyncHandler(
 bun run db:migrate
 ```
 
-4. Apply in Supabase SQL Editor (copy from `database/generated/combined-migrations.sql`)
+4. Apply in Supabase SQL Editor (copy from `supabase/generated/combined-migrations.sql`)
 
 ### Best Practices
 
@@ -252,7 +190,7 @@ bun run db:migrate
 ### Authentication
 
 - Password hashing by Supabase Auth
-- Minimum 6 characters password requirement
+- Minimum 8 characters password requirement
 - Email validation
 - Session-based authentication with httpOnly cookies
 
@@ -277,46 +215,21 @@ Required in `src/.env.local`:
 ```env
 NEXT_PUBLIC_SUPABASE_URL=<your-supabase-url>
 NEXT_PUBLIC_SUPABASE_ANON_KEY=<your-anon-key>
+LOCAL_SUPABASE_URL=<your-local-supabase-url>
+LOCAL_SUPABASE_ANON_KEY=<your-local-supabase-anon-key>
 ```
-
-**Note**: No Service Role Key required - migrations are applied manually for security.
-
-## Troubleshooting
-
-### "Could not find the table 'public.users'"
-
-- **Cause**: Migrations haven't been run yet
-- **Solution**: Run migration script and apply SQL in Supabase Dashboard
-
-### "Unauthorized" error on profile access
-
-- **Cause**: User not logged in or session expired
-- **Solution**: Ensure user is logged in via `/login` page
-
-### "Profile was not created by trigger"
-
-- **Cause**: Database trigger not created or not firing
-- **Solution**: Verify trigger exists on `auth.users` table in Supabase Dashboard
-
-### Migration script errors
-
-- **Cause**: Migration files not found or invalid
-- **Solution**: Ensure `.sql` files exist in `database/migrations/` directory
 
 ## Documentation
 
 - **Complete API Reference**: See `PHOLIO_API_DOCUMENTATION.docx` for detailed documentation
 - **Code Documentation**: See JSDoc comments in source files
-- **Database Schema**: See `database/migrations/001_create_users_table.sql`
+- **Database Schema**: See `supabase/migrations/001_create_users_table.sql`
 - **Error Handling**: See JSDoc in `src/lib/errors.ts`
 
-## Contributing
+### Documentation
 
-1. Fork the repository
-2. Create feature branch (`git checkout -b feature/name`)
-3. Commit changes with descriptive messages
-4. Push to branch (`git push origin feature/name`)
-5. Create Pull Request
+- **Development Principles**: `/.context/development-principles.md`
+- **Design Principles**: `/.context/design-principles.md`
 
 ## License
 

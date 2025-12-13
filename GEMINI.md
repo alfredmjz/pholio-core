@@ -163,7 +163,7 @@ bun run logs           # View logs
 cd src && bun run db:migrate
 
 # Then manually apply:
-# 1. Open database/generated/combined-migrations.sql
+# 1. Open supabase/generated/combined-migrations.sql
 # 2. Copy all content (Ctrl+A, Ctrl+C)
 # 3. Go to Supabase Dashboard → SQL Editor → New query
 # 4. Paste and click "Run"
@@ -307,7 +307,7 @@ pholio/
 
 When creating new migrations:
 
-1. **Create file**: `database/migrations/XXX_description.sql` (use sequential numbering)
+1. **Create file**: `supabase/migrations/XXX_description.sql` (use sequential numbering)
 2. **Use idempotent patterns**:
 
    ```sql

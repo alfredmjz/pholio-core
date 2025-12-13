@@ -1,7 +1,6 @@
 "use client";
 
 import { useState } from "react";
-import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
 import { Switch } from "@/components/ui/switch";
 import { Label } from "@/components/ui/label";
@@ -13,7 +12,6 @@ import {
 	DialogFooter,
 	DialogHeader,
 	DialogTitle,
-	DialogTrigger,
 } from "@/components/ui/dialog";
 
 export function MfaCard() {
@@ -34,14 +32,15 @@ export function MfaCard() {
 	};
 
 	return (
-		<Card>
-			<CardHeader>
-				<CardTitle>Two-Factor Authentication</CardTitle>
-				<CardDescription>Add an extra layer of security to your account</CardDescription>
-			</CardHeader>
-			<CardContent className="space-y-4">
-				<div className="flex items-center justify-between space-x-2">
-					<div className="flex flex-col space-y-1">
+		<div className="flex flex-col gap-6">
+			<div>
+				<h3 className="text-lg font-medium">Two-Factor Authentication</h3>
+				<p className="text-sm text-muted-foreground">Add an extra layer of security to your account</p>
+			</div>
+
+			<div className="flex flex-col gap-3">
+				<div className="flex items-center justify-between">
+					<div className="flex flex-col gap-1">
 						<Label htmlFor="mfa-toggle" className="font-medium">
 							Authenticator App
 						</Label>
@@ -53,21 +52,21 @@ export function MfaCard() {
 				</div>
 
 				{isEnabled ? (
-					<div className="mt-4 rounded-md bg-success-muted p-3 border border-success/30 flex items-start gap-3">
+					<div className="rounded-md bg-success-muted p-3 border border-success/30 flex items-start gap-3">
 						<ShieldCheck className="w-5 h-5 text-success flex-shrink-0 mt-0.5" />
-						<div className="text-sm">
-							<p className="font-medium text-success-foreground">2FA is enabled</p>
-							<p className="text-muted-foreground mt-1 text-xs">
+						<div>
+							<p className="text-sm font-medium text-success-foreground">2FA is enabled</p>
+							<p className="text-xs text-muted-foreground mt-1">
 								Your account is protected. You'll need to enter a code from your authenticator app when you sign in.
 							</p>
 						</div>
 					</div>
 				) : (
-					<div className="mt-4 rounded-md bg-secondary/50 p-3 border border-border flex items-start gap-3">
+					<div className="rounded-md bg-secondary/50 p-3 border border-border flex items-start gap-3">
 						<ShieldAlert className="w-5 h-5 text-muted-foreground flex-shrink-0 mt-0.5" />
-						<div className="text-sm">
-							<p className="font-medium text-foreground">2FA is disabled</p>
-							<p className="text-muted-foreground mt-1 text-xs">
+						<div>
+							<p className="text-sm font-medium text-foreground">2FA is disabled</p>
+							<p className="text-xs text-muted-foreground mt-1">
 								We recommend enabling 2FA to prevent unauthorized access to your account.
 							</p>
 						</div>
@@ -80,7 +79,7 @@ export function MfaCard() {
 							<DialogTitle>Set up Two-Factor Authentication</DialogTitle>
 							<DialogDescription>Scan the QR code below with your authenticator app to enable 2FA.</DialogDescription>
 						</DialogHeader>
-						<div className="flex flex-col items-center justify-center py-6 space-y-4">
+						<div className="flex flex-col items-center justify-center py-6 gap-4">
 							<div className="w-48 h-48 bg-white border border-border rounded flex items-center justify-center">
 								{/* Placeholder QR Code */}
 								<Smartphone className="w-16 h-16 text-muted-foreground/30" />
@@ -116,7 +115,7 @@ export function MfaCard() {
 						</DialogFooter>
 					</DialogContent>
 				</Dialog>
-			</CardContent>
-		</Card>
+			</div>
+		</div>
 	);
 }

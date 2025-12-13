@@ -17,10 +17,9 @@ export default async function SecurityPage() {
 
 	const userProfile = await getUserProfile();
 
-	// User check commented out for verification purposes
-	// if (userProfile?.is_guest) {
-	// 	redirect("/profile");
-	// }
+	if (userProfile?.is_guest) {
+		redirect("/profile");
+	}
 
 	return (
 		<div className="space-y-6">
@@ -29,9 +28,19 @@ export default async function SecurityPage() {
 				<p className="text-muted-foreground">Manage your account security and sessions.</p>
 			</div>
 
-			<SecurityCard userEmail={user.email || ""} />
-			<MfaCard />
-			<ActiveSessionsCard />
+			<div className="flex flex-col divide-y divide-border">
+				<section className="first:pt-0 flex flex-col py-6">
+					<SecurityCard userEmail={user.email || ""} />
+				</section>
+
+				<section className="flex flex-col py-6">
+					<MfaCard />
+				</section>
+
+				<section className="last:pb-0 flex flex-col py-6">
+					<ActiveSessionsCard />
+				</section>
+			</div>
 		</div>
 	);
 }

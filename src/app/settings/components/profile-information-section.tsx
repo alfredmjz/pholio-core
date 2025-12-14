@@ -128,8 +128,8 @@ export default function ProfileInformationSection({ profile, userEmail }: Profil
 					{!isEditingName ? (
 						<div
 							className={cn(
-								"flex items-center justify-between px-3 py-2.5 rounded-md border bg-muted transition-colors group",
-								profile?.is_guest ? "opacity-60 cursor-not-allowed" : "hover:bg-accent/50"
+								"flex items-center justify-between px-3 py-2.5 rounded-md border-border border bg-secondary-muted transition-colors group",
+								profile?.is_guest && "opacity-60 cursor-not-allowed"
 							)}
 						>
 							<span className="text-sm text-foreground">{displayName}</span>
@@ -181,7 +181,7 @@ export default function ProfileInformationSection({ profile, userEmail }: Profil
 				{/* Email Field (Read-only) */}
 				<div className="space-y-2">
 					<Label className="text-sm font-medium text-foreground">Email</Label>
-					<div className="px-3 py-2.5 rounded-md border bg-muted">
+					<div className="px-3 py-2.5 rounded-md border border-border bg-muted">
 						<p className="text-sm text-foreground">
 							{profile?.is_guest ? (
 								<span className="text-muted-foreground italic">No email (Guest Account)</span>

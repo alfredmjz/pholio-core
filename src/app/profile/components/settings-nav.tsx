@@ -3,8 +3,9 @@
 import * as React from "react";
 import Link from "next/link";
 import { usePathname } from "next/navigation";
-import { User, Shield, Settings, Lock, CreditCard } from "lucide-react";
+import { User, Shield, Settings, Lock, CreditCard, Search } from "lucide-react";
 import { cn } from "@/lib/utils";
+import { Input } from "@/components/ui/input";
 
 interface NavItem {
 	label: string;
@@ -12,14 +13,37 @@ interface NavItem {
 	icon: React.ComponentType<{ className?: string }>;
 	disabled?: boolean;
 	badge?: string;
+	keywords?: string[];
 }
 
 const navItems: NavItem[] = [
-	{ label: "Profile", href: "/profile", icon: User },
-	{ label: "Security", href: "/profile/security", icon: Shield },
-	{ label: "Preferences", href: "/profile/preferences", icon: Settings },
-	{ label: "Data & Privacy", href: "/profile/data-privacy", icon: Lock },
-	{ label: "Billing", href: "/profile/billing", icon: CreditCard, disabled: true, badge: "Soon" },
+	{ label: "Profile", href: "/profile", icon: User, keywords: ["name", "email", "avatar", "photo"] },
+	{
+		label: "Security",
+		href: "/profile/security",
+		icon: Shield,
+		keywords: ["password", "mfa", "2fa", "authentication", "login", "sessions"],
+	},
+	{
+		label: "Preferences",
+		href: "/profile/preferences",
+		icon: Settings,
+		keywords: ["theme", "dark mode", "notifications"],
+	},
+	{
+		label: "Data & Privacy",
+		href: "/profile/data-privacy",
+		icon: Lock,
+		keywords: ["export", "delete", "privacy", "gdpr"],
+	},
+	{
+		label: "Billing",
+		href: "/profile/billing",
+		icon: CreditCard,
+		disabled: true,
+		badge: "Soon",
+		keywords: ["subscription", "payment", "card"],
+	},
 ];
 
 /**
@@ -33,23 +57,44 @@ const navItems: NavItem[] = [
  * - Subtle hover and active states (no heavy borders)
  * - 2px left accent on active item
  * - Smooth transitions (200ms)
+ * - Search functionality to filter settings
  */
 export function SettingsNav() {
 	const pathname = usePathname();
+	const [query, setQuery] = React.useState("");
+
+	const filteredItems = React.useMemo(() => {
+		if (!query) return navItems;
+		const lowerQuery = query.toLowerCase();
+		return navItems.filter(
+			(item) =>
+				item.label.toLowerCase().includes(lowerQuery) ||
+				item.keywords?.some((keyword) => keyword.toLowerCase().includes(lowerQuery))
+		);
+	}, [query]);
 
 	return (
 		<nav
-			className="hidden lg:block lg:w-[200px] flex-shrink-0 lg:pr-8 sticky top-8 self-start"
+			className="hidden lg:block lg:w-[250px] flex-shrink-0 lg:pr-8 sticky top-8 self-start"
 			aria-label="Settings navigation"
 		>
 			{/* Section title */}
 			<div className="mb-6">
-				<h2 className="text-sm font-semibold text-foreground">Settings</h2>
+				<h2 className="text-sm font-semibold text-foreground mb-4">Settings</h2>
+				<div className="relative">
+					<Search className="absolute left-2 top-2.5 h-4 w-4 text-muted-foreground" />
+					<Input
+						placeholder="Search settings..."
+						className="pl-8 h-9 text-sm"
+						value={query}
+						onChange={(e) => setQuery(e.target.value)}
+					/>
+				</div>
 			</div>
 
 			{/* Navigation items */}
 			<ul className="space-y-1">
-				{navItems.map((item) => {
+				{filteredItems.map((item) => {
 					const Icon = item.icon;
 					const isActive = pathname === item.href;
 
@@ -91,6 +136,7 @@ export function SettingsNav() {
 						</li>
 					);
 				})}
+				{filteredItems.length === 0 && <li className="px-3 py-2 text-sm text-muted-foreground">No results found</li>}
 			</ul>
 		</nav>
 	);

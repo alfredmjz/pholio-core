@@ -101,9 +101,9 @@ async function runMigrations() {
 
 	migrations.forEach((migration, index) => {
 		combinedSQL += "\n";
-		combinedSQL += "-- ╔══════════════════════════════════════════════════════════╗\n";
+		combinedSQL += "-- ╔═════════════════════════════════════════════════════════════╗\n";
 		combinedSQL += `-- ║  Migration ${(index + 1).toString().padStart(2)}: ${migration.name.padEnd(44)} ║\n`;
-		combinedSQL += "-- ╚══════════════════════════════════════════════════════════╝\n\n";
+		combinedSQL += "-- ╚═════════════════════════════════════════════════════════════╝\n\n";
 		combinedSQL += migration.content;
 		combinedSQL += "\n\n";
 	});

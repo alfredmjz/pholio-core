@@ -37,7 +37,7 @@ export async function login(formData: FormData) {
 
 	console.log("[Login Action] Login successful");
 	revalidatePath("/", "layout");
-	return { success: "Logged in successfully" };
+	return {};
 }
 
 /**

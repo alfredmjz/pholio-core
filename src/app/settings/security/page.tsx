@@ -1,6 +1,8 @@
 import { redirect } from "next/navigation";
 import { createClient } from "@/lib/supabase/server";
 import { getUserProfile } from "@/lib/getUserProfile";
+import { sampleUser } from "@/mock-data/user";
+import { sampleProfile } from "@/mock-data/profile";
 import SecurityCard from "../components/security-card";
 import { MfaCard } from "../components/mfa-card";
 import { ActiveSessionsCard } from "../components/active-sessions-card";

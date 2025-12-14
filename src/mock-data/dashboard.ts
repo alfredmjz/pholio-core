@@ -1,4 +1,4 @@
-import { DashboardData } from "./types";
+import { DashboardData } from "@/app/dashboard/types";
 
 export const sampleDashboardData: DashboardData = {
 	metrics: {

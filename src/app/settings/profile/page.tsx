@@ -1,5 +1,6 @@
 import { requireAuth } from "@/lib/auth";
-import { sampleUser, sampleProfile } from "../sample-data";
+import { sampleUser } from "@/mock-data/user";
+import { sampleProfile } from "@/mock-data/profile";
 import ProfileInformationSection from "../components/profile-information-section";
 import GuestUpgradeCard from "../components/guest-upgrade-card";
 import { SettingsContentWrapper } from "../components/settings-content-wrapper";

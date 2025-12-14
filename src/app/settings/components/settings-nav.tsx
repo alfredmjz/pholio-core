@@ -3,8 +3,9 @@
 import * as React from "react";
 import Link from "next/link";
 import { usePathname } from "next/navigation";
-import { User, Shield, Settings, Lock, CreditCard } from "lucide-react";
+import { User, Shield, Settings, Lock, CreditCard, Search } from "lucide-react";
 import { cn } from "@/lib/utils";
+import { Input } from "@/components/ui/input";
 
 interface NavItem {
 	label: string;
@@ -12,14 +13,42 @@ interface NavItem {
 	icon: React.ComponentType<{ className?: string }>;
 	disabled?: boolean;
 	badge?: string;
+	keywords?: string[];
 }
 
 const navItems: NavItem[] = [
-	{ label: "Profile", href: "/profile", icon: User },
-	{ label: "Security", href: "/profile/security", icon: Shield },
-	{ label: "Preferences", href: "/profile/preferences", icon: Settings },
-	{ label: "Data & Privacy", href: "/profile/data-privacy", icon: Lock },
-	{ label: "Billing", href: "/profile/billing", icon: CreditCard, disabled: true, badge: "Soon" },
+	{
+		label: "Profile",
+		href: "/settings/profile",
+		icon: User,
+		keywords: ["name", "full name", "display name", "username", "email", "avatar", "photo", "picture", "edit profile"],
+	},
+	{
+		label: "Security",
+		href: "/settings/security",
+		icon: Shield,
+		keywords: ["password", "change password", "mfa", "2fa", "multi-factor", "authentication", "login", "sessions", "devices", "connect", "disconnect"],
+	},
+	{
+		label: "Preferences",
+		href: "/settings/preferences",
+		icon: Settings,
+		keywords: ["theme", "dark mode", "light mode", "notifications", "appearance", "color"],
+	},
+	{
+		label: "Data & Privacy",
+		href: "/settings/data-privacy",
+		icon: Lock,
+		keywords: ["export data", "delete account", "privacy", "gdpr", "data"],
+	},
+	{
+		label: "Billing",
+		href: "/settings/billing",
+		icon: CreditCard,
+		disabled: true,
+		badge: "Soon",
+		keywords: ["subscription", "payment", "card", "plan", "upgrade"],
+	},
 ];
 
 /**
@@ -33,20 +62,44 @@ const navItems: NavItem[] = [
  * - Subtle hover and active states (no heavy borders)
  * - 2px left accent on active item
  * - Smooth transitions (200ms)
+ * - Search functionality to filter settings
  */
 export function SettingsNav() {
 	const pathname = usePathname();
+	const [query, setQuery] = React.useState("");
+
+	const filteredItems = React.useMemo(() => {
+		if (!query) return navItems;
+		const lowerQuery = query.toLowerCase();
+		return navItems.filter(
+			(item) =>
+				item.label.toLowerCase().includes(lowerQuery) ||
+				item.keywords?.some((keyword) => keyword.toLowerCase().includes(lowerQuery))
+		);
+	}, [query]);
 
 	return (
-		<nav className="hidden lg:block lg:w-[200px] flex-shrink-0 lg:pr-8" aria-label="Settings navigation">
+		<nav
+			className="hidden lg:block lg:w-[250px] flex-shrink-0 lg:pr-8 sticky top-8 self-start"
+			aria-label="Settings navigation"
+		>
 			{/* Section title */}
 			<div className="mb-6">
-				<h2 className="text-sm font-semibold text-foreground">Settings</h2>
+				<h2 className="text-sm font-semibold text-foreground mb-4">Settings</h2>
+				<div className="relative">
+					<Search className="absolute left-2 top-2.5 h-4 w-4 text-muted-foreground" />
+					<Input
+						placeholder="Search settings..."
+						className="pl-8 h-9 text-sm"
+						value={query}
+						onChange={(e) => setQuery(e.target.value)}
+					/>
+				</div>
 			</div>
 
 			{/* Navigation items */}
 			<ul className="space-y-1">
-				{navItems.map((item) => {
+				{filteredItems.map((item) => {
 					const Icon = item.icon;
 					const isActive = pathname === item.href;
 
@@ -88,6 +141,7 @@ export function SettingsNav() {
 						</li>
 					);
 				})}
+				{filteredItems.length === 0 && <li className="px-3 py-2 text-sm text-muted-foreground">No results found</li>}
 			</ul>
 		</nav>
 	);
@@ -109,7 +163,10 @@ export function SettingsNavMobile() {
 	const pathname = usePathname();
 
 	return (
-		<nav className="lg:hidden mb-6 border-b border-border" aria-label="Settings navigation">
+		<nav
+			className="lg:hidden mb-6 border-b border-border sticky top-0 z-50 bg-background pt-4 -mt-4 pb-0"
+			aria-label="Settings navigation"
+		>
 			<div className="flex overflow-x-auto scrollbar-hide gap-1 pb-px">
 				{navItems.map((item) => {
 					const isActive = pathname === item.href;

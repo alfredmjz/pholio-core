@@ -8,6 +8,7 @@ import { toast } from "sonner";
 import { updateProfile } from "../actions";
 import type { UserProfile } from "@/lib/getUserProfile";
 import { cn } from "@/lib/utils";
+import ProfileAvatarUpload from "./profile-avatar-upload";
 
 interface ProfileInformationSectionProps {
 	profile: UserProfile | null;
@@ -98,7 +99,7 @@ export default function ProfileInformationSection({ profile, userEmail }: Profil
 	};
 
 	return (
-		<section className="space-y-6">
+		<div className="space-y-6">
 			{/* Section Header */}
 			<div className="pb-3 border-b border-border">
 				<h2 className="text-lg font-semibold text-foreground">Profile Information</h2>
@@ -109,9 +110,11 @@ export default function ProfileInformationSection({ profile, userEmail }: Profil
 
 			{/* Avatar Section */}
 			<div className="flex items-center gap-4">
-				<div className="w-16 h-16 rounded-full bg-gradient-to-br from-purple-500 to-pink-500 flex items-center justify-center text-white text-xl font-semibold flex-shrink-0">
-					{getInitials()}
-				</div>
+				<ProfileAvatarUpload
+					currentAvatarUrl={profile?.avatar_url || null}
+					currentInitials={getInitials()}
+					isGuest={!!profile?.is_guest}
+				/>
 				<div>
 					<p className="text-sm font-medium text-foreground">{displayName}</p>
 					<p className="text-xs text-muted-foreground mt-0.5">{profile?.is_guest ? "Guest Account" : userEmail}</p>
@@ -128,8 +131,8 @@ export default function ProfileInformationSection({ profile, userEmail }: Profil
 					{!isEditingName ? (
 						<div
 							className={cn(
-								"flex items-center justify-between px-3 py-2.5 rounded-md border bg-muted transition-colors group",
-								profile?.is_guest ? "opacity-60 cursor-not-allowed" : "hover:bg-accent/50"
+								"flex items-center justify-between px-3 py-2.5 rounded-md border-border border bg-secondary-muted transition-colors group",
+								profile?.is_guest && "opacity-60 cursor-not-allowed"
 							)}
 						>
 							<span className="text-sm text-foreground">{displayName}</span>
@@ -181,7 +184,7 @@ export default function ProfileInformationSection({ profile, userEmail }: Profil
 				{/* Email Field (Read-only) */}
 				<div className="space-y-2">
 					<Label className="text-sm font-medium text-foreground">Email</Label>
-					<div className="px-3 py-2.5 rounded-md border bg-muted">
+					<div className="px-3 py-2.5 rounded-md border border-border bg-muted">
 						<p className="text-sm text-foreground">
 							{profile?.is_guest ? (
 								<span className="text-muted-foreground italic">No email (Guest Account)</span>
@@ -190,9 +193,6 @@ export default function ProfileInformationSection({ profile, userEmail }: Profil
 							)}
 						</p>
 					</div>
-					{!profile?.is_guest && (
-						<p className="text-xs text-muted-foreground">To change your email, use the Security section below</p>
-					)}
 				</div>
 
 				{/* Member Since */}
@@ -202,6 +202,6 @@ export default function ProfileInformationSection({ profile, userEmail }: Profil
 					</p>
 				</div>
 			</div>
-		</section>
+		</div>
 	);
 }

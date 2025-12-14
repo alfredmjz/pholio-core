@@ -1,6 +1,6 @@
 import { getDashboardData } from "./actions";
 import { DashboardClient } from "./client";
-import { sampleDashboardData } from "./sample-data";
+import { sampleDashboardData } from "@/mock-data/dashboard";
 
 export const metadata = {
 	title: "Dashboard | Pholio",

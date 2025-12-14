@@ -201,3 +201,87 @@ export async function changeEmail(formData: FormData) {
 		return { error: "An unexpected error occurred" };
 	}
 }
+
+/**
+ * Upload profile avatar
+ */
+export async function uploadProfileAvatar(formData: FormData) {
+	try {
+		if (process.env.NEXT_PUBLIC_USE_SAMPLE_DATA === "true") {
+			return { error: "Cannot upload avatar in demo mode" };
+		}
+
+		const supabase = await createClient();
+
+		// Get current user
+		const {
+			data: { user },
+			error: authError,
+		} = await supabase.auth.getUser();
+
+		if (authError || !user) {
+			return { error: "You must be logged in" };
+		}
+
+		// Check if user is guest
+		const { data: profile } = await supabase.from("users").select("is_guest").eq("id", user.id).single();
+
+		if (profile?.is_guest) {
+			return { error: "Guest accounts cannot upload profile pictures" };
+		}
+
+		const avatarFile = formData.get("avatar") as File;
+
+		if (!avatarFile) {
+			return { error: "No image file provided" };
+		}
+
+		// Validate file size (max 5MB)
+		if (avatarFile.size > 5 * 1024 * 1024) {
+			return { error: "Image must be smaller than 5MB" };
+		}
+
+		// Validate file type
+		if (!avatarFile.type.startsWith("image/")) {
+			return { error: "File must be an image" };
+		}
+
+		// Define path: user_id/timestamp-avatar.png
+		const timestamp = Date.now();
+		const filePath = `${user.id}/${timestamp}-avatar.png`;
+
+		// Upload to Supabase Storage
+		const { error: uploadError } = await supabase.storage.from("avatars").upload(filePath, avatarFile, {
+			contentType: avatarFile.type,
+			upsert: false,
+		});
+
+		if (uploadError) {
+			console.error("Storage upload error:", uploadError);
+			return { error: "Failed to upload image. ensure the 'avatars' bucket exists and is public." };
+		}
+
+		// Get public URL
+		const {
+			data: { publicUrl },
+		} = supabase.storage.from("avatars").getPublicUrl(filePath);
+
+		// Update user profile with new avatar URL
+		const { error: updateError } = await supabase
+			.from("users")
+			.update({ avatar_url: publicUrl, updated_at: new Date().toISOString() })
+			.eq("id", user.id);
+
+		if (updateError) {
+			console.error("Profile update error:", updateError);
+			return { error: "Failed to update profile with new image" };
+		}
+
+		revalidatePath("/profile");
+		revalidatePath("/settings"); // Revalidate settings page as well
+		return { success: true, message: "Profile picture updated successfully" };
+	} catch (error) {
+		console.error("Unexpected error in uploadProfileAvatar:", error);
+		return { error: "An unexpected error occurred" };
+	}
+}

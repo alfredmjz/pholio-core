@@ -20,6 +20,7 @@ import { signOut } from "@/app/(auth-pages)/login/actions";
 import Link from "next/link";
 import { useRouter } from "next/navigation";
 import { GuestLogoutAlert } from "./guest-logout-alert";
+import { Button } from "./ui/button";
 
 interface SideBarComponentProps {
 	userProfile: UserProfile | null;
@@ -186,14 +187,14 @@ export function SideBarComponent({ userProfile }: SideBarComponentProps) {
 			style={{ width: isCollapsed ? `${SIDEBAR_DEFAULTS.COLLAPSED_WIDTH}rem` : `${sidebarWidth}rem` }}
 		>
 			<div className="hidden lg:flex items-center justify-start px-4 py-2">
-				<button
+				<Button
 					onClick={toggleCollapse}
-					className="flex items-center justify-center w-8 h-8 rounded-md bg-secondary hover:bg-secondary-hover transition-colors shadow-sm"
+					className="flex items-center justify-center w-8 h-8 rounded-md bg-foreground-muted hover:bg-foreground/20 text-foreground"
 					aria-label={isCollapsed ? "Expand sidebar" : "Collapse sidebar"}
 					title={isCollapsed ? "Expand sidebar" : "Collapse sidebar"}
 				>
 					{isCollapsed ? <ChevronRight className="w-4 h-4" /> : <ChevronLeft className="w-4 h-4" />}
-				</button>
+				</Button>
 			</div>
 			<div className={cn("w-full flex flex-1 flex-col", isCollapsed ? "items-center" : "")}>
 				{/* User Profile Navigation Menu */}

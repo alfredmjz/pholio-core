@@ -1,4 +1,5 @@
 import { SettingsNav, SettingsNavMobile } from "./components/settings-nav";
+import { PlaceholderBanner } from "./components/placeholder-banner";
 
 /**
  * Profile Layout Component
@@ -21,6 +22,8 @@ import { SettingsNav, SettingsNavMobile } from "./components/settings-nav";
 export default function ProfileLayout({ children }: { children: React.ReactNode }) {
 	return (
 		<div className="flex flex-col items-center w-full min-h-screen">
+			<PlaceholderBanner />
+
 			{/* Mobile/Tablet Navigation - Horizontal tabs */}
 			<div className="w-full">
 				<SettingsNavMobile />

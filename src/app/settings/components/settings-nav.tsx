@@ -17,24 +17,29 @@ interface NavItem {
 }
 
 const navItems: NavItem[] = [
-	{ label: "Profile", href: "/settings/profile", icon: User, keywords: ["name", "email", "avatar", "photo"] },
+	{
+		label: "Profile",
+		href: "/settings/profile",
+		icon: User,
+		keywords: ["name", "full name", "display name", "username", "email", "avatar", "photo", "picture", "edit profile"],
+	},
 	{
 		label: "Security",
 		href: "/settings/security",
 		icon: Shield,
-		keywords: ["password", "mfa", "2fa", "authentication", "login", "sessions"],
+		keywords: ["password", "change password", "mfa", "2fa", "multi-factor", "authentication", "login", "sessions", "devices", "connect", "disconnect"],
 	},
 	{
 		label: "Preferences",
 		href: "/settings/preferences",
 		icon: Settings,
-		keywords: ["theme", "dark mode", "notifications"],
+		keywords: ["theme", "dark mode", "light mode", "notifications", "appearance", "color"],
 	},
 	{
 		label: "Data & Privacy",
 		href: "/settings/data-privacy",
 		icon: Lock,
-		keywords: ["export", "delete", "privacy", "gdpr"],
+		keywords: ["export data", "delete account", "privacy", "gdpr", "data"],
 	},
 	{
 		label: "Billing",
@@ -42,7 +47,7 @@ const navItems: NavItem[] = [
 		icon: CreditCard,
 		disabled: true,
 		badge: "Soon",
-		keywords: ["subscription", "payment", "card"],
+		keywords: ["subscription", "payment", "card", "plan", "upgrade"],
 	},
 ];
 

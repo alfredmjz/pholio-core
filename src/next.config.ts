@@ -6,6 +6,11 @@ const nextConfig: NextConfig = {
 		buildActivity: false,
 		appIsrStatus: false,
 	},
+	experimental: {
+		serverActions: {
+			bodySizeLimit: "5mb",
+		},
+	},
 };
 
 export default nextConfig;

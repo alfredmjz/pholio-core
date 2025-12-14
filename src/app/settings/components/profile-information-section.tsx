@@ -8,6 +8,7 @@ import { toast } from "sonner";
 import { updateProfile } from "../actions";
 import type { UserProfile } from "@/lib/getUserProfile";
 import { cn } from "@/lib/utils";
+import ProfileAvatarUpload from "./profile-avatar-upload";
 
 interface ProfileInformationSectionProps {
 	profile: UserProfile | null;
@@ -109,9 +110,11 @@ export default function ProfileInformationSection({ profile, userEmail }: Profil
 
 			{/* Avatar Section */}
 			<div className="flex items-center gap-4">
-				<div className="w-16 h-16 rounded-full bg-gradient-to-br from-purple-500 to-pink-500 flex items-center justify-center text-white text-xl font-semibold flex-shrink-0">
-					{getInitials()}
-				</div>
+				<ProfileAvatarUpload
+					currentAvatarUrl={profile?.avatar_url || null}
+					currentInitials={getInitials()}
+					isGuest={!!profile?.is_guest}
+				/>
 				<div>
 					<p className="text-sm font-medium text-foreground">{displayName}</p>
 					<p className="text-xs text-muted-foreground mt-0.5">{profile?.is_guest ? "Guest Account" : userEmail}</p>

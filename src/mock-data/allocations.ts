@@ -1,6 +1,6 @@
-import { AllocationSummary, Transaction } from "./types";
-import { TransactionType } from "./components/TransactionTypeIcon";
-import type { AllocationCategory } from "./types";
+import { AllocationSummary, Transaction } from "@/app/allocations/types";
+import { TransactionType } from "@/app/allocations/components/TransactionTypeIcon";
+import type { AllocationCategory } from "@/app/allocations/types";
 
 const CURRENT_YEAR = new Date().getFullYear();
 const CURRENT_MONTH = new Date().getMonth() + 1;

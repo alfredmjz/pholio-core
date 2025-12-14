@@ -1,4 +1,5 @@
 import { SettingsNav, SettingsNavMobile } from "./components/settings-nav";
+import { PlaceholderBanner } from "./components/placeholder-banner";
 
 /**
  * Profile Layout Component
@@ -20,12 +21,16 @@ import { SettingsNav, SettingsNavMobile } from "./components/settings-nav";
  */
 export default function ProfileLayout({ children }: { children: React.ReactNode }) {
 	return (
-		<div className="w-full min-h-screen">
+		<div className="flex flex-col items-center w-full min-h-screen">
+			<PlaceholderBanner />
+
 			{/* Mobile/Tablet Navigation - Horizontal tabs */}
-			<SettingsNavMobile />
+			<div className="w-full">
+				<SettingsNavMobile />
+			</div>
 
 			{/* Desktop Layout - Two-column */}
-			<div className="lg:flex lg:gap-8 max-w-6xl mx-auto px-4 md:px-6 lg:px-8 py-8">
+			<div className="flex-1 w-full max-w-6xl lg:flex lg:gap-8 md:px-6 lg:px-8 pt-20 pb-12">
 				{/* Settings Navigation - Vertical sidebar on desktop */}
 				<SettingsNav />
 

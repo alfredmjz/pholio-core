@@ -1168,7 +1168,7 @@ TodoWrite({
 ## Files Modified
 
 - src/app/api/users/profile/route.ts (partial)
-- database/migrations/003_add_profile_fields.sql (complete)
+- supabase/migrations/003_add_profile_fields.sql (complete)
 
 ## Important Context
 

@@ -48,9 +48,6 @@
 supabase/.*/
 supabase/generated/
 
-# generated files
-database/generated/
-
 #Screenshot testing folders
 .playwright-mcp/
 

@@ -15,12 +15,18 @@ interface WelcomeCelebrationProps {
 export function WelcomeCelebration({ forceOpen = false, redirectUrl }: WelcomeCelebrationProps) {
 	const router = useRouter();
 	const searchParams = useSearchParams();
-	const [open, setOpen] = useState(forceOpen);
+
+	// Derive initial state immediately
+	const shouldBeOpen = forceOpen || searchParams.get("welcome") === "true";
+	const [open, setOpen] = useState(shouldBeOpen);
+
+	// Sync state with props/params if they change
+	useEffect(() => {
+		setOpen(shouldBeOpen);
+	}, [shouldBeOpen]);
 
 	useEffect(() => {
-		if (forceOpen || searchParams.get("welcome") === "true") {
-			if (!forceOpen) setOpen(true);
-
+		if (open) {
 			// Trigger confetti
 			const duration = 3000;
 			const end = Date.now() + duration;
@@ -47,7 +53,7 @@ export function WelcomeCelebration({ forceOpen = false, redirectUrl }: WelcomeCe
 			};
 			frame();
 		}
-	}, [searchParams, forceOpen]);
+	}, [open]);
 
 	const handleClose = () => {
 		setOpen(false);

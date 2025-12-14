@@ -2,7 +2,6 @@
 
 import { createClient } from "@/lib/supabase/server";
 import { revalidatePath } from "next/cache";
-import { redirect } from "next/navigation";
 import { headers } from "next/headers";
 
 /**
@@ -38,7 +37,7 @@ export async function login(formData: FormData) {
 
 	console.log("[Login Action] Login successful");
 	revalidatePath("/", "layout");
-	return { success: "Logged in successfully" };
+	return {};
 }
 
 /**
@@ -76,20 +75,6 @@ export async function signup(formData: FormData) {
 
 	if (!authData.user) {
 		return { error: "Failed to create user account" };
-	}
-
-	if (fullName) {
-		// Wait for trigger to complete before updating
-		await new Promise((resolve) => setTimeout(resolve, 100));
-
-		const { error: updateError } = await supabase
-			.from("users")
-			.update({ full_name: fullName })
-			.eq("id", authData.user.id);
-
-		if (updateError) {
-			console.error("Failed to update full name:", updateError);
-		}
 	}
 
 	console.log("[Signup Action] Account created. Returning redirect URL.");

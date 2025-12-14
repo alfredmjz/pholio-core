@@ -1,13 +1,10 @@
 import { Suspense } from "react";
-import { WelcomeCelebration } from "@/components/welcome-celebration";
+import { DashboardGuard } from "./components/dashboard-guard";
 
 export default function DashboardLayout({ children }: { children: React.ReactNode }) {
 	return (
-		<>
-			{children}
-			<Suspense fallback={null}>
-				<WelcomeCelebration />
-			</Suspense>
-		</>
+		<Suspense fallback={null}>
+			<DashboardGuard>{children}</DashboardGuard>
+		</Suspense>
 	);
 }

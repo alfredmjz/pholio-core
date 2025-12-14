@@ -3,7 +3,7 @@ import { requireAuth } from "@/lib/auth";
 import { AllocationClient } from "./client";
 import { getOrCreateAllocation, getAllocationSummary, getTransactionsForMonth } from "./actions";
 
-import { sampleAllocationSummary, sampleTransactions } from "./sample-data";
+import { sampleAllocationSummary, sampleTransactions } from "@/mock-data/allocations";
 
 export default async function AllocationsPage({
 	searchParams,

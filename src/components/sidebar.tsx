@@ -19,6 +19,8 @@ import type { UserProfile } from "@/lib/getUserProfile";
 import { signOut } from "@/app/(auth-pages)/login/actions";
 import Link from "next/link";
 import { useRouter } from "next/navigation";
+import { GuestLogoutAlert } from "./guest-logout-alert";
+import { Button } from "./ui/button";
 
 interface SideBarComponentProps {
 	userProfile: UserProfile | null;
@@ -47,6 +49,7 @@ export function SideBarComponent({ userProfile }: SideBarComponentProps) {
 	const [sidebarWidth, setSidebarWidth] = React.useState<number>(SIDEBAR_DEFAULTS.WIDTH);
 	const [minWidth, setMinWidth] = React.useState<number>(SIDEBAR_DEFAULTS.WIDTH);
 	const [isCollapsed, setIsCollapsed] = React.useState<boolean>(false);
+	const [showGuestLogoutAlert, setShowGuestLogoutAlert] = React.useState(false);
 	// const [openMenuItem, setOpenMenuItem] = React.useState<string>(''); // Removed as we are splitting the menu
 
 	const contentRef = React.useRef<HTMLDivElement>(null);
@@ -156,7 +159,7 @@ export function SideBarComponent({ userProfile }: SideBarComponentProps) {
 		[isCollapsed, sidebarWidth, minWidth]
 	);
 
-	const handleSignOut = React.useCallback(async () => {
+	const performSignOut = React.useCallback(async () => {
 		// Clear sidebar preferences
 		localStorage.removeItem("sidebarWidth");
 		localStorage.removeItem("sidebarCollapsed");
@@ -166,20 +169,32 @@ export function SideBarComponent({ userProfile }: SideBarComponentProps) {
 		router.push("/login");
 	}, [router]);
 
+	const handleSignOutClick = React.useCallback(
+		(e: React.MouseEvent) => {
+			e.preventDefault();
+			if (userProfile?.is_guest) {
+				setShowGuestLogoutAlert(true);
+			} else {
+				performSignOut();
+			}
+		},
+		[userProfile, performSignOut]
+	);
+
 	return (
 		<div
 			className="relative bg-secondary shrink-0 w-full flex flex-col h-screen border-r border-border z-40"
 			style={{ width: isCollapsed ? `${SIDEBAR_DEFAULTS.COLLAPSED_WIDTH}rem` : `${sidebarWidth}rem` }}
 		>
 			<div className="hidden lg:flex items-center justify-start px-4 py-2">
-				<button
+				<Button
 					onClick={toggleCollapse}
-					className="flex items-center justify-center w-8 h-8 rounded-md bg-secondary hover:bg-secondary-hover transition-colors shadow-sm"
+					className="flex items-center justify-center w-8 h-8 rounded-md bg-foreground-muted hover:bg-foreground/20 text-foreground"
 					aria-label={isCollapsed ? "Expand sidebar" : "Collapse sidebar"}
 					title={isCollapsed ? "Expand sidebar" : "Collapse sidebar"}
 				>
 					{isCollapsed ? <ChevronRight className="w-4 h-4" /> : <ChevronLeft className="w-4 h-4" />}
-				</button>
+				</Button>
 			</div>
 			<div className={cn("w-full flex flex-1 flex-col", isCollapsed ? "items-center" : "")}>
 				{/* User Profile Navigation Menu */}
@@ -203,7 +218,7 @@ export function SideBarComponent({ userProfile }: SideBarComponentProps) {
 										className="w-8 h-8 flex-shrink-0 rounded-md object-cover"
 									/>
 								) : (
-									<div className="w-8 h-8 flex-shrink-0 rounded-md bg-gradient-to-br from-success to-primary flex items-center justify-center text-primary-foreground text-xs font-semibold">
+									<div className="w-8 h-8 flex-shrink-0 rounded-md bg-foreground flex items-center justify-center text-background text-xs font-semibold">
 										{displayInitials}
 									</div>
 								)}
@@ -216,15 +231,15 @@ export function SideBarComponent({ userProfile }: SideBarComponentProps) {
 							<NavigationMenuContent className="flex flex-col gap-1 p-2 w-full">
 								<NavigationMenuLink asChild>
 									<Link
-										href="/profile"
+										href="/settings/profile"
 										className="flex items-center w-full px-2 py-1.5 text-sm text-foreground rounded-sm hover:bg-accent hover:text-accent-foreground transition-colors"
 									>
-										Profile
+										User Setting
 									</Link>
 								</NavigationMenuLink>
 								<NavigationMenuLink asChild>
 									<button
-										onClick={handleSignOut}
+										onClick={handleSignOutClick}
 										className="flex items-center w-full px-2 py-1.5 text-sm text-foreground rounded-sm hover:bg-accent hover:text-accent-foreground transition-colors text-left"
 									>
 										Sign Out
@@ -263,8 +278,13 @@ export function SideBarComponent({ userProfile }: SideBarComponentProps) {
 				</NavigationMenu>
 
 				{/* Theme Toggle at bottom */}
-				<div className="px-4 py-4 mt-auto border-t border-secondary-border">
-					<ThemeToggle />
+				<div
+					className={cn(
+						"py-4 mt-auto border-t border-secondary-border",
+						isCollapsed ? "px-2 flex justify-center" : "px-4"
+					)}
+				>
+					<ThemeToggle isCollapsed={isCollapsed} />
 				</div>
 			</div>
 			{!isCollapsed && (
@@ -273,6 +293,8 @@ export function SideBarComponent({ userProfile }: SideBarComponentProps) {
 					onMouseDown={handleMouseDown}
 				/>
 			)}
+
+			<GuestLogoutAlert open={showGuestLogoutAlert} onOpenChange={setShowGuestLogoutAlert} onConfirm={performSignOut} />
 		</div>
 	);
 }

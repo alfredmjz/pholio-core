@@ -106,16 +106,10 @@ export default function Page() {
 									</div>
 								</div>
 								{error && (
-									<div className="p-3 text-sm text-destructive bg-destructive/10 rounded-md border border-destructive/20">
-										{error}
-									</div>
+									<div className="p-3 text-sm text-error bg-error/10 rounded-md border border-error/20">{error}</div>
 								)}
 								<div className="flex flex-col gap-3 pt-2">
-									<Button
-										type="submit"
-										className="w-full h-10 bg-primary hover:bg-primary/90 text-primary-foreground shadow-sm font-medium transition-all"
-										disabled={isLoading || isGuestLoading || !isMounted}
-									>
+									<Button type="submit" className="w-full h-10" disabled={isLoading || isGuestLoading || !isMounted}>
 										{isLoading ? "Logging in..." : "Log in"}
 									</Button>
 
@@ -128,7 +122,7 @@ export default function Page() {
 									<Button
 										type="button"
 										variant="outline"
-										className="text-xs font-medium text-primary hover:bg-secondary bg-background border-border shadow-sm"
+										className="w-full h-10 text-xs"
 										onClick={handleGuestLogin}
 										disabled={isLoading || isGuestLoading || !isMounted}
 									>

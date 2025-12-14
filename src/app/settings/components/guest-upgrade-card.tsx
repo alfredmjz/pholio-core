@@ -11,7 +11,7 @@ export default function GuestUpgradeCard() {
 			<CardHeader>
 				<CardTitle className="flex items-center gap-2">
 					<Target className="w-5 h-5 text-success" />
-					Upgrade Your Account
+					Register Your Account
 				</CardTitle>
 				<CardDescription>You're currently using a guest account</CardDescription>
 			</CardHeader>

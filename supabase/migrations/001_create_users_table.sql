@@ -80,10 +80,11 @@ BEGIN
         random_guest_name := guest_names[1 + floor(random() * array_length(guest_names, 1))];
     END IF;
 
-    INSERT INTO public.users (id, email, is_guest, guest_name, created_at, updated_at)
+    INSERT INTO public.users (id, email, full_name, is_guest, guest_name, created_at, updated_at)
     VALUES (
         NEW.id,
         COALESCE(NEW.email, 'guest-' || NEW.id || '@pholio.local'),
+        NEW.raw_user_meta_data->>'full_name',
         is_anonymous,
         random_guest_name,
         NOW(),

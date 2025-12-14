@@ -53,7 +53,7 @@ export function ActiveSessionsCard() {
 							<Button
 								variant="ghost"
 								size="sm"
-								className="text-muted-foreground hover:text-destructive"
+								className="text-muted-foreground hover:text-error"
 								onClick={() => handleSignOutSession(session.id)}
 							>
 								Revoke

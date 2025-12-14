@@ -17,28 +17,28 @@ interface NavItem {
 }
 
 const navItems: NavItem[] = [
-	{ label: "Profile", href: "/profile", icon: User, keywords: ["name", "email", "avatar", "photo"] },
+	{ label: "Profile", href: "/settings/profile", icon: User, keywords: ["name", "email", "avatar", "photo"] },
 	{
 		label: "Security",
-		href: "/profile/security",
+		href: "/settings/security",
 		icon: Shield,
 		keywords: ["password", "mfa", "2fa", "authentication", "login", "sessions"],
 	},
 	{
 		label: "Preferences",
-		href: "/profile/preferences",
+		href: "/settings/preferences",
 		icon: Settings,
 		keywords: ["theme", "dark mode", "notifications"],
 	},
 	{
 		label: "Data & Privacy",
-		href: "/profile/data-privacy",
+		href: "/settings/data-privacy",
 		icon: Lock,
 		keywords: ["export", "delete", "privacy", "gdpr"],
 	},
 	{
 		label: "Billing",
-		href: "/profile/billing",
+		href: "/settings/billing",
 		icon: CreditCard,
 		disabled: true,
 		badge: "Soon",

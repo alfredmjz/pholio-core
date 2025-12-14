@@ -230,10 +230,10 @@ export function SideBarComponent({ userProfile }: SideBarComponentProps) {
 							<NavigationMenuContent className="flex flex-col gap-1 p-2 w-full">
 								<NavigationMenuLink asChild>
 									<Link
-										href="/profile"
+										href="/settings/profile"
 										className="flex items-center w-full px-2 py-1.5 text-sm text-foreground rounded-sm hover:bg-accent hover:text-accent-foreground transition-colors"
 									>
-										Profile
+										User Setting
 									</Link>
 								</NavigationMenuLink>
 								<NavigationMenuLink asChild>

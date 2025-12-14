@@ -98,7 +98,7 @@ export default function ProfileInformationSection({ profile, userEmail }: Profil
 	};
 
 	return (
-		<section className="space-y-6">
+		<div className="space-y-6">
 			{/* Section Header */}
 			<div className="pb-3 border-b border-border">
 				<h2 className="text-lg font-semibold text-foreground">Profile Information</h2>
@@ -199,6 +199,6 @@ export default function ProfileInformationSection({ profile, userEmail }: Profil
 					</p>
 				</div>
 			</div>
-		</section>
+		</div>
 	);
 }

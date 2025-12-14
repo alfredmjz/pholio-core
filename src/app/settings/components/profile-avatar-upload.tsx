@@ -164,16 +164,18 @@ export default function ProfileAvatarUpload({ currentAvatarUrl, currentInitials,
 						/>
 						{!isGuest && (
 							<div className="absolute inset-0 flex items-center justify-center opacity-0 group-hover:opacity-100 transition-opacity bg-black/30">
-								<Upload className="w-5 h-5 text-white" />
+								<Upload className="w-6 h-6 font-extrabold text-white" />
 							</div>
 						)}
 					</div>
 				) : (
-					<div className="relative w-16 h-16 rounded-full bg-gradient-to-br from-purple-500 to-pink-500 flex items-center justify-center text-white text-xl font-semibold overflow-hidden">
-						{currentInitials}
+					<div className="relative w-16 h-16 rounded-full overflow-hidden">
+						<div className="absolute inset-0 bg-foreground flex items-center justify-center text-background text-xl font-semibold transition-opacity group-hover:opacity-70">
+							{currentInitials}
+						</div>
 						{!isGuest && (
-							<div className="absolute inset-0 bg-black/0 group-hover:bg-black/20 flex items-center justify-center transition-all">
-								<Upload className="w-5 h-5 text-white opacity-0 group-hover:opacity-100" />
+							<div className="absolute inset-0 flex items-center justify-center opacity-0 group-hover:opacity-100 transition-opacity">
+								<Upload className="w-6 h-6 font-extrabold text-background" />
 							</div>
 						)}
 					</div>

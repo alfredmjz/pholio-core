@@ -218,7 +218,7 @@ export function SideBarComponent({ userProfile }: SideBarComponentProps) {
 										className="w-8 h-8 flex-shrink-0 rounded-md object-cover"
 									/>
 								) : (
-									<div className="w-8 h-8 flex-shrink-0 rounded-md bg-gradient-to-br from-success to-primary flex items-center justify-center text-primary-foreground text-xs font-semibold">
+									<div className="w-8 h-8 flex-shrink-0 rounded-md bg-foreground flex items-center justify-center text-background text-xs font-semibold">
 										{displayInitials}
 									</div>
 								)}

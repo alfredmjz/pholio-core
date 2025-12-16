@@ -7,7 +7,7 @@ import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/com
 import { Button } from "@/components/ui/button";
 import { Plus } from "lucide-react";
 import { SubscriptionRow } from "./subscription-row";
-import { BillCard } from "./bill-card";
+import { BillRow } from "./bill-row";
 import { AddRecurringDialog } from "./add-recurring-dialog";
 import { PageShell, PageHeader, PageContent } from "@/components/layout/page-shell";
 
@@ -97,11 +97,13 @@ export function RecurringClient({ initialExpenses }: RecurringClientProps) {
                                 No bills found.
                             </div>
                         ) : (
-                            <div className="grid grid-cols-1 sm:grid-cols-2 md:grid-cols-3 lg:grid-cols-4 gap-4">
-                                {bills.map(bill => (
-                                    <BillCard key={bill.id} bill={bill} />
-                                ))}
-                            </div>
+                            <Card>
+                                <div className="divide-y">
+                                    {bills.map(bill => (
+                                        <BillRow key={bill.id} bill={bill} />
+                                    ))}
+                                </div>
+                            </Card>
                         )}
                     </TabsContent>
                 </Tabs>

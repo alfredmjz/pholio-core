@@ -35,6 +35,56 @@ export interface Database {
 					updated_at?: string;
 				};
 			};
+			recurring_expenses: {
+				Row: {
+					id: string;
+					user_id: string;
+					name: string;
+					amount: number;
+					currency: string | null;
+					billing_period: string;
+					next_due_date: string;
+					category: string;
+					is_active: boolean | null;
+					service_provider: string | null;
+					plaid_stream_id: string | null;
+					meta_data: Json | null;
+					created_at: string | null;
+					updated_at: string | null;
+				};
+				Insert: {
+					id?: string;
+					user_id: string;
+					name: string;
+					amount: number;
+					currency?: string | null;
+					billing_period: string;
+					next_due_date: string;
+					category: string;
+					is_active?: boolean | null;
+					service_provider?: string | null;
+					plaid_stream_id?: string | null;
+					meta_data?: Json | null;
+					created_at?: string | null;
+					updated_at?: string | null;
+				};
+				Update: {
+					id?: string;
+					user_id?: string;
+					name?: string;
+					amount?: number;
+					currency?: string | null;
+					billing_period?: string;
+					next_due_date?: string;
+					category?: string;
+					is_active?: boolean | null;
+					service_provider?: string | null;
+					plaid_stream_id?: string | null;
+					meta_data?: Json | null;
+					created_at?: string | null;
+					updated_at?: string | null;
+				};
+			};
 		};
 		Views: {
 			[_ in never]: never;

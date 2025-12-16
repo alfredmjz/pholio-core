@@ -21,6 +21,7 @@ import { createCategory } from "./actions";
 import { toast } from "sonner";
 import { AllocationProvider } from "./context/AllocationContext";
 import type { MonthYear, AllocationSummary, Transaction, ViewMode } from "./types";
+import { PageShell, PageHeader, PageContent } from "@/components/layout/page-shell";
 
 interface AllocationClientProps {
 	initialYear: number;
@@ -160,9 +161,9 @@ export function AllocationClient({
 					rollback,
 				}}
 			>
-				<div className="max-w-7xl mx-auto w-full relative">
+				<PageShell>
 					{/* Header */}
-					<div className="sticky top-0 z-20 bg-background pb-6 -mt-8 pt-8 mb-4">
+					<PageHeader isSticky={true}>
 						<div className="flex items-center justify-between">
 							<MonthSelector currentMonth={currentMonth} onMonthChange={handleMonthChange} />
 							<div className="flex items-center gap-2">
@@ -171,7 +172,7 @@ export function AllocationClient({
 								</Button>
 							</div>
 						</div>
-					</div>
+					</PageHeader>
 
 					{/* Empty State */}
 					<Card className="p-12 text-center">
@@ -203,7 +204,8 @@ export function AllocationClient({
 						onUseTemplate={handleUseTemplate}
 						onStartFresh={handleStartFresh}
 					/>
-				</div>
+
+				</PageShell>
 			</AllocationProvider>
 		);
 	}
@@ -219,7 +221,7 @@ export function AllocationClient({
 				rollback,
 			}}
 		>
-			<div className="max-w-7xl mx-auto w-full relative">
+			<PageShell>
 				{/* Connection Status Indicators */}
 				{!isConnected && (
 					<Badge variant="destructive" className="absolute top-0 right-0 z-10 gap-1.5">
@@ -237,7 +239,7 @@ export function AllocationClient({
 				)}
 
 				{/* Sticky Header */}
-				<div className="sticky top-0 z-20 bg-background pb-6 -mt-8 pt-8 mb-4">
+				<PageHeader isSticky={true}>
 					<div className="flex items-center justify-between">
 						<MonthSelector currentMonth={currentMonth} onMonthChange={handleMonthChange} />
 
@@ -255,10 +257,10 @@ export function AllocationClient({
 							<AddTransactionButton categories={categories} className="bg-primary hover:bg-primary/90" />
 						</div>
 					</div>
-				</div>
+				</PageHeader>
 
 				{/* Main Content */}
-				<div className="space-y-6">
+				<PageContent>
 					{/* Top Row: Left (Summary Cards + Category Performance) | Right (Allocation Donut) */}
 					<div className="flex flex-col lg:flex-row gap-6">
 						{/* Left Column: Summary Cards + Category Performance - 3/4 width */}
@@ -286,7 +288,7 @@ export function AllocationClient({
 						externalTypeFilter={typeFilter}
 						onClearExternalFilter={() => setTypeFilter(null)}
 					/>
-				</div>
+				</PageContent>
 
 				{/* Dialogs */}
 				<AddCategoryDialog
@@ -314,7 +316,7 @@ export function AllocationClient({
 					currentYear={currentMonth.year}
 					currentMonth={currentMonth.month}
 				/>
-			</div>
+			</PageShell>
 		</AllocationProvider>
 	);
 }

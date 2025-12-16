@@ -9,6 +9,7 @@ import { Plus } from "lucide-react";
 import { SubscriptionRow } from "./subscription-row";
 import { BillCard } from "./bill-card";
 import { AddRecurringDialog } from "./add-recurring-dialog";
+import { PageShell, PageHeader, PageContent } from "@/components/layout/page-shell";
 
 interface RecurringClientProps {
 	initialExpenses: RecurringExpense[];
@@ -35,8 +36,8 @@ export function RecurringClient({ initialExpenses }: RecurringClientProps) {
         }, 0);
 
     return (
-        <div className="space-y-6">
-            <div className="flex flex-col md:flex-row gap-4 justify-between items-start md:items-center">
+		<PageShell>
+            <PageHeader isSticky={false} className="flex flex-col md:flex-row gap-4 justify-between items-start md:items-center">
                 <div>
                     <h1 className="text-3xl font-bold tracking-tight">Recurring</h1>
                     <p className="text-muted-foreground">Manage your subscriptions and recurring bills.</p>
@@ -44,67 +45,69 @@ export function RecurringClient({ initialExpenses }: RecurringClientProps) {
                 <Button onClick={() => setIsAddOpen(true)}>
                     <Plus className="mr-2 h-4 w-4" /> Add Recurring
                 </Button>
-            </div>
+            </PageHeader>
 
-            <div className="grid gap-4 md:grid-cols-2 lg:grid-cols-4">
-                <Card>
-                    <CardHeader className="flex flex-row items-center justify-between space-y-0 pb-2">
-                        <CardTitle className="text-sm font-medium">Monthly Fixed Cost</CardTitle>
-                        <span className="text-muted-foreground">$</span>
-                    </CardHeader>
-                    <CardContent>
-                        <div className="text-2xl font-bold">${totalMonthly.toFixed(2)}</div>
-                        <p className="text-xs text-muted-foreground">
-                            Estimated from active items
-                        </p>
-                    </CardContent>
-                </Card>
-                 <Card>
-                    <CardHeader className="flex flex-row items-center justify-between space-y-0 pb-2">
-                        <CardTitle className="text-sm font-medium">Active Subscriptions</CardTitle>
-                    </CardHeader>
-                    <CardContent>
-                        <div className="text-2xl font-bold">{subscriptions.filter(s => s.is_active).length}</div>
-                    </CardContent>
-                </Card>
-            </div>
+            <PageContent>
+                <div className="grid gap-4 md:grid-cols-2 lg:grid-cols-4">
+                    <Card>
+                        <CardHeader className="flex flex-row items-center justify-between space-y-0 pb-2">
+                            <CardTitle className="text-sm font-medium">Monthly Fixed Cost</CardTitle>
+                            <span className="text-muted-foreground">$</span>
+                        </CardHeader>
+                        <CardContent>
+                            <div className="text-2xl font-bold">${totalMonthly.toFixed(2)}</div>
+                            <p className="text-xs text-muted-foreground">
+                                Estimated from active items
+                            </p>
+                        </CardContent>
+                    </Card>
+                     <Card>
+                        <CardHeader className="flex flex-row items-center justify-between space-y-0 pb-2">
+                            <CardTitle className="text-sm font-medium">Active Subscriptions</CardTitle>
+                        </CardHeader>
+                        <CardContent>
+                            <div className="text-2xl font-bold">{subscriptions.filter(s => s.is_active).length}</div>
+                        </CardContent>
+                    </Card>
+                </div>
 
-            <Tabs defaultValue="subscriptions" className="space-y-4">
-                <TabsList>
-                    <TabsTrigger value="subscriptions">Subscriptions</TabsTrigger>
-                    <TabsTrigger value="bills">Bills</TabsTrigger>
-                </TabsList>
-                <TabsContent value="subscriptions" className="space-y-4">
-                    {subscriptions.length === 0 ? (
-                        <div className="text-center py-12 text-muted-foreground">
-                            No subscriptions found. Add one to get started.
-                        </div>
-                    ) : (
-                        <Card>
-                            <div className="divide-y">
-                                {subscriptions.map(sub => (
-                                    <SubscriptionRow key={sub.id} subscription={sub} />
+                <Tabs defaultValue="subscriptions" className="space-y-4">
+                    <TabsList>
+                        <TabsTrigger value="subscriptions">Subscriptions</TabsTrigger>
+                        <TabsTrigger value="bills">Bills</TabsTrigger>
+                    </TabsList>
+                    <TabsContent value="subscriptions" className="space-y-4">
+                        {subscriptions.length === 0 ? (
+                            <div className="text-center py-12 text-muted-foreground">
+                                No subscriptions found. Add one to get started.
+                            </div>
+                        ) : (
+                            <Card>
+                                <div className="divide-y">
+                                    {subscriptions.map(sub => (
+                                        <SubscriptionRow key={sub.id} subscription={sub} />
+                                    ))}
+                                </div>
+                            </Card>
+                        )}
+                    </TabsContent>
+                    <TabsContent value="bills" className="space-y-4">
+                        {bills.length === 0 ? (
+                            <div className="text-center py-12 text-muted-foreground">
+                                No bills found.
+                            </div>
+                        ) : (
+                            <div className="grid grid-cols-1 sm:grid-cols-2 md:grid-cols-3 lg:grid-cols-4 gap-4">
+                                {bills.map(bill => (
+                                    <BillCard key={bill.id} bill={bill} />
                                 ))}
                             </div>
-                        </Card>
-                    )}
-                </TabsContent>
-                <TabsContent value="bills" className="space-y-4">
-                    {bills.length === 0 ? (
-                        <div className="text-center py-12 text-muted-foreground">
-                            No bills found.
-                        </div>
-                    ) : (
-                        <div className="grid grid-cols-1 sm:grid-cols-2 md:grid-cols-3 lg:grid-cols-4 gap-4">
-                            {bills.map(bill => (
-                                <BillCard key={bill.id} bill={bill} />
-                            ))}
-                        </div>
-                    )}
-                </TabsContent>
-            </Tabs>
+                        )}
+                    </TabsContent>
+                </Tabs>
+            </PageContent>
 
             <AddRecurringDialog open={isAddOpen} onOpenChange={setIsAddOpen} />
-        </div>
+        </PageShell>
     );
 }

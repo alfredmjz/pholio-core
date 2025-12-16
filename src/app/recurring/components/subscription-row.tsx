@@ -2,8 +2,7 @@
 
 import { RecurringExpense, toggleSubscription } from "../actions";
 import { Switch } from "@/components/ui/switch";
-import { Badge } from "@/components/ui/badge";
-import { CreditCard, MoreVertical, Check } from "lucide-react";
+import { MoreVertical } from "lucide-react";
 import { cn } from "@/lib/utils";
 import { useState } from "react";
 import { toast } from "sonner";
@@ -45,7 +44,7 @@ export function SubscriptionRow({ subscription }: SubscriptionRowProps) {
     };
 
     return (
-        <div className="flex items-center justify-between p-4 hover:bg-muted/30 transition-colors border-b last:border-0">
+        <div className="flex items-center justify-between p-4 hover:bg-muted/30 transition-colors">
         <div className="flex items-center gap-4">
                 <div className="h-10 w-10 rounded-full bg-primary/10 flex items-center justify-center flex-shrink-0">
                      {/* Placeholder Icon - Future: Logic to map service_provider to real logos */}
@@ -60,21 +59,15 @@ export function SubscriptionRow({ subscription }: SubscriptionRowProps) {
             </div>
 
             <div className="flex items-center gap-4">
-                    <Button
-                        variant="outline"
-                        size="sm"
-                        onClick={() => handleToggle(!isActive)}
-                        disabled={isLoading}
-                        className={cn(
-                            "rounded-full h-7 px-3 text-xs font-medium border transition-colors",
-                            isActive
-                                ? "bg-emerald-500/15 text-emerald-500 border-emerald-500/20 hover:bg-emerald-500/25 hover:text-emerald-600"
-                                : "bg-muted/50 text-muted-foreground border-transparent hover:bg-muted"
-                        )}
-                    >
-                        {isActive && <Check className="w-3 h-3 mr-1.5" />}
-                        {isActive ? "Enabled" : "Disabled"}
-                    </Button>
+                <Switch
+                    checked={isActive}
+                    onCheckedChange={handleToggle}
+                    disabled={isLoading}
+                    className={cn(
+                        "data-[state=checked]:bg-success",
+                        isLoading && "opacity-50 cursor-not-allowed"
+                    )}
+                />
 
                 <DropdownMenu>
                     <DropdownMenuTrigger asChild>

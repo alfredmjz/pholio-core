@@ -77,7 +77,6 @@ export function SubscriptionRow({ subscription }: SubscriptionRowProps) {
                         </Button>
                     </DropdownMenuTrigger>
                     <DropdownMenuContent align="end">
-                        <DropdownMenuLabel>Actions</DropdownMenuLabel>
                         <DropdownMenuItem onClick={() => toast.info("Edit functionality coming soon")}>
                             Edit
                         </DropdownMenuItem>

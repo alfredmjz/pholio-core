@@ -32,3 +32,10 @@ CREATE INDEX IF NOT EXISTS idx_recurring_expenses_is_active ON public.recurring_
 GRANT USAGE ON SCHEMA public TO anon, authenticated;
 GRANT ALL ON TABLE public.recurring_expenses TO anon, authenticated;
 
+
+-- Migration to support manual linking of transactions to recurring expenses
+ALTER TABLE transactions
+ADD COLUMN recurring_expense_id UUID REFERENCES recurring_expenses(id) ON DELETE SET NULL;
+
+-- Index for performance when querying linked transactions
+CREATE INDEX idx_transactions_recurring_expense_id ON transactions(recurring_expense_id);

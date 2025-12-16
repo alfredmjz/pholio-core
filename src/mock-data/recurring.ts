@@ -42,7 +42,7 @@ export const MOCK_RECURRING_EXPENSES: RecurringExpense[] = [
         billing_period: "monthly",
         next_due_date: new Date(new Date().getFullYear(), new Date().getMonth(), 1).toISOString(), // 1st of this month
         category: "subscription",
-        is_active: false,
+        is_active: true,
         service_provider: "custom_sub",
         plaid_stream_id: null,
         meta_data: {},
@@ -96,5 +96,6 @@ export const MOCK_RECURRING_EXPENSES: RecurringExpense[] = [
         meta_data: {},
         created_at: new Date().toISOString(),
         updated_at: new Date().toISOString(),
+        status: "upcoming"
     }
 ];

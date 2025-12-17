@@ -278,11 +278,11 @@ pholio/
 │   ├── components.json               # shadcn/ui configuration
 │   ├── Dockerfile                    # Docker image configuration
 │   └── .env.local                    # Environment variables (not in git)
-├── database/
-│   ├── migrations/                   # Source migration files
-│   │   └── 001_create_users_table.sql
-│   └── generated/                    # Generated combined SQL (gitignored)
-│       └── combined-migrations.sql
+├── supabase/
+│   ├── migrations/
+│   │   └── 002_create_recurring_expenses.sql # Migration file
+│   └── generated/
+│       └── combined-migrations.sql   # Generated combined SQL (gitignored)
 ├── scripts/
 │   ├── migrate.js                    # Migration script
 │   ├── migrate.ps1                   # PowerShell wrapper

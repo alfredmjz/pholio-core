@@ -18,7 +18,6 @@ import { supabase } from "@/lib/supabase/client";
 import { MonthPicker } from "@/components/month-picker";
 import { format } from "date-fns";
 import { useRouter } from "next/navigation";
-import Image from "next/image";
 import { GoogleSheetsIcon } from "@/components/icons/allocation-icons";
 
 interface ExportDialogProps {
@@ -304,7 +303,7 @@ export function ExportDialog({ open, onOpenChange, currentYear, currentMonth }: 
 						{isGoogleExporting ? (
 							<Loader2 className="h-4 w-4 animate-spin" />
 						) : (
-							<Image src={GoogleSheetsIcon} alt="Google Sheets" width={16} height={16} className="h-4 w-4" />
+							<GoogleSheetsIcon className="h-4 w-4" />
 						)}
 						Open in Sheets
 					</Button>

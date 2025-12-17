@@ -54,6 +54,7 @@ export function SubscriptionRow({ subscription }: SubscriptionRowProps) {
                       className="w-10 h-10"
                       width={40}
                       height={40}
+                      disableLookup={(subscription.meta_data as any)?.no_logo_lookup}
                    />
                 </div>
                 <div className="flex flex-col">

@@ -25,7 +25,7 @@ const PRESET_PROVIDERS = [
     { id: "apple", name: "Apple", icon: Cloud, color: "bg-gray-500", category: "subscription" },
     { id: "prime", name: "Amazon Prime", icon: ShoppingBag, color: "bg-blue-400", category: "subscription" },
     { id: "disney", name: "Disney+", icon: Film, color: "bg-blue-600", category: "subscription" },
-    { id: "custom_sub", name: "Custom Subscription", icon: Zap, color: "bg-yellow-500", category: "subscription" },
+    { id: "custom_subscription", name: "Custom Subscription", icon: Zap, color: "bg-yellow-500", category: "subscription" },
     { id: "rent", name: "Rent", icon: CreditCard, color: "bg-purple-500", category: "bill" },
     { id: "custom_bill", name: "Custom Bill", icon: CreditCard, color: "bg-slate-500", category: "bill" },
 ];
@@ -39,6 +39,7 @@ export function AddRecurringDialog({ open, onOpenChange }: AddRecurringDialogPro
         next_due_date: new Date(),
         category: "subscription",
         service_provider: "",
+        meta_data: {} as Record<string, any>,
     });
     const [isSubmitting, setIsSubmitting] = useState(false);
 
@@ -47,7 +48,8 @@ export function AddRecurringDialog({ open, onOpenChange }: AddRecurringDialogPro
             ...formData,
             name: provider.id.startsWith("custom") ? "" : provider.name,
             category: provider.category,
-            service_provider: provider.id.startsWith("custom") ? "" : provider.id
+            service_provider: provider.id.startsWith("custom") ? "" : provider.id,
+            meta_data: provider.id.startsWith("custom") ? { no_logo_lookup: true } : {}
         });
         setStep(2);
     };
@@ -68,7 +70,8 @@ export function AddRecurringDialog({ open, onOpenChange }: AddRecurringDialogPro
                 category: formData.category,
                 service_provider: formData.service_provider,
                 is_active: true,
-                currency: "USD"
+                currency: "USD",
+                meta_data: formData.meta_data
             });
 
             if (result) {
@@ -83,6 +86,7 @@ export function AddRecurringDialog({ open, onOpenChange }: AddRecurringDialogPro
                     next_due_date: new Date(),
                     category: "subscription",
                     service_provider: "",
+                    meta_data: {},
                 });
             } else {
                 toast.error("Failed to add expense");
@@ -154,7 +158,7 @@ export function AddRecurringDialog({ open, onOpenChange }: AddRecurringDialogPro
                                     </SelectTrigger>
                                     <SelectContent>
                                         <SelectItem value="monthly">Monthly</SelectItem>
-                                        <SelectItem value="yearly">Yearly</SelectItem>
+                                        <SelectItem value="yearly">Annually</SelectItem>
                                         <SelectItem value="weekly">Weekly</SelectItem>
                                         <SelectItem value="biweekly">Bi-weekly</SelectItem>
                                     </SelectContent>

@@ -84,14 +84,14 @@ export const MOCK_RECURRING_EXPENSES: RecurringExpense[] = [
     {
         id: "mock-6",
         user_id: "mock-user",
-        name: "Amazon Prime",
+        name: "Amazon",
         amount: 139.00,
         currency: "USD",
         billing_period: "yearly",
         next_due_date: new Date(new Date().getFullYear() + 1, 5, 15).toISOString(), // Next year, June 15th
         category: "subscription",
         is_active: true,
-        service_provider: "prime",
+        service_provider: "amazon",
         plaid_stream_id: null,
         meta_data: {},
         created_at: new Date().toISOString(),

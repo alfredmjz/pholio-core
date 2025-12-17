@@ -2,7 +2,6 @@
 
 import { useState, useEffect, useRef, useCallback } from "react";
 import { cn } from "@/lib/utils";
-import { NetflixIcon, SpotifyIcon, AmazonIcon } from "@/components/icons/subscription-icons";
 import { GoogleSheetsIcon } from "@/components/icons/allocation-icons";
 import { LucideProps } from "lucide-react";
 
@@ -46,19 +45,15 @@ function InitialsFallback({
   );
 }
 
-type LogoType = "netflix" | "spotify" | "amazon" | "gsheets" | "external" | "fallback";
+type LogoType = "gsheets" | "external" | "fallback";
 
 export function ServiceLogo({ name, serviceProvider, domain, className, ...props }: ServiceLogoProps) {
   // 1. Normalize keys for matching - this determines the logo type
   const normalizedName = name.toLowerCase().trim();
   const provider = serviceProvider?.toLowerCase().trim();
-
   // Determine which type of logo to render
   const getLogoType = (): LogoType => {
     if (props.disableLookup) return "fallback";
-    if (provider === "netflix" || normalizedName.includes("netflix")) return "netflix";
-    if (provider === "spotify" || normalizedName.includes("spotify")) return "spotify";
-    if (provider === "amazon" || normalizedName.includes("amazon") || normalizedName.includes("aws")) return "amazon";
     if (normalizedName.includes("google sheet") || normalizedName.includes("gsheet")) return "gsheets";
     return "external";
   };
@@ -72,6 +67,8 @@ export function ServiceLogo({ name, serviceProvider, domain, className, ...props
     ? `https://img.logo.dev/${guessDomain}?token=${logoDevToken}`
     : null;
 
+  console.log("guessDomain", guessDomain);
+  console.log("logoUrl", logoUrl);
   // Track loading state for external logos
   const [imageLoaded, setImageLoaded] = useState(false);
   const [imageError, setImageError] = useState(false);
@@ -123,15 +120,6 @@ export function ServiceLogo({ name, serviceProvider, domain, className, ...props
   const size = { width: props.width || 24, height: props.height || 24 };
 
   // HERO ICONS: Render local SVG icons for known brands
-  if (logoType === "netflix") {
-    return <NetflixIcon className={className} {...props} />;
-  }
-  if (logoType === "spotify") {
-    return <SpotifyIcon className={className} {...props} />;
-  }
-  if (logoType === "amazon") {
-    return <AmazonIcon className={className} {...props} />;
-  }
   if (logoType === "gsheets") {
     return <GoogleSheetsIcon className={className} {...props} />;
   }
@@ -168,14 +156,14 @@ export function ServiceLogo({ name, serviceProvider, domain, className, ...props
       {/* Show actual image when loaded, otherwise show fallback */}
       {imageLoaded ? (
         <div
-          className={cn("relative overflow-hidden rounded-full flex items-center justify-center bg-white", className)}
+          className={cn("overflow-hidden rounded-full flex items-center justify-center", className)}
           style={size}
         >
           {/* eslint-disable-next-line @next/next/no-img-element */}
           <img
             src={logoUrl}
             alt={name}
-            className="object-cover w-full h-full"
+            className="object-contain w-full h-full"
           />
         </div>
       ) : (

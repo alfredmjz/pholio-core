@@ -4,6 +4,7 @@ import { RecurringExpense, toggleSubscription } from "../actions";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Switch } from "@/components/ui/switch";
 import { Badge } from "@/components/ui/badge";
+import { StatusBadge } from "@/components/ui/status-badge";
 import { Calendar, CreditCard, ImageIcon } from "lucide-react";
 import { useState } from "react";
 import { toast } from "sonner";
@@ -52,9 +53,12 @@ export function SubscriptionCard({ subscription }: SubscriptionCardProps) {
             <CardContent className="pt-4">
                  <div className="flex justify-between items-baseline mb-2">
                      <span className="text-2xl font-bold">${Number(subscription.amount).toFixed(2)}</span>
-                     <Badge variant="outline" className="capitalize text-xs">
-                         {subscription.billing_period}
-                     </Badge>
+                     <div className="flex items-center gap-2">
+                         <Badge variant="outline" className="capitalize text-xs">
+                             {subscription.billing_period}
+                         </Badge>
+                         <StatusBadge status={subscription.status || 'upcoming'} />
+                     </div>
                  </div>
                  <div className="flex items-center text-xs text-muted-foreground gap-1">
                      <Calendar className="h-3 w-3" />

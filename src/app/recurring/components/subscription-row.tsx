@@ -15,6 +15,7 @@ DropdownMenuLabel,
 DropdownMenuSeparator,
 DropdownMenuTrigger,
 } from "@/components/ui/dropdown-menu";
+import { ServiceLogo } from "@/components/service-logo";
 
 interface SubscriptionRowProps {
     subscription: RecurringExpense;
@@ -46,9 +47,14 @@ export function SubscriptionRow({ subscription }: SubscriptionRowProps) {
     return (
         <div className="flex items-center justify-between p-4 hover:bg-muted/30 transition-colors">
         <div className="flex items-center gap-4">
-                <div className="h-10 w-10 rounded-full bg-primary/10 flex items-center justify-center flex-shrink-0">
-                     {/* Placeholder Icon - Future: Logic to map service_provider to real logos */}
-                    <span className="font-bold text-primary text-sm">{subscription.name.substring(0, 2).toUpperCase()}</span>
+                <div className="h-10 w-10 flex-shrink-0">
+                   <ServiceLogo
+                      name={subscription.name}
+                      serviceProvider={subscription.service_provider}
+                      className="w-10 h-10"
+                      width={40}
+                      height={40}
+                   />
                 </div>
                 <div className="flex flex-col">
                     <span className="font-semibold text-sm">{subscription.name}</span>
@@ -81,7 +87,7 @@ export function SubscriptionRow({ subscription }: SubscriptionRowProps) {
                             Edit
                         </DropdownMenuItem>
                         <DropdownMenuSeparator />
-                        <DropdownMenuItem className="text-destructive" onClick={() => toast.info("Delete functionality coming soon")}>
+                        <DropdownMenuItem className="text-error" onClick={() => toast.info("Delete functionality coming soon")}>
                             Delete
                         </DropdownMenuItem>
                     </DropdownMenuContent>

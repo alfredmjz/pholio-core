@@ -135,16 +135,13 @@ export function AddRecurringDialog({ open, onOpenChange }: AddRecurringDialogPro
                         <div className="grid grid-cols-2 gap-4">
                             <div className="space-y-2">
                                 <Label>Amount</Label>
-                                <div className="relative">
-                                    <span className="absolute left-3 top-2.5 text-muted-foreground">$</span>
-                                    <Input
-                                        type="number"
-                                        className="pl-7"
-                                        value={formData.amount}
-                                        onChange={(e) => setFormData({...formData, amount: e.target.value})}
-                                        placeholder="0.00"
-                                    />
-                                </div>
+                                <Input
+                                    type="number"
+                                    startAdornment="$"
+                                    value={formData.amount}
+                                    onChange={(e) => setFormData({...formData, amount: e.target.value})}
+                                    placeholder="0.00"
+                                />
                             </div>
                             <div className="space-y-2">
                                 <Label>Frequency</Label>

@@ -15,7 +15,7 @@ export interface Database {
 					updated_at: string;
 				};
 				Insert: {
-					id: string;
+					id?: string;
 					email: string;
 					full_name?: string | null;
 					avatar_url?: string | null;
@@ -33,6 +33,50 @@ export interface Database {
 					guest_name?: string | null;
 					created_at?: string;
 					updated_at?: string;
+				};
+			};
+			transactions: {
+				Row: {
+					id: string;
+					user_id: string;
+					category_id: string | null;
+					name: string;
+					amount: number;
+					transaction_date: string;
+					source: string;
+					external_id: string | null;
+					notes: string | null;
+					created_at: string;
+					updated_at: string;
+					recurring_expense_id: string | null;
+				};
+				Insert: {
+					id?: string;
+					user_id: string;
+					category_id?: string | null;
+					name: string;
+					amount: number;
+					transaction_date: string;
+					source: string;
+					external_id?: string | null;
+					notes?: string | null;
+					created_at?: string;
+					updated_at?: string;
+					recurring_expense_id?: string | null;
+				};
+				Update: {
+					id?: string;
+					user_id?: string;
+					category_id?: string | null;
+					name?: string;
+					amount?: number;
+					transaction_date?: string;
+					source?: string;
+					external_id?: string | null;
+					notes?: string | null;
+					created_at?: string;
+					updated_at?: string;
+					recurring_expense_id?: string | null;
 				};
 			};
 			recurring_expenses: {

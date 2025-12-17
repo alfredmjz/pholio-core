@@ -83,7 +83,7 @@ export function RecurringClient({ initialExpenses }: RecurringClientProps) {
                             </div>
                         ) : (
                             <Card>
-                                <div className="divide-y">
+                                <div className="divide-y divide-border">
                                     {subscriptions.map(sub => (
                                         <SubscriptionRow key={sub.id} subscription={sub} />
                                     ))}
@@ -98,7 +98,7 @@ export function RecurringClient({ initialExpenses }: RecurringClientProps) {
                             </div>
                         ) : (
                             <Card>
-                                <div className="divide-y">
+                                <div className="divide-y divide-border">
                                     {bills.map(bill => (
                                         <BillRow key={bill.id} bill={bill} />
                                     ))}

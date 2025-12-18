@@ -17,9 +17,13 @@ export async function getDashboardData(): Promise<DashboardData> {
 		return getEmptyDashboardData();
 	}
 
-	// For now, return mock data since the accounts table isn't set up yet
-	// TODO: Replace with actual database queries once migration is applied
-	return getMockDashboardData();
+	// If explicitly asked for sample data
+	if (process.env.NEXT_PUBLIC_USE_SAMPLE_DATA === "true") {
+		return getMockDashboardData();
+	}
+
+	// For now, return empty data since the accounts table isn't set up yet
+	return getEmptyDashboardData();
 }
 
 /**
@@ -35,9 +39,13 @@ export async function getCashflowData(period: Period): Promise<CashflowSummary> 
 		return getEmptyCashflowData(period);
 	}
 
-	// TODO: Implement actual cashflow query
-	// For now, return mock data
-	return getMockCashflowData(period);
+	// If explicitly asked for sample data
+	if (process.env.NEXT_PUBLIC_USE_SAMPLE_DATA === "true") {
+		return getMockCashflowData(period);
+	}
+
+	// Return empty data until implemented
+	return getEmptyCashflowData(period);
 }
 
 /**
@@ -53,9 +61,13 @@ export async function getNetWorthData(): Promise<NetWorthData> {
 		return getEmptyNetWorthData();
 	}
 
-	// TODO: Implement actual net worth query
-	// For now, return mock data
-	return getMockNetWorthData();
+	// If explicitly asked for sample data
+	if (process.env.NEXT_PUBLIC_USE_SAMPLE_DATA === "true") {
+		return getMockNetWorthData();
+	}
+
+	// Return empty data until implemented
+	return getEmptyNetWorthData();
 }
 
 /**
@@ -92,7 +104,10 @@ export async function getRecentTransactions(limit: number = 10): Promise<Transac
 
 	if (error || !transactions) {
 		console.error("Error fetching transactions:", error);
-		return getMockTransactions();
+		if (process.env.NEXT_PUBLIC_USE_SAMPLE_DATA === "true") {
+			return getMockTransactions();
+		}
+		return [];
 	}
 
 	return transactions.map((t: any) => ({

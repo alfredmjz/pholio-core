@@ -1,10 +1,10 @@
-
 import DataPrivacyCard from "../components/data-privacy-card";
+import { SettingsContentWrapper } from "../components/settings-content-wrapper";
 
 export default function DataPrivacyPage() {
 	return (
-		<div className="space-y-6">
+		<SettingsContentWrapper title="Data & Privacy" description="Manage your data and privacy settings.">
 			<DataPrivacyCard />
-		</div>
+		</SettingsContentWrapper>
 	);
 }

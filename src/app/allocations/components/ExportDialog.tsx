@@ -1,14 +1,8 @@
 "use client";
 
 import { useState, useEffect } from "react";
-import {
-	Dialog,
-	DialogContent,
-	DialogDescription,
-	DialogHeader,
-	DialogTitle,
-	DialogFooter,
-} from "@/components/ui/dialog";
+import { ControlBasedDialog } from "@/components/dialogWrapper";
+import { DialogFooter } from "@/components/ui/dialog";
 import { Button } from "@/components/ui/button";
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
 import { FileText, Download, Loader2, Calendar } from "lucide-react";
@@ -18,8 +12,7 @@ import { supabase } from "@/lib/supabase/client";
 import { MonthPicker } from "@/components/month-picker";
 import { format } from "date-fns";
 import { useRouter } from "next/navigation";
-import Image from "next/image";
-import googleIcon from "@/public/gsheets-icon48x48.svg";
+import { GoogleSheetsIcon } from "@/components/icons/allocation-icons";
 
 interface ExportDialogProps {
 	open: boolean;
@@ -236,14 +229,13 @@ export function ExportDialog({ open, onOpenChange, currentYear, currentMonth }: 
 	const currentMonthName = MONTHS.find((m) => m.value === currentMonth)?.label;
 
 	return (
-		<Dialog open={open} onOpenChange={onOpenChange}>
-			<DialogContent className="sm:max-w-[625px]">
-				<DialogHeader>
-					<DialogTitle>Export Transactions</DialogTitle>
-					<DialogDescription>
-						Download your transaction history as an Excel file or open in Google Sheets.
-					</DialogDescription>
-				</DialogHeader>
+		<ControlBasedDialog
+			open={open}
+			onOpenChange={onOpenChange}
+			title="Export Transactions"
+			description="Download your transaction history as an Excel file or open in Google Sheets."
+			className="sm:max-w-[625px]"
+		>
 
 				{/* Min height container to prevent jumping */}
 				<div className="min-h-[300px]">
@@ -304,7 +296,7 @@ export function ExportDialog({ open, onOpenChange, currentYear, currentMonth }: 
 						{isGoogleExporting ? (
 							<Loader2 className="h-4 w-4 animate-spin" />
 						) : (
-							<Image src={googleIcon} alt="Google Sheets" width={16} height={16} className="h-4 w-4" />
+							<GoogleSheetsIcon className="h-4 w-4" />
 						)}
 						Open in Sheets
 					</Button>
@@ -313,7 +305,6 @@ export function ExportDialog({ open, onOpenChange, currentYear, currentMonth }: 
 						Download
 					</Button>
 				</DialogFooter>
-			</DialogContent>
-		</Dialog>
+		</ControlBasedDialog>
 	);
 }

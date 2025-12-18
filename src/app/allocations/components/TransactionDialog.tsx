@@ -2,14 +2,8 @@
 
 import { useState, useEffect } from "react";
 import { Button } from "@/components/ui/button";
-import {
-	Dialog,
-	DialogContent,
-	DialogDescription,
-	DialogFooter,
-	DialogHeader,
-	DialogTitle,
-} from "@/components/ui/dialog";
+import { ControlBasedDialog } from "@/components/dialogWrapper";
+import { DialogFooter } from "@/components/ui/dialog";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
@@ -117,14 +111,13 @@ export function TransactionDialog({
 	};
 
 	return (
-		<Dialog open={open} onOpenChange={onOpenChange}>
-			<DialogContent className="sm:max-w-[425px]">
-				<DialogHeader>
-					<DialogTitle>{transaction ? "Edit Transaction" : "Add Transaction"}</DialogTitle>
-					<DialogDescription>
-						{transaction ? "Modify transaction details below." : "Enter the details for the new transaction."}
-					</DialogDescription>
-				</DialogHeader>
+		<ControlBasedDialog
+			open={open}
+			onOpenChange={onOpenChange}
+			title={transaction ? "Edit Transaction" : "Add Transaction"}
+			description={transaction ? "Modify transaction details below." : "Enter the details for the new transaction."}
+			className="sm:max-w-[425px]"
+		>
 
 				<form onSubmit={handleSubmit} className="space-y-4 py-2">
 					{/* Type Selection */}
@@ -223,7 +216,6 @@ export function TransactionDialog({
 						</Button>
 					</DialogFooter>
 				</form>
-			</DialogContent>
-		</Dialog>
+		</ControlBasedDialog>
 	);
 }

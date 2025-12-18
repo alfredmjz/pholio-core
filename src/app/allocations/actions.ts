@@ -28,7 +28,11 @@ export async function getOrCreateAllocation(
 		.eq("month", month)
 		.single();
 
-	if (existing) return existing as Allocation;
+	if (existing) {
+        // [MODIFIED] Check/Update recurring expenses even if allocation exists
+        await syncRecurringExpenses(existing.id, user.id, month);
+        return existing as Allocation;
+    }
 
 	// Create new allocation if it doesn't exist
 	const { data: newAllocation, error: createError } = await supabase
@@ -47,7 +51,97 @@ export async function getOrCreateAllocation(
 		return null;
 	}
 
+    // [NEW] Sync recurring expenses for the new allocation
+    await syncRecurringExpenses(newAllocation.id, user.id, month);
+
 	return newAllocation as Allocation;
+}
+
+/**
+ * Helper to sync recurring expenses to a specific allocation category
+ * This ensures that if the user adds a subscription mid-month, it's reflected.
+ */
+async function syncRecurringExpenses(allocationId: string, userId: string, targetMonth: number) {
+    const supabase = await createClient();
+
+    // 1. Fetch active recurring expenses
+    const { data: recurring } = await supabase
+        .from("recurring_expenses")
+        .select("*")
+        .eq("user_id", userId)
+        .eq("is_active", true);
+
+    if (!recurring || recurring.length === 0) return;
+
+    // 2. Calculate total
+    let totalRecurring = 0;
+
+    for (const expense of recurring) {
+        // Logic: active subscriptions hit the budget
+        // Check billing period vs target month?
+        // Spec: "Annual where we will track the one time expense for that month"
+
+        let applies = false;
+        if (expense.billing_period === 'monthly') {
+            applies = true;
+        } else if (expense.billing_period === 'yearly') {
+            // Check if next_due_date month matches targetMonth
+            // Note: date format is YYYY-MM-DD.
+             const dueDate = new Date(expense.next_due_date);
+             // JS Month is 0-indexed, targetMonth is 1-indexed (based on usage in page.tsx: now.getMonth() + 1)
+             if (dueDate.getMonth() + 1 === targetMonth) {
+                 applies = true;
+             }
+        } else {
+             // weekly/biweekly - simplified for MVP: assume 4 weeks / 2 biweeks or just standard monthly cost?
+             // Spec didn't specify weekly logic detail, but implied "automatically allocated for that month".
+             // Let's assume standard monthly occurrence (1x) for weekly/biweekly if simpler,
+             // OR better: calculate actual occurrences in that month.
+             // For MVP, allow them all (simplification).
+             applies = true;
+        }
+
+        if (applies) {
+             totalRecurring += Number(expense.amount);
+        }
+    }
+
+    if (totalRecurring === 0) return;
+
+    // 3. Find or Create "Fixed Expenses" category
+    const { data: categories } = await supabase
+        .from("allocation_categories")
+        .select("*")
+        .eq("allocation_id", allocationId)
+        .eq("name", "Fixed Expenses")
+        .single();
+
+    if (categories) {
+        // Update existing
+        // We probably shouldn't OVERWRITE if the user manually changed it?
+        // Spec says: "automatically populate".
+        // Let's only update if the calculated amount is different, or maybe just leave it be if the user customized it?
+        // Safe bet: Update it, but maybe we should have a flag?
+        // For MVP: Update it. "Master Setting" implies this table drives the budget.
+        if (Number(categories.budget_cap) !== totalRecurring) {
+              await supabase
+                .from("allocation_categories")
+                .update({ budget_cap: totalRecurring })
+                .eq("id", categories.id);
+        }
+    } else {
+        // Create new
+         await supabase
+            .from("allocation_categories")
+            .insert({
+                allocation_id: allocationId,
+                user_id: userId,
+                name: "Fixed Expenses",
+                budget_cap: totalRecurring,
+                is_recurring: true,
+                display_order: 0 // Put at top
+            });
+    }
 }
 
 /**

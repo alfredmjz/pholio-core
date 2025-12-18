@@ -67,8 +67,6 @@ export function ServiceLogo({ name, serviceProvider, domain, className, ...props
     ? `https://img.logo.dev/${guessDomain}?token=${logoDevToken}`
     : null;
 
-  console.log("guessDomain", guessDomain);
-  console.log("logoUrl", logoUrl);
   // Track loading state for external logos
   const [imageLoaded, setImageLoaded] = useState(false);
   const [imageError, setImageError] = useState(false);

@@ -51,6 +51,7 @@ export function SubscriptionRow({ subscription }: SubscriptionRowProps) {
                    <ServiceLogo
                       name={subscription.name}
                       serviceProvider={subscription.service_provider}
+                      domain={(subscription.meta_data as any)?.domain}
                       className="w-10 h-10"
                       width={40}
                       height={40}

@@ -125,7 +125,7 @@ function CategoryRow({ category, colorIndex }: CategoryRowProps) {
 
 	return (
 		<>
-			<div className="group py-3 border-b border-border last:border-b-0">
+			<div className="group py-3">
 				<div className="flex items-center gap-3">
 					{/* Color indicator */}
 					<div className={cn("w-2 h-2 rounded-full flex-shrink-0", color.bg)} />

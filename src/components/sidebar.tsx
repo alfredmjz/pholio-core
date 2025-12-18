@@ -1,7 +1,7 @@
 "use client";
 
 import * as React from "react";
-import { ChevronLeft, ChevronRight, LayoutDashboard, PieChart } from "lucide-react";
+import { ChevronLeft, ChevronRight, LayoutDashboard, PieChart, Repeat } from "lucide-react";
 
 import { cn } from "@/lib/utils";
 import {
@@ -262,7 +262,7 @@ export function SideBarComponent({ userProfile }: SideBarComponentProps) {
 								{!isCollapsed && <span>Dashboard</span>}
 							</Link>
 
-							<Link
+						<Link
 								href="/allocations"
 								className={cn(
 									navigationMenuTriggerStyle(),
@@ -273,6 +273,18 @@ export function SideBarComponent({ userProfile }: SideBarComponentProps) {
 								<PieChart className="w-4 h-4 flex-shrink-0" />
 								{!isCollapsed && <span>Allocations</span>}
 							</Link>
+
+                            <Link
+                                href="/recurring"
+                                className={cn(
+                                    navigationMenuTriggerStyle(),
+                                    "w-full",
+                                    isCollapsed ? "justify-center px-2" : "justify-start"
+                                )}
+                            >
+                                <Repeat className="w-4 h-4 flex-shrink-0" />
+                                {!isCollapsed && <span>Recurring</span>}
+                            </Link>
 						</NavigationMenuItem>
 					</NavigationMenuList>
 				</NavigationMenu>

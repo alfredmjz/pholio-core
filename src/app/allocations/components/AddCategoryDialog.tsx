@@ -1,14 +1,8 @@
 "use client";
 
 import { useState, useEffect } from "react";
-import {
-	Dialog,
-	DialogContent,
-	DialogDescription,
-	DialogFooter,
-	DialogHeader,
-	DialogTitle,
-} from "@/components/ui/dialog";
+import { ControlBasedDialog } from "@/components/dialogWrapper";
+import { DialogFooter } from "@/components/ui/dialog";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
@@ -86,13 +80,14 @@ export function AddCategoryDialog({ open, onOpenChange, onSubmit, unallocatedFun
 	const isOverAllocated = budgetNum > unallocatedFunds;
 
 	return (
-		<Dialog open={open} onOpenChange={onOpenChange}>
-			<DialogContent className="sm:max-w-[425px]">
-				<DialogHeader>
-					<DialogTitle>Add Category</DialogTitle>
-					<DialogDescription>Create a new budget category to track your spending.</DialogDescription>
-				</DialogHeader>
-				<form onSubmit={handleSubmit}>
+		<ControlBasedDialog
+			open={open}
+			onOpenChange={onOpenChange}
+			title="Add Category"
+			description="Create a new budget category to track your spending."
+			className="sm:max-w-[425px]"
+		>
+			<form onSubmit={handleSubmit}>
 					<div className="grid gap-4 py-4">
 						{/* Category Name */}
 						<div className="grid gap-2">
@@ -168,7 +163,6 @@ export function AddCategoryDialog({ open, onOpenChange, onSubmit, unallocatedFun
 						</Button>
 					</DialogFooter>
 				</form>
-			</DialogContent>
-		</Dialog>
+		</ControlBasedDialog>
 	);
 }

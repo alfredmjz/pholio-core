@@ -15,7 +15,8 @@ export interface CacheOptions {
 
 // Default TTL values (in seconds)
 export const CACHE_TTL = {
-	LOGO: 7 * 24 * 60 * 60, // 7 days - logos rarely change
+	LOGO: 7 * 24 * 60 * 60, // 7 days
+	LOGO_SEARCH: 60 * 60 * 24, // 1 day
 	USER_PREFERENCES: 30 * 24 * 60 * 60, // 30 days
 	SHORT: 5 * 60, // 5 minutes
 } as const;
@@ -23,6 +24,7 @@ export const CACHE_TTL = {
 // Cache key prefixes for namespacing
 export const CACHE_KEYS = {
 	logo: (domain: string) => `logo:${domain}`,
+	logoSearch: (query: string) => `logo:search:${query.toLowerCase().trim()}`,
 	userPreferences: (userId: string) => `user:${userId}:preferences`,
 } as const;
 
@@ -118,11 +120,7 @@ export async function cacheGet(key: string): Promise<string | null> {
 /**
  * Set a value in Redis cache with optional TTL
  */
-export async function cacheSet(
-	key: string,
-	value: string,
-	options?: CacheOptions
-): Promise<boolean> {
+export async function cacheSet(key: string, value: string, options?: CacheOptions): Promise<boolean> {
 	try {
 		const client = await getRedisClient();
 		if (!client) return false;
@@ -198,9 +196,7 @@ export async function cacheGetOrSet<T>(
 	const fresh = await fetchFn();
 
 	// Cache the result (don't await to avoid blocking)
-	cacheSet(key, serialize(fresh), { ttl }).catch((err) =>
-		console.error("[Redis] Failed to cache value:", key, err)
-	);
+	cacheSet(key, serialize(fresh), { ttl }).catch((err) => console.error("[Redis] Failed to cache value:", key, err));
 
 	return fresh;
 }

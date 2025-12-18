@@ -13,7 +13,7 @@ import { CategoryPerformance } from "./components/CategoryPerformance";
 import { AllocationDonutChart } from "./components/AllocationDonutChart";
 import { TransactionLedger } from "./components/TransactionLedger";
 import { AddTransactionButton } from "./components/AddTransactionButton";
-import { TemplateImportDialog } from "./components/TemplateImportDialog";
+import { ImportTemplateDialog } from "./components/ImportTemplateDialog";
 import { ExportDialog } from "./components/ExportDialog";
 import type { TransactionType } from "./components/TransactionTypeIcon";
 import { useAllocationSync } from "@/hooks/useAllocationSync";
@@ -193,7 +193,7 @@ export function AllocationClient({
 						</div>
 					</Card>
 
-					<TemplateImportDialog
+					<ImportTemplateDialog
 						open={templateDialogOpen}
 						onOpenChange={setTemplateDialogOpen}
 						monthName={MONTH_NAMES[currentMonth.month - 1]}
@@ -204,7 +204,6 @@ export function AllocationClient({
 						onUseTemplate={handleUseTemplate}
 						onStartFresh={handleStartFresh}
 					/>
-
 				</PageShell>
 			</AllocationProvider>
 		);
@@ -298,7 +297,7 @@ export function AllocationClient({
 					unallocatedFunds={summary.summary.unallocated_funds}
 				/>
 
-				<TemplateImportDialog
+				<ImportTemplateDialog
 					open={templateDialogOpen}
 					onOpenChange={setTemplateDialogOpen}
 					monthName={MONTH_NAMES[currentMonth.month - 1]}

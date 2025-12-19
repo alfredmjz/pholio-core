@@ -216,7 +216,6 @@ export function BalanceSheetClient({ initialAccounts, initialSummary }: BalanceS
 							account={selectedAccount}
 							transactions={transactions}
 							isLoadingTransactions={isLoadingTransactions}
-							onEdit={() => toast.info("Edit functionality coming soon")}
 							onDelete={() => toast.info("Delete functionality coming soon")}
 							onRecordTransaction={() => setTransactionDialogOpen(true)}
 						/>

@@ -264,6 +264,9 @@ export const sampleBalanceSheetSummary: BalanceSheetSummary = {
 	totalAssets: 85600,
 	totalLiabilities: 20950,
 	netWorth: 64650,
+	previousTotalAssets: 82500,
+	previousTotalLiabilities: 21200,
+	previousNetWorth: 61300,
 	assetAccounts: sampleAccounts.filter((acc) => acc.account_type?.class === "asset"),
 	liabilityAccounts: sampleAccounts.filter((acc) => acc.account_type?.class === "liability"),
 };

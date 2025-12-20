@@ -16,20 +16,20 @@ import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@
 import { Textarea } from "@/components/ui/textarea";
 import { toast } from "sonner";
 import { recordTransaction } from "../actions";
-import type { RecordTransactionInput, TransactionType, Account } from "../types";
+import type { RecordTransactionInput, TransactionType, AccountWithType } from "../types";
 
 interface RecordTransactionDialogProps {
 	open: boolean;
 	onOpenChange: (open: boolean) => void;
-	account: Account | null;
-	onSuccess: () => void;
+	account: AccountWithType | null;
+	onSuccess: (accountId: string, amount: number, transactionType: string) => void;
 }
 
 export function RecordTransactionDialog({ open, onOpenChange, account, onSuccess }: RecordTransactionDialogProps) {
 	const [loading, setLoading] = useState(false);
 	const [formData, setFormData] = useState<Partial<RecordTransactionInput>>({
 		amount: 0,
-		transaction_type: account?.type === "asset" ? "deposit" : "payment",
+		transaction_type: account?.account_type?.class === "asset" ? "deposit" : "payment",
 	});
 
 	const handleSubmit = async (e: React.FormEvent) => {
@@ -52,8 +52,8 @@ export function RecordTransactionDialog({ open, onOpenChange, account, onSuccess
 			if (result) {
 				toast.success("Transaction recorded");
 				onOpenChange(false);
-				onSuccess();
-				setFormData({ amount: 0, transaction_type: account.type === "asset" ? "deposit" : "payment" });
+				onSuccess(account.id, input.amount, input.transaction_type);
+				setFormData({ amount: 0, transaction_type: account.account_type?.class === "asset" ? "deposit" : "payment" });
 			} else {
 				toast.error("Failed to record transaction");
 			}
@@ -67,7 +67,7 @@ export function RecordTransactionDialog({ open, onOpenChange, account, onSuccess
 	if (!account) return null;
 
 	const transactionTypes: { value: TransactionType; label: string }[] =
-		account.type === "asset"
+		account.account_type?.class === "asset"
 			? [
 					{ value: "deposit", label: "Deposit" },
 					{ value: "withdrawal", label: "Withdrawal" },
@@ -84,7 +84,8 @@ export function RecordTransactionDialog({ open, onOpenChange, account, onSuccess
 				<DialogHeader>
 					<DialogTitle>Record Transaction</DialogTitle>
 					<DialogDescription>
-						{account.type === "asset" ? "Record a deposit or withdrawal for" : "Record a payment for"} {account.name}
+						{account.account_type?.class === "asset" ? "Record a deposit or withdrawal for" : "Record a payment for"}{" "}
+						{account.name}
 					</DialogDescription>
 				</DialogHeader>
 

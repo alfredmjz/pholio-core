@@ -1,6 +1,6 @@
 "use client";
 
-import { useState } from "react";
+import { useState, useEffect } from "react";
 import {
 	Dialog,
 	DialogContent,
@@ -13,42 +13,33 @@ import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
-import { Textarea } from "@/components/ui/textarea";
+import { CompactTiptap } from "@/components/ui/shadcn-io/compact-tiptap";
 import { toast } from "sonner";
-import { createAccount } from "../actions";
-import type { CreateAccountInput, AccountType, AccountSubtype } from "../types";
+import { createAccount, getAccountTypes } from "../actions";
+import type { CreateAccountInput, AccountType, AccountClass, AccountWithType } from "../types";
 
 interface AddAccountDialogProps {
 	open: boolean;
 	onOpenChange: (open: boolean) => void;
-	onSuccess: () => void;
+	onSuccess: (account: AccountWithType) => void;
 }
-
-const assetSubtypes = [
-	{ value: "checking", label: "Checking Account" },
-	{ value: "savings", label: "Savings Account" },
-	{ value: "emergency_fund", label: "Emergency Fund" },
-	{ value: "investment", label: "Investment Account" },
-	{ value: "retirement", label: "Retirement Account" },
-	{ value: "other_asset", label: "Other Asset" },
-];
-
-const liabilitySubtypes = [
-	{ value: "credit_card", label: "Credit Card" },
-	{ value: "personal_loan", label: "Personal Loan" },
-	{ value: "student_loan", label: "Student Loan" },
-	{ value: "mortgage", label: "Mortgage" },
-	{ value: "auto_loan", label: "Auto Loan" },
-	{ value: "other_liability", label: "Other Liability" },
-];
 
 export function AddAccountDialog({ open, onOpenChange, onSuccess }: AddAccountDialogProps) {
 	const [loading, setLoading] = useState(false);
-	const [accountType, setAccountType] = useState<AccountType>("asset");
+	const [accountType, setAccountType] = useState<AccountClass>("asset");
+	const [allAccountTypes, setAllAccountTypes] = useState<any[]>([]);
 	const [formData, setFormData] = useState<Partial<CreateAccountInput>>({
-		type: "asset",
 		current_balance: 0,
 	});
+
+	// Fetch account types on mount
+	useEffect(() => {
+		const fetchTypes = async () => {
+			const types = await getAccountTypes();
+			setAllAccountTypes(types);
+		};
+		fetchTypes();
+	}, []);
 
 	const handleSubmit = async (e: React.FormEvent) => {
 		e.preventDefault();
@@ -57,13 +48,12 @@ export function AddAccountDialog({ open, onOpenChange, onSuccess }: AddAccountDi
 		try {
 			const input: CreateAccountInput = {
 				name: formData.name!,
-				type: accountType,
-				subtype: (formData.subtype as AccountSubtype) || null,
+				account_type_id: formData.account_type_id!,
 				current_balance: formData.current_balance || 0,
 				interest_rate: formData.interest_rate || null,
 				interest_type: formData.interest_rate ? "compound" : null,
 				target_balance: formData.target_balance || null,
-				institution_name: formData.institution_name || null,
+				institution: formData.institution || null,
 				notes: formData.notes || null,
 			};
 
@@ -72,9 +62,9 @@ export function AddAccountDialog({ open, onOpenChange, onSuccess }: AddAccountDi
 			if (result) {
 				toast.success("Account created successfully");
 				onOpenChange(false);
-				onSuccess();
+				onSuccess(result);
 				// Reset form
-				setFormData({ type: "asset", current_balance: 0 });
+				setFormData({ current_balance: 0 });
 			} else {
 				toast.error("Failed to create account");
 			}
@@ -85,11 +75,11 @@ export function AddAccountDialog({ open, onOpenChange, onSuccess }: AddAccountDi
 		}
 	};
 
-	const subtypes = accountType === "asset" ? assetSubtypes : liabilitySubtypes;
+	const availableTypes = allAccountTypes.filter((t) => t.class === accountType);
 
 	return (
 		<Dialog open={open} onOpenChange={onOpenChange}>
-			<DialogContent className="max-w-2xl max-h-[90vh] overflow-y-auto">
+			<DialogContent className="max-w-2xl max-h-[90vh] overflow-y-auto sm:max-w-[650px]">
 				<DialogHeader>
 					<DialogTitle>Add New Account</DialogTitle>
 					<DialogDescription>Create a new account to track your assets or liabilities.</DialogDescription>
@@ -105,7 +95,7 @@ export function AddAccountDialog({ open, onOpenChange, onSuccess }: AddAccountDi
 								variant={accountType === "asset" ? "default" : "outline"}
 								onClick={() => {
 									setAccountType("asset");
-									setFormData({ ...formData, type: "asset", subtype: undefined });
+									setFormData({ ...formData, account_type_id: undefined });
 								}}
 								className="w-full"
 							>
@@ -116,7 +106,7 @@ export function AddAccountDialog({ open, onOpenChange, onSuccess }: AddAccountDi
 								variant={accountType === "liability" ? "default" : "outline"}
 								onClick={() => {
 									setAccountType("liability");
-									setFormData({ ...formData, type: "liability", subtype: undefined });
+									setFormData({ ...formData, account_type_id: undefined });
 								}}
 								className="w-full"
 							>
@@ -138,20 +128,20 @@ export function AddAccountDialog({ open, onOpenChange, onSuccess }: AddAccountDi
 							/>
 						</div>
 
-						{/* Subtype */}
+						{/* Account Type (Category) */}
 						<div className="space-y-2">
-							<Label htmlFor="subtype">Category</Label>
+							<Label htmlFor="type-id">Category</Label>
 							<Select
-								value={formData.subtype || ""}
-								onValueChange={(value) => setFormData({ ...formData, subtype: value as AccountSubtype })}
+								value={formData.account_type_id || ""}
+								onValueChange={(value) => setFormData({ ...formData, account_type_id: value })}
 							>
-								<SelectTrigger>
+								<SelectTrigger id="type-id">
 									<SelectValue placeholder="Select category" />
 								</SelectTrigger>
 								<SelectContent>
-									{subtypes.map((subtype) => (
-										<SelectItem key={subtype.value} value={subtype.value}>
-											{subtype.label}
+									{availableTypes.map((type) => (
+										<SelectItem key={type.id} value={type.id}>
+											{type.name}
 										</SelectItem>
 									))}
 								</SelectContent>
@@ -208,21 +198,19 @@ export function AddAccountDialog({ open, onOpenChange, onSuccess }: AddAccountDi
 							<Input
 								id="institution"
 								placeholder="Chase, Ally Bank, etc."
-								value={formData.institution_name || ""}
-								onChange={(e) => setFormData({ ...formData, institution_name: e.target.value })}
+								value={formData.institution || ""}
+								onChange={(e) => setFormData({ ...formData, institution: e.target.value })}
 							/>
 						</div>
 					</div>
 
 					{/* Notes */}
 					<div className="space-y-2">
-						<Label htmlFor="notes">Notes</Label>
-						<Textarea
-							id="notes"
+						<Label>Notes</Label>
+						<CompactTiptap
+							content={formData.notes || ""}
+							onChange={(content) => setFormData({ ...formData, notes: content })}
 							placeholder="Additional information about this account..."
-							value={formData.notes || ""}
-							onChange={(e) => setFormData({ ...formData, notes: e.target.value })}
-							rows={3}
 						/>
 					</div>
 

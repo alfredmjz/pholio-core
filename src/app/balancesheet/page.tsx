@@ -23,18 +23,21 @@ export default async function BalanceSheetPage() {
 		accounts = await getAccounts();
 	}
 
+	// Artificial delay to show skeleton in dev/mock mode
+	if (process.env.NODE_ENV === "development") {
+		await new Promise((resolve) => setTimeout(resolve, 1500));
+	}
+
 	return (
 		<div className="flex-1 w-full">
-			<Suspense fallback={<BalanceSheetLoadingSkeleton />}>
-				<BalanceSheetClient
-					initialAccounts={accounts}
-					initialSummary={{
-						totalAssets: summary.totalAssets,
-						totalLiabilities: summary.totalLiabilities,
-						netWorth: summary.netWorth,
-					}}
-				/>
-			</Suspense>
+			<BalanceSheetClient
+				initialAccounts={accounts}
+				initialSummary={{
+					totalAssets: summary.totalAssets,
+					totalLiabilities: summary.totalLiabilities,
+					netWorth: summary.netWorth,
+				}}
+			/>
 		</div>
 	);
 }

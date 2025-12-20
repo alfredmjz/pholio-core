@@ -147,10 +147,7 @@ export async function getBalanceSheetSummary(): Promise<BalanceSheetSummary> {
 	};
 }
 
-/**
- * Create a new account
- */
-export async function createAccount(input: CreateAccountInput): Promise<Account | null> {
+export async function createAccount(input: CreateAccountInput): Promise<AccountWithType | null> {
 	const supabase = await createClient();
 	const {
 		data: { user },
@@ -166,7 +163,12 @@ export async function createAccount(input: CreateAccountInput): Promise<Account 
 			user_id: user.id,
 			...input,
 		})
-		.select()
+		.select(
+			`
+			*,
+			account_type:account_types(*)
+		`
+		)
 		.single();
 
 	if (error) {

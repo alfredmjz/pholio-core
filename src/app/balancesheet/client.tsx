@@ -1,6 +1,7 @@
 "use client";
 
-import { useState, useEffect, useRef } from "react";
+import { useState, useEffect, useRef, useMemo } from "react";
+import { useRouter } from "next/navigation";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Plus, Search } from "lucide-react";
@@ -29,9 +30,10 @@ interface BalanceSheetClientProps {
 
 export function BalanceSheetClient({ initialAccounts, initialSummary }: BalanceSheetClientProps) {
 	const [accounts, setAccounts] = useState<AccountWithType[]>(initialAccounts);
+	const router = useRouter();
 	const [selectedAccount, setSelectedAccount] = useState<AccountWithType | null>(initialAccounts[0] || null);
 	const [transactions, setTransactions] = useState<AccountTransaction[]>([]);
-	const [isLoadingTransactions, setIsLoadingTransactions] = useState(false);
+	const [isLoadingTransactions, setIsLoadingTransactions] = useState(!!(initialAccounts && initialAccounts.length > 0));
 	const [searchQuery, setSearchQuery] = useState("");
 	const [addDialogOpen, setAddDialogOpen] = useState(false);
 	const [transactionDialogOpen, setTransactionDialogOpen] = useState(false);
@@ -56,6 +58,7 @@ export function BalanceSheetClient({ initialAccounts, initialSummary }: BalanceS
 			if (cachedTransactions) {
 				// If cached, show immediately without loading state
 				setTransactions(cachedTransactions);
+				setIsLoadingTransactions(false);
 				// Still fetch in background to refresh cache
 				refreshTransactionsInBackground(accountId);
 			} else {
@@ -95,17 +98,55 @@ export function BalanceSheetClient({ initialAccounts, initialSummary }: BalanceS
 		}
 	};
 
-	const handleAccountSuccess = () => {
-		// Reload page to fetch updated data
-		window.location.reload();
+	const handleAccountSuccess = (newAccount: AccountWithType) => {
+		// Optimistically add the new account to the list
+		setAccounts((prev) => [...prev, newAccount]);
+		// Select the new account
+		setSelectedAccount(newAccount);
+		// Revalidate in background
+		router.refresh();
 	};
 
-	const handleTransactionSuccess = () => {
-		// Reload transactions and page
+	const handleTransactionSuccess = (accountId: string, amount: number, transactionType: string) => {
+		// Optimistically update the account balance
+		setAccounts((prev) =>
+			prev.map((acc) => {
+				if (acc.id !== accountId) return acc;
+
+				let newBalance = acc.current_balance;
+				if (acc.account_type?.class === "asset") {
+					// Assets: deposits increase, withdrawals decrease
+					if (transactionType === "deposit") {
+						newBalance += amount;
+					} else if (transactionType === "withdrawal") {
+						newBalance -= amount;
+					}
+				} else {
+					// Liabilities: payments decrease
+					if (transactionType === "payment") {
+						newBalance -= amount;
+					}
+				}
+
+				return { ...acc, current_balance: newBalance };
+			})
+		);
+
+		// Reload transactions for the current account
 		if (selectedAccount) {
 			loadTransactions(selectedAccount.id);
 		}
-		window.location.reload();
+
+		// Revalidate in background
+		router.refresh();
+	};
+
+	const handleAccountClick = (account: AccountWithType) => {
+		if (selectedAccount?.id === account.id) return;
+		setSelectedAccount(account);
+		// Reset state immediately to show skeleton and avoid flashing old data
+		setTransactions([]);
+		setIsLoadingTransactions(true);
 	};
 
 	const formatCurrency = (amount: number) => {
@@ -116,6 +157,22 @@ export function BalanceSheetClient({ initialAccounts, initialSummary }: BalanceS
 			maximumFractionDigits: 0,
 		}).format(amount);
 	};
+
+	// Calculate real-time summary from current accounts state
+	const summary = useMemo(() => {
+		const totalAssets = assetAccounts.reduce((sum, acc) => sum + acc.current_balance, 0);
+		const totalLiabilities = liabilityAccounts.reduce((sum, acc) => sum + acc.current_balance, 0);
+		const netWorth = totalAssets - totalLiabilities;
+
+		return {
+			totalAssets,
+			totalLiabilities,
+			netWorth,
+			previousTotalAssets: initialSummary.previousTotalAssets,
+			previousTotalLiabilities: initialSummary.previousTotalLiabilities,
+			previousNetWorth: initialSummary.previousNetWorth,
+		};
+	}, [assetAccounts, liabilityAccounts, initialSummary]);
 
 	return (
 		<PageShell>
@@ -136,12 +193,12 @@ export function BalanceSheetClient({ initialAccounts, initialSummary }: BalanceS
 				{/* Top Row: Net Worth Summary */}
 				<div className="w-full">
 					<NetWorthSummary
-						totalAssets={initialSummary.totalAssets}
-						totalLiabilities={initialSummary.totalLiabilities}
-						netWorth={initialSummary.netWorth}
-						previousTotalAssets={initialSummary.previousTotalAssets}
-						previousTotalLiabilities={initialSummary.previousTotalLiabilities}
-						previousNetWorth={initialSummary.previousNetWorth}
+						totalAssets={summary.totalAssets}
+						totalLiabilities={summary.totalLiabilities}
+						netWorth={summary.netWorth}
+						previousTotalAssets={summary.previousTotalAssets}
+						previousTotalLiabilities={summary.previousTotalLiabilities}
+						previousNetWorth={summary.previousNetWorth}
 					/>
 				</div>
 
@@ -168,7 +225,7 @@ export function BalanceSheetClient({ initialAccounts, initialSummary }: BalanceS
 									<div className="flex items-center justify-between px-1">
 										<h3 className="text-sm font-semibold text-muted-foreground uppercase">Assets</h3>
 										<span className="text-sm font-semibold text-green-600 dark:text-green-400">
-											{formatCurrency(initialSummary.totalAssets)}
+											{formatCurrency(summary.totalAssets)}
 										</span>
 									</div>
 									{filteredAssets.map((account) => (
@@ -176,7 +233,7 @@ export function BalanceSheetClient({ initialAccounts, initialSummary }: BalanceS
 											key={account.id}
 											account={account}
 											isSelected={selectedAccount?.id === account.id}
-											onClick={() => setSelectedAccount(account)}
+											onClick={() => handleAccountClick(account)}
 										/>
 									))}
 								</div>
@@ -188,7 +245,7 @@ export function BalanceSheetClient({ initialAccounts, initialSummary }: BalanceS
 									<div className="flex items-center justify-between px-1">
 										<h3 className="text-sm font-semibold text-muted-foreground uppercase">Liabilities</h3>
 										<span className="text-sm font-semibold text-red-600 dark:text-red-400">
-											{formatCurrency(initialSummary.totalLiabilities)}
+											{formatCurrency(summary.totalLiabilities)}
 										</span>
 									</div>
 									{filteredLiabilities.map((account) => (
@@ -196,7 +253,7 @@ export function BalanceSheetClient({ initialAccounts, initialSummary }: BalanceS
 											key={account.id}
 											account={account}
 											isSelected={selectedAccount?.id === account.id}
-											onClick={() => setSelectedAccount(account)}
+											onClick={() => handleAccountClick(account)}
 										/>
 									))}
 								</div>

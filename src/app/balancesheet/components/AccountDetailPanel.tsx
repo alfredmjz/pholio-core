@@ -19,6 +19,7 @@ interface AccountDetailPanelProps {
 	onEdit: () => void;
 	onDelete: () => void;
 	onRecordTransaction: () => void;
+	onAdjustBalance: () => void;
 }
 
 /**
@@ -31,6 +32,7 @@ export function AccountDetailPanel({
 	isLoadingTransactions = false,
 	onDelete,
 	onRecordTransaction,
+	onAdjustBalance,
 }: Omit<AccountDetailPanelProps, "onEdit">) {
 	const [isEditing, setIsEditing] = useState(false);
 	const [editValues, setEditValues] = useState({
@@ -148,6 +150,7 @@ export function AccountDetailPanel({
 					isLoading={isLoadingTransactions}
 					accountClass={accountClass}
 					onRecordTransaction={onRecordTransaction}
+					onAdjustBalance={onAdjustBalance}
 					formatCurrency={formatCurrency}
 					formatDate={formatDate}
 				/>

@@ -152,21 +152,22 @@ export function AddAccountDialog({ open, onOpenChange, onSuccess }: AddAccountDi
 					<div className="grid grid-cols-2 gap-4">
 						{/* Current Balance */}
 						<div className="space-y-2">
-							<Label htmlFor="balance">Current Balance *</Label>
+							<Label htmlFor="balance">Current Balance</Label>
 							<Input
 								id="balance"
 								type="number"
 								step="0.01"
 								placeholder="0.00"
-								value={formData.current_balance || ""}
-								onChange={(e) => setFormData({ ...formData, current_balance: parseFloat(e.target.value) })}
-								required
+								value={formData.current_balance ?? ""}
+								onChange={(e) =>
+									setFormData({ ...formData, current_balance: e.target.value ? parseFloat(e.target.value) : 0 })
+								}
 							/>
 						</div>
 
 						{/* Target Balance */}
 						<div className="space-y-2">
-							<Label htmlFor="target">{accountType === "asset" ? "Target Goal" : "Original Amount"}</Label>
+							<Label htmlFor="target">{accountType === "asset" ? "Target Goal *" : "Original Amount"}</Label>
 							<Input
 								id="target"
 								type="number"
@@ -174,6 +175,7 @@ export function AddAccountDialog({ open, onOpenChange, onSuccess }: AddAccountDi
 								placeholder="0.00"
 								value={formData.target_balance || ""}
 								onChange={(e) => setFormData({ ...formData, target_balance: parseFloat(e.target.value) || null })}
+								required={accountType === "asset"}
 							/>
 						</div>
 					</div>

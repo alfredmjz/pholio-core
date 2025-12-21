@@ -12,6 +12,7 @@ interface TransactionHistoryProps {
 	isLoading: boolean;
 	accountClass: "asset" | "liability" | undefined;
 	onRecordTransaction: () => void;
+	onAdjustBalance: () => void;
 	formatCurrency: (amount: number) => string;
 	formatDate: (dateString: string) => string;
 }
@@ -24,6 +25,7 @@ export function TransactionHistory({
 	isLoading,
 	accountClass,
 	onRecordTransaction,
+	onAdjustBalance,
 	formatCurrency,
 	formatDate,
 }: TransactionHistoryProps) {
@@ -36,10 +38,15 @@ export function TransactionHistory({
 						{transactions.length}
 					</Badge>
 				</h3>
-				<Button size="sm" onClick={onRecordTransaction}>
-					<Plus className="h-4 w-4" />
-					{accountClass === "asset" ? "Add Deposit" : "Record Payment"}
-				</Button>
+				<div className="flex items-center gap-2">
+					<Button size="sm" variant="outline" onClick={onAdjustBalance}>
+						Adjust Balance
+					</Button>
+					<Button size="sm" onClick={onRecordTransaction}>
+						<Plus className="h-4 w-4" />
+						Record Transaction
+					</Button>
+				</div>
 			</div>
 
 			<div className="flex-1 overflow-y-auto px-6 pb-6 flex flex-col gap-3">

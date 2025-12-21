@@ -71,7 +71,7 @@ export function TransactionRow({ transaction, accountClass, formatCurrency, form
 					)}
 				>
 					{sign}
-					{formatCurrency(transaction.amount)}
+					{formatCurrency(Math.abs(transaction.amount))}
 				</div>
 				<Badge
 					variant="secondary"

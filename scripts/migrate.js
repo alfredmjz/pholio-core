@@ -44,7 +44,7 @@ function getMigrationFiles() {
 
 	const files = fs
 		.readdirSync(migrationsDir)
-		.filter((file) => file.endsWith(".sql"))
+		.filter((file) => file.endsWith(".sql") && file !== "000_destroy_and_reset.sql")
 		.sort(); // Sort to ensure order
 
 	return files.map((file) => ({

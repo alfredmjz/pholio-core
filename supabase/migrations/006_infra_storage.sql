@@ -1,3 +1,7 @@
+-- Migration: 006_infra_storage
+-- Description: Storage buckets and policies
+-- Previous: 003_create_avatars_bucket.sql
+
 -- Create the 'avatars' bucket
 INSERT INTO storage.buckets (id, name, public)
 VALUES ('avatars', 'avatars', true)

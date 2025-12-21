@@ -281,7 +281,7 @@ export const sampleAccountTransactions: Record<string, AccountTransaction[]> = {
 			transaction_type: "deposit",
 			description: "Monthly savings",
 			transaction_date: "2024-12-15",
-			linked_allocation_transaction_id: null,
+			linked_allocation_transaction_id: "tx-linked-savings",
 			created_at: "2024-12-15T10:00:00Z",
 		},
 		{
@@ -318,7 +318,7 @@ export const sampleAccountTransactions: Record<string, AccountTransaction[]> = {
 			transaction_type: "payment",
 			description: "Payment",
 			transaction_date: "2024-12-10",
-			linked_allocation_transaction_id: null,
+			linked_allocation_transaction_id: "tx-linked-debt",
 			created_at: "2024-12-10T10:00:00Z",
 		},
 	],

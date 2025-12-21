@@ -10,14 +10,17 @@ import { NetWorthSummary } from "./components/NetWorthSummary";
 import { AccountCard } from "./components/AccountCard";
 import { AccountDetailPanel } from "./components/AccountDetailPanel";
 import { AddAccountDialog } from "./components/AddAccountDialog";
-import { RecordTransactionDialog } from "./components/RecordTransactionDialog";
+import { UnifiedTransactionDialog } from "@/components/dialogs/UnifiedTransactionDialog";
+import { AccountAdjustmentDialog } from "./components/AccountAdjustmentDialog";
 import { getAccountTransactions } from "./actions";
+import type { AllocationCategory } from "@/app/allocations/types";
 import { toast } from "sonner";
 
 import { PageShell, PageHeader, PageContent } from "@/components/layout/page-shell";
 
 interface BalanceSheetClientProps {
 	initialAccounts: AccountWithType[];
+	initialCategories: AllocationCategory[];
 	initialSummary: {
 		totalAssets: number;
 		totalLiabilities: number;
@@ -28,7 +31,7 @@ interface BalanceSheetClientProps {
 	};
 }
 
-export function BalanceSheetClient({ initialAccounts, initialSummary }: BalanceSheetClientProps) {
+export function BalanceSheetClient({ initialAccounts, initialCategories, initialSummary }: BalanceSheetClientProps) {
 	const [accounts, setAccounts] = useState<AccountWithType[]>(initialAccounts);
 	const router = useRouter();
 	const [selectedAccount, setSelectedAccount] = useState<AccountWithType | null>(initialAccounts[0] || null);
@@ -37,6 +40,7 @@ export function BalanceSheetClient({ initialAccounts, initialSummary }: BalanceS
 	const [searchQuery, setSearchQuery] = useState("");
 	const [addDialogOpen, setAddDialogOpen] = useState(false);
 	const [transactionDialogOpen, setTransactionDialogOpen] = useState(false);
+	const [adjustmentDialogOpen, setAdjustmentDialogOpen] = useState(false);
 
 	// Transaction cache for optimistic loading
 	const transactionCache = useRef<Map<string, AccountTransaction[]>>(new Map());
@@ -176,17 +180,18 @@ export function BalanceSheetClient({ initialAccounts, initialSummary }: BalanceS
 
 	return (
 		<PageShell>
-			<PageHeader isSticky={false}>
-				<div className="flex items-center justify-between">
-					<div>
-						<h1 className="text-3xl font-bold tracking-tight">Balance Sheet</h1>
-						<p className="text-sm text-muted-foreground mt-1">Track your assets and liabilities</p>
-					</div>
-					<Button onClick={() => setAddDialogOpen(true)} className="w-fit">
-						<Plus className="h-4 w-4 mr-2" />
-						Add Account
-					</Button>
+			<PageHeader
+				isSticky={false}
+				className="flex flex-col md:flex-row gap-4 justify-between items-start md:items-center"
+			>
+				<div>
+					<h1 className="text-3xl font-bold tracking-tight">Balance Sheet</h1>
+					<p className="text-sm text-muted-foreground">Track your assets and liabilities</p>
 				</div>
+				<Button onClick={() => setAddDialogOpen(true)}>
+					<Plus className="h-4 w-4 mr-2" />
+					Add Account
+				</Button>
 			</PageHeader>
 
 			<PageContent>
@@ -275,6 +280,7 @@ export function BalanceSheetClient({ initialAccounts, initialSummary }: BalanceS
 							isLoadingTransactions={isLoadingTransactions}
 							onDelete={() => toast.info("Delete functionality coming soon")}
 							onRecordTransaction={() => setTransactionDialogOpen(true)}
+							onAdjustBalance={() => setAdjustmentDialogOpen(true)}
 						/>
 					</div>
 				</div>
@@ -282,9 +288,18 @@ export function BalanceSheetClient({ initialAccounts, initialSummary }: BalanceS
 
 			{/* Dialogs */}
 			<AddAccountDialog open={addDialogOpen} onOpenChange={setAddDialogOpen} onSuccess={handleAccountSuccess} />
-			<RecordTransactionDialog
+			<UnifiedTransactionDialog
 				open={transactionDialogOpen}
 				onOpenChange={setTransactionDialogOpen}
+				categories={initialCategories}
+				accounts={accounts}
+				defaultAccountId={selectedAccount?.id}
+				onSuccess={() => selectedAccount && handleTransactionSuccess(selectedAccount.id, 0, "adjustment")}
+				context="balancesheet"
+			/>
+			<AccountAdjustmentDialog
+				open={adjustmentDialogOpen}
+				onOpenChange={setAdjustmentDialogOpen}
 				account={selectedAccount}
 				onSuccess={handleTransactionSuccess}
 			/>

@@ -2,6 +2,7 @@ import { Suspense } from "react";
 import { requireAuth } from "@/lib/auth";
 import { AllocationClient } from "./client";
 import { getOrCreateAllocation, getAllocationSummary, getTransactionsForMonth } from "./actions";
+import { getAccountsForSelector } from "@/lib/actions/unified-transaction-actions";
 
 import { sampleAllocationSummary, sampleTransactions } from "@/mock-data/allocations";
 import { AllocationsLoadingSkeleton } from "./components/allocations-loading-skeleton";
@@ -27,19 +28,23 @@ export default async function AllocationsPage({
 
 	let summary = null;
 	let transactions: any[] = [];
+	let accounts: any[] = [];
 
 	if (process.env.NEXT_PUBLIC_USE_SAMPLE_DATA === "true") {
 		summary = sampleAllocationSummary;
 		transactions = sampleTransactions;
+		// Initialize accounts with sample data if needed, or just let it fetch
+		accounts = await getAccountsForSelector();
 	} else {
 		// Fetch data on server side
 		const allocation = await getOrCreateAllocation(year, month, 9000);
 
 		if (allocation) {
 			// Parallelize independent queries for better performance (50% faster)
-			[summary, transactions] = await Promise.all([
+			[summary, transactions, accounts] = await Promise.all([
 				getAllocationSummary(allocation.id),
 				getTransactionsForMonth(year, month),
+				getAccountsForSelector(),
 			]);
 		}
 	}
@@ -52,10 +57,9 @@ export default async function AllocationsPage({
 					initialMonth={month}
 					initialSummary={summary}
 					initialTransactions={transactions}
+					initialAccounts={accounts}
 				/>
 			</Suspense>
 		</div>
 	);
 }
-
-

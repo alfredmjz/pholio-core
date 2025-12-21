@@ -17,10 +17,11 @@ import { ImportTemplateDialog } from "./components/ImportTemplateDialog";
 import { ExportDialog } from "./components/ExportDialog";
 import type { TransactionType } from "./components/TransactionTypeIcon";
 import { useAllocationSync } from "@/hooks/useAllocationSync";
-import { createCategory } from "./actions";
+import { createCategory, getOrCreateAllocation } from "./actions";
 import { toast } from "sonner";
 import { AllocationProvider } from "./context/AllocationContext";
 import type { MonthYear, AllocationSummary, Transaction, ViewMode } from "./types";
+import type { AccountWithType } from "@/app/balancesheet/types";
 import { PageShell, PageHeader, PageContent } from "@/components/layout/page-shell";
 
 interface AllocationClientProps {
@@ -28,6 +29,7 @@ interface AllocationClientProps {
 	initialMonth: number;
 	initialSummary: AllocationSummary | null;
 	initialTransactions: Transaction[];
+	initialAccounts: AccountWithType[];
 }
 
 const MONTH_NAMES = [
@@ -50,6 +52,7 @@ export function AllocationClient({
 	initialMonth,
 	initialSummary,
 	initialTransactions,
+	initialAccounts,
 }: AllocationClientProps) {
 	const router = useRouter();
 
@@ -132,10 +135,15 @@ export function AllocationClient({
 		setTemplateDialogOpen(false);
 	};
 
-	const handleStartFresh = (expectedIncome: number) => {
-		toast.info("Creating new allocation...");
+	const handleStartFresh = async (expectedIncome: number) => {
+		const allocation = await getOrCreateAllocation(currentMonth.year, currentMonth.month, expectedIncome);
+		if (allocation) {
+			toast.success("Budget created!");
+			router.refresh();
+		} else {
+			toast.error("Failed to create budget");
+		}
 		setTemplateDialogOpen(false);
-		// In real implementation, this would create the allocation
 	};
 
 	// Get previous month info for template dialog
@@ -253,7 +261,12 @@ export function AllocationClient({
 							<Button variant="outline" size="icon" onClick={() => toast.info("Settings coming soon!")}>
 								<Settings className="h-4 w-4" />
 							</Button>
-							<AddTransactionButton categories={categories} className="bg-primary hover:bg-primary/90" />
+							<AddTransactionButton
+								categories={categories}
+								accounts={initialAccounts}
+								className="bg-primary hover:bg-primary/90"
+								onSuccess={() => router.refresh()}
+							/>
 						</div>
 					</div>
 				</PageHeader>
@@ -266,7 +279,8 @@ export function AllocationClient({
 						<div className="flex-1 lg:flex-[3] flex flex-col gap-6">
 							{/* Budget Summary Cards */}
 							<BudgetSummaryCards
-								totalBudget={summary.summary.total_budget_caps}
+								expectedIncome={summary.allocation.expected_income}
+								totalBudgetAllocated={summary.summary.total_budget_caps}
 								totalSpent={summary.summary.total_actual_spend}
 							/>
 
@@ -284,8 +298,10 @@ export function AllocationClient({
 					<TransactionLedger
 						transactions={transactions}
 						categories={categories}
+						accounts={initialAccounts}
 						externalTypeFilter={typeFilter}
 						onClearExternalFilter={() => setTypeFilter(null)}
+						onTransactionSuccess={() => router.refresh()}
 					/>
 				</PageContent>
 

@@ -2,33 +2,30 @@
 
 import { useState, useEffect, useRef, useMemo } from "react";
 import { useRouter } from "next/navigation";
+import { Card } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Plus, Search } from "lucide-react";
-import { AccountWithType, AccountTransaction } from "./types";
-import { NetWorthSummary } from "./components/NetWorthSummary";
+import { AccountWithType, AccountTransaction, BalanceSheetSummary } from "./types";
+import { NetWorthCard } from "./components/NetWorthCard";
+import { AssetGrowthCard } from "./components/AssetGrowthCard";
+import { DebtRundownCard } from "./components/DebtRundownCard";
+import { RecentActivity } from "./components/RecentActivity";
 import { AccountCard } from "./components/AccountCard";
-import { AccountDetailPanel } from "./components/AccountDetailPanel";
 import { AddAccountDialog } from "./components/AddAccountDialog";
 import { UnifiedTransactionDialog } from "@/components/dialogs/UnifiedTransactionDialog";
 import { AccountAdjustmentDialog } from "./components/AccountAdjustmentDialog";
 import { getAccountTransactions } from "./actions";
 import type { AllocationCategory } from "@/app/allocations/types";
 import { toast } from "sonner";
+import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
 
 import { PageShell, PageHeader, PageContent } from "@/components/layout/page-shell";
 
 interface BalanceSheetClientProps {
 	initialAccounts: AccountWithType[];
 	initialCategories: AllocationCategory[];
-	initialSummary: {
-		totalAssets: number;
-		totalLiabilities: number;
-		netWorth: number;
-		previousTotalAssets?: number;
-		previousTotalLiabilities?: number;
-		previousNetWorth?: number;
-	};
+	initialSummary: BalanceSheetSummary;
 }
 
 export function BalanceSheetClient({ initialAccounts, initialCategories, initialSummary }: BalanceSheetClientProps) {
@@ -195,93 +192,86 @@ export function BalanceSheetClient({ initialAccounts, initialCategories, initial
 			</PageHeader>
 
 			<PageContent>
-				{/* Top Row: Net Worth Summary */}
-				<div className="w-full">
-					<NetWorthSummary
-						totalAssets={summary.totalAssets}
-						totalLiabilities={summary.totalLiabilities}
-						netWorth={summary.netWorth}
-						previousTotalAssets={summary.previousTotalAssets}
-						previousTotalLiabilities={summary.previousTotalLiabilities}
-						previousNetWorth={summary.previousNetWorth}
-					/>
-				</div>
-
-				{/* Master-Detail Layout */}
-				<div className="flex gap-6 min-h-[600px]">
-					{/* Sidebar - Account List */}
-					<div className="w-80 flex flex-col gap-4 overflow-hidden">
-						{/* Search */}
-						<div className="relative">
-							<Search className="absolute left-3 top-1/2 transform -translate-y-1/2 h-4 w-4 text-muted-foreground" />
-							<Input
-								placeholder="Search accounts..."
-								value={searchQuery}
-								onChange={(e) => setSearchQuery(e.target.value)}
-								className="pl-9"
-							/>
-						</div>
-
-						{/* Scrollable Account List */}
-						<div className="flex-1 overflow-y-auto space-y-4">
-							{/* Assets */}
-							{filteredAssets.length > 0 && (
-								<div className="space-y-2">
-									<div className="flex items-center justify-between px-1">
-										<h3 className="text-sm font-semibold text-muted-foreground uppercase">Assets</h3>
-										<span className="text-sm font-semibold text-green-600 dark:text-green-400">
-											{formatCurrency(summary.totalAssets)}
-										</span>
-									</div>
-									{filteredAssets.map((account) => (
-										<AccountCard
-											key={account.id}
-											account={account}
-											isSelected={selectedAccount?.id === account.id}
-											onClick={() => handleAccountClick(account)}
-										/>
-									))}
-								</div>
-							)}
-
-							{/* Liabilities */}
-							{filteredLiabilities.length > 0 && (
-								<div className="space-y-2">
-									<div className="flex items-center justify-between px-1">
-										<h3 className="text-sm font-semibold text-muted-foreground uppercase">Liabilities</h3>
-										<span className="text-sm font-semibold text-red-600 dark:text-red-400">
-											{formatCurrency(summary.totalLiabilities)}
-										</span>
-									</div>
-									{filteredLiabilities.map((account) => (
-										<AccountCard
-											key={account.id}
-											account={account}
-											isSelected={selectedAccount?.id === account.id}
-											onClick={() => handleAccountClick(account)}
-										/>
-									))}
-								</div>
-							)}
-
-							{filteredAssets.length === 0 && filteredLiabilities.length === 0 && (
-								<div className="text-center py-8 text-muted-foreground">
-									<p className="text-sm">{searchQuery ? "No accounts found" : "No accounts yet"}</p>
-								</div>
-							)}
-						</div>
+				<div className="flex flex-col gap-6">
+					{/* Top Cards Row */}
+					<div className="grid grid-cols-1 md:grid-cols-3 gap-6">
+						<NetWorthCard
+							netWorth={summary.netWorth}
+							totalAssets={summary.totalAssets}
+							totalLiabilities={summary.totalLiabilities}
+							previousNetWorth={summary.previousNetWorth}
+						/>
+						<AssetGrowthCard
+							totalAssets={summary.totalAssets}
+							previousTotalAssets={summary.previousTotalAssets}
+							historicalData={initialSummary.historicalAssets || []}
+						/>
+						<DebtRundownCard
+							totalLiabilities={summary.totalLiabilities}
+							previousTotalLiabilities={summary.previousTotalLiabilities}
+							historicalData={initialSummary.historicalLiabilities || []}
+						/>
 					</div>
 
-					{/* Main Panel - Account Details */}
-					<div className="flex-1 overflow-hidden">
-						<AccountDetailPanel
-							account={selectedAccount}
-							transactions={transactions}
-							isLoadingTransactions={isLoadingTransactions}
-							onDelete={() => toast.info("Delete functionality coming soon")}
-							onRecordTransaction={() => setTransactionDialogOpen(true)}
-							onAdjustBalance={() => setAdjustmentDialogOpen(true)}
-						/>
+					{/* Main Content: Account List and Activity */}
+					<div className="grid grid-cols-1 lg:grid-cols-3 gap-6">
+						{/* All Accounts List */}
+						<Card className="lg:col-span-2 flex flex-col overflow-hidden bg-background/50 border shadow-sm">
+							<div className="p-6 border-b flex flex-col sm:flex-row gap-4 items-start sm:items-center justify-between">
+								<div>
+									<h2 className="text-xl font-bold">All Accounts</h2>
+									<p className="text-sm text-muted-foreground">{accounts.length} accounts</p>
+								</div>
+								<div className="flex items-center gap-2 w-full sm:w-auto">
+									<div className="relative flex-1 sm:w-64">
+										<Search className="absolute left-3 top-1/2 transform -translate-y-1/2 h-4 w-4 text-muted-foreground" />
+										<Input
+											placeholder="Search..."
+											value={searchQuery}
+											onChange={(e) => setSearchQuery(e.target.value)}
+											className="pl-9 h-10"
+										/>
+									</div>
+									<Select defaultValue="all">
+										<SelectTrigger className="w-[120px] h-10">
+											<SelectValue placeholder="All" />
+										</SelectTrigger>
+										<SelectContent>
+											<SelectItem value="all">All</SelectItem>
+											<SelectItem value="assets">Assets</SelectItem>
+											<SelectItem value="liabilities">Liabilities</SelectItem>
+										</SelectContent>
+									</Select>
+								</div>
+							</div>
+
+							<div className="flex-1 overflow-y-auto">
+								{/* Account Items */}
+								<div className="flex flex-col divide-y divide-border">
+									{filteredAssets.concat(filteredLiabilities).map((account) => (
+										<AccountCard
+											key={account.id}
+											account={account}
+											onClick={() => {
+												setSelectedAccount(account);
+												setAdjustmentDialogOpen(true);
+											}}
+										/>
+									))}
+
+									{filteredAssets.length === 0 && filteredLiabilities.length === 0 && (
+										<div className="p-12 text-center text-muted-foreground">
+											<p>{searchQuery ? "No accounts found" : "No accounts yet"}</p>
+										</div>
+									)}
+								</div>
+							</div>
+						</Card>
+
+						{/* Recent Activity Feed */}
+						<div className="lg:col-span-1">
+							<RecentActivity />
+						</div>
 					</div>
 				</div>
 			</PageContent>

@@ -41,6 +41,7 @@ export default async function BalanceSheetPage() {
 				initialAccounts={accounts}
 				initialCategories={categories}
 				initialSummary={{
+					...summary,
 					totalAssets: summary.totalAssets,
 					totalLiabilities: summary.totalLiabilities,
 					netWorth: summary.netWorth,

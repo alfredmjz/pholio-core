@@ -217,7 +217,7 @@ export function BalanceSheetClient({ initialAccounts, initialCategories, initial
 					<div className="grid grid-cols-1 lg:grid-cols-3 gap-6">
 						{/* All Accounts List */}
 						<Card className="lg:col-span-2 flex flex-col overflow-hidden bg-background/50 border shadow-sm">
-							<div className="p-6 border-b flex flex-col sm:flex-row gap-4 items-start sm:items-center justify-between">
+							<div className="p-6 border-border border-b flex flex-col sm:flex-row gap-4 items-start sm:items-center justify-between">
 								<div>
 									<h2 className="text-xl font-bold">All Accounts</h2>
 									<p className="text-sm text-muted-foreground">{accounts.length} accounts</p>

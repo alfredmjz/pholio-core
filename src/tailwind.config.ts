@@ -30,6 +30,9 @@ const config: Config = {
 					DEFAULT: "hsl(var(--accent))",
 					foreground: "hsl(var(--accent-foreground))",
 				},
+				hover: {
+					DEFAULT: "hsl(var(--hover))",
+				},
 				muted: {
 					DEFAULT: "hsl(var(--muted))",
 					foreground: "hsl(var(--muted-foreground))",

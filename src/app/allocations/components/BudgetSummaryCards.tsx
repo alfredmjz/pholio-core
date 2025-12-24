@@ -5,14 +5,20 @@ import { CheckCircle2 } from "lucide-react";
 import { cn } from "@/lib/utils";
 
 interface BudgetSummaryCardsProps {
-	totalBudget: number;
+	expectedIncome: number;
+	totalBudgetAllocated: number;
 	totalSpent: number;
 	className?: string;
 }
 
-export function BudgetSummaryCards({ totalBudget, totalSpent, className }: BudgetSummaryCardsProps) {
-	const leftToSpend = totalBudget - totalSpent;
-	const spentPercentage = totalBudget > 0 ? (totalSpent / totalBudget) * 100 : 0;
+export function BudgetSummaryCards({
+	expectedIncome,
+	totalBudgetAllocated,
+	totalSpent,
+	className,
+}: BudgetSummaryCardsProps) {
+	const leftToSpend = expectedIncome - totalSpent;
+	const spentPercentage = expectedIncome > 0 ? (totalSpent / expectedIncome) * 100 : 0;
 
 	// Determine status
 	const isOnTrack = spentPercentage <= 75;
@@ -47,8 +53,8 @@ export function BudgetSummaryCards({ totalBudget, totalSpent, className }: Budge
 				</div>
 
 				<div className="relative">
-					<p className="text-sm text-muted-foreground font-medium mb-1">Total Budget</p>
-					<p className="text-3xl font-bold text-foreground">{formatCurrency(totalBudget)}</p>
+					<p className="text-sm text-muted-foreground font-medium mb-1">Expected Income</p>
+					<p className="text-3xl font-bold text-foreground">{formatCurrency(expectedIncome)}</p>
 					<div className="flex items-center gap-1.5 mt-2">
 						<CheckCircle2 className="h-4 w-4 text-success" />
 						<span className="text-xs text-success font-medium">Verified</span>
@@ -60,6 +66,7 @@ export function BudgetSummaryCards({ totalBudget, totalSpent, className }: Budge
 			<Card className="p-5 bg-card border border-border">
 				<p className="text-sm text-muted-foreground font-medium mb-1">Left to Spend</p>
 				<p className={cn("text-3xl font-bold", isOverBudget ? "text-error" : "text-success")}>
+					{isOverBudget ? "-" : ""}
 					{formatCurrency(Math.abs(leftToSpend))}
 					{isOverBudget && <span className="text-lg ml-1">over</span>}
 				</p>

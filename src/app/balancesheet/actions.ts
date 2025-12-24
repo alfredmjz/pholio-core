@@ -127,6 +127,43 @@ export async function getAccounts(): Promise<AccountWithType[]> {
 }
 
 /**
+ * Get a single account by ID with its type
+ */
+export async function getAccountById(id: string): Promise<AccountWithType | null> {
+	if (process.env.NEXT_PUBLIC_USE_SAMPLE_DATA === "true") {
+		return sampleAccounts.find((acc) => acc.id === id) || null;
+	}
+	const supabase = await createClient();
+	const {
+		data: { user },
+	} = await supabase.auth.getUser();
+
+	if (!user) {
+		throw new Error("Unauthorized");
+	}
+
+	const { data, error } = await supabase
+		.from("accounts")
+		.select(
+			`
+			*,
+			account_type:account_types(*)
+		`
+		)
+		.eq("id", id)
+		.eq("user_id", user.id)
+		.eq("is_active", true)
+		.single();
+
+	if (error) {
+		console.error("Error fetching account:", error);
+		return null;
+	}
+
+	return data;
+}
+
+/**
  * Get balance sheet summary (totals and grouped accounts)
  */
 export async function getBalanceSheetSummary(): Promise<BalanceSheetSummary> {

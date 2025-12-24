@@ -1,6 +1,23 @@
--- Migration: 001_create_users_table
--- Description: Creates the users table for storing user profile information
--- Created: 2025-01-08
+-- Migration: 001_core_identity
+-- Description: Core user identity, profiles, and global helpers
+-- Previous: 001_create_users_table.sql
+
+-- =============================================================================
+-- GLOBAL SETTINGS & HELPERS
+-- =============================================================================
+
+-- Create function to update updated_at timestamp
+CREATE OR REPLACE FUNCTION public.update_updated_at_column()
+RETURNS TRIGGER AS $$
+BEGIN
+    NEW.updated_at = NOW();
+    RETURN NEW;
+END;
+$$ LANGUAGE plpgsql SET search_path = public;
+
+-- =============================================================================
+-- TABLE: users
+-- =============================================================================
 
 -- Drop existing trigger first (to prevent it firing during cleanup)
 DROP TRIGGER IF EXISTS on_auth_user_created ON auth.users;
@@ -52,6 +69,10 @@ CREATE POLICY "Users can update own profile"
 ON public.users
 FOR UPDATE
 USING (auth.uid() = id);
+
+-- =============================================================================
+-- TRIGGERS: User Profile Creation
+-- =============================================================================
 
 -- Create function to automatically create profile on user signup
 -- SECURITY DEFINER allows the function to bypass RLS
@@ -111,15 +132,6 @@ CREATE TRIGGER on_auth_user_created
 -- Create indexes for faster lookups
 CREATE INDEX IF NOT EXISTS users_email_idx ON public.users(email);
 CREATE INDEX IF NOT EXISTS users_is_guest_idx ON public.users(is_guest);
-
--- Create function to update updated_at timestamp
-CREATE OR REPLACE FUNCTION public.update_updated_at_column()
-RETURNS TRIGGER AS $$
-BEGIN
-    NEW.updated_at = NOW();
-    RETURN NEW;
-END;
-$$ LANGUAGE plpgsql;
 
 -- Create trigger to automatically update updated_at
 DROP TRIGGER IF EXISTS update_users_updated_at ON public.users;

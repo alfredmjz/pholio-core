@@ -1,4 +1,10 @@
-import type { AccountType, AccountWithType, BalanceSheetSummary, AccountTransaction } from "@/app/balancesheet/types";
+import type {
+	AccountType,
+	AccountWithType,
+	BalanceSheetSummary,
+	AccountTransaction,
+	HistoricalDataPoint,
+} from "@/app/balancesheet/types";
 
 // Sample account types (mimicking system defaults)
 export const sampleAccountTypes: AccountType[] = [
@@ -133,6 +139,7 @@ export const sampleAccounts: AccountWithType[] = [
 		notes: "High-yield savings for emergencies",
 		color: null,
 		icon: null,
+		percent_change: 6.4,
 		display_order: 1,
 		is_active: true,
 		external_account_id: null,
@@ -162,6 +169,7 @@ export const sampleAccounts: AccountWithType[] = [
 		notes: "Index funds and stocks",
 		color: null,
 		icon: null,
+		percent_change: 12.3,
 		display_order: 2,
 		is_active: true,
 		external_account_id: null,
@@ -192,6 +200,7 @@ export const sampleAccounts: AccountWithType[] = [
 		notes: "Tax-free savings for retirement",
 		color: null,
 		icon: null,
+		percent_change: -2.1,
 		display_order: 3,
 		is_active: true,
 		external_account_id: null,
@@ -260,6 +269,30 @@ export const sampleAccounts: AccountWithType[] = [
 	},
 ];
 
+// Helper to generate mock historical data for last 30 days
+const generateHistoricalData = (startValue: number, endValue: number, variance: number = 0.01) => {
+	const points: HistoricalDataPoint[] = [];
+	const now = new Date();
+	const steps = 30;
+
+	for (let i = steps; i >= 0; i--) {
+		const date = new Date(now);
+		date.setDate(now.getDate() - i);
+
+		// Linear interpolation with some noise
+		const progress = (steps - i) / steps;
+		const baseValue = startValue + progress * (endValue - startValue);
+		const noise = baseValue * (Math.random() * variance * 2 - variance);
+
+		points.push({
+			date: date.toISOString().split("T")[0],
+			value: Math.round(baseValue + noise),
+			hasActivity: Math.random() > 0.8, // Simulate activity on ~20% of days
+		});
+	}
+	return points;
+};
+
 export const sampleBalanceSheetSummary: BalanceSheetSummary = {
 	totalAssets: 85600,
 	totalLiabilities: 20950,
@@ -267,6 +300,8 @@ export const sampleBalanceSheetSummary: BalanceSheetSummary = {
 	previousTotalAssets: 82500,
 	previousTotalLiabilities: 21200,
 	previousNetWorth: 61300,
+	historicalAssets: generateHistoricalData(81000, 85600, 0.005),
+	historicalLiabilities: generateHistoricalData(21500, 20950, 0.003),
 	assetAccounts: sampleAccounts.filter((acc) => acc.account_type?.class === "asset"),
 	liabilityAccounts: sampleAccounts.filter((acc) => acc.account_type?.class === "liability"),
 };
@@ -281,7 +316,7 @@ export const sampleAccountTransactions: Record<string, AccountTransaction[]> = {
 			transaction_type: "deposit",
 			description: "Monthly savings",
 			transaction_date: "2024-12-15",
-			linked_allocation_transaction_id: null,
+			linked_allocation_transaction_id: "tx-linked-savings",
 			created_at: "2024-12-15T10:00:00Z",
 		},
 		{
@@ -318,7 +353,7 @@ export const sampleAccountTransactions: Record<string, AccountTransaction[]> = {
 			transaction_type: "payment",
 			description: "Payment",
 			transaction_date: "2024-12-10",
-			linked_allocation_transaction_id: null,
+			linked_allocation_transaction_id: "tx-linked-debt",
 			created_at: "2024-12-10T10:00:00Z",
 		},
 	],

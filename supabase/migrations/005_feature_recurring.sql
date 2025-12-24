@@ -1,3 +1,7 @@
+-- Migration: 005_feature_recurring
+-- Description: Recurring expenses and subscriptions
+-- Previous: 004_create_recurring_expenses.sql
+
 -- Create recurring_expenses table
 CREATE TABLE IF NOT EXISTS public.recurring_expenses (
   id UUID PRIMARY KEY DEFAULT gen_random_uuid(),
@@ -31,7 +35,6 @@ CREATE INDEX IF NOT EXISTS idx_recurring_expenses_is_active ON public.recurring_
 -- Grant permissions (standard for this project)
 GRANT USAGE ON SCHEMA public TO anon, authenticated;
 GRANT ALL ON TABLE public.recurring_expenses TO anon, authenticated;
-
 
 -- Migration to support manual linking of transactions to recurring expenses
 ALTER TABLE transactions

@@ -22,8 +22,10 @@ import { AddTransactionButton } from "./AddTransactionButton";
 interface TransactionLedgerProps {
 	transactions: Transaction[];
 	categories: AllocationCategory[];
+	accounts?: import("@/app/balancesheet/types").AccountWithType[];
 	externalTypeFilter?: TransactionType | null;
 	onClearExternalFilter?: () => void;
+	onTransactionSuccess?: () => void;
 }
 
 type SortField = "date" | "name" | "amount" | "category" | "type";
@@ -34,8 +36,10 @@ type SortDirection = "asc" | "desc";
 export function TransactionLedger({
 	transactions,
 	categories,
+	accounts = [],
 	externalTypeFilter,
 	onClearExternalFilter,
+	onTransactionSuccess,
 }: TransactionLedgerProps) {
 	const [searchQuery, setSearchQuery] = useState("");
 	const [categoryFilter, setCategoryFilter] = useState<string>("all");
@@ -174,7 +178,9 @@ export function TransactionLedger({
 				</div>
 				<AddTransactionButton
 					categories={categories}
+					accounts={accounts}
 					className="bg-foreground hover:bg-foreground/90 text-background"
+					onSuccess={onTransactionSuccess}
 				/>
 			</div>
 

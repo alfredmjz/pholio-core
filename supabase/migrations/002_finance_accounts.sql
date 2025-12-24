@@ -1,20 +1,11 @@
--- Migration 003: Unified Accounts Schema for Balance Sheet
--- Combines best features from original 003 and 006 migrations
--- Created: 2024-12-18
---
--- Features:
--- - Customizable account types (system defaults + user-created)
--- - Optional contribution room tracking (user choice per account)
--- - Transaction history with allocation linking
--- - Automatic balance history via triggers
--- - Interest rate tracking for debt/savings
--- - Multi-currency support (default: CAD)
+-- Migration: 002_finance_accounts
+-- Description: Financial account structure (Balance Sheet)
+-- Previous: 005_create_accounts_table.sql
 
 -- ============================================================================
 -- CLEANUP: Remove any existing objects from previous migration attempts
 -- ============================================================================
 
-DROP TABLE IF EXISTS public.account_transactions CASCADE;
 DROP TABLE IF EXISTS public.account_history CASCADE;
 DROP TABLE IF EXISTS public.account_balances CASCADE;
 DROP TABLE IF EXISTS public.accounts CASCADE;
@@ -205,41 +196,6 @@ ON public.account_history FOR ALL
 USING (auth.uid() = user_id);
 
 -- ============================================================================
--- TABLE: account_transactions (Detailed transaction log)
--- ============================================================================
-
-DROP TABLE IF EXISTS public.account_transactions CASCADE;
-
-CREATE TABLE public.account_transactions (
-    id UUID PRIMARY KEY DEFAULT gen_random_uuid(),
-    account_id UUID NOT NULL REFERENCES public.accounts(id) ON DELETE CASCADE,
-    user_id UUID NOT NULL REFERENCES auth.users(id) ON DELETE CASCADE,
-
-    amount DECIMAL(15, 2) NOT NULL,
-    transaction_type TEXT NOT NULL CHECK (transaction_type IN (
-        'deposit', 'withdrawal', 'interest', 'payment',
-        'adjustment', 'contribution', 'transfer'
-    )),
-    description TEXT,
-    transaction_date DATE NOT NULL DEFAULT CURRENT_DATE,
-
-    -- Optional link to allocations system
-    linked_allocation_transaction_id UUID,
-
-    created_at TIMESTAMPTZ DEFAULT NOW()
-);
-
-CREATE INDEX idx_account_txn_account ON public.account_transactions(account_id, transaction_date DESC);
-CREATE INDEX idx_account_txn_user ON public.account_transactions(user_id, transaction_date DESC);
-
-ALTER TABLE public.account_transactions ENABLE ROW LEVEL SECURITY;
-
-DROP POLICY IF EXISTS "Users manage own account transactions" ON public.account_transactions;
-CREATE POLICY "Users manage own account transactions"
-ON public.account_transactions FOR ALL
-USING (auth.uid() = user_id);
-
--- ============================================================================
 -- TRIGGERS
 -- ============================================================================
 
@@ -250,7 +206,7 @@ BEGIN
     NEW.updated_at = NOW();
     RETURN NEW;
 END;
-$$ LANGUAGE plpgsql;
+$$ LANGUAGE plpgsql SET search_path = public;
 
 DROP TRIGGER IF EXISTS accounts_updated_at_trigger ON public.accounts;
 CREATE TRIGGER accounts_updated_at_trigger
@@ -270,7 +226,7 @@ BEGIN
     END IF;
     RETURN NEW;
 END;
-$$ LANGUAGE plpgsql;
+$$ LANGUAGE plpgsql SET search_path = public;
 
 DROP TRIGGER IF EXISTS account_balance_change_trigger ON public.accounts;
 CREATE TRIGGER account_balance_change_trigger
@@ -286,7 +242,6 @@ GRANT USAGE ON SCHEMA public TO anon, authenticated;
 GRANT ALL ON public.account_types TO authenticated;
 GRANT ALL ON public.accounts TO authenticated;
 GRANT ALL ON public.account_history TO authenticated;
-GRANT ALL ON public.account_transactions TO authenticated;
 GRANT SELECT ON public.account_types TO anon;
 
 -- ============================================================================
@@ -296,7 +251,6 @@ GRANT SELECT ON public.account_types TO anon;
 COMMENT ON TABLE public.account_types IS 'Customizable account type definitions (system defaults + user-created)';
 COMMENT ON TABLE public.accounts IS 'User accounts - assets and liabilities for balance sheet tracking';
 COMMENT ON TABLE public.account_history IS 'Historical balance snapshots for charting and trend analysis';
-COMMENT ON TABLE public.account_transactions IS 'Detailed transaction log for each account';
 COMMENT ON COLUMN public.accounts.track_contribution_room IS 'User choice: enable contribution room tracking for this account';
 COMMENT ON COLUMN public.accounts.contribution_room IS 'Remaining contribution room (for tax-advantaged accounts)';
 COMMENT ON COLUMN public.accounts.annual_contribution_limit IS 'Annual contribution limit (for reference)';
@@ -309,4 +263,3 @@ COMMENT ON COLUMN public.accounts.interest_rate IS 'APR/APY as decimal (0.0650 =
 ANALYZE public.account_types;
 ANALYZE public.accounts;
 ANALYZE public.account_history;
-ANALYZE public.account_transactions;

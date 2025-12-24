@@ -61,6 +61,7 @@ export interface Account {
 	notes: string | null;
 	color: string | null;
 	icon: string | null;
+	percent_change?: number; // For assets (performance) or liabilities (change in debt)
 	display_order: number;
 	is_active: boolean;
 	external_account_id: string | null;
@@ -103,6 +104,12 @@ export interface AccountTransaction {
 // Summary Types
 // ============================================================================
 
+export interface HistoricalDataPoint {
+	date: string;
+	value: number;
+	hasActivity?: boolean;
+}
+
 export interface BalanceSheetSummary {
 	totalAssets: number;
 	totalLiabilities: number;
@@ -110,6 +117,8 @@ export interface BalanceSheetSummary {
 	previousTotalAssets?: number;
 	previousTotalLiabilities?: number;
 	previousNetWorth?: number;
+	historicalAssets?: HistoricalDataPoint[];
+	historicalLiabilities?: HistoricalDataPoint[];
 	assetAccounts: AccountWithType[];
 	liabilityAccounts: AccountWithType[];
 }

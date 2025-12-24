@@ -236,75 +236,69 @@ export function ExportDialog({ open, onOpenChange, currentYear, currentMonth }: 
 			description="Download your transaction history as an Excel file or open in Google Sheets."
 			className="sm:max-w-[625px]"
 		>
+			{/* Min height container to prevent jumping */}
+			<div className="min-h-[300px]">
+				<Tabs defaultValue="quick" value={activeTab} onValueChange={setActiveTab} className="w-full">
+					<TabsList className="grid w-full grid-cols-2">
+						<TabsTrigger value="quick">Current Month</TabsTrigger>
+						<TabsTrigger value="custom">Custom Range</TabsTrigger>
+					</TabsList>
 
-				{/* Min height container to prevent jumping */}
-				<div className="min-h-[300px]">
-					<Tabs defaultValue="quick" value={activeTab} onValueChange={setActiveTab} className="w-full">
-						<TabsList className="grid w-full grid-cols-2">
-							<TabsTrigger value="quick">Current Month</TabsTrigger>
-							<TabsTrigger value="custom">Custom Range</TabsTrigger>
-						</TabsList>
-
-						<TabsContent value="quick" className="space-y-4 py-4">
-							<div className="flex flex-col items-center justify-center p-6 border-2 border-dashed rounded-lg bg-muted/30 min-h-[220px]">
-								<div className="h-12 w-12 rounded-full bg-primary/10 flex items-center justify-center mb-3">
-									<FileText className="h-6 w-6 text-primary" />
-								</div>
-								<h3 className="font-medium text-lg">
-									{currentMonthName} {currentYear}
-								</h3>
-								<p className="text-sm text-muted-foreground text-center mt-1">
-									Export all transactions for the currently viewed month.
-								</p>
+					<TabsContent value="quick" className="space-y-4 py-4">
+						<div className="flex flex-col items-center justify-center p-6 border-2 border-dashed rounded-lg bg-muted/30 min-h-[220px]">
+							<div className="h-12 w-12 rounded-full bg-primary/10 flex items-center justify-center mb-3">
+								<FileText className="h-6 w-6 text-primary" />
 							</div>
-						</TabsContent>
+							<h3 className="font-medium text-lg">
+								{currentMonthName} {currentYear}
+							</h3>
+							<p className="text-sm text-muted-foreground text-center mt-1">
+								Export all transactions for the currently viewed month.
+							</p>
+						</div>
+					</TabsContent>
 
-						<TabsContent value="custom" className="space-y-4 py-4">
-							<div className="grid grid-cols-2 gap-4">
-								<div className="space-y-2">
-									<div className="text-sm font-medium">Start Month</div>
-									<MonthPicker date={startDate} setDate={setStartDate} placeholder="Select start month" />
-								</div>
-
-								<div className="space-y-2">
-									<div className="text-sm font-medium">End Month</div>
-									<MonthPicker date={endDate} setDate={setEndDate} placeholder="Select end month" />
-								</div>
+					<TabsContent value="custom" className="space-y-4 py-4">
+						<div className="grid grid-cols-2 gap-4">
+							<div className="space-y-2">
+								<div className="text-sm font-medium">Start Month</div>
+								<MonthPicker date={startDate} setDate={setStartDate} placeholder="Select start month" />
 							</div>
 
-							<div className="flex items-center justify-center gap-2 px-4 py-2 mt-4 mx-auto w-fit rounded-full bg-blue-50 text-blue-700 text-sm max-w-full">
-								<Calendar className="h-4 w-4 shrink-0" />
-								<span className="font-medium truncate">
-									{startDate ? format(startDate, "MMMM yyyy") : "..."} -{" "}
-									{endDate ? format(endDate, "MMMM yyyy") : "..."}
-								</span>
+							<div className="space-y-2">
+								<div className="text-sm font-medium">End Month</div>
+								<MonthPicker date={endDate} setDate={setEndDate} placeholder="Select end month" />
 							</div>
-						</TabsContent>
-					</Tabs>
-				</div>
+						</div>
 
-				<DialogFooter className="flex-col sm:flex-row gap-2">
-					<Button variant="outline" onClick={() => onOpenChange(false)} className="sm:mr-auto">
-						Cancel
-					</Button>
-					<Button
-						variant="outline"
-						onClick={handleGoogleExport}
-						disabled={isGoogleExporting || isExporting}
-						className="gap-2"
-					>
-						{isGoogleExporting ? (
-							<Loader2 className="h-4 w-4 animate-spin" />
-						) : (
-							<GoogleSheetsIcon className="h-4 w-4" />
-						)}
-						Open in Sheets
-					</Button>
-					<Button onClick={handleExport} disabled={isExporting || isGoogleExporting} className="gap-2">
-						{isExporting ? <Loader2 className="h-4 w-4 animate-spin" /> : <Download className="h-4 w-4" />}
-						Download
-					</Button>
-				</DialogFooter>
+						<div className="flex items-center justify-center gap-2 px-4 py-2 mt-4 mx-auto w-fit rounded-full bg-blue-50 text-blue-700 text-sm max-w-full">
+							<Calendar className="h-4 w-4 shrink-0" />
+							<span className="font-medium truncate">
+								{startDate ? format(startDate, "MMMM yyyy") : "..."} - {endDate ? format(endDate, "MMMM yyyy") : "..."}
+							</span>
+						</div>
+					</TabsContent>
+				</Tabs>
+			</div>
+
+			<DialogFooter className="flex-col sm:flex-row gap-2">
+				<Button variant="outline" onClick={() => onOpenChange(false)} className="sm:mr-auto">
+					Cancel
+				</Button>
+				<Button
+					variant="outline"
+					onClick={handleGoogleExport}
+					disabled={isGoogleExporting || isExporting}
+					className="gap-2"
+				>
+					{isGoogleExporting ? <Loader2 className="h-4 w-4 animate-spin" /> : <GoogleSheetsIcon className="h-4 w-4" />}
+					Open in Sheets
+				</Button>
+				<Button onClick={handleExport} disabled={isExporting || isGoogleExporting} className="gap-2">
+					{isExporting ? <Loader2 className="h-4 w-4 animate-spin" /> : <Download className="h-4 w-4" />}
+					Download
+				</Button>
+			</DialogFooter>
 		</ControlBasedDialog>
 	);
 }

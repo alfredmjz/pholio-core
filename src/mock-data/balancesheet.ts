@@ -1,4 +1,10 @@
-import type { AccountType, AccountWithType, BalanceSheetSummary, AccountTransaction } from "@/app/balancesheet/types";
+import type {
+	AccountType,
+	AccountWithType,
+	BalanceSheetSummary,
+	AccountTransaction,
+	HistoricalDataPoint,
+} from "@/app/balancesheet/types";
 
 // Sample account types (mimicking system defaults)
 export const sampleAccountTypes: AccountType[] = [
@@ -265,7 +271,7 @@ export const sampleAccounts: AccountWithType[] = [
 
 // Helper to generate mock historical data for last 30 days
 const generateHistoricalData = (startValue: number, endValue: number, variance: number = 0.01) => {
-	const points: { date: string; value: number }[] = [];
+	const points: HistoricalDataPoint[] = [];
 	const now = new Date();
 	const steps = 30;
 

@@ -216,7 +216,7 @@ export function BalanceSheetClient({ initialAccounts, initialCategories, initial
 					{/* Main Content: Account List and Activity */}
 					<div className="grid grid-cols-1 lg:grid-cols-3 gap-6">
 						{/* All Accounts List */}
-						<Card className="lg:col-span-2 flex flex-col overflow-hidden bg-background/50 border shadow-sm">
+						<Card className="lg:col-span-2 flex flex-col overflow-hidden bg-card border shadow-sm">
 							<div className="p-6 border-border border-b flex flex-col sm:flex-row gap-4 items-start sm:items-center justify-between">
 								<div>
 									<h2 className="text-xl font-bold">All Accounts</h2>
@@ -229,11 +229,11 @@ export function BalanceSheetClient({ initialAccounts, initialCategories, initial
 											placeholder="Search..."
 											value={searchQuery}
 											onChange={(e) => setSearchQuery(e.target.value)}
-											className="pl-9 h-10"
+											className="bg-background pl-9 h-10"
 										/>
 									</div>
 									<Select defaultValue="all">
-										<SelectTrigger className="w-[120px] h-10">
+										<SelectTrigger className="bg-background w-[120px] h-10">
 											<SelectValue placeholder="All" />
 										</SelectTrigger>
 										<SelectContent>
@@ -252,11 +252,7 @@ export function BalanceSheetClient({ initialAccounts, initialCategories, initial
 										<AccountCard
 											key={account.id}
 											account={account}
-											onClick={() => {
-												setSelectedAccount(account);
-												setAdjustmentDialogOpen(true);
-											}}
-										/>
+											/>
 									))}
 
 									{filteredAssets.length === 0 && filteredLiabilities.length === 0 && (

@@ -179,7 +179,7 @@ export function AccountCard({ account, onClick }: AccountCardProps) {
 	}
 
 	return (
-		<Link href={`/balancesheet/${account.id}`} className={cardClasses}>
+		<Link href={`/balancesheet/accountdetail/${account.id}`} className={cardClasses}>
 			{Content}
 		</Link>
 	);

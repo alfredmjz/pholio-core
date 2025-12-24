@@ -50,7 +50,7 @@ const mockActivity: ActivityItem[] = [
 
 export function RecentActivity() {
 	return (
-		<Card className="flex flex-col h-full bg-background/50 border shadow-sm">
+		<Card className="flex flex-col h-full bg-card border shadow-sm">
 			<div className="p-6 pb-4">
 				<h3 className="text-lg font-bold">Recent Activity</h3>
 				<p className="text-sm text-muted-foreground">Latest account updates</p>

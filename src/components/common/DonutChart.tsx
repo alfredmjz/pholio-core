@@ -13,6 +13,7 @@ interface DonutChartProps {
 	data: DonutChartData[];
 	size?: number; // Radius of the donut
 	strokeWidth?: number;
+	gap?: number;
 	className?: string;
 	centerContent?: React.ReactNode;
 	showTooltip?: boolean;
@@ -22,6 +23,7 @@ export function DonutChart({
 	data,
 	size = 40,
 	strokeWidth = 12,
+	gap = 0.5,
 	className,
 	centerContent,
 	showTooltip = false,
@@ -104,7 +106,7 @@ export function DonutChart({
 				{segments.map((segment, index) => (
 					<g key={index}>
 						<path
-							d={describeArc(CX, CY, RADIUS, segment.startAngle, segment.endAngle - 0.5)} // -0.5 for gap
+							d={describeArc(CX, CY, RADIUS, segment.startAngle, segment.endAngle - gap)} // adjustable gap
 							fill="none"
 							stroke={segment.color}
 							strokeWidth={strokeWidth}

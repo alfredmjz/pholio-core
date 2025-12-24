@@ -2,6 +2,7 @@ import { redirect } from "next/navigation";
 import { createClient } from "@/lib/supabase/server";
 import type { User } from "@supabase/supabase-js";
 import type { UserProfile } from "@/lib/getUserProfile";
+import { sampleProfile } from "@/mock-data/profile";
 
 /**
  * Result of authentication check
@@ -10,6 +11,18 @@ export interface AuthResult {
 	user: User;
 	profile: UserProfile;
 }
+
+/**
+ * Mock user for sample data mode
+ */
+const mockUser: User = {
+	id: sampleProfile.id,
+	email: sampleProfile.email,
+	app_metadata: {},
+	user_metadata: {},
+	aud: "authenticated",
+	created_at: sampleProfile.created_at,
+};
 
 /**
  * Requires authentication and valid user profile.
@@ -27,6 +40,14 @@ export interface AuthResult {
  * ```
  */
 export async function requireAuth(): Promise<AuthResult> {
+	// Early return for sample data mode
+	if (process.env.NEXT_PUBLIC_USE_SAMPLE_DATA === "true") {
+		return {
+			user: mockUser,
+			profile: sampleProfile as UserProfile,
+		};
+	}
+
 	const supabase = await createClient();
 
 	// Check if user is authenticated
@@ -74,6 +95,14 @@ export async function requireAuth(): Promise<AuthResult> {
  * ```
  */
 export async function getAuth(): Promise<AuthResult | null> {
+	// Early return for sample data mode
+	if (process.env.NEXT_PUBLIC_USE_SAMPLE_DATA === "true") {
+		return {
+			user: mockUser,
+			profile: sampleProfile as UserProfile,
+		};
+	}
+
 	try {
 		const supabase = await createClient();
 

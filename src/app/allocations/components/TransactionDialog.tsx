@@ -27,7 +27,7 @@ export function TransactionDialog({
 	open,
 	onOpenChange,
 	transaction,
-	categories,
+	categories = [],
 	defaultDate = new Date().toISOString().split("T")[0],
 }: TransactionDialogProps) {
 	const [isLoading, setIsLoading] = useState(false);
@@ -118,104 +118,103 @@ export function TransactionDialog({
 			description={transaction ? "Modify transaction details below." : "Enter the details for the new transaction."}
 			className="sm:max-w-[425px]"
 		>
-
-				<form onSubmit={handleSubmit} className="space-y-4 py-2">
-					{/* Type Selection */}
-					<div className="flex justify-center mb-2">
-						<div className="bg-muted p-1 rounded-lg flex space-x-1">
-							<Button
-								type="button"
-								variant={type === "expense" ? "default" : "ghost"}
-								size="sm"
-								onClick={() => setType("expense")}
-								className="w-24"
-							>
-								Expense
-							</Button>
-							<Button
-								type="button"
-								variant={type === "income" ? "default" : "ghost"}
-								size="sm"
-								onClick={() => setType("income")}
-								className="w-24"
-							>
-								Income
-							</Button>
-						</div>
+			<form onSubmit={handleSubmit} className="space-y-4 py-2">
+				{/* Type Selection */}
+				<div className="flex justify-center mb-2">
+					<div className="bg-muted p-1 rounded-lg flex space-x-1">
+						<Button
+							type="button"
+							variant={type === "expense" ? "default" : "ghost"}
+							size="sm"
+							onClick={() => setType("expense")}
+							className="w-24"
+						>
+							Expense
+						</Button>
+						<Button
+							type="button"
+							variant={type === "income" ? "default" : "ghost"}
+							size="sm"
+							onClick={() => setType("income")}
+							className="w-24"
+						>
+							Income
+						</Button>
 					</div>
+				</div>
 
-					<div className="grid gap-2">
-						<Label htmlFor="date">Date</Label>
-						<Input id="date" type="date" value={date} onChange={(e) => setDate(e.target.value)} required />
-					</div>
+				<div className="grid gap-2">
+					<Label htmlFor="date">Date</Label>
+					<Input id="date" type="date" value={date} onChange={(e) => setDate(e.target.value)} required />
+				</div>
 
-					<div className="grid gap-2">
-						<Label htmlFor="name">Description</Label>
+				<div className="grid gap-2">
+					<Label htmlFor="name">Description</Label>
+					<Input
+						id="name"
+						placeholder="e.g. Grocery Store"
+						value={name}
+						onChange={(e) => setName(e.target.value)}
+						required
+					/>
+				</div>
+
+				<div className="grid gap-2">
+					<Label htmlFor="amount">Amount</Label>
+					<div className="relative">
+						<span className="absolute left-3 top-1/2 -translate-y-1/2 text-muted-foreground">$</span>
 						<Input
-							id="name"
-							placeholder="e.g. Grocery Store"
-							value={name}
-							onChange={(e) => setName(e.target.value)}
+							id="amount"
+							type="number"
+							step="0.01"
+							min="0"
+							placeholder="0.00"
+							value={amount}
+							onChange={(e) => setAmount(e.target.value)}
+							className="pl-7"
 							required
 						/>
 					</div>
+				</div>
 
-					<div className="grid gap-2">
-						<Label htmlFor="amount">Amount</Label>
-						<div className="relative">
-							<span className="absolute left-3 top-1/2 -translate-y-1/2 text-muted-foreground">$</span>
-							<Input
-								id="amount"
-								type="number"
-								step="0.01"
-								min="0"
-								placeholder="0.00"
-								value={amount}
-								onChange={(e) => setAmount(e.target.value)}
-								className="pl-7"
-								required
-							/>
-						</div>
-					</div>
+				<div className="grid gap-2">
+					<Label htmlFor="category">Category</Label>
+					<Select value={categoryId} onValueChange={setCategoryId}>
+						<SelectTrigger>
+							<SelectValue placeholder="Select a category" />
+						</SelectTrigger>
+						<SelectContent>
+							<SelectItem value="uncategorized">Uncategorized</SelectItem>
+							{categories.map((cat) => (
+								<SelectItem key={cat.id} value={cat.id}>
+									{cat.name}
+								</SelectItem>
+							))}
+						</SelectContent>
+					</Select>
+				</div>
 
-					<div className="grid gap-2">
-						<Label htmlFor="category">Category</Label>
-						<Select value={categoryId} onValueChange={setCategoryId}>
-							<SelectTrigger>
-								<SelectValue placeholder="Select a category" />
-							</SelectTrigger>
-							<SelectContent>
-								<SelectItem value="uncategorized">Uncategorized</SelectItem>
-								{categories.map((cat) => (
-									<SelectItem key={cat.id} value={cat.id}>
-										{cat.name}
-									</SelectItem>
-								))}
-							</SelectContent>
-						</Select>
-					</div>
+				<div className="grid gap-2">
+					<Label htmlFor="notes">Notes (Optional)</Label>
+					<Textarea
+						id="notes"
+						placeholder="Add any additional details..."
+						value={notes}
+						onChange={(e) => setNotes(e.target.value)}
+						rows={3}
+					/>
+				</div>
 
-					<div className="grid gap-2">
-						<Label htmlFor="notes">Notes (Optional)</Label>
-						<Textarea
-							id="notes"
-							placeholder="Add any additional details..."
-							value={notes}
-							onChange={(e) => setNotes(e.target.value)}
-							rows={3}
-						/>
-					</div>
-
-					<DialogFooter className="pt-4">
-						<Button type="button" variant="outline" onClick={() => onOpenChange(false)} disabled={isLoading}>
-							Cancel
-						</Button>
-						<Button type="submit" disabled={isLoading}>
-							{isLoading && <Loader2 className="mr-2 h-4 w-4 animate-spin" />}
-							{transaction ? "Save Changes" : "Create Transaction"}
-						</Button>
-					</DialogFooter>
-				</form>
+				<DialogFooter className="pt-4">
+					<Button type="button" variant="outline" onClick={() => onOpenChange(false)} disabled={isLoading}>
+						Cancel
+					</Button>
+					<Button type="submit" disabled={isLoading}>
+						{isLoading && <Loader2 className="mr-2 h-4 w-4 animate-spin" />}
+						{transaction ? "Save Changes" : "Create Transaction"}
+					</Button>
+				</DialogFooter>
+			</form>
 		</ControlBasedDialog>
 	);
 }

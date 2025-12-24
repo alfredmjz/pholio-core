@@ -3,22 +3,27 @@
 import { useState } from "react";
 import { Button } from "@/components/ui/button";
 import { Plus } from "lucide-react";
-import { TransactionDialog } from "./TransactionDialog";
+import { UnifiedTransactionDialog } from "@/components/dialogs/UnifiedTransactionDialog";
 import type { AllocationCategory } from "../types";
+import type { AccountWithType } from "@/app/balancesheet/types";
 import { cn } from "@/lib/utils";
 
 interface AddTransactionButtonProps {
 	categories: AllocationCategory[];
+	accounts: AccountWithType[];
 	className?: string;
 	variant?: "default" | "destructive" | "outline" | "secondary" | "ghost" | "link";
 	size?: "default" | "sm" | "lg" | "icon";
+	onSuccess?: () => void;
 }
 
 export function AddTransactionButton({
 	categories,
+	accounts,
 	className,
 	variant = "default",
 	size = "default",
+	onSuccess,
 }: AddTransactionButtonProps) {
 	const [open, setOpen] = useState(false);
 
@@ -29,7 +34,14 @@ export function AddTransactionButton({
 				Add Transaction
 			</Button>
 
-			<TransactionDialog open={open} onOpenChange={setOpen} categories={categories} />
+			<UnifiedTransactionDialog
+				open={open}
+				onOpenChange={setOpen}
+				categories={categories}
+				accounts={accounts}
+				onSuccess={onSuccess}
+				context="allocations"
+			/>
 		</>
 	);
 }

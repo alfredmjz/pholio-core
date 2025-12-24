@@ -34,6 +34,9 @@
 		--accent: 40 10% 96%; /* #f7f7f5 */
 		--accent-foreground: 30 6% 25%; /* #37352f */
 
+		/* Hover */
+		--hover: 40 20% 94%; /* Warm cream for hover */
+
 		/* Muted */
 		--muted: 40 10% 96%; /* #f7f7f5 */
 		--muted-foreground: 30 2% 47%; /* #787774 */
@@ -94,6 +97,9 @@
 		--accent: 0 0% 17%; /* #2c2c2c */
 		--accent-foreground: 0 0% 83%; /* #d4d4d4 */
 
+		/* Hover */
+		--hover: 0 0% 22%; /* Subtle gray for hover */
+
 		/* Muted */
 		--muted: 0 0% 17%; /* #2c2c2c */
 		--muted-foreground: 0 0% 61%; /* #9b9b9b */
@@ -147,15 +153,15 @@
 		@apply list-none m-0 p-0;
 	}
 
-    /* Hide number input spinners */
-    input[type="number"]::-webkit-inner-spin-button,
-    input[type="number"]::-webkit-outer-spin-button {
-        -webkit-appearance: none;
-        margin: 0;
-    }
-    input[type="number"] {
-        -moz-appearance: textfield;
-    }
+	/* Hide number input spinners */
+	input[type="number"]::-webkit-inner-spin-button,
+	input[type="number"]::-webkit-outer-spin-button {
+		-webkit-appearance: none;
+		margin: 0;
+	}
+	input[type="number"] {
+		-moz-appearance: textfield;
+	}
 }
 
 @layer utilities {

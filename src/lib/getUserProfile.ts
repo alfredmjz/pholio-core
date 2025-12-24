@@ -1,5 +1,6 @@
 import { createClient } from "@/lib/supabase/server";
 import { Database } from "@/lib/database.types";
+import { sampleProfile } from "@/mock-data/profile";
 
 export type UserProfile = Database["public"]["Tables"]["users"]["Row"];
 
@@ -17,6 +18,11 @@ export type UserProfile = Database["public"]["Tables"]["users"]["Row"];
  * ```
  */
 export async function getUserProfile(): Promise<UserProfile | null> {
+	// Early return for sample data mode
+	if (process.env.NEXT_PUBLIC_USE_SAMPLE_DATA === "true") {
+		return sampleProfile as UserProfile;
+	}
+
 	try {
 		const supabase = await createClient();
 

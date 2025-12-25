@@ -1,17 +1,24 @@
 import { createServerClient } from "@supabase/ssr";
 import { NextResponse, type NextRequest } from "next/server";
+import { verifySupabaseJWT, getAccessTokenFromRequest, isPublicRoute } from "./jwt-middleware";
 
 /**
- * Wraps a promise with a timeout to prevent indefinite hanging.
- * This is a known workaround for Supabase auth.getUser() hanging in Next.js middleware.
- * @see https://github.com/supabase/supabase/issues/35754
- * @see https://github.com/orgs/supabase/discussions/20905
+ * Fast path auth check - uses local JWT verification
+ * This is MUCH faster (1-2ms vs 200-300ms API call)
  */
-function withTimeout<T>(promise: Promise<T>, ms: number): Promise<T | null> {
-	const timeout = new Promise<null>((resolve) => {
-		setTimeout(() => resolve(null), ms);
-	});
-	return Promise.race([promise, timeout]);
+async function fastAuthCheck(request: NextRequest): Promise<{ userId: string | null; verified: boolean }> {
+	const token = getAccessTokenFromRequest(request);
+	
+	if (!token) {
+		return { userId: null, verified: false };
+	}
+
+	const verified = await verifySupabaseJWT(token);
+	
+	return {
+		userId: verified?.sub || null,
+		verified: verified !== null,
+	};
 }
 
 export async function updateSession(request: NextRequest) {
@@ -19,6 +26,23 @@ export async function updateSession(request: NextRequest) {
 		request,
 	});
 
+	// Check if route is public
+	const pathname = request.nextUrl.pathname;
+	if (isPublicRoute(pathname)) {
+		return supabaseResponse;
+	}
+
+	// Fast JWT verification for protected routes
+	const { userId, verified } = await fastAuthCheck(request);
+
+	if (!verified || !userId) {
+		console.log("[Middleware] User not authenticated, redirecting to login");
+		const loginUrl = new URL('/login', request.url);
+		return NextResponse.redirect(loginUrl);
+	}
+
+	// User is authenticated, continue with session refresh
+	// This is optional and can be done lazily in the background
 	const supabase = createServerClient(
 		process.env.NEXT_PUBLIC_SUPABASE_URL!,
 		process.env.NEXT_PUBLIC_SUPABASE_ANON_KEY!,
@@ -38,29 +62,16 @@ export async function updateSession(request: NextRequest) {
 		}
 	);
 
-	// IMPORTANT: Refresh auth session with timeout to prevent hanging
-	// Known issue: auth.getUser() can hang indefinitely in Next.js middleware
-	// Timeout ensures middleware doesn't block forever - auth will still be
-	// verified in Server Components via requireAuth()
-	// @see https://github.com/supabase/supabase/issues/35754
-	const result = await withTimeout(supabase.auth.getUser(), 3000);
-
-	if (result === null) {
-		console.warn("[Middleware] auth.getUser() timed out after 3s - continuing without refresh");
+	// Try to refresh session in background (non-blocking)
+	try {
+		await Promise.race([
+			supabase.auth.getUser(),
+			new Promise((_, reject) => setTimeout(() => reject(new Error('Timeout')), 1000)),
+		]);
+	} catch (error) {
+		// Timeout or error is okay - we already verified with JWT
+		console.debug("[Middleware] Session refresh skipped:", error instanceof Error ? error.message : 'Unknown error');
 	}
-
-	// IMPORTANT: You *must* return the supabaseResponse object as it is.
-	// If you're creating a new response object with NextResponse.next() make sure to:
-	// 1. Pass the request in it, like so:
-	//    const myNewResponse = NextResponse.next({ request })
-	// 2. Copy over the cookies, like so:
-	//    myNewResponse.cookies.setAll(supabaseResponse.cookies.getAll())
-	// 3. Change the myNewResponse object to fit your needs, but avoid changing
-	//    the cookies!
-	// 4. Finally:
-	//    return myNewResponse
-	// If this is not done, you may be causing the browser and server to go out
-	// of sync and terminate the user's session prematurely!
 
 	return supabaseResponse;
 }

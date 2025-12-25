@@ -63,6 +63,7 @@
 		"date-fns": "^4.1.0",
 		"embla-carousel-react": "^8.6.0",
 		"googleapis": "^167.0.0",
+		"jose": "^6.1.3",
 		"lucide-react": "^0.562.0",
 		"motion": "^12.23.26",
 		"next": "15.1.9",

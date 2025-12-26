@@ -100,7 +100,7 @@ export function AccountHeader({
 							autoFocus
 						/>
 						<div className="flex items-center gap-1.5">
-							<Building2 className="h-3.5 w-3.5 text-muted-foreground" />
+							<Building2 className="h-3.5 w-3.5 text-primary" />
 							<Input
 								value={editValues.institution}
 								onChange={(e) => onEditValuesChange({ ...editValues, institution: e.target.value })}
@@ -115,7 +115,7 @@ export function AccountHeader({
 							<h2 className="text-2xl font-bold tracking-tight">{account.name}</h2>
 						</div>
 						{account.institution && (
-							<div className="text-sm text-muted-foreground flex items-center gap-1.5">
+							<div className="text-sm text-primary flex items-center gap-1.5">
 								<Building2 className="h-3.5 w-3.5" />
 								{account.institution}
 							</div>
@@ -136,12 +136,7 @@ export function AccountHeader({
 						>
 							<Check className="h-4 w-4" />
 						</Button>
-						<Button
-							variant="ghost"
-							size="icon"
-							className="text-muted-foreground hover:text-foreground"
-							onClick={onCancel}
-						>
+						<Button variant="ghost" size="icon" className="text-primary hover:text-primary" onClick={onCancel}>
 							<X className="h-4 w-4" />
 						</Button>
 					</>
@@ -150,7 +145,7 @@ export function AccountHeader({
 						<Edit className="h-4 w-4" />
 					</Button>
 				)}
-				<Button variant="ghost" size="icon" onClick={onDelete} className="text-destructive">
+				<Button variant="ghost" size="icon" onClick={onDelete} className="text-error">
 					<Trash2 className="h-4 w-4" />
 				</Button>
 			</div>

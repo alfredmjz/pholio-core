@@ -21,7 +21,7 @@ export function AllocationDonutChart({ categories, className }: AllocationDonutC
 	// eslint-disable-next-line react-hooks/exhaustive-deps
 	const CHART_COLORS = [
 		"#06b6d4", // cyan-500
-		"#10b981", // emerald-500
+		"#10b981", // green-500
 		"#f59e0b", // amber-500
 		"#ec4899", // pink-500
 		"#3b82f6", // blue-500
@@ -56,16 +56,16 @@ export function AllocationDonutChart({ categories, className }: AllocationDonutC
 
 	const CenterContent = (
 		<div className="flex flex-col items-center justify-center">
-			<span className="text-xs text-muted-foreground">Total</span>
-			<span className="text-xl font-bold text-foreground">{formatCurrency(totalSpent)}</span>
+			<span className="text-xs text-primary">Total</span>
+			<span className="text-xl font-bold text-primary">{formatCurrency(totalSpent)}</span>
 		</div>
 	);
 
 	return (
 		<Card className={cn("p-6 flex flex-col", className)}>
 			<div className="mb-4">
-				<h3 className="text-sm font-semibold text-foreground uppercase tracking-wide">Allocation</h3>
-				<p className="text-xs text-muted-foreground mt-0.5">Spending distribution by category</p>
+				<h3 className="text-sm font-semibold text-primary uppercase tracking-wide">Allocation</h3>
+				<p className="text-xs text-primary mt-0.5">Spending distribution by category</p>
 			</div>
 
 			<div className="flex flex-col items-center justify-center flex-1">
@@ -87,7 +87,7 @@ export function AllocationDonutChart({ categories, className }: AllocationDonutC
 						return (
 							<div key={category.id} className="flex items-center gap-2">
 								<div className={cn("w-2 h-2 rounded-full flex-shrink-0", color.bg)} />
-								<span className="text-xs text-muted-foreground truncate">{category.name}</span>
+								<span className="text-xs text-primary truncate">{category.name}</span>
 							</div>
 						);
 					})}

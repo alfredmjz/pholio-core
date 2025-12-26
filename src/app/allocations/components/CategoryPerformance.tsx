@@ -21,7 +21,7 @@ interface CategoryPerformanceProps {
 // Color palette for categories (matching the screenshot)
 const CATEGORY_COLORS = [
 	{ bg: "bg-cyan-500", text: "text-cyan-500", light: "bg-cyan-100" },
-	{ bg: "bg-emerald-500", text: "text-emerald-500", light: "bg-emerald-100" },
+	{ bg: "bg-green-500", text: "text-green-500", light: "bg-green-100" },
 	{ bg: "bg-amber-500", text: "text-amber-500", light: "bg-amber-100" },
 	{ bg: "bg-pink-500", text: "text-pink-500", light: "bg-pink-100" },
 	{ bg: "bg-blue-500", text: "text-blue-500", light: "bg-blue-100" },
@@ -50,6 +50,7 @@ function CategoryRow({ category, colorIndex }: CategoryRowProps) {
 
 	const actualSpend = category.actual_spend || 0;
 	const utilization = category.budget_cap > 0 ? (actualSpend / category.budget_cap) * 100 : 0;
+	const isOverBudget = utilization > 100;
 	const color = getCategoryColor(colorIndex);
 
 	const formatCurrency = (value: number) => {
@@ -154,13 +155,13 @@ function CategoryRow({ category, colorIndex }: CategoryRowProps) {
 										setIsEditingName(false);
 									}}
 								>
-									<X className="h-3 w-3 text-muted-foreground" />
+									<X className="h-3 w-3 text-primary" />
 								</Button>
 							</div>
 						) : (
 							<button
 								onClick={() => setIsEditingName(true)}
-								className="text-sm font-medium text-foreground hover:underline text-left"
+								className="text-sm font-medium text-primary hover:underline text-left"
 							>
 								{category.name}
 							</button>
@@ -171,10 +172,13 @@ function CategoryRow({ category, colorIndex }: CategoryRowProps) {
 					<div className="text-right flex-shrink-0">
 						{isEditingBudget ? (
 							<div className="flex items-center gap-1">
-								<span className="text-sm font-semibold text-foreground">{formatCurrency(actualSpend)}</span>
-								<span className="text-sm text-muted-foreground">/</span>
+								<span className={cn("text-sm font-semibold", isOverBudget ? "text-error" : "text-primary")}>
+									{formatCurrency(actualSpend)}
+								</span>
+								<span className="text-sm text-primary">/</span>
 								<Input
 									type="number"
+									inputMode="decimal"
 									value={budgetValue}
 									onChange={(e) => setBudgetValue(e.target.value)}
 									onKeyDown={(e) => handleKeyDown(e, "budget")}
@@ -193,13 +197,15 @@ function CategoryRow({ category, colorIndex }: CategoryRowProps) {
 										setIsEditingBudget(false);
 									}}
 								>
-									<X className="h-3 w-3 text-muted-foreground" />
+									<X className="h-3 w-3 text-primary" />
 								</Button>
 							</div>
 						) : (
 							<button onClick={() => setIsEditingBudget(true)} className="text-sm hover:underline">
-								<span className="font-semibold text-foreground">{formatCurrency(actualSpend)}</span>
-								<span className="text-muted-foreground"> / {formatCurrency(category.budget_cap)}</span>
+								<span className={cn("font-semibold", isOverBudget ? "text-error" : "text-primary")}>
+									{formatCurrency(actualSpend)}
+								</span>
+								<span className="text-primary"> / {formatCurrency(category.budget_cap)}</span>
 							</button>
 						)}
 					</div>
@@ -209,7 +215,7 @@ function CategoryRow({ category, colorIndex }: CategoryRowProps) {
 						<Button
 							size="sm"
 							variant="ghost"
-							className="h-6 w-6 p-0 text-muted-foreground hover:text-foreground"
+							className="h-6 w-6 p-0 text-primary hover:text-primary"
 							onClick={() => setIsEditingName(true)}
 						>
 							<Pencil className="h-3 w-3" />
@@ -217,7 +223,7 @@ function CategoryRow({ category, colorIndex }: CategoryRowProps) {
 						<Button
 							size="sm"
 							variant="ghost"
-							className="h-6 w-6 p-0 text-muted-foreground hover:text-error"
+							className="h-6 w-6 p-0 text-primary hover:text-primary"
 							onClick={() => setDeleteDialogOpen(true)}
 						>
 							<Trash2 className="h-3 w-3" />
@@ -255,18 +261,16 @@ export function CategoryPerformance({ categories, onAddCategory, className }: Ca
 		return (
 			<Card className={cn("h-full p-6 flex flex-col", className)}>
 				<div className="flex items-center justify-between mb-4 flex-shrink-0">
-					<h3 className="text-sm font-semibold text-foreground uppercase tracking-wide">Category Performance</h3>
-					<Button variant="outline" size="sm" onClick={onAddCategory} className="gap-1.5">
+					<h3 className="text-sm font-semibold text-primary uppercase tracking-wide">Category Performance</h3>
+					<Button size="sm" onClick={onAddCategory} className="gap-1.5 bg-green-600 hover:bg-green-700 text-white">
 						<Plus className="h-4 w-4" />
 						Add
 					</Button>
 				</div>
 				<div className="flex-1 flex items-center justify-center">
 					<div className="text-center">
-						<p className="text-sm text-muted-foreground mb-4">
-							No categories yet. Add your first category to start tracking.
-						</p>
-						<Button onClick={onAddCategory} variant="outline" className="gap-2">
+						<p className="text-sm text-primary mb-4">No categories yet. Add your first category to start tracking.</p>
+						<Button onClick={onAddCategory} className="gap-2 bg-green-600 hover:bg-green-700 text-white">
 							<Plus className="h-4 w-4" />
 							Add Category
 						</Button>
@@ -279,7 +283,7 @@ export function CategoryPerformance({ categories, onAddCategory, className }: Ca
 	return (
 		<Card className={cn("h-full p-6 flex flex-col", className)}>
 			<div className="flex items-center justify-between mb-4 flex-shrink-0">
-				<h3 className="text-sm font-semibold text-foreground uppercase tracking-wide">Category Performance</h3>
+				<h3 className="text-sm font-semibold text-primary uppercase tracking-wide">Category Performance</h3>
 				<Button variant="outline" size="sm" onClick={onAddCategory} className="gap-1.5">
 					<Plus className="h-4 w-4" />
 					Add

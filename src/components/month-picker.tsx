@@ -38,7 +38,7 @@ export function MonthPicker({ date, setDate, placeholder = "Pick a month", class
 			<PopoverTrigger asChild>
 				<Button
 					variant={"outline"}
-					className={cn("w-full justify-start text-left font-normal", !date && "text-muted-foreground", className)}
+					className={cn("w-full justify-start text-left font-normal", !date && "text-primary", className)}
 				>
 					<CalendarIcon className="mr-2 h-4 w-4" />
 					{date ? format(date, "MMMM yyyy") : <span>{placeholder}</span>}

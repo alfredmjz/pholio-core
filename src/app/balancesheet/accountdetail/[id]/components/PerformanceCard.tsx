@@ -34,18 +34,18 @@ export function PerformanceCard({ account, transactions, formatCurrency }: Perfo
 
 	return (
 		<Card className="p-4">
-			<h3 className="text-sm font-semibold text-muted-foreground mb-3">Performance</h3>
+			<h3 className="text-sm font-semibold text-primary mb-3">Performance</h3>
 			<div className="flex flex-col gap-3">
 				<div className="flex items-center justify-between">
-					<span className="text-sm text-muted-foreground">Interest Earned</span>
+					<span className="text-sm text-primary">Interest Earned</span>
 					<span className="text-sm font-medium">{formatCurrency(stats.interestEarned)}</span>
 				</div>
 				<div className="flex items-center justify-between">
-					<span className="text-sm text-muted-foreground">Avg. Contribution</span>
+					<span className="text-sm text-primary">Avg. Contribution</span>
 					<span className="text-sm font-medium">{formatCurrency(stats.avgContribution)}</span>
 				</div>
 				<div className="flex items-center justify-between">
-					<span className="text-sm text-muted-foreground">Growth Rate</span>
+					<span className="text-sm text-primary">Growth Rate</span>
 					<span
 						className={cn(
 							"text-sm font-medium",

@@ -85,7 +85,7 @@ export function GuestConvertDialog({ children }: GuestConvertDialogProps) {
 							</svg>
 						</div>
 						<p className="text-lg font-semibold text-success">Account upgraded successfully!</p>
-						<p className="text-sm text-muted-foreground mt-2">Refreshing page...</p>
+						<p className="text-sm text-primary mt-2">Refreshing page...</p>
 					</div>
 				) : (
 					<form onSubmit={handleSubmit} className="space-y-4">
@@ -102,7 +102,7 @@ export function GuestConvertDialog({ children }: GuestConvertDialogProps) {
 						<div className="space-y-2">
 							<Label htmlFor="password">Password</Label>
 							<Input id="password" name="password" type="password" minLength={6} required />
-							<p className="text-xs text-muted-foreground">Minimum 6 characters</p>
+							<p className="text-xs text-primary">Minimum 6 characters</p>
 						</div>
 
 						{error && (

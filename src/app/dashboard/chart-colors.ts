@@ -28,7 +28,7 @@ export const LIABILITY_COLORS = [
  */
 export const CHART_COLORS = [
 	"#06b6d4", // Cyan
-	"#10b981", // Emerald
+	"#10b981", // green
 	"#f59e0b", // Amber
 	"#ec4899", // Pink
 	"#3b82f6", // Blue
@@ -81,9 +81,9 @@ export function getCategoryColorClasses(index: number): {
 	const colorMap = [
 		{ bg: "bg-cyan-500", text: "text-cyan-500", border: "border-cyan-500" },
 		{
-			bg: "bg-emerald-500",
-			text: "text-emerald-500",
-			border: "border-emerald-500",
+			bg: "bg-green-500",
+			text: "text-green-500",
+			border: "border-green-500",
 		},
 		{ bg: "bg-amber-500", text: "text-amber-500", border: "border-amber-500" },
 		{ bg: "bg-pink-500", text: "text-pink-500", border: "border-pink-500" },

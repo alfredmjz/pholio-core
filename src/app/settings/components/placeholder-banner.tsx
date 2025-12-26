@@ -31,11 +31,12 @@ export function PlaceholderBanner() {
 				<Banner
 					open={isVisible}
 					onOpenChange={handleOpenChange}
-					className="bg-foreground text-background shadow-lg rounded-full py-2 pl-4 pr-2 border-none"
+					className="bg-primary text-background shadow-lg rounded-full py-2 pl-4 pr-2 border-none"
 				>
 					<BannerIcon icon={Info} className="text-background/80" />
 					<BannerTitle className="text-background">
-						<span className="font-semibold">Note:</span> MFA, Active Sessions, Regional Settings, Notifications and Data & Privacy are placeholders.
+						<span className="font-semibold">Note:</span> MFA, Active Sessions, Regional Settings, Notifications and Data
+						& Privacy are placeholders.
 					</BannerTitle>
 					<BannerClose className="text-background/70 hover:bg-background/20 hover:text-background rounded-full" />
 				</Banner>

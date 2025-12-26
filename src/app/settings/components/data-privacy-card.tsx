@@ -8,15 +8,15 @@ import { Button } from "@/components/ui/button";
 import { toast } from "sonner";
 import { AlertCircle, Download, Trash2 } from "lucide-react";
 import {
-  AlertDialog,
-  AlertDialogAction,
-  AlertDialogCancel,
-  AlertDialogContent,
-  AlertDialogDescription,
-  AlertDialogFooter,
-  AlertDialogHeader,
-  AlertDialogTitle,
-  AlertDialogTrigger,
+	AlertDialog,
+	AlertDialogAction,
+	AlertDialogCancel,
+	AlertDialogContent,
+	AlertDialogDescription,
+	AlertDialogFooter,
+	AlertDialogHeader,
+	AlertDialogTitle,
+	AlertDialogTrigger,
 } from "@/components/ui/alert-dialog";
 
 export default function DataPrivacyCard() {
@@ -40,48 +40,39 @@ export default function DataPrivacyCard() {
 			<Card>
 				<CardHeader>
 					<CardTitle>How we use your data</CardTitle>
-					<CardDescription>
-						Manage how Pholio processes your financial data to improve your experience.
-					</CardDescription>
+					<CardDescription>Manage how Pholio processes your financial data to improve your experience.</CardDescription>
 				</CardHeader>
 				<CardContent className="space-y-6">
 					<div className="flex items-center justify-between space-x-4">
 						<div className="space-y-1">
 							<Label className="text-base leading-none">Use data to improve Pholio</Label>
-							<p className="text-sm text-muted-foreground">
-								Allows us to process usage logs and error reports to understand system performance and improve our services.
+							<p className="text-sm text-primary">
+								Allows us to process usage logs and error reports to understand system performance and improve our
+								services.
 							</p>
 						</div>
-						<Switch
-							checked={improvePholio}
-							onCheckedChange={setImprovePholio}
-						/>
+						<Switch checked={improvePholio} onCheckedChange={setImprovePholio} />
 					</div>
 
 					<div className="flex items-center justify-between space-x-4">
 						<div className="space-y-1">
 							<Label className="text-base leading-none">Personalized Insights</Label>
-							<p className="text-sm text-muted-foreground">
+							<p className="text-sm text-primary">
 								Allows us to analyze your transaction history to generate personalized budget tips and spending alerts.
 							</p>
 						</div>
-						<Switch
-							checked={personalizedInsights}
-							onCheckedChange={setPersonalizedInsights}
-						/>
+						<Switch checked={personalizedInsights} onCheckedChange={setPersonalizedInsights} />
 					</div>
 
 					<div className="flex items-center justify-between space-x-4">
 						<div className="space-y-1">
 							<Label className="text-base leading-none">Anonymous Benchmarking</Label>
-							<p className="text-sm text-muted-foreground">
-								Contribute anonymous aggregated data to community averages. This lets you compare your spending habits with similar profiles.
+							<p className="text-sm text-primary">
+								Contribute anonymous aggregated data to community averages. This lets you compare your spending habits
+								with similar profiles.
 							</p>
 						</div>
-						<Switch
-							checked={anonymousBenchmarking}
-							onCheckedChange={setAnonymousBenchmarking}
-						/>
+						<Switch checked={anonymousBenchmarking} onCheckedChange={setAnonymousBenchmarking} />
 					</div>
 				</CardContent>
 			</Card>
@@ -98,11 +89,12 @@ export default function DataPrivacyCard() {
 					<div className="space-y-4">
 						<div className="rounded-md bg-secondary/50 p-4">
 							<div className="flex items-start gap-4">
-								<AlertCircle className="h-5 w-5 mt-0.5 text-muted-foreground" />
+								<AlertCircle className="h-5 w-5 mt-0.5 text-primary" />
 								<div className="space-y-1">
 									<p className="text-sm font-medium">Data Export Process</p>
-									<p className="text-sm text-muted-foreground">
-                                        Your data export will include your profile information, transaction history, and budget configurations. The file will be available for download for 7 days.
+									<p className="text-sm text-primary">
+										Your data export will include your profile information, transaction history, and budget
+										configurations. The file will be available for download for 7 days.
 									</p>
 								</div>
 							</div>
@@ -119,18 +111,14 @@ export default function DataPrivacyCard() {
 			<Card className="border-error/30">
 				<CardHeader>
 					<CardTitle className="text-error">Danger Zone</CardTitle>
-					<CardDescription>
-						Irreversible actions for your account.
-					</CardDescription>
+					<CardDescription>Irreversible actions for your account.</CardDescription>
 				</CardHeader>
 				<CardContent>
 					<div className="space-y-4">
 						<div className="flex items-center justify-between">
 							<div className="space-y-1">
 								<Label className="text-base">Delete Account</Label>
-								<p className="text-sm text-muted-foreground">
-									Permanently delete your account and all associated data.
-								</p>
+								<p className="text-sm text-primary">Permanently delete your account and all associated data.</p>
 							</div>
 
 							<AlertDialog>
@@ -141,13 +129,13 @@ export default function DataPrivacyCard() {
 									<AlertDialogHeader>
 										<AlertDialogTitle>Are you absolutely sure?</AlertDialogTitle>
 										<AlertDialogDescription>
-											This action cannot be undone. This will permanently delete your account
-											and remove your data from our servers.
+											This action cannot be undone. This will permanently delete your account and remove your data from
+											our servers.
 										</AlertDialogDescription>
 									</AlertDialogHeader>
 									<AlertDialogFooter>
 										<AlertDialogCancel>Cancel</AlertDialogCancel>
-										<AlertDialogAction onClick={handleDeleteAccount} className="bg-error text-error-foreground hover:bg-error/90">
+										<AlertDialogAction onClick={handleDeleteAccount} className="bg-error text-error hover:bg-error/90">
 											Yes, delete my account
 										</AlertDialogAction>
 									</AlertDialogFooter>

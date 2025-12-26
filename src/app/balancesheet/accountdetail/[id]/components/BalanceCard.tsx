@@ -34,17 +34,17 @@ export function BalanceCard({ account, accountClass, formatCurrency }: BalanceCa
 				{/* Balance Header */}
 				<div className="flex items-start justify-between gap-4">
 					<div className="flex flex-col gap-1">
-						<span className="text-sm font-medium text-muted-foreground">Current Balance</span>
+						<span className="text-sm font-medium text-primary">Current Balance</span>
 						<div
 							className={cn(
 								"text-4xl font-bold tracking-tight",
-								accountClass === "asset" ? "text-foreground" : "text-red-600 dark:text-red-400"
+								accountClass === "asset" ? "text-primary" : "text-red-600 dark:text-red-400"
 							)}
 						>
 							{formatCurrency(account.current_balance)}
 						</div>
 						{account.interest_rate && (
-							<div className="flex items-center gap-2 text-sm text-muted-foreground">
+							<div className="flex items-center gap-2 text-sm text-primary">
 								<span>APY:</span>
 								<span className="font-medium">{(account.interest_rate * 100).toFixed(1)}%</span>
 							</div>
@@ -73,14 +73,14 @@ export function BalanceCard({ account, accountClass, formatCurrency }: BalanceCa
 				{account.target_balance && progress !== null && (
 					<div className="flex flex-col gap-2">
 						<div className="flex items-center justify-between text-sm">
-							<span className="font-medium text-muted-foreground">Progress to Goal</span>
+							<span className="font-medium text-primary">Progress to Goal</span>
 							<span className="font-medium">{formatCurrency(account.target_balance)}</span>
 						</div>
 						<Progress
 							value={Math.min(progress, 100)}
 							className={cn("h-3", accountClass === "asset" ? "[&>div]:bg-green-500" : "[&>div]:bg-red-500")}
 						/>
-						<div className="text-xs text-muted-foreground">
+						<div className="text-xs text-primary">
 							{progress.toFixed(0)}% complete
 							{remaining !== null && remaining > 0 && <> • {formatCurrency(remaining)} remaining</>}
 						</div>

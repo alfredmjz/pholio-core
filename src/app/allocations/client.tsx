@@ -186,14 +186,12 @@ export function AllocationClient({
 					<Card className="p-12 text-center">
 						<div className="max-w-md mx-auto">
 							<div className="w-20 h-20 rounded-full bg-muted flex items-center justify-center mx-auto mb-6">
-								<FileText className="h-10 w-10 muted-text-primary" />
+								<FileText className="h-10 w-10 text-primary" />
 							</div>
 							<h2 className="text-2xl font-bold text-primary mb-2">
 								No Budget for {MONTH_NAMES[currentMonth.month - 1]} {currentMonth.year}
 							</h2>
-							<p className="muted-text-primary mb-6">
-								Set up your budget for this month to start tracking your spending.
-							</p>
+							<p className="text-primary mb-6">Set up your budget for this month to start tracking your spending.</p>
 							<Button onClick={() => setTemplateDialogOpen(true)} className="gap-2">
 								<Plus className="h-4 w-4" />
 								Set Up Budget

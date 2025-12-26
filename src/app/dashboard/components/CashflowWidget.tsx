@@ -33,25 +33,25 @@ function CustomTooltip({ active, payload, label }: any) {
 
 	return (
 		<div className="bg-card border border-border rounded-lg shadow-lg p-4 min-w-[180px]">
-			<p className="text-sm font-semibold text-foreground mb-3">{label}</p>
+			<p className="text-sm font-semibold text-primary mb-3">{label}</p>
 			<div className="space-y-2">
 				<div className="flex items-center justify-between gap-6">
 					<div className="flex items-center gap-2">
 						<div className="w-2.5 h-2.5 rounded-sm bg-info" />
-						<span className="text-xs text-muted-foreground">Income</span>
+						<span className="text-xs text-primary">Income</span>
 					</div>
-					<span className="text-sm font-semibold text-foreground">{formatCurrency(income)}</span>
+					<span className="text-sm font-semibold text-primary">{formatCurrency(income)}</span>
 				</div>
 				<div className="flex items-center justify-between gap-6">
 					<div className="flex items-center gap-2">
 						<div className="w-2.5 h-2.5 rounded-sm bg-error" />
-						<span className="text-xs text-muted-foreground">Expenses</span>
+						<span className="text-xs text-primary">Expenses</span>
 					</div>
-					<span className="text-sm font-semibold text-foreground">{formatCurrency(expenses)}</span>
+					<span className="text-sm font-semibold text-primary">{formatCurrency(expenses)}</span>
 				</div>
 				<div className="border-t border-border pt-2 mt-2">
 					<div className="flex items-center justify-between">
-						<span className="text-xs font-medium text-muted-foreground">Net</span>
+						<span className="text-xs font-medium text-primary">Net</span>
 						<span className={cn("text-sm font-semibold", net >= 0 ? "text-success" : "text-error")}>
 							{formatCurrency(net)}
 						</span>
@@ -88,8 +88,8 @@ export function CashflowWidget({
 			{/* Header */}
 			<div className="flex items-center justify-between mb-6">
 				<div>
-					<h3 className="text-xl font-semibold text-foreground mb-1">Cash Flow</h3>
-					<p className="text-xs text-muted-foreground">Income vs Expenses over time</p>
+					<h3 className="text-xl font-semibold text-primary mb-1">Cash Flow</h3>
+					<p className="text-xs text-primary">Income vs Expenses over time</p>
 				</div>
 
 				{/* Period Selector */}
@@ -123,15 +123,15 @@ export function CashflowWidget({
 			{/* Summary Row */}
 			<div className="grid grid-cols-3 gap-4 mb-6 p-4 bg-muted/50 rounded-lg">
 				<div>
-					<p className="text-xs text-muted-foreground mb-1">Total Income</p>
+					<p className="text-xs text-primary mb-1">Total Income</p>
 					<p className="text-lg font-semibold text-info">{formatCurrency(totalIncome)}</p>
 				</div>
 				<div>
-					<p className="text-xs text-muted-foreground mb-1">Total Expenses</p>
+					<p className="text-xs text-primary mb-1">Total Expenses</p>
 					<p className="text-lg font-semibold text-error">{formatCurrency(totalExpenses)}</p>
 				</div>
 				<div>
-					<p className="text-xs text-muted-foreground mb-1">Net Cashflow</p>
+					<p className="text-xs text-primary mb-1">Net Cashflow</p>
 					<p className={cn("text-lg font-semibold", netCashflow >= 0 ? "text-success" : "text-error")}>
 						{formatCurrency(netCashflow)}
 					</p>
@@ -148,13 +148,13 @@ export function CashflowWidget({
 									<CartesianGrid strokeDasharray="3 3" stroke="hsl(var(--border))" vertical={false} />
 									<XAxis
 										dataKey="label"
-										stroke="hsl(var(--muted-foreground))"
+										stroke="hsl(var(--text-primary))"
 										fontSize={12}
 										tickLine={false}
 										axisLine={false}
 									/>
 									<YAxis
-										stroke="hsl(var(--muted-foreground))"
+										stroke="hsl(var(--text-primary))"
 										fontSize={12}
 										tickLine={false}
 										axisLine={false}
@@ -180,11 +180,11 @@ export function CashflowWidget({
 					<div className="flex items-center justify-center gap-6 mt-4">
 						<div className="flex items-center gap-2">
 							<div className="w-3 h-3 rounded-sm bg-info" />
-							<span className="text-xs text-muted-foreground">Income</span>
+							<span className="text-xs text-primary">Income</span>
 						</div>
 						<div className="flex items-center gap-2">
 							<div className="w-3 h-3 rounded-sm bg-error" />
-							<span className="text-xs text-muted-foreground">Expenses</span>
+							<span className="text-xs text-primary">Expenses</span>
 						</div>
 					</div>
 				</>
@@ -199,13 +199,13 @@ function EmptyState() {
 	return (
 		<div className="h-72 flex flex-col items-center justify-center text-center">
 			<div className="p-4 rounded-full bg-muted mb-4">
-				<BarChart3 className="h-8 w-8 text-muted-foreground" />
+				<BarChart3 className="h-8 w-8 text-primary" />
 			</div>
-			<h4 className="text-base font-semibold text-foreground mb-1">No cashflow data yet</h4>
-			<p className="text-sm text-muted-foreground mb-4 max-w-sm">
+			<h4 className="text-base font-semibold text-primary mb-1">No cashflow data yet</h4>
+			<p className="text-sm text-primary mb-4 max-w-sm">
 				Start tracking your income and expenses to see your cashflow trends
 			</p>
-			<Button size="sm" variant="outline" className="gap-2">
+			<Button size="sm" className="gap-2 bg-green-600 hover:bg-green-700 text-white">
 				<Plus className="h-4 w-4" />
 				Add Transaction
 			</Button>

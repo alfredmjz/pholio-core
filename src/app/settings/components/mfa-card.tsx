@@ -35,7 +35,7 @@ export function MfaCard() {
 		<div className="flex flex-col gap-6">
 			<div>
 				<h3 className="text-lg font-medium">Two-Factor Authentication</h3>
-				<p className="text-sm text-muted-foreground">Add an extra layer of security to your account</p>
+				<p className="text-sm text-primary">Add an extra layer of security to your account</p>
 			</div>
 
 			<div className="flex flex-col gap-3">
@@ -44,7 +44,7 @@ export function MfaCard() {
 						<Label htmlFor="mfa-toggle" className="font-medium">
 							Authenticator App
 						</Label>
-						<span className="text-xs text-muted-foreground">
+						<span className="text-xs text-primary">
 							Use an app like Google Authenticator or Authy to generate verification codes.
 						</span>
 					</div>
@@ -55,18 +55,18 @@ export function MfaCard() {
 					<div className="rounded-md bg-success-muted p-3 border border-success/30 flex items-start gap-3">
 						<ShieldCheck className="w-5 h-5 text-success flex-shrink-0 mt-0.5" />
 						<div>
-							<p className="text-sm font-medium text-success-foreground">2FA is enabled</p>
-							<p className="text-xs text-muted-foreground mt-1">
+							<p className="text-sm font-medium text-success">2FA is enabled</p>
+							<p className="text-xs text-primary mt-1">
 								Your account is protected. You'll need to enter a code from your authenticator app when you sign in.
 							</p>
 						</div>
 					</div>
 				) : (
 					<div className="rounded-md bg-secondary/50 p-3 border border-border flex items-start gap-3">
-						<ShieldAlert className="w-5 h-5 text-muted-foreground flex-shrink-0 mt-0.5" />
+						<ShieldAlert className="w-5 h-5 text-primary flex-shrink-0 mt-0.5" />
 						<div>
-							<p className="text-sm font-medium text-foreground">2FA is disabled</p>
-							<p className="text-xs text-muted-foreground mt-1">
+							<p className="text-sm font-medium text-primary">2FA is disabled</p>
+							<p className="text-xs text-primary mt-1">
 								We recommend enabling 2FA to prevent unauthorized access to your account.
 							</p>
 						</div>
@@ -82,7 +82,7 @@ export function MfaCard() {
 						<div className="flex flex-col items-center justify-center py-6 gap-4">
 							<div className="w-48 h-48 bg-white border border-border rounded flex items-center justify-center">
 								{/* Placeholder QR Code */}
-								<Smartphone className="w-16 h-16 text-muted-foreground/30" />
+								<Smartphone className="w-16 h-16 text-primary/30" />
 							</div>
 							<div className="text-center space-y-2">
 								<p className="text-sm font-medium">Scanning not working?</p>

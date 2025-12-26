@@ -137,10 +137,10 @@ export function ImportTemplateDialog({
 								</div>
 								<div className="flex-1">
 									<div className="flex items-center justify-between">
-										<h4 className="font-semibold text-foreground">Import from {previousMonth.name}</h4>
-										<ChevronRight className="h-4 w-4 text-muted-foreground" />
+										<h4 className="font-semibold text-primary">Import from {previousMonth.name}</h4>
+										<ChevronRight className="h-4 w-4 text-primary" />
 									</div>
-									<p className="text-sm text-muted-foreground mt-1">
+									<p className="text-sm text-primary mt-1">
 										Copy all {previousMonth.categoryCount} categories ({formatCurrency(previousMonth.totalBudget)} total
 										budget)
 									</p>
@@ -164,10 +164,10 @@ export function ImportTemplateDialog({
 							</div>
 							<div className="flex-1">
 								<div className="flex items-center justify-between">
-									<h4 className="font-semibold text-foreground">Use a Template</h4>
-									<ChevronRight className="h-4 w-4 text-muted-foreground" />
+									<h4 className="font-semibold text-primary">Use a Template</h4>
+									<ChevronRight className="h-4 w-4 text-primary" />
 								</div>
-								<p className="text-sm text-muted-foreground mt-1">
+								<p className="text-sm text-primary mt-1">
 									{templates.length > 0
 										? `Select from your ${templates.length} saved templates`
 										: "No templates saved yet"}
@@ -180,7 +180,7 @@ export function ImportTemplateDialog({
 					{selectedOption === "template" && (
 						<div className="ml-8 space-y-2 animate-in fade-in slide-in-from-top-2">
 							{templates.length === 0 ? (
-								<p className="text-sm text-muted-foreground py-4 text-center">
+								<p className="text-sm text-primary py-4 text-center">
 									You don't have any saved templates yet. Create a budget and save it as a template for future use.
 								</p>
 							) : (
@@ -196,8 +196,8 @@ export function ImportTemplateDialog({
 									>
 										<div className="flex items-center justify-between">
 											<div>
-												<h5 className="font-medium text-foreground">{template.name}</h5>
-												<p className="text-xs text-muted-foreground">
+												<h5 className="font-medium text-primary">{template.name}</h5>
+												<p className="text-xs text-primary">
 													{template.categoryCount} categories &middot; {formatCurrency(template.totalBudget)}
 												</p>
 											</div>
@@ -224,10 +224,10 @@ export function ImportTemplateDialog({
 							</div>
 							<div className="flex-1">
 								<div className="flex items-center justify-between">
-									<h4 className="font-semibold text-foreground">Start Fresh</h4>
-									<ChevronRight className="h-4 w-4 text-muted-foreground" />
+									<h4 className="font-semibold text-primary">Start Fresh</h4>
+									<ChevronRight className="h-4 w-4 text-primary" />
 								</div>
-								<p className="text-sm text-muted-foreground mt-1">Create a new budget from scratch</p>
+								<p className="text-sm text-primary mt-1">Create a new budget from scratch</p>
 							</div>
 						</div>
 					</button>
@@ -240,10 +240,11 @@ export function ImportTemplateDialog({
 							Expected Income for {monthName}
 						</Label>
 						<div className="relative">
-							<span className="absolute left-3 top-1/2 -translate-y-1/2 text-muted-foreground">$</span>
+							<span className="absolute left-3 top-1/2 -translate-y-1/2 text-primary">$</span>
 							<Input
 								id="expectedIncome"
 								type="number"
+								inputMode="decimal"
 								placeholder="0.00"
 								value={expectedIncome}
 								onChange={(e) => setExpectedIncome(e.target.value)}
@@ -251,16 +252,16 @@ export function ImportTemplateDialog({
 								autoFocus
 							/>
 						</div>
-						<p className="text-xs text-muted-foreground">This helps track your budget against your income</p>
+						<p className="text-xs text-primary">This helps track your budget against your income</p>
 					</div>
 
 					{/* Summary Card */}
 					<Card className="p-4 bg-muted/50">
-						<h5 className="text-sm font-medium text-foreground mb-2">Summary</h5>
+						<h5 className="text-sm font-medium text-primary mb-2">Summary</h5>
 						<div className="space-y-1 text-sm">
 							<div className="flex justify-between">
-								<span className="text-muted-foreground">Method</span>
-								<span className="font-medium text-foreground">
+								<span className="text-primary">Method</span>
+								<span className="font-medium text-primary">
 									{selectedOption === "previous"
 										? `Import from ${previousMonth?.name}`
 										: selectedOption === "template"
@@ -270,8 +271,8 @@ export function ImportTemplateDialog({
 							</div>
 							{selectedOption !== "fresh" && (
 								<div className="flex justify-between">
-									<span className="text-muted-foreground">Categories</span>
-									<span className="font-medium text-foreground">
+									<span className="text-primary">Categories</span>
+									<span className="font-medium text-primary">
 										{selectedOption === "previous"
 											? previousMonth?.categoryCount
 											: templates.find((t) => t.id === selectedTemplateId)?.categoryCount}
@@ -279,8 +280,8 @@ export function ImportTemplateDialog({
 								</div>
 							)}
 							<div className="flex justify-between">
-								<span className="text-muted-foreground">Expected Income</span>
-								<span className="font-medium text-foreground">
+								<span className="text-primary">Expected Income</span>
+								<span className="font-medium text-primary">
 									{expectedIncome ? formatCurrency(parseFloat(expectedIncome)) : "Not set"}
 								</span>
 							</div>

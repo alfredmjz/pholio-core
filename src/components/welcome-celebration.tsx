@@ -110,7 +110,7 @@ export function WelcomeCelebration({ forceOpen = false, redirectUrl }: WelcomeCe
 
 						<div className="space-y-2">
 							<h2 className="text-2xl font-bold tracking-tight">Welcome to Pholio!</h2>
-							<div className="text-muted-foreground space-y-1">
+							<div className="text-primary space-y-1">
 								<p>Your account has been verified successfully.</p>
 								<p>You're all set to look professional.</p>
 							</div>

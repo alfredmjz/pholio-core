@@ -7,13 +7,7 @@ import { Monitor, Moon, Sun, Globe, DollarSign, Bell } from "lucide-react";
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card";
 import { Label } from "@/components/ui/label";
 import { Switch } from "@/components/ui/switch";
-import {
-	Select,
-	SelectContent,
-	SelectItem,
-	SelectTrigger,
-	SelectValue,
-} from "@/components/ui/select";
+import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
 import { ToggleGroup, ToggleGroupItem } from "@/components/ui/toggle-group";
 
 export default function PreferencesCard() {
@@ -38,18 +32,14 @@ export default function PreferencesCard() {
 		<Card>
 			<CardHeader>
 				<CardTitle>Preferences</CardTitle>
-				<CardDescription>
-					Customize your application experience
-				</CardDescription>
+				<CardDescription>Customize your application experience</CardDescription>
 			</CardHeader>
 			<CardContent className="space-y-8">
 				{/* Appearance Section */}
 				<div className="space-y-4">
 					<div>
 						<h3 className="text-sm font-medium leading-none mb-1">Appearance</h3>
-						<p className="text-sm text-muted-foreground">
-							Select your preferred theme for the application.
-						</p>
+						<p className="text-sm text-primary">Select your preferred theme for the application.</p>
 					</div>
 
 					<ToggleGroup
@@ -91,9 +81,7 @@ export default function PreferencesCard() {
 				<div className="space-y-4">
 					<div>
 						<h3 className="text-sm font-medium leading-none mb-1">Regional Settings</h3>
-						<p className="text-sm text-muted-foreground">
-							Set your preferred language and currency.
-						</p>
+						<p className="text-sm text-primary">Set your preferred language and currency.</p>
 					</div>
 
 					<div className="grid gap-4 md:grid-cols-2">
@@ -134,36 +122,24 @@ export default function PreferencesCard() {
 				<div className="space-y-4">
 					<div>
 						<h3 className="text-sm font-medium leading-none mb-1">Notifications</h3>
-						<p className="text-sm text-muted-foreground">
-							Manage how you want to receive alerts.
-						</p>
+						<p className="text-sm text-primary">Manage how you want to receive alerts.</p>
 					</div>
 
 					<div className="space-y-4">
 						<div className="flex items-center justify-between rounded-lg border p-4">
 							<div className="space-y-0.5">
 								<Label className="text-base">Email Notifications</Label>
-								<p className="text-sm text-muted-foreground">
-									Receive daily summaries and critical alerts.
-								</p>
+								<p className="text-sm text-primary">Receive daily summaries and critical alerts.</p>
 							</div>
-							<Switch
-								checked={emailNotifications}
-								onCheckedChange={setEmailNotifications}
-							/>
+							<Switch checked={emailNotifications} onCheckedChange={setEmailNotifications} />
 						</div>
 
 						<div className="flex items-center justify-between rounded-lg border p-4">
 							<div className="space-y-0.5">
 								<Label className="text-base">Push Notifications</Label>
-								<p className="text-sm text-muted-foreground">
-									Receive real-time alerts on your device.
-								</p>
+								<p className="text-sm text-primary">Receive real-time alerts on your device.</p>
 							</div>
-							<Switch
-								checked={pushNotifications}
-								onCheckedChange={setPushNotifications}
-							/>
+							<Switch checked={pushNotifications} onCheckedChange={setPushNotifications} />
 						</div>
 					</div>
 				</div>

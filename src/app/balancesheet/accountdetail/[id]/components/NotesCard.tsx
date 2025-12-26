@@ -44,7 +44,7 @@ export function NotesCard({ account, onAccountUpdated }: NotesCardProps) {
 	return (
 		<Card className="p-4">
 			<div className="flex items-center justify-between mb-3">
-				<h3 className="text-sm font-semibold text-muted-foreground">Notes</h3>
+				<h3 className="text-sm font-semibold text-primary">Notes</h3>
 				{!isEditing && (
 					<Button variant="link" size="sm" className="h-auto p-0 text-sm" onClick={() => setIsEditing(true)}>
 						Edit Note
@@ -65,7 +65,7 @@ export function NotesCard({ account, onAccountUpdated }: NotesCardProps) {
 					</div>
 				</div>
 			) : (
-				<div className="text-sm text-muted-foreground">
+				<div className="text-sm text-primary">
 					{account.notes ? (
 						<div
 							className="prose prose-sm dark:prose-invert max-w-none"

@@ -25,7 +25,7 @@ export function RecentTransactions({ transactions, onViewAll, loading = false, c
 		<Card className={cn("p-6 bg-card border border-border", className)}>
 			{/* Header */}
 			<div className="flex items-center justify-between mb-4">
-				<h3 className="text-lg font-semibold text-foreground">Recent Transactions</h3>
+				<h3 className="text-lg font-semibold text-primary">Recent Transactions</h3>
 				{onViewAll && (
 					<Button variant="ghost" size="sm" onClick={onViewAll} className="text-xs gap-1">
 						View All
@@ -63,20 +63,20 @@ function TransactionRow({ transaction }: { transaction: Transaction }) {
 					)}
 				</div>
 				<div className="min-w-0 flex-1">
-					<p className="text-sm font-medium text-foreground truncate">{transaction.description}</p>
+					<p className="text-sm font-medium text-primary truncate">{transaction.description}</p>
 					<div className="flex items-center gap-2 mt-0.5">
 						{transaction.category && (
 							<Badge variant="secondary" className="text-xs px-2 py-0 h-5 font-normal">
 								{transaction.category}
 							</Badge>
 						)}
-						<span className="text-xs text-muted-foreground">{formatDate(transaction.date)}</span>
+						<span className="text-xs text-primary">{formatDate(transaction.date)}</span>
 					</div>
 				</div>
 			</div>
 
 			{/* Right: Amount */}
-			<span className={cn("text-sm font-semibold flex-shrink-0 ml-3", isIncome ? "text-success" : "text-foreground")}>
+			<span className={cn("text-sm font-semibold flex-shrink-0 ml-3", isIncome ? "text-success" : "text-primary")}>
 				{isIncome ? "+" : "-"}
 				{formatCurrency(Math.abs(transaction.amount))}
 			</span>
@@ -88,10 +88,10 @@ function EmptyState() {
 	return (
 		<div className="py-12 text-center">
 			<div className="inline-flex p-3 rounded-full bg-muted mb-3">
-				<Receipt className="h-6 w-6 text-muted-foreground" />
+				<Receipt className="h-6 w-6 text-primary" />
 			</div>
-			<p className="text-sm font-medium text-foreground mb-1">No recent transactions</p>
-			<p className="text-xs text-muted-foreground">Your transaction history will appear here</p>
+			<p className="text-sm font-medium text-primary mb-1">No recent transactions</p>
+			<p className="text-xs text-primary">Your transaction history will appear here</p>
 		</div>
 	);
 }

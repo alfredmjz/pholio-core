@@ -37,17 +37,14 @@ export function AssetGrowthCard({ totalAssets, previousTotalAssets, historicalDa
 	return (
 		<Card className="p-6 h-full flex flex-col justify-between">
 			<div className="flex items-center justify-between mb-2">
-				<h3 className="text-sm font-medium text-muted-foreground">Asset Growth</h3>
-				<Info className="h-4 w-4 text-muted-foreground/50" />
+				<h3 className="text-sm font-medium text-primary">Asset Growth</h3>
+				<Info className="h-4 w-4 text-primary/50" />
 			</div>
 
 			<div className="space-y-1">
 				<div className="text-4xl font-bold tracking-tight">{formatCurrency(totalAssets)}</div>
 				<div
-					className={cn(
-						"flex items-center gap-1 text-sm font-medium",
-						isPositive ? "text-emerald-500" : "text-red-500"
-					)}
+					className={cn("flex items-center gap-1 text-sm font-medium", isPositive ? "text-green-500" : "text-red-500")}
 				>
 					{isPositive ? <TrendingUp className="h-4 w-4" /> : <TrendingDown className="h-4 w-4" />}
 					{Math.abs(percentChange).toFixed(1)}% vs. last month
@@ -68,7 +65,7 @@ export function AssetGrowthCard({ totalAssets, previousTotalAssets, historicalDa
 								if (active && payload && payload.length) {
 									return (
 										<div className="bg-background border rounded-lg p-2 shadow-md text-xs">
-											<div className="text-muted-foreground mb-1">{payload[0].payload.date}</div>
+											<div className="text-primary mb-1">{payload[0].payload.date}</div>
 											<div className="font-bold">{formatFullCurrency(Number(payload[0].value))}</div>
 										</div>
 									);
@@ -78,7 +75,7 @@ export function AssetGrowthCard({ totalAssets, previousTotalAssets, historicalDa
 						/>
 					</BarChart>
 				</ResponsiveContainer>
-				<p className="text-[10px] text-muted-foreground mt-1 w-full text-left">Last 30 days</p>
+				<p className="text-[10px] text-primary mt-1 w-full text-left">Last 30 days</p>
 			</div>
 		</Card>
 	);

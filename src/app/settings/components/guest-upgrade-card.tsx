@@ -17,7 +17,7 @@ export default function GuestUpgradeCard() {
 			</CardHeader>
 			<CardContent>
 				<div className="space-y-4">
-					<p className="text-sm text-muted-foreground">Create a permanent account to unlock all features:</p>
+					<p className="text-sm text-primary">Create a permanent account to unlock all features:</p>
 
 					<ul className="space-y-2">
 						<li className="flex items-start gap-2 text-sm">

@@ -29,7 +29,7 @@ const FloatingLabelInput = React.forwardRef<HTMLInputElement, FloatingLabelInput
 				/>
 				<label
 					className={cn(
-						"absolute left-3 top-4 z-10 origin-[0] -translate-y-[12px] scale-75 transform text-muted-foreground duration-300 peer-placeholder-shown:translate-y-0 peer-placeholder-shown:scale-100 peer-focus:-translate-y-[12px] peer-focus:scale-75 pointer-events-none",
+						"absolute left-3 top-4 z-10 origin-[0] -translate-y-[12px] scale-75 transform text-primary duration-300 peer-placeholder-shown:translate-y-0 peer-placeholder-shown:scale-100 peer-focus:-translate-y-[12px] peer-focus:scale-75 pointer-events-none",
 						isPassword && "max-w-[calc(100%-3rem)] truncate"
 					)}
 				>
@@ -40,7 +40,7 @@ const FloatingLabelInput = React.forwardRef<HTMLInputElement, FloatingLabelInput
 						type="button"
 						variant="ghost"
 						size="icon"
-						className="absolute right-2 top-2 h-10 w-10 text-muted-foreground hover:bg-transparent"
+						className="absolute right-2 top-2 h-10 w-10 text-primary hover:bg-transparent"
 						onClick={() => setShowPassword(!showPassword)}
 					>
 						{showPassword ? <EyeOff className="h-4 w-4" /> : <Eye className="h-4 w-4" />}

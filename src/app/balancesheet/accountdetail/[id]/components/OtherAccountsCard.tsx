@@ -30,8 +30,8 @@ export function OtherAccountsCard({ accounts, currentAccountClass }: OtherAccoun
 	return (
 		<Card className="p-4">
 			<div className="flex items-center justify-between mb-3">
-				<h3 className="text-sm font-semibold text-muted-foreground">Other Accounts</h3>
-				<Link href="/balancesheet" className="text-sm text-muted-foreground hover:text-foreground transition-colors">
+				<h3 className="text-sm font-semibold text-primary">Other Accounts</h3>
+				<Link href="/balancesheet" className="text-sm text-primary hover:text-primary transition-colors">
 					View All
 				</Link>
 			</div>
@@ -49,7 +49,7 @@ export function OtherAccountsCard({ accounts, currentAccountClass }: OtherAccoun
 						>
 							<div className="flex flex-col">
 								<span className="text-sm font-medium">{account.name}</span>
-								<span className="text-xs text-muted-foreground">{account.account_type?.name}</span>
+								<span className="text-xs text-primary">{account.account_type?.name}</span>
 							</div>
 							<span className={cn("text-sm font-medium", isLiability ? "text-red-600 dark:text-red-400" : "")}>
 								{isLiability ? "-" : ""}

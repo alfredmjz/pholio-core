@@ -10,10 +10,7 @@ interface PageShellProps extends React.HTMLAttributes<HTMLDivElement> {
 
 export function PageShell({ children, className, ...props }: PageShellProps) {
 	return (
-		<div
-			className={cn("max-w-7xl mx-auto w-full relative", className)}
-			{...props}
-		>
+		<div className={cn("max-w-7xl mx-auto w-full relative", className)} {...props}>
 			{children}
 		</div>
 	);

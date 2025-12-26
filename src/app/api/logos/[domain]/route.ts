@@ -23,10 +23,7 @@ interface CachedLogo {
 	cachedAt: number;
 }
 
-export async function GET(
-	request: NextRequest,
-	{ params }: { params: Promise<{ domain: string }> }
-) {
+export async function GET(request: NextRequest, { params }: { params: Promise<{ domain: string }> }) {
 	const { domain } = await params;
 
 	if (!domain) {
@@ -68,10 +65,7 @@ export async function GET(
 
 	if (!logoDevToken) {
 		console.warn("[Logo API] NEXT_PUBLIC_LOGO_DEV_TOKEN not configured");
-		return NextResponse.json(
-			{ error: "Logo service not configured" },
-			{ status: 503 }
-		);
+		return NextResponse.json({ error: "Logo service not configured" }, { status: 503 });
 	}
 
 	const logoUrl = `https://img.logo.dev/${normalizedDomain}?token=${logoDevToken}`;
@@ -85,10 +79,7 @@ export async function GET(
 
 		if (!response.ok) {
 			// Logo not found or error from logo.dev
-			return NextResponse.json(
-				{ error: "Logo not found" },
-				{ status: response.status }
-			);
+			return NextResponse.json({ error: "Logo not found" }, { status: response.status });
 		}
 
 		const contentType = response.headers.get("content-type") || "image/png";
@@ -102,8 +93,8 @@ export async function GET(
 			cachedAt: Date.now(),
 		};
 
-		cacheSet(cacheKey, JSON.stringify(cacheData), { ttl: CACHE_TTL.LOGO }).catch(
-			(err) => console.error("[Logo API] Failed to cache logo:", err)
+		cacheSet(cacheKey, JSON.stringify(cacheData), { ttl: CACHE_TTL.LOGO }).catch((err) =>
+			console.error("[Logo API] Failed to cache logo:", err)
 		);
 
 		// 4. Return the image
@@ -117,9 +108,6 @@ export async function GET(
 		});
 	} catch (error) {
 		console.error("[Logo API] Error fetching logo:", error);
-		return NextResponse.json(
-			{ error: "Failed to fetch logo" },
-			{ status: 500 }
-		);
+		return NextResponse.json({ error: "Failed to fetch logo" }, { status: 500 });
 	}
 }

@@ -3,17 +3,17 @@
 import * as React from "react";
 import type { UserProfile } from "@/lib/getUserProfile";
 import {
-	NavigationMenu,
-	NavigationMenuContent,
-	NavigationMenuItem,
-	NavigationMenuLink,
-	NavigationMenuTrigger,
-} from "@/components/ui/navigation-menu";
+	DropdownMenu,
+	DropdownMenuContent,
+	DropdownMenuItem,
+	DropdownMenuTrigger,
+} from "@/components/ui/dropdown-menu";
 import { signOut } from "@/app/(auth-pages)/login/actions";
 import Link from "next/link";
 import { useRouter } from "next/navigation";
 import { GuestLogoutAlert } from "@/components/guest-logout-alert";
 import { cn } from "@/lib/utils";
+import { ChevronDown } from "lucide-react";
 
 interface UserProfileMenuProps {
 	userProfile: UserProfile | null;
@@ -25,6 +25,7 @@ export function UserProfileMenu({ userProfile, onSignOut, isCollapsed }: UserPro
 	const router = useRouter();
 
 	const [showGuestLogoutAlert, setShowGuestLogoutAlert] = React.useState(false);
+	const [open, setOpen] = React.useState(false);
 
 	const displayName = userProfile?.full_name || userProfile?.guest_name || "Guest User";
 
@@ -38,6 +39,7 @@ export function UserProfileMenu({ userProfile, onSignOut, isCollapsed }: UserPro
 	const handleSignOutClick = React.useCallback(
 		(e: React.MouseEvent) => {
 			e.preventDefault();
+			setOpen(false);
 			if (userProfile?.is_guest) {
 				setShowGuestLogoutAlert(true);
 			} else {
@@ -57,11 +59,11 @@ export function UserProfileMenu({ userProfile, onSignOut, isCollapsed }: UserPro
 	return (
 		<>
 			{/* User Profile Menu */}
-			<NavigationMenu className="px-2 w-full">
-				<NavigationMenuItem className="w-full">
-					<NavigationMenuTrigger
+			<DropdownMenu open={open} onOpenChange={setOpen}>
+				<DropdownMenuTrigger asChild>
+					<div
 						className={cn(
-							"flex items-center gap-3 p-2 rounded-md w-full h-auto",
+							"flex items-center gap-3 p-2 rounded-md h-auto outline-none cursor-pointer",
 							isCollapsed ? "justify-center" : "justify-start"
 						)}
 					>
@@ -77,29 +79,33 @@ export function UserProfileMenu({ userProfile, onSignOut, isCollapsed }: UserPro
 							</div>
 						)}
 						{!isCollapsed && (
-							<span className="truncate min-w-0 flex-1 text-left text-sm font-medium text-primary">{displayName}</span>
+							<>
+								<span className="truncate max-w-[120px] text-left text-sm font-medium text-primary">{displayName}</span>
+								<ChevronDown
+									className={cn(
+										"h-3 w-3 flex-shrink-0 transition-transform duration-200 text-primary",
+										open && "rotate-180"
+									)}
+								/>
+							</>
 						)}
-					</NavigationMenuTrigger>
-					<NavigationMenuContent className="flex flex-col gap-1 p-2 w-full">
-						<NavigationMenuLink asChild>
-							<Link
-								href="/settings/profile"
-								className="flex items-center w-full px-2 py-1.5 text-sm text-primary rounded-sm hover:bg-accent hover:text-accent transition-colors"
-							>
-								User Setting
-							</Link>
-						</NavigationMenuLink>
-						<NavigationMenuLink asChild>
-							<button
-								onClick={handleSignOutClick}
-								className="flex items-center w-full px-2 py-1.5 text-sm text-primary rounded-sm hover:bg-accent hover:text-accent transition-colors text-left"
-							>
-								Sign Out
-							</button>
-						</NavigationMenuLink>
-					</NavigationMenuContent>
-				</NavigationMenuItem>
-			</NavigationMenu>
+					</div>
+				</DropdownMenuTrigger>
+				<DropdownMenuContent side="right" align="start" sideOffset={8} className="w-40">
+					<DropdownMenuItem asChild>
+						<Link
+							href="/settings/profile"
+							className="flex items-center w-full cursor-pointer"
+							onClick={() => setOpen(false)}
+						>
+							User Setting
+						</Link>
+					</DropdownMenuItem>
+					<DropdownMenuItem onClick={handleSignOutClick} className="cursor-pointer">
+						Sign Out
+					</DropdownMenuItem>
+				</DropdownMenuContent>
+			</DropdownMenu>
 
 			{/* Guest Logout Alert */}
 			<GuestLogoutAlert open={showGuestLogoutAlert} onOpenChange={setShowGuestLogoutAlert} onConfirm={performSignOut} />

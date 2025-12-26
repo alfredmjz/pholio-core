@@ -114,6 +114,7 @@ export function EditAccountDialog({ open, onOpenChange, account, onSuccess }: Ed
 							<Input
 								id="current_balance"
 								type="number"
+								inputMode="decimal"
 								step="0.01"
 								value={formData.current_balance}
 								onChange={(e) => setFormData({ ...formData, current_balance: e.target.value })}
@@ -125,6 +126,7 @@ export function EditAccountDialog({ open, onOpenChange, account, onSuccess }: Ed
 							<Input
 								id="target_balance"
 								type="number"
+								inputMode="decimal"
 								step="0.01"
 								value={formData.target_balance}
 								onChange={(e) => setFormData({ ...formData, target_balance: e.target.value })}
@@ -139,6 +141,7 @@ export function EditAccountDialog({ open, onOpenChange, account, onSuccess }: Ed
 						<Input
 							id="interest_rate"
 							type="number"
+							inputMode="decimal"
 							step="0.01"
 							value={formData.interest_rate}
 							onChange={(e) => setFormData({ ...formData, interest_rate: e.target.value })}

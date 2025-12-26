@@ -16,10 +16,12 @@ import { Popover, PopoverContent, PopoverTrigger } from "@/components/ui/popover
 import { Command, CommandEmpty, CommandGroup, CommandInput, CommandItem, CommandList } from "@/components/ui/command";
 import { CompactTiptap } from "@/components/ui/shadcn-io/compact-tiptap";
 import { toast } from "sonner";
-import { Check, ChevronsUpDown, Plus } from "lucide-react";
+import { Check, ChevronsUpDown, Plus, Wallet, Info } from "lucide-react";
 import { createAccount, getAccountTypes, createAccountType } from "../actions";
 import type { CreateAccountInput, AccountType, AccountClass, AccountWithType } from "../types";
 import { cn } from "@/lib/utils";
+import { FormSection } from "@/components/FormSection";
+import { CardSelector } from "@/components/CardSelector";
 
 interface AddAccountDialogProps {
 	open: boolean;
@@ -112,93 +114,94 @@ export function AddAccountDialog({ open, onOpenChange, onSuccess }: AddAccountDi
 
 	return (
 		<Dialog open={open} onOpenChange={onOpenChange}>
-			<DialogContent className="max-w-2xl max-h-[90vh] overflow-y-auto sm:max-w-[650px]">
+			<DialogContent className="max-w-2xl max-h-[90vh] overflow-y-auto sm:max-w-[650px]" showCloseButton={false}>
 				<DialogHeader>
 					<DialogTitle>Add New Account</DialogTitle>
 					<DialogDescription>Create a new account to track your assets or liabilities.</DialogDescription>
 				</DialogHeader>
 
-				<form onSubmit={handleSubmit} className="space-y-4">
-					{/* Account Type */}
-					<div className="space-y-2">
-						<Label>Account Type</Label>
-						<div className="grid grid-cols-2 gap-2">
-							<Button
-								type="button"
-								variant={accountType === "asset" ? "default" : "outline"}
-								onClick={() => {
-									setAccountType("asset");
-									setFormData({ ...formData, account_type_id: undefined, current_balance: 0 });
-								}}
-								className="w-full"
-							>
-								Asset (Savings, Investments)
-							</Button>
-							<Button
-								type="button"
-								variant={accountType === "liability" ? "default" : "outline"}
-								onClick={() => {
-									setAccountType("liability");
-									setFormData({ ...formData, account_type_id: undefined, current_balance: undefined });
-								}}
-								className="w-full"
-							>
-								Liability (Debt, Loans)
-							</Button>
-						</div>
-					</div>
+				<form onSubmit={handleSubmit} className="flex flex-col gap-6">
+					{/* Account Type Selection - Card-based */}
+					<FormSection icon={<Wallet />} title="What type of account?" variant="subtle">
+						<CardSelector
+							options={[
+								{
+									value: "asset" as AccountClass,
+									label: "Asset",
+									icon: "💰",
+									color: "bg-green-100",
+								},
+								{
+									value: "liability" as AccountClass,
+									label: "Liability",
+									icon: "💳",
+									color: "bg-red-100",
+								},
+							]}
+							value={accountType}
+							onChange={(val) => {
+								setAccountType(val);
+								setFormData({
+									...formData,
+									account_type_id: undefined,
+									current_balance: val === "asset" ? 0 : undefined,
+								});
+							}}
+						/>
+					</FormSection>
 
-					<div className="grid grid-cols-2 gap-4">
-						{/* Account Name */}
-						<div className="space-y-2">
-							<Label htmlFor="name">Account Name *</Label>
-							<Input
-								id="name"
-								placeholder="Emergency Fund"
-								className="border-border placeholder:text-muted-foreground/50"
-								value={formData.name || ""}
-								onChange={(e) => setFormData({ ...formData, name: e.target.value })}
-								required
-							/>
-						</div>
+					{/* Account Details */}
+					<FormSection icon={<Info />} title="Account Details" variant="subtle">
+						<div className="grid grid-cols-2 gap-4">
+							<div className="space-y-2">
+								<Label htmlFor="name">Account Name *</Label>
+								<Input
+									id="name"
+									placeholder="Emergency Fund"
+									value={formData.name || ""}
+									onChange={(e) => setFormData({ ...formData, name: e.target.value })}
+									required
+									className="h-10"
+								/>
+							</div>
 
-						{/* Account Type (Category) */}
-						<div className="space-y-2">
-							<Label htmlFor="type-id">Category</Label>
-							<Popover open={openCombobox} onOpenChange={setOpenCombobox}>
-								<PopoverTrigger asChild>
-									<Button
-										variant="outline"
-										role="combobox"
-										aria-expanded={openCombobox}
-										className="w-full justify-between border-border text-muted-foreground font-normal"
-									>
-										{selectedType ? selectedType.name : "Select category"}
-										<ChevronsUpDown className="ml-2 h-4 w-4 shrink-0 opacity-50" />
-									</Button>
-								</PopoverTrigger>
-								<PopoverContent className="w-[var(--radix-popover-trigger-width)] p-0">
-									<Command shouldFilter={false}>
-										<CommandInput
-											placeholder="Search or create category..."
-											value={searchValue}
-											onValueChange={setSearchValue}
-										/>
-										<CommandList>
-											<CommandEmpty className="p-0">
-												<Button
-													variant="ghost"
-													className="w-full justify-start rounded-none px-4 py-2 h-auto text-sm"
-													onClick={handleCreateType}
-												>
-													<Plus className="mr-2 h-4 w-4" />
-													Create "{searchValue}"
-												</Button>
-											</CommandEmpty>
-											<CommandGroup>
-												{availableTypes
-													.filter((t) => t.name.toLowerCase().includes(searchValue.toLowerCase()))
-													.map((type) => (
+							<div className="space-y-2">
+								<Label htmlFor="type-id">Category *</Label>
+								<Popover open={openCombobox} onOpenChange={setOpenCombobox}>
+									<PopoverTrigger asChild>
+										<Button
+											variant="outline"
+											role="combobox"
+											aria-expanded={openCombobox}
+											className={cn(
+												"w-full justify-between h-10",
+												!formData.account_type_id && formData.name && "border-error"
+											)}
+										>
+											{selectedType ? selectedType.name : "Select category"}
+											<ChevronsUpDown className="ml-2 h-4 w-4 opacity-50" />
+										</Button>
+									</PopoverTrigger>
+									<PopoverContent className="w-[var(--radix-popover-trigger-width)] p-0">
+										<Command shouldFilter={false}>
+											<CommandInput
+												placeholder="Search or create category..."
+												value={searchValue}
+												onValueChange={setSearchValue}
+											/>
+											<CommandList>
+												<CommandEmpty className="p-0">
+													<Button
+														variant="ghost"
+														className="w-full justify-start rounded-none px-4 py-2 h-auto text-sm"
+														onClick={handleCreateType}
+													>
+														<Plus className="mr-2 h-4 w-4" />
+														Create "{searchValue}"
+													</Button>
+												</CommandEmpty>
+												<CommandGroup>
+													{availableTypes.map((type) => (
 														<CommandItem
 															key={type.id}
 															value={type.id}
@@ -216,87 +219,91 @@ export function AddAccountDialog({ open, onOpenChange, onSuccess }: AddAccountDi
 															{type.name}
 														</CommandItem>
 													))}
-											</CommandGroup>
-										</CommandList>
-									</Command>
-								</PopoverContent>
-							</Popover>
+												</CommandGroup>
+											</CommandList>
+										</Command>
+									</PopoverContent>
+								</Popover>
+							</div>
 						</div>
-					</div>
 
-					<div className="grid grid-cols-2 gap-4">
-						{/* Current Balance */}
+						<div className="grid grid-cols-2 gap-4">
+							<div className="space-y-2">
+								<Label htmlFor="balance">Current Balance *</Label>
+								<Input
+									id="balance"
+									type="number"
+									inputMode="decimal"
+									step="0.01"
+									placeholder="0.00"
+									value={formData.current_balance ?? ""}
+									onChange={(e) =>
+										setFormData({ ...formData, current_balance: e.target.value ? parseFloat(e.target.value) : 0 })
+									}
+									required
+									className="h-10"
+								/>
+							</div>
+
+							<div className="space-y-2">
+								<Label htmlFor="target">{accountType === "asset" ? "Target Goal *" : "Original Amount *"}</Label>
+								<Input
+									id="target"
+									type="number"
+									inputMode="decimal"
+									step="0.01"
+									placeholder="0.00"
+									value={formData.target_balance || ""}
+									onChange={(e) => setFormData({ ...formData, target_balance: parseFloat(e.target.value) || null })}
+									required
+									className="h-10"
+								/>
+							</div>
+						</div>
+
+						<div className="grid grid-cols-2 gap-4">
+							<div className="space-y-2">
+								<Label htmlFor="interest">Interest Rate (APR/APY %)</Label>
+								<Input
+									id="interest"
+									type="number"
+									inputMode="decimal"
+									step="0.01"
+									placeholder="5.50"
+									value={formData.interest_rate ? formData.interest_rate * 100 : ""}
+									onChange={(e) =>
+										setFormData({ ...formData, interest_rate: parseFloat(e.target.value) / 100 || null })
+									}
+									className="h-10"
+								/>
+							</div>
+
+							<div className="space-y-2">
+								<Label htmlFor="institution">Institution/Lender</Label>
+								<Input
+									id="institution"
+									placeholder="Chase, Ally Bank, etc."
+									value={formData.institution || ""}
+									onChange={(e) => setFormData({ ...formData, institution: e.target.value })}
+									className="h-10"
+								/>
+							</div>
+						</div>
+					</FormSection>
+
+					{/* Notes - Optional section */}
+					<FormSection variant="subtle">
 						<div className="space-y-2">
-							<Label htmlFor="balance">Current Balance *</Label>
-							<Input
-								id="balance"
-								type="number"
-								step="0.01"
-								placeholder="0.00"
-								className="border-border placeholder:text-muted-foreground/50"
-								value={formData.current_balance ?? ""}
-								onChange={(e) =>
-									setFormData({ ...formData, current_balance: e.target.value ? parseFloat(e.target.value) : 0 })
-								}
-								required
+							<Label>Notes</Label>
+							<CompactTiptap
+								content={formData.notes || ""}
+								onChange={(content) => setFormData({ ...formData, notes: content })}
+								placeholder="Additional information about this account..."
 							/>
 						</div>
+					</FormSection>
 
-						{/* Target Balance */}
-						<div className="space-y-2">
-							<Label htmlFor="target">{accountType === "asset" ? "Target Goal *" : "Original Amount *"}</Label>
-							<Input
-								id="target"
-								type="number"
-								step="0.01"
-								placeholder="0.00"
-								className="border-border placeholder:text-muted-foreground/50"
-								value={formData.target_balance || ""}
-								onChange={(e) => setFormData({ ...formData, target_balance: parseFloat(e.target.value) || null })}
-								required
-							/>
-						</div>
-					</div>
-
-					<div className="grid grid-cols-2 gap-4">
-						{/* Interest Rate */}
-						<div className="space-y-2">
-							<Label htmlFor="interest">Interest Rate (APR/APY %)</Label>
-							<Input
-								id="interest"
-								type="number"
-								step="0.01"
-								placeholder="5.50"
-								className="border-border placeholder:text-muted-foreground/50"
-								value={formData.interest_rate ? formData.interest_rate * 100 : ""}
-								onChange={(e) => setFormData({ ...formData, interest_rate: parseFloat(e.target.value) / 100 || null })}
-							/>
-						</div>
-
-						{/* Institution */}
-						<div className="space-y-2">
-							<Label htmlFor="institution">Institution/Lender</Label>
-							<Input
-								id="institution"
-								placeholder="Chase, Ally Bank, etc."
-								className="border-border placeholder:text-muted-foreground/50"
-								value={formData.institution || ""}
-								onChange={(e) => setFormData({ ...formData, institution: e.target.value })}
-							/>
-						</div>
-					</div>
-
-					{/* Notes */}
-					<div className="space-y-2">
-						<Label>Notes</Label>
-						<CompactTiptap
-							content={formData.notes || ""}
-							onChange={(content) => setFormData({ ...formData, notes: content })}
-							placeholder="Additional information about this account..."
-						/>
-					</div>
-
-					<DialogFooter>
+					<DialogFooter className="pt-6">
 						<Button type="button" variant="outline" onClick={() => onOpenChange(false)} disabled={loading}>
 							Cancel
 						</Button>

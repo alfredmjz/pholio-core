@@ -1,94 +1,70 @@
 "use client";
 
 import { Card } from "@/components/ui/card";
-import { Info, TrendingUp, TrendingDown } from "lucide-react";
-import { LineChart, Line, ResponsiveContainer, Tooltip } from "recharts";
-import { cn } from "@/lib/utils";
-import { HistoricalDataPoint } from "../types";
+import type { AccountWithType } from "../types";
 
 interface DebtRundownCardProps {
 	totalLiabilities: number;
 	previousTotalLiabilities?: number;
-	historicalData: HistoricalDataPoint[];
+	accounts: AccountWithType[];
 }
 
-export function DebtRundownCard({ totalLiabilities, previousTotalLiabilities, historicalData }: DebtRundownCardProps) {
-	const formatCurrency = (amount: number) => {
-		return new Intl.NumberFormat("en-US", {
-			style: "currency",
-			currency: "USD",
-			notation: "compact",
-			maximumFractionDigits: 1,
-		}).format(amount);
-	};
-
-	const formatFullCurrency = (amount: number) => {
-		return new Intl.NumberFormat("en-US", {
-			style: "currency",
-			currency: "USD",
-			minimumFractionDigits: 0,
-			maximumFractionDigits: 0,
-		}).format(amount);
-	};
-
-	// For debt, reduction is good, so "positive" result (green) is when current < previous
-	const percentChange = previousTotalLiabilities
-		? ((totalLiabilities - previousTotalLiabilities) / previousTotalLiabilities) * 100
-		: 0;
-	const isGood = percentChange <= 0;
+export function DebtRundownCard({
+	totalLiabilities,
+	previousTotalLiabilities = 0,
+	accounts = [],
+}: DebtRundownCardProps) {
+	const progress =
+		totalLiabilities > 0 && previousTotalLiabilities > 0
+			? ((previousTotalLiabilities - totalLiabilities) / previousTotalLiabilities) * 100
+			: 0;
+	const isImprovement = progress > 0;
 
 	return (
-		<Card className="p-6 h-full flex flex-col justify-between">
-			<div className="flex items-center justify-between mb-2">
-				<h3 className="text-sm font-medium text-muted-foreground">Debt Rundown</h3>
-				<Info className="h-4 w-4 text-muted-foreground/50" />
-			</div>
-
-			<div className="space-y-1">
-				<div className="text-4xl font-bold tracking-tight">{formatCurrency(totalLiabilities)}</div>
-				<div
-					className={cn("flex items-center gap-1 text-sm font-medium", isGood ? "text-emerald-500" : "text-red-500")}
-				>
-					{isGood ? <TrendingDown className="h-4 w-4" /> : <TrendingUp className="h-4 w-4" />}
-					{Math.abs(percentChange).toFixed(1)}% vs. last month
+		<Card className="p-6 bg-card border border-border">
+			<div className="flex items-center justify-between mb-4">
+				<div>
+					<h3 className="text-xl font-bold text-primary">Debt Rundown</h3>
+					<p className="text-sm text-primary">Track your debt reduction</p>
 				</div>
+				{isImprovement && (
+					<div className="px-3 py-1 rounded-full bg-success/20 text-xs font-semibold text-success">
+						-{progress.toFixed(1)}%
+					</div>
+				)}
 			</div>
 
-			<div className="mt-6 w-full h-[120px] flex flex-col items-center justify-center">
-				<ResponsiveContainer width="100%" height="100%">
-					<LineChart data={historicalData} margin={{ top: 5, right: 5, left: 5, bottom: 5 }}>
-						<Line
-							type="monotone"
-							dataKey="value"
-							stroke="#f97316"
-							strokeWidth={2}
-							dot={(props: any) => {
-								const { cx, cy, payload } = props;
-								if (payload.hasActivity) {
-									return <circle cx={cx} cy={cy} r={3} fill="#f97316" stroke="none" />;
-								}
-								return <></>;
-							}}
-							isAnimationActive={false}
-							activeDot={{ r: 4, fill: "#f97316" }}
-						/>
-						<Tooltip
-							content={({ active, payload }) => {
-								if (active && payload && payload.length) {
-									return (
-										<div className="bg-background border rounded-lg p-2 shadow-md text-xs">
-											<div className="text-muted-foreground mb-1">{payload[0].payload.date}</div>
-											<div className="font-bold">{formatFullCurrency(Number(payload[0].value))}</div>
-										</div>
-									);
-								}
-								return null;
-							}}
-						/>
-					</LineChart>
-				</ResponsiveContainer>
-				<p className="text-[10px] text-muted-foreground mt-1 w-full text-left">Last 30 days</p>
+			<div className="mb-6">
+				<div className="text-4xl font-bold tracking-tight text-primary mb-1">
+					{totalLiabilities.toLocaleString("en-US", { style: "currency", currency: "CAD" })}
+				</div>
+				<p className="text-sm text-primary">Total Liabilities</p>
+			</div>
+
+			<div className="space-y-4">
+				{accounts.length === 0 ? (
+					<div className="text-center py-8">
+						<p className="text-sm text-primary">No liability accounts yet</p>
+					</div>
+				) : (
+					accounts.map((account) => (
+						<div key={account.id} className="flex items-center justify-between p-4 border border-border">
+							<div className="flex-1">
+								<p className="font-semibold text-primary">{account.name}</p>
+								<p className="text-sm text-secondary">
+									{account.account_type?.name} • {account.institution}
+								</p>
+							</div>
+							<div className="text-right">
+								<p className="text-2xl font-bold text-primary">
+									{Math.abs(account.current_balance).toLocaleString("en-US", { style: "currency", currency: "CAD" })}
+								</p>
+							</div>
+						</div>
+					))
+				)}
 			</div>
 		</Card>
 	);
 }
+

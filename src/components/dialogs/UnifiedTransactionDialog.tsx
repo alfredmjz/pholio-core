@@ -1,18 +1,5 @@
 "use client";
 
-/**
- * UnifiedTransactionDialog
- *
- * Single dialog for recording transactions that update BOTH:
- * - Budget allocations (Allocations system)
- * - Account balances (Balance Sheet system)
- *
- * Features:
- * - Smart account pre-selection based on category type
- * - Support for budget-only or account-only transactions
- * - Clear visual feedback for linked categories
- */
-
 import { useState, useEffect } from "react";
 import {
 	Dialog,
@@ -33,6 +20,9 @@ import { createUnifiedTransaction, getSuggestedAccountForCategory } from "@/lib/
 import type { AllocationCategory } from "@/app/allocations/types";
 import type { AccountWithType } from "@/app/balancesheet/types";
 import type { UnifiedTransactionInput } from "@/lib/types/unified-transaction";
+import { FormSection } from "@/components/FormSection";
+import { ProminentAmountInput } from "@/components/ProminentAmountInput";
+import { CardSelector } from "@/components/CardSelector";
 
 interface UnifiedTransactionDialogProps {
 	open: boolean;
@@ -42,13 +32,8 @@ interface UnifiedTransactionDialogProps {
 	defaultDate?: string;
 	defaultCategoryId?: string;
 	defaultAccountId?: string;
+	defaultType?: "income" | "expense";
 	onSuccess?: () => void;
-	/**
-	 * Context determines field requirements:
-	 * - 'balancesheet': Account is required, Budget Category is optional/disabled
-	 * - 'allocations': Budget Category is required, Account is optional
-	 * - undefined: Both are optional (default behavior)
-	 */
 	context?: "balancesheet" | "allocations";
 }
 
@@ -60,10 +45,10 @@ export function UnifiedTransactionDialog({
 	defaultDate = new Date().toISOString().split("T")[0],
 	defaultCategoryId,
 	defaultAccountId,
+	defaultType,
 	onSuccess,
 	context,
 }: UnifiedTransactionDialogProps) {
-	// Context-based field requirements
 	const isBalanceSheetContext = context === "balancesheet";
 	const isAllocationsContext = context === "allocations";
 	const accountRequired = isBalanceSheetContext;
@@ -71,7 +56,7 @@ export function UnifiedTransactionDialog({
 	const categoryRequired = isAllocationsContext;
 	const accountOptional = isAllocationsContext || !context;
 	const [isLoading, setIsLoading] = useState(false);
-	const [type, setType] = useState<"income" | "expense">("expense");
+	const [type, setType] = useState<"income" | "expense">(defaultType || "expense");
 	const [description, setDescription] = useState("");
 	const [amount, setAmount] = useState("");
 	const [date, setDate] = useState(defaultDate);
@@ -80,10 +65,9 @@ export function UnifiedTransactionDialog({
 	const [notes, setNotes] = useState("");
 	const [suggestedAccountInfo, setSuggestedAccountInfo] = useState<string | null>(null);
 
-	// Reset form when dialog opens/closes
 	useEffect(() => {
 		if (open) {
-			setType("expense");
+			setType(defaultType || "expense");
 			setDescription("");
 			setAmount("");
 			setDate(defaultDate);
@@ -92,9 +76,8 @@ export function UnifiedTransactionDialog({
 			setNotes("");
 			setSuggestedAccountInfo(null);
 		}
-	}, [open, defaultDate, defaultCategoryId, defaultAccountId]);
+	}, [open, defaultDate, defaultCategoryId, defaultAccountId, defaultType]);
 
-	// Smart account suggestion when category changes
 	useEffect(() => {
 		if (!categoryId || categoryId === "uncategorized") {
 			setSuggestedAccountInfo(null);
@@ -126,13 +109,10 @@ export function UnifiedTransactionDialog({
 			return;
 		}
 
-		// Context-based validation
 		if (accountRequired && (accountId === "none" || !accountId)) {
 			toast.error("Please select an account");
 			return;
 		}
-
-		// Note: "uncategorized" is a valid category choice, so we don't validate it
 
 		setIsLoading(true);
 
@@ -152,11 +132,11 @@ export function UnifiedTransactionDialog({
 			const result = await createUnifiedTransaction(input);
 
 			if (result.success) {
-				toast.success("Transaction recorded");
+				toast.success("Transaction added");
 				onOpenChange(false);
 				onSuccess?.();
 			} else {
-				toast.error(result.error || "Failed to record transaction");
+				toast.error(result.error || "Failed to add transaction");
 			}
 		} catch (error) {
 			console.error(error);
@@ -171,85 +151,80 @@ export function UnifiedTransactionDialog({
 
 	return (
 		<Dialog open={open} onOpenChange={onOpenChange}>
-			<DialogContent className="sm:max-w-[500px]">
+			<DialogContent className="sm:max-w-[500px]" showCloseButton={false}>
 				<DialogHeader>
-					<DialogTitle>Record Transaction</DialogTitle>
+					<DialogTitle>Add Transaction</DialogTitle>
 					<DialogDescription>Enter transaction details to update your budget and account balance.</DialogDescription>
 				</DialogHeader>
 
-				<form onSubmit={handleSubmit} className="space-y-4 py-2">
-					{/* Type Toggle */}
-					<div className="flex justify-center">
-						<div className="inline-flex bg-muted p-1 rounded-lg">
-							<Button
-								type="button"
-								variant={type === "expense" ? "default" : "ghost"}
-								size="sm"
-								onClick={() => setType("expense")}
-								className="gap-2"
-							>
-								<TrendingDown className="h-4 w-4" />
-								Expense
-							</Button>
-							<Button
-								type="button"
-								variant={type === "income" ? "default" : "ghost"}
-								size="sm"
-								onClick={() => setType("income")}
-								className="gap-2"
-							>
-								<TrendingUp className="h-4 w-4" />
-								Income
-							</Button>
-						</div>
-					</div>
-
-					{/* Date */}
-					<div className="space-y-2">
-						<Label htmlFor="date">Date *</Label>
-						<Input id="date" type="date" value={date} onChange={(e) => setDate(e.target.value)} required />
-					</div>
-
-					{/* Description */}
-					<div className="space-y-2">
-						<Label htmlFor="description">Description *</Label>
-						<Input
-							id="description"
-							placeholder="e.g. Grocery Store"
-							value={description}
-							onChange={(e) => setDescription(e.target.value)}
-							required
+				<form onSubmit={handleSubmit} className="flex flex-col gap-6">
+					<FormSection
+						icon={type === "expense" ? <TrendingDown /> : <TrendingUp />}
+						title="Transaction Type"
+						variant="subtle"
+					>
+						<CardSelector
+							options={[
+								{
+									value: "expense",
+									label: "Expense",
+									icon: "📉",
+									color: "bg-red-100",
+								},
+								{
+									value: "income",
+									label: "Income",
+									icon: "📈",
+									color: "bg-green-100",
+								},
+							]}
+							value={type}
+							onChange={setType}
+							selectedBorderColor="border-blue-200"
 						/>
-					</div>
+					</FormSection>
 
-					{/* Amount */}
-					<div className="space-y-2">
-						<Label htmlFor="amount">Amount *</Label>
-						<div className="relative">
-							<span className="absolute left-3 top-1/2 -translate-y-1/2 text-muted-foreground">$</span>
-							<Input
-								id="amount"
-								type="number"
-								step="0.01"
-								min="0"
-								placeholder="0.00"
-								value={amount}
-								onChange={(e) => setAmount(e.target.value)}
-								className="pl-7"
-								required
-							/>
+					<FormSection icon={<Info />} title="Transaction Details" variant="subtle">
+						<div className="flex flex-row justify-between gap-4">
+							<div className="flex-1 space-y-2">
+								<Label htmlFor="date">Date *</Label>
+								<Input
+									id="date"
+									type="date"
+									value={date}
+									onChange={(e) => setDate(e.target.value)}
+									required
+									className="h-10"
+								/>
+							</div>
+
+							<div className="flex-1 space-y-2">
+								<Label htmlFor="description">Description *</Label>
+								<Input
+									id="description"
+									placeholder="e.g. Grocery Store"
+									value={description}
+									onChange={(e) => setDescription(e.target.value)}
+									required
+									className="h-10"
+								/>
+							</div>
 						</div>
-					</div>
 
-					{/* Category */}
+						<div className="space-y-2">
+							<Label htmlFor="date">Amount</Label>
+							<ProminentAmountInput value={amount} onChange={setAmount} id="amount" />
+						</div>
+					</FormSection>
+
 					<div className="space-y-2">
 						<Label htmlFor="category">
 							Budget Category{categoryRequired && " *"}
 							{categoryDisabled && (
-								<span className="ml-2 text-xs text-muted-foreground">(Not applicable for balance sheet)</span>
+								<span className="ml-2 text-xs text-primary">(Not applicable for balance sheet)</span>
 							)}
 							{showCategoryBadge && !categoryDisabled && (
-								<span className="ml-2 text-xs text-muted-foreground">
+								<span className="ml-2 text-xs text-primary">
 									{selectedCategory?.category_type === "savings_goal" && "(Savings Goal)"}
 									{selectedCategory?.category_type === "debt_payment" && "(Debt Payment)"}
 								</span>
@@ -276,7 +251,6 @@ export function UnifiedTransactionDialog({
 						</Select>
 					</div>
 
-					{/* Account */}
 					<div className="space-y-2">
 						<Label htmlFor="account">Account{accountRequired ? " *" : " (Optional)"}</Label>
 						<Select value={accountId} onValueChange={setAccountId}>
@@ -292,36 +266,39 @@ export function UnifiedTransactionDialog({
 								))}
 							</SelectContent>
 						</Select>
-						{suggestedAccountInfo && <p className="text-xs text-muted-foreground">{suggestedAccountInfo}</p>}
+						{suggestedAccountInfo && <p className="text-xs text-primary">{suggestedAccountInfo}</p>}
 					</div>
 
-					{/* Info Message */}
 					{accountId === "none" && categoryId !== "uncategorized" && (
-						<p className="text-sm text-muted-foreground flex items-start gap-2 p-3 bg-muted rounded-lg">
+						<p className="text-sm text-primary flex items-start gap-2 p-3 bg-muted rounded-lg">
 							<Info className="h-4 w-4 shrink-0 mt-0.5" />
 							<span>Budget-only transaction: Your budget will update, but no account balance will change.</span>
 						</p>
 					)}
 
-					{/* Notes */}
-					<div className="space-y-2">
-						<Label htmlFor="notes">Notes (Optional)</Label>
-						<Textarea
-							id="notes"
-							placeholder="Add any additional details..."
-							value={notes}
-							onChange={(e) => setNotes(e.target.value)}
-							rows={3}
-						/>
-					</div>
+					{notes && (
+						<FormSection variant="subtle">
+							<div className="space-y-2">
+								<Label htmlFor="notes">Notes (Optional)</Label>
+								<Textarea
+									id="notes"
+									placeholder="Add any additional details..."
+									value={notes}
+									onChange={(e) => setNotes(e.target.value)}
+									rows={3}
+									className="bg-secondary border-border/60 resize-none"
+								/>
+							</div>
+						</FormSection>
+					)}
 
-					<DialogFooter className="pt-4">
+					<DialogFooter>
 						<Button type="button" variant="outline" onClick={() => onOpenChange(false)} disabled={isLoading}>
 							Cancel
 						</Button>
 						<Button type="submit" disabled={isLoading}>
 							{isLoading && <Loader2 className="mr-2 h-4 w-4 animate-spin" />}
-							Record Transaction
+							Add Transaction
 						</Button>
 					</DialogFooter>
 				</form>

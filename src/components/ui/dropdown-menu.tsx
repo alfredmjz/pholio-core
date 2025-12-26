@@ -80,11 +80,7 @@ const DropdownMenuItem = React.forwardRef<
 >(({ className, inset, ...props }, ref) => (
 	<DropdownMenuPrimitive.Item
 		ref={ref}
-		className={cn(
-			"relative flex cursor-default select-none items-center rounded-sm px-2 py-1.5 text-sm outline-none transition-colors focus:bg-accent focus:text-accent data-[disabled]:pointer-events-none data-[disabled]:opacity-50",
-			inset && "pl-8",
-			className
-		)}
+		className={cn("relative flex cursor-default select-none items-center rounded-sm px-2 py-1.5 text-sm outline-none transition-colors focus:bg-accent focus:text-primary data-[disabled]:pointer-events-none data-[disabled]:opacity-50", inset && "pl-8", className)}
 		{...props}
 	/>
 ));
@@ -96,10 +92,7 @@ const DropdownMenuCheckboxItem = React.forwardRef<
 >(({ className, children, checked, ...props }, ref) => (
 	<DropdownMenuPrimitive.CheckboxItem
 		ref={ref}
-		className={cn(
-			"relative flex cursor-default select-none items-center rounded-sm px-2 py-1.5 text-sm outline-none transition-colors focus:bg-accent focus:text-accent data-[disabled]:pointer-events-none data-[disabled]:opacity-50",
-			className
-		)}
+		className={cn("relative flex cursor-default select-none items-center rounded-sm px-2 py-1.5 text-sm outline-none transition-colors focus:bg-accent focus:text-primary data-[disabled]:pointer-events-none data-[disabled]:opacity-50", className)}
 		checked={checked}
 		{...props}
 	>

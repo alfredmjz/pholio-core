@@ -24,11 +24,11 @@
 		--primary-border: 30 6% 25%;
 
 		/* Secondary */
-		--secondary: 210 10% 96%;
+		--secondary: 210 10% 90%;
 		--secondary-foreground: 30 6% 25%;
-		--secondary-hover: 210 10% 93%;
-		--secondary-muted: 210 10% 90%;
-		--secondary-border: 210 10% 90%;
+		--secondary-hover: 210 10% 85%;
+		--secondary-muted: 210 10% 88%;
+		--secondary-border: 210 10% 85%;
 
 		/* Accent */
 		--accent: 210 10% 94%;
@@ -83,11 +83,11 @@
 		--primary-border: 0 0% 100%;
 
 		/* Secondary */
-		--secondary: 30 5% 18%;
+		--secondary: 30 5% 28%;
 		--secondary-foreground: 0 0% 92%;
-		--secondary-hover: 30 5% 22%;
-		--secondary-muted: 30 5% 25%;
-		--secondary-border: 30 5% 25%;
+		--secondary-hover: 30 5% 32%;
+		--secondary-muted: 30 5% 30%;
+		--secondary-border: 30 5% 30%;
 
 		/* Accent */
 		--accent: 30 5% 22%;

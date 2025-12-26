@@ -8,8 +8,8 @@ import { Input } from "@/components/ui/input";
 import { Plus, Search } from "lucide-react";
 import { AccountWithType, AccountTransaction, BalanceSheetSummary } from "./types";
 import { NetWorthCard } from "./components/NetWorthCard";
-import { AssetGrowthCard } from "./components/AssetGrowthCard";
 import { DebtRundownCard } from "./components/DebtRundownCard";
+import { AssetGrowthCard } from "./components/AssetGrowthCard";
 import { RecentActivity } from "./components/RecentActivity";
 import { AccountCard } from "./components/AccountCard";
 import { AddAccountDialog } from "./components/AddAccountDialog";
@@ -17,7 +17,6 @@ import { UnifiedTransactionDialog } from "@/components/dialogs/UnifiedTransactio
 import { AccountAdjustmentDialog } from "./components/AccountAdjustmentDialog";
 import { getAccountTransactions } from "./actions";
 import type { AllocationCategory } from "@/app/allocations/types";
-import { toast } from "sonner";
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
 
 import { PageShell, PageHeader, PageContent } from "@/components/layout/page-shell";
@@ -169,9 +168,11 @@ export function BalanceSheetClient({ initialAccounts, initialCategories, initial
 			totalAssets,
 			totalLiabilities,
 			netWorth,
-			previousTotalAssets: initialSummary.previousTotalAssets,
-			previousTotalLiabilities: initialSummary.previousTotalLiabilities,
-			previousNetWorth: initialSummary.previousNetWorth,
+			previousTotalAssets: initialSummary?.previousTotalAssets,
+			previousTotalLiabilities: initialSummary?.previousTotalLiabilities,
+			previousNetWorth: initialSummary?.previousNetWorth,
+			historicalAssets: initialSummary?.historicalAssets || [],
+			historicalLiabilities: initialSummary?.historicalLiabilities || [],
 		};
 	}, [assetAccounts, liabilityAccounts, initialSummary]);
 
@@ -183,9 +184,9 @@ export function BalanceSheetClient({ initialAccounts, initialCategories, initial
 			>
 				<div>
 					<h1 className="text-3xl font-bold tracking-tight">Balance Sheet</h1>
-					<p className="text-sm text-muted-foreground">Track your assets and liabilities</p>
+					<p className="text-sm text-primary">Track your assets and liabilities</p>
 				</div>
-				<Button onClick={() => setAddDialogOpen(true)}>
+				<Button onClick={() => setAddDialogOpen(true)} className="bg-green-600 hover:bg-green-700 text-white">
 					<Plus className="h-4 w-4 mr-2" />
 					Add Account
 				</Button>
@@ -220,11 +221,11 @@ export function BalanceSheetClient({ initialAccounts, initialCategories, initial
 							<div className="p-6 border-border border-b flex flex-col sm:flex-row gap-4 items-start sm:items-center justify-between">
 								<div>
 									<h2 className="text-xl font-bold">All Accounts</h2>
-									<p className="text-sm text-muted-foreground">{accounts.length} accounts</p>
+									<p className="text-sm text-primary">{accounts.length} accounts</p>
 								</div>
 								<div className="flex items-center gap-2 w-full sm:w-auto">
 									<div className="relative flex-1 sm:w-64">
-										<Search className="absolute left-3 top-1/2 transform -translate-y-1/2 h-4 w-4 text-muted-foreground" />
+										<Search className="absolute left-3 top-1/2 transform -translate-y-1/2 h-4 w-4 text-primary" />
 										<Input
 											placeholder="Search..."
 											value={searchQuery}
@@ -249,14 +250,11 @@ export function BalanceSheetClient({ initialAccounts, initialCategories, initial
 								{/* Account Items */}
 								<div className="flex flex-col divide-y divide-border">
 									{filteredAssets.concat(filteredLiabilities).map((account) => (
-										<AccountCard
-											key={account.id}
-											account={account}
-											/>
+										<AccountCard key={account.id} account={account} />
 									))}
 
 									{filteredAssets.length === 0 && filteredLiabilities.length === 0 && (
-										<div className="p-12 text-center text-muted-foreground">
+										<div className="p-12 text-center text-primary">
 											<p>{searchQuery ? "No accounts found" : "No accounts yet"}</p>
 										</div>
 									)}

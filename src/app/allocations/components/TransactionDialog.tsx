@@ -9,16 +9,20 @@ import { Label } from "@/components/ui/label";
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
 import { Textarea } from "@/components/ui/textarea";
 
-import { Loader2 } from "lucide-react";
+import { Loader2, CalendarIcon, Info, TrendingDown, TrendingUp } from "lucide-react";
 import { toast } from "sonner";
 import { createTransaction, updateTransaction } from "../actions";
 import type { Transaction, AllocationCategory } from "../types";
 import { inferTransactionType } from "./TransactionTypeIcon";
+import { FormSection } from "@/components/FormSection";
+import { ProminentAmountInput } from "@/components/ProminentAmountInput";
+import { CardSelector } from "@/components/CardSelector";
+import { cn } from "@/lib/utils";
 
 interface TransactionDialogProps {
 	open: boolean;
 	onOpenChange: (open: boolean) => void;
-	transaction?: Transaction | null; // If present, we are editing
+	transaction?: Transaction | null;
 	categories: AllocationCategory[];
 	defaultDate?: string;
 }
@@ -38,11 +42,9 @@ export function TransactionDialog({
 	const [type, setType] = useState<"income" | "expense">("expense");
 	const [notes, setNotes] = useState("");
 
-	// Reset form when dialog opens/closes or transaction changes
 	useEffect(() => {
 		if (open) {
 			if (transaction) {
-				// Editing
 				setName(transaction.name);
 				setAmount(Math.abs(transaction.amount).toString());
 				setDate(transaction.transaction_date.split("T")[0]);
@@ -50,7 +52,6 @@ export function TransactionDialog({
 				setType(transaction.amount >= 0 ? "income" : "expense");
 				setNotes(transaction.notes || "");
 			} else {
-				// Creating
 				setName("");
 				setAmount("");
 				setDate(defaultDate);
@@ -75,7 +76,6 @@ export function TransactionDialog({
 			const finalCategoryId = categoryId === "uncategorized" ? undefined : categoryId;
 
 			if (transaction) {
-				// Update
 				const success = await updateTransaction(transaction.id, {
 					name,
 					amount: numAmount,
@@ -92,7 +92,6 @@ export function TransactionDialog({
 					toast.error("Failed to update transaction");
 				}
 			} else {
-				// Create
 				const newTx = await createTransaction(name, numAmount, date, finalCategoryId, type, notes);
 
 				if (newTx) {
@@ -115,97 +114,98 @@ export function TransactionDialog({
 			open={open}
 			onOpenChange={onOpenChange}
 			title={transaction ? "Edit Transaction" : "Add Transaction"}
-			description={transaction ? "Modify transaction details below." : "Enter the details for the new transaction."}
+			description={transaction ? "Modify transaction details below." : "Enter details for new transaction."}
 			className="sm:max-w-[425px]"
+			showCloseButton={false}
 		>
-			<form onSubmit={handleSubmit} className="space-y-4 py-2">
-				{/* Type Selection */}
-				<div className="flex justify-center mb-2">
-					<div className="bg-muted p-1 rounded-lg flex space-x-1">
-						<Button
-							type="button"
-							variant={type === "expense" ? "default" : "ghost"}
-							size="sm"
-							onClick={() => setType("expense")}
-							className="w-24"
-						>
-							Expense
-						</Button>
-						<Button
-							type="button"
-							variant={type === "income" ? "default" : "ghost"}
-							size="sm"
-							onClick={() => setType("income")}
-							className="w-24"
-						>
-							Income
-						</Button>
-					</div>
-				</div>
-
-				<div className="grid gap-2">
-					<Label htmlFor="date">Date</Label>
-					<Input id="date" type="date" value={date} onChange={(e) => setDate(e.target.value)} required />
-				</div>
-
-				<div className="grid gap-2">
-					<Label htmlFor="name">Description</Label>
-					<Input
-						id="name"
-						placeholder="e.g. Grocery Store"
-						value={name}
-						onChange={(e) => setName(e.target.value)}
-						required
+			<form onSubmit={handleSubmit} className="flex flex-col gap-6">
+				<FormSection icon={<TrendingDown />} title="Transaction Type" variant="subtle">
+					<CardSelector
+						options={[
+							{
+								value: "expense",
+								label: "Expense",
+								icon: "📉",
+								color: "bg-red-100",
+							},
+							{
+								value: "income",
+								label: "Income",
+								icon: "📈",
+								color: "bg-green-100",
+							},
+						]}
+						value={type}
+						onChange={setType}
+						selectedBorderColor="border-blue-200"
 					/>
-				</div>
+				</FormSection>
 
-				<div className="grid gap-2">
-					<Label htmlFor="amount">Amount</Label>
-					<div className="relative">
-						<span className="absolute left-3 top-1/2 -translate-y-1/2 text-muted-foreground">$</span>
+				<FormSection icon={<Info />} title="Transaction Details" variant="subtle">
+					<div className="flex flex-row gap-4">
+						<div className="flex-1 space-y-2">
+							<Label htmlFor="date">Date</Label>
+							<div className="relative">
+								<CalendarIcon className="absolute left-3 top-1/2 -translate-y-1/2 h-4 w-4 text-muted-foreground" />
+								<Input
+									id="date"
+									type="date"
+									value={date}
+									onChange={(e) => setDate(e.target.value)}
+									required
+									className="pl-10 h-10"
+								/>
+							</div>
+						</div>
+
+						<div className="flex-1 space-y-2">
+							<Label htmlFor="category">Category</Label>
+							<Select value={categoryId} onValueChange={setCategoryId}>
+								<SelectTrigger className="h-10">
+									<SelectValue placeholder="Select a category" />
+								</SelectTrigger>
+								<SelectContent>
+									<SelectItem value="uncategorized">Uncategorized</SelectItem>
+									{categories.map((cat) => (
+										<SelectItem key={cat.id} value={cat.id}>
+											{cat.name}
+										</SelectItem>
+									))}
+								</SelectContent>
+							</Select>
+						</div>
+					</div>
+
+					<div className="space-y-2">
+						<Label htmlFor="name">Description</Label>
 						<Input
-							id="amount"
-							type="number"
-							step="0.01"
-							min="0"
-							placeholder="0.00"
-							value={amount}
-							onChange={(e) => setAmount(e.target.value)}
-							className="pl-7"
+							id="name"
+							placeholder="e.g. Grocery Store"
+							value={name}
+							onChange={(e) => setName(e.target.value)}
 							required
+							className="h-10"
 						/>
 					</div>
-				</div>
+				</FormSection>
 
-				<div className="grid gap-2">
-					<Label htmlFor="category">Category</Label>
-					<Select value={categoryId} onValueChange={setCategoryId}>
-						<SelectTrigger>
-							<SelectValue placeholder="Select a category" />
-						</SelectTrigger>
-						<SelectContent>
-							<SelectItem value="uncategorized">Uncategorized</SelectItem>
-							{categories.map((cat) => (
-								<SelectItem key={cat.id} value={cat.id}>
-									{cat.name}
-								</SelectItem>
-							))}
-						</SelectContent>
-					</Select>
-				</div>
+				{notes && (
+					<FormSection variant="subtle">
+						<div className="space-y-2">
+							<Label htmlFor="notes">Notes (Optional)</Label>
+							<Textarea
+								id="notes"
+								placeholder="Add any additional details..."
+								value={notes}
+								onChange={(e) => setNotes(e.target.value)}
+								rows={3}
+								className="bg-secondary border-border/60 resize-none"
+							/>
+						</div>
+					</FormSection>
+				)}
 
-				<div className="grid gap-2">
-					<Label htmlFor="notes">Notes (Optional)</Label>
-					<Textarea
-						id="notes"
-						placeholder="Add any additional details..."
-						value={notes}
-						onChange={(e) => setNotes(e.target.value)}
-						rows={3}
-					/>
-				</div>
-
-				<DialogFooter className="pt-4">
+				<DialogFooter>
 					<Button type="button" variant="outline" onClick={() => onOpenChange(false)} disabled={isLoading}>
 						Cancel
 					</Button>
@@ -218,3 +218,4 @@ export function TransactionDialog({
 		</ControlBasedDialog>
 	);
 }
+

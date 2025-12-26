@@ -61,7 +61,7 @@ function MinimalTiptap({
 			attributes: {
 				class: cn(
 					"prose-base dark:prose-invert max-w-none focus:outline-none",
-					"min-h-[12rem] p-4 border-0 text-foreground"
+					"min-h-[12rem] p-4 border-0 text-primary"
 				),
 			},
 		},
@@ -195,4 +195,3 @@ function MinimalTiptap({
 }
 
 export { MinimalTiptap, type MinimalTiptapProps };
-

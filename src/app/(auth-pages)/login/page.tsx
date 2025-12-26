@@ -100,7 +100,7 @@ export default function Page() {
 										className="border-border focus-visible:ring-offset-0 focus-visible:ring-ring bg-card/80"
 									/>
 									<div className="pl-1 flex justify-start">
-										<Link href="/forgot-password" className="font-medium text-xs text-foreground underline-animation">
+										<Link href="/forgot-password" className="font-medium text-xs text-primary underline-animation">
 											Forgot password?
 										</Link>
 									</div>
@@ -115,7 +115,7 @@ export default function Page() {
 
 									<div className="flex items-center gap-4 py-2">
 										<span className="h-px flex-1 bg-border" />
-										<span className="text-xs uppercase text-muted-foreground">Or</span>
+										<span className="text-xs uppercase text-primary">Or</span>
 										<span className="h-px flex-1 bg-border" />
 									</div>
 
@@ -130,9 +130,9 @@ export default function Page() {
 									</Button>
 								</div>
 							</div>
-							<div className="mt-6 text-center text-sm text-muted-foreground">
+							<div className="mt-6 text-center text-sm text-primary">
 								Don't have an account?{" "}
-								<Link href="/signup" className="font-medium text-foreground underline-animation">
+								<Link href="/signup" className="font-medium text-primary underline-animation">
 									Sign up
 								</Link>
 							</div>

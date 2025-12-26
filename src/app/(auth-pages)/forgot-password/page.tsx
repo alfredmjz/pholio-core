@@ -59,14 +59,14 @@ export default function ForgotPasswordPage() {
 								<div className="flex flex-col gap-3 pt-2">
 									<Button
 										type="submit"
-										className="w-full h-10 bg-primary hover:bg-primary/90 text-primary-foreground shadow-sm font-medium transition-all"
+										className="w-full h-10 bg-primary hover:bg-primary/90 text-primary shadow-sm font-medium transition-all"
 										disabled={isLoading || !isMounted}
 									>
 										{isLoading ? "Sending link..." : "Send Reset Link"}
 									</Button>
 								</div>
 							</div>
-							<div className="mt-6 text-center text-sm text-muted-foreground">
+							<div className="mt-6 text-center text-sm text-primary">
 								Remember your password?{" "}
 								<Link href="/login" className="font-medium text-primary underline-animation">
 									Log in

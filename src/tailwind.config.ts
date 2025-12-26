@@ -7,12 +7,17 @@ const config: Config = {
 		extend: {
 			colors: {
 				background: "hsl(var(--background))",
-				foreground: "hsl(var(--foreground))",
 				border: "hsl(var(--border))",
 				ring: "hsl(var(--ring))",
+				text: {
+					DEFAULT: "hsl(var(--text-primary))",
+					muted: "hsl(var(--text-muted))",
+					secondary: "hsl(var(--text-secondary))",
+				},
 				card: {
 					DEFAULT: "hsl(var(--card))",
 					foreground: "hsl(var(--card-foreground))",
+					muted: "hsl(var(--card-muted))",
 				},
 				primary: {
 					DEFAULT: "hsl(var(--primary))",
@@ -24,24 +29,27 @@ const config: Config = {
 					DEFAULT: "hsl(var(--secondary))",
 					foreground: "hsl(var(--secondary-foreground))",
 					hover: "hsl(var(--secondary-hover))",
+					muted: "hsl(var(--secondary-muted))",
 					border: "hsl(var(--secondary-border))",
 				},
 				accent: {
 					DEFAULT: "hsl(var(--accent))",
 					foreground: "hsl(var(--accent-foreground))",
+					muted: "hsl(var(--accent-muted))",
+					playful: "hsl(var(--accent-playful))",
 				},
 				hover: {
 					DEFAULT: "hsl(var(--hover))",
 				},
 				muted: {
-					DEFAULT: "hsl(var(--muted))",
-					foreground: "hsl(var(--muted-foreground))",
+					DEFAULT: "hsl(var(--card-muted))",
+					foreground: "hsl(var(--text-muted))",
 				},
 				popover: {
 					DEFAULT: "hsl(var(--popover))",
 					foreground: "hsl(var(--popover-foreground))",
+					muted: "hsl(var(--popover-muted))",
 				},
-				// Status colors for feedback and states
 				success: {
 					DEFAULT: "hsl(var(--success))",
 					foreground: "hsl(var(--success-foreground))",
@@ -63,15 +71,6 @@ const config: Config = {
 					muted: "hsl(var(--info-muted))",
 				},
 			},
-			textColor: {
-				primary: {
-					DEFAULT: "hsl(var(--text-primary))",
-				},
-				secondary: {
-					DEFAULT: "hsl(var(--text-secondary))",
-					highlight: "hsl(var(--text-secondary-highlight))",
-				},
-			},
 			borderRadius: {
 				lg: "var(--radius)",
 				md: "calc(var(--radius) - 2px)",
@@ -86,3 +85,4 @@ const config: Config = {
 };
 
 export default config;
+

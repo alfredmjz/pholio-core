@@ -51,10 +51,7 @@ function CompactTiptap({
 		},
 		editorProps: {
 			attributes: {
-				class: cn(
-					"prose-sm dark:prose-invert max-w-none focus:outline-none",
-					"min-h-[6rem] p-3 border-0 text-foreground"
-				),
+				class: cn("prose-sm dark:prose-invert max-w-none focus:outline-none", "min-h-[6rem] p-3 border-0 text-primary"),
 			},
 		},
 	});

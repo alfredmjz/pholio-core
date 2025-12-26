@@ -150,7 +150,7 @@ export default function Page() {
 									</Button>
 								</div>
 							</div>
-							<div className="mt-6 text-center text-sm text-muted-foreground">
+							<div className="mt-6 text-center text-sm text-primary">
 								Already have an account?{" "}
 								<Link href="/login" className="font-medium text-primary underline-animation">
 									Log in

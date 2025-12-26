@@ -17,7 +17,7 @@ export function AuthCard({ title, description, children, className }: AuthCardPr
 			</div>
 			<CardHeader className="pt-10 pb-4">
 				<h1 className="text-2xl font-semibold tracking-tight text-primary text-center">{title}</h1>
-				<p className="text-sm text-muted-foreground text-center">{description}</p>
+				<p className="text-sm muted-text-primary text-center">{description}</p>
 			</CardHeader>
 			<CardContent>{children}</CardContent>
 		</Card>

@@ -91,7 +91,13 @@ export function UserProfileMenu({ userProfile, onSignOut, isCollapsed }: UserPro
 						)}
 					</div>
 				</DropdownMenuTrigger>
-				<DropdownMenuContent side="right" align="start" sideOffset={8} className="w-40">
+				<DropdownMenuContent
+					side="right"
+					align="start"
+					sideOffset={-20}
+					alignOffset={40}
+					className="border-border border-2 w-40"
+				>
 					<DropdownMenuItem asChild>
 						<Link
 							href="/settings/profile"

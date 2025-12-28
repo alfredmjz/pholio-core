@@ -16,7 +16,14 @@ import { Textarea } from "@/components/ui/textarea";
 import { Card } from "@/components/ui/card";
 import { Badge } from "@/components/ui/badge";
 import { Alert, AlertDescription, AlertTitle } from "@/components/ui/alert";
-import { Dialog, DialogContent, DialogDescription, DialogFooter, DialogHeader, DialogTitle } from "@/components/ui/dialog";
+import {
+	Dialog,
+	DialogContent,
+	DialogDescription,
+	DialogFooter,
+	DialogHeader,
+	DialogTitle,
+} from "@/components/ui/dialog";
 import {
 	AlertDialog,
 	AlertDialogAction,
@@ -44,7 +51,18 @@ import {
 	DropdownMenuSeparator,
 	DropdownMenuTrigger,
 } from "@/components/ui/dropdown-menu";
-import { Loader2, ArrowRight, TrendingUp, TrendingDown, Wallet, CreditCard, PiggyBank, Check, AlertTriangle, Info } from "lucide-react";
+import {
+	Loader2,
+	ArrowRight,
+	TrendingUp,
+	TrendingDown,
+	Wallet,
+	CreditCard,
+	PiggyBank,
+	Check,
+	AlertTriangle,
+	Info,
+} from "lucide-react";
 
 import { ProminentAmountInput } from "@/components/ProminentAmountInput";
 import { FloatingLabelInput } from "@/components/floating-label-input";
@@ -57,6 +75,7 @@ import { ThemeToggle } from "@/components/theme-toggle";
 import { Banner, BannerClose, BannerIcon, BannerTitle } from "@/components/ui/banner";
 import { GuestLogoutAlert } from "@/components/guest-logout-alert";
 import { DeleteConfirmDialog } from "@/components/dialogs/DeleteConfirmDialog";
+import { WelcomeCelebration } from "@/components/welcome-celebration";
 import { MetricCard } from "@/app/dashboard/components/MetricCard";
 import { AccountCard } from "@/app/balancesheet/components/AccountCard";
 import { BudgetSummaryCards } from "@/app/allocations/components/BudgetSummaryCards";
@@ -65,7 +84,14 @@ import { ServiceLogo } from "@/components/service-logo";
 import { ServiceAutocomplete } from "@/components/service-autocomplete";
 import { StatusBadge } from "@/components/ui/status-badge";
 
-import { MOCK_SERVICE_SUGGESTIONS, MOCK_DONUT_DATA, MOCK_METRIC_CARD_DATA, MOCK_BUDGET_SUMMARY_DATA, MOCK_ACCOUNT_DATA, MOCK_ACCOUNT_LIABILITY } from "./data/mock-data";
+import {
+	MOCK_SERVICE_SUGGESTIONS,
+	MOCK_DONUT_DATA,
+	MOCK_METRIC_CARD_DATA,
+	MOCK_BUDGET_SUMMARY_DATA,
+	MOCK_ACCOUNT_DATA,
+	MOCK_ACCOUNT_LIABILITY,
+} from "./data/mock-data";
 
 export function DemoComponentsClient() {
 	const { theme, setTheme } = useTheme();
@@ -100,28 +126,16 @@ export function DemoComponentsClient() {
 						<p className="text-sm text-primary">Interactive component library</p>
 					</div>
 					<div className="hidden lg:flex items-center gap-4">
-						<a
-							href="#colors-typography"
-							className="text-sm text-primary hover:text-primary transition-colors"
-						>
+						<a href="#colors-typography" className="text-sm text-primary hover:text-primary transition-colors">
 							Colors & Typography
 						</a>
-						<a
-							href="#ui-buttons-forms"
-							className="text-sm text-primary hover:text-primary transition-colors"
-						>
+						<a href="#ui-buttons-forms" className="text-sm text-primary hover:text-primary transition-colors">
 							Buttons & Forms
 						</a>
-						<a
-							href="#ui-cards-badges"
-							className="text-sm text-primary hover:text-primary transition-colors"
-						>
+						<a href="#ui-cards-badges" className="text-sm text-primary hover:text-primary transition-colors">
 							Cards & Badges
 						</a>
-						<a
-							href="#custom-components"
-							className="text-sm text-primary hover:text-primary transition-colors"
-						>
+						<a href="#custom-components" className="text-sm text-primary hover:text-primary transition-colors">
 							Custom Components
 						</a>
 						<ThemeToggle />
@@ -159,12 +173,7 @@ export function DemoComponentsClient() {
 									{ name: "info-muted", color: "bg-info-muted" },
 								].map((color) => (
 									<div key={color.name} className="space-y-2">
-										<div
-											className={cn(
-												"h-20 w-full rounded-lg border border-border",
-												color.color
-											)}
-										/>
+										<div className={cn("h-20 w-full rounded-lg border border-border", color.color)} />
 										<p className="text-xs font-mono text-primary">--{color.name}</p>
 									</div>
 								))}
@@ -351,12 +360,7 @@ export function DemoComponentsClient() {
 							<div className="grid grid-cols-1 md:grid-cols-2 gap-6">
 								<Card className="p-6 bg-card border border-border space-y-4">
 									<h4 className="text-base font-medium text-primary">ProminentAmountInput</h4>
-									<ProminentAmountInput
-										label="Amount"
-										value="0.00"
-										onChange={() => {}}
-										currency="$"
-									/>
+									<ProminentAmountInput label="Amount" value="0.00" onChange={() => {}} currency="$" />
 								</Card>
 								<Card className="p-6 bg-card border border-border space-y-4">
 									<h4 className="text-base font-medium text-primary">FloatingLabelInput</h4>
@@ -484,11 +488,7 @@ export function DemoComponentsClient() {
 
 			{/* Scroll to Top Button */}
 			{showScrollToTop && (
-				<Button
-					className="fixed bottom-6 right-6 rounded-full shadow-lg"
-					size="icon"
-					onClick={scrollToTop}
-				>
+				<Button className="fixed bottom-6 right-6 rounded-full shadow-lg" size="icon" onClick={scrollToTop}>
 					<ChevronUp className="h-4 w-4" />
 				</Button>
 			)}
@@ -626,9 +626,7 @@ function CardSelectorDemo() {
 		{ value: "option2", label: "Option B", icon: "💼" },
 	];
 
-	return (
-		<CardSelector options={cardOptions} value={selectedCard} onChange={setSelectedCard} />
-	);
+	return <CardSelector options={cardOptions} value={selectedCard} onChange={setSelectedCard} />;
 }
 
 function EmojiPickerDemo() {
@@ -637,9 +635,7 @@ function EmojiPickerDemo() {
 	return (
 		<div className="flex items-center justify-center">
 			<EmojiPicker value={selectedEmoji} onSelect={setSelectedEmoji}>
-				<Button variant="outline">
-					{selectedEmoji || "Select Emoji"}
-				</Button>
+				<Button variant="outline">{selectedEmoji || "Select Emoji"}</Button>
 			</EmojiPicker>
 		</div>
 	);
@@ -722,15 +718,19 @@ function BannerDemo() {
 function DialogsDemo() {
 	const [guestAlertOpen, setGuestAlertOpen] = React.useState(false);
 	const [deleteConfirmOpen, setDeleteConfirmOpen] = React.useState(false);
+	const [welcomeOpen, setWelcomeOpen] = React.useState(false);
 
 	return (
 		<div className="space-y-4">
-			<div className="flex items-center gap-4">
+			<div className="flex flex-wrap items-center gap-4">
 				<Button variant="outline" onClick={() => setGuestAlertOpen(true)}>
 					Guest Logout Alert
 				</Button>
 				<Button variant="destructive" onClick={() => setDeleteConfirmOpen(true)}>
 					Delete Confirmation
+				</Button>
+				<Button variant="default" onClick={() => setWelcomeOpen(true)}>
+					🎉 Welcome Celebration
 				</Button>
 			</div>
 
@@ -753,6 +753,8 @@ function DialogsDemo() {
 					setDeleteConfirmOpen(false);
 				}}
 			/>
+
+			{welcomeOpen && <WelcomeCelebration forceOpen={true} redirectUrl="/demo-components" />}
 		</div>
 	);
 }
@@ -879,7 +881,9 @@ function MoreDialogsDemo() {
 		<div className="space-y-4">
 			<div className="flex items-center gap-4">
 				<Button onClick={() => setDialogOpen(true)}>Open Dialog</Button>
-				<Button variant="outline" onClick={() => setAlertDialogOpen(true)}>Open Alert Dialog</Button>
+				<Button variant="outline" onClick={() => setAlertDialogOpen(true)}>
+					Open Alert Dialog
+				</Button>
 			</div>
 
 			<Dialog open={dialogOpen} onOpenChange={setDialogOpen}>
@@ -889,7 +893,9 @@ function MoreDialogsDemo() {
 						<DialogDescription>This is a dialog description text that provides context.</DialogDescription>
 					</DialogHeader>
 					<div className="py-4">
-						<p className="text-sm text-primary">Dialog content goes here. You can add forms, information, or any other content.</p>
+						<p className="text-sm text-primary">
+							Dialog content goes here. You can add forms, information, or any other content.
+						</p>
 					</div>
 					<DialogFooter>
 						<Button variant="outline" onClick={() => setDialogOpen(false)}>
@@ -1001,12 +1007,8 @@ function AdditionalComponentsDemo() {
 						</DropdownMenuTrigger>
 						<DropdownMenuContent>
 							<DropdownMenuLabel>Actions</DropdownMenuLabel>
-							<DropdownMenuItem onClick={() => toast.info("Edit clicked")}>
-								Edit
-							</DropdownMenuItem>
-							<DropdownMenuItem onClick={() => toast.info("Share clicked")}>
-								Share
-							</DropdownMenuItem>
+							<DropdownMenuItem onClick={() => toast.info("Edit clicked")}>Edit</DropdownMenuItem>
+							<DropdownMenuItem onClick={() => toast.info("Share clicked")}>Share</DropdownMenuItem>
 							<DropdownMenuSeparator />
 							<DropdownMenuItem onClick={() => toast.info("Delete clicked")} className="text-error">
 								Delete
@@ -1018,3 +1020,4 @@ function AdditionalComponentsDemo() {
 		</div>
 	);
 }
+

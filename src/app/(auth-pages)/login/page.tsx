@@ -70,8 +70,7 @@ export default function Page() {
 			} else {
 				router.push("/");
 			}
-		} catch (err) {
-			console.error("[Guest Login Client] Error caught:", err);
+		} catch {
 			toast.error("Something went wrong", {
 				description: "Please try again later.",
 			});

@@ -4,6 +4,7 @@
  */
 
 import { jwtVerify, type JWTPayload } from "jose";
+import type { NextRequest } from "next/server";
 
 /**
  * Verify Supabase JWT token locally using jose library
@@ -19,7 +20,6 @@ export async function verifySupabaseJWT(token: string): Promise<JWTPayload | nul
 	if (!jwtSecret) {
 		// Only allow insecure decode when using mock/sample data (no Supabase connection)
 		if (process.env.NEXT_PUBLIC_USE_SAMPLE_DATA === "true") {
-			console.warn("[JWT] No SUPABASE_JWT_SECRET - using insecure decode-only mode for sample data");
 			return decodeJWTUnsafe(token);
 		}
 
@@ -34,7 +34,7 @@ export async function verifySupabaseJWT(token: string): Promise<JWTPayload | nul
 			audience: "authenticated",
 		});
 		return payload;
-	} catch (error) {
+	} catch {
 		// Token invalid or expired
 		return null;
 	}
@@ -69,7 +69,7 @@ function decodeJWTUnsafe(token: string): JWTPayload | null {
  * Extract access token from Supabase auth cookies
  * Handles both plain JSON and base64-encoded cookie formats
  */
-export function getAccessTokenFromRequest(request: any): string | null {
+export function getAccessTokenFromRequest(request: NextRequest): string | null {
 	const allCookies = request.cookies.getAll();
 
 	// Look for Supabase auth token cookie: sb-{project-ref}-auth-token

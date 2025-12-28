@@ -27,31 +27,25 @@ export function WelcomeCelebration({ forceOpen = false, redirectUrl }: WelcomeCe
 
 	useEffect(() => {
 		if (open) {
-			// Trigger confetti
-			const duration = 3000;
-			const end = Date.now() + duration;
-
-			const frame = () => {
-				confetti({
-					particleCount: 4,
-					angle: 60,
-					spread: 55,
-					origin: { x: 0 },
-					colors: ["#3b82f6", "#ef4444", "#22c55e", "#eab308"],
-				});
-				confetti({
-					particleCount: 4,
-					angle: 120,
-					spread: 55,
-					origin: { x: 1 },
-					colors: ["#3b82f6", "#ef4444", "#22c55e", "#eab308"],
-				});
-
-				if (Date.now() < end) {
-					requestAnimationFrame(frame);
-				}
-			};
-			frame();
+			// Single burst "pop" of confetti from both sides
+			confetti({
+				particleCount: 80,
+				angle: 60,
+				spread: 55,
+				origin: { x: 0, y: 0.6 },
+				colors: ["#3b82f6", "#ef4444", "#22c55e", "#eab308", "#a855f7"],
+				ticks: 300, // Duration - higher = lasts longer (default: 200)
+				gravity: 0.8, // Fall speed - lower = floats more (default: 1)
+			});
+			confetti({
+				particleCount: 80,
+				angle: 120,
+				spread: 55,
+				origin: { x: 1, y: 0.6 },
+				colors: ["#3b82f6", "#ef4444", "#22c55e", "#eab308", "#a855f7"],
+				ticks: 300,
+				gravity: 0.8,
+			});
 		}
 	}, [open]);
 

@@ -93,7 +93,7 @@ export function useAllocationSync(
 
 	// Subscribe to Realtime changes
 	useEffect(() => {
-		if (!allocationId) return;
+		if (!allocationId || process.env.NEXT_PUBLIC_USE_SAMPLE_DATA === "true") return;
 
 		// Subscribe to allocation_categories changes
 		const categoriesChannel = supabase

@@ -7,9 +7,35 @@ const supabaseAnonKey = process.env.NEXT_PUBLIC_SUPABASE_ANON_KEY!;
 // to prevent multiple instances from being created during hot-reloading.
 const globalAny = globalThis as any;
 
-const supabase = globalAny.supabase ?? createBrowserClient(supabaseUrl, supabaseAnonKey);
+const supabase =
+	process.env.NEXT_PUBLIC_USE_SAMPLE_DATA === "true"
+		? (new Proxy(
+				{},
+				{
+					get: () => {
+						// Return a dummy object that allows chaining but does nothing
+						const dummy: any = () => dummy;
+						// Add common properties to avoid basic crashes
+						dummy.select = () => dummy;
+						dummy.insert = () => dummy;
+						dummy.update = () => dummy;
+						dummy.delete = () => dummy;
+						dummy.eq = () => dummy;
+						dummy.single = () => Promise.resolve({ data: null, error: null });
+						dummy.then = (resolve: any) => resolve({ data: null, error: null });
+						// Auth mock
+						dummy.auth = {
+							getUser: () => Promise.resolve({ data: { user: null }, error: null }),
+							getSession: () => Promise.resolve({ data: { session: null }, error: null }),
+							onAuthStateChange: () => ({ data: { subscription: { unsubscribe: () => {} } } }),
+						};
+						return dummy;
+					},
+				}
+			) as any)
+		: (globalAny.supabase ?? createBrowserClient(supabaseUrl, supabaseAnonKey));
 
-if (process.env.NODE_ENV !== "production") {
+if (process.env.NODE_ENV !== "production" && process.env.NEXT_PUBLIC_USE_SAMPLE_DATA !== "true") {
 	globalAny.supabase = supabase;
 }
 
@@ -20,6 +46,7 @@ if (process.env.NODE_ENV !== "production") {
  * @returns Array of records or null if error occurs
  */
 export async function fetchData(table: string) {
+	if (process.env.NEXT_PUBLIC_USE_SAMPLE_DATA === "true") return [];
 	const { data, error } = await supabase.from(table).select("*");
 	if (error) {
 		console.error("Error fetching data:", error);

@@ -17,12 +17,18 @@ import { ImportTemplateDialog } from "./components/ImportTemplateDialog";
 import { ExportDialog } from "./components/ExportDialog";
 import type { TransactionType } from "./components/TransactionTypeIcon";
 import { useAllocationSync } from "@/hooks/useAllocationSync";
-import { createCategory, getOrCreateAllocation } from "./actions";
+import {
+	createCategory,
+	getOrCreateAllocation,
+	importPreviousMonthCategories,
+	applyTemplateToAllocation,
+} from "./actions";
 import { toast } from "sonner";
 import { AllocationProvider } from "./context/AllocationContext";
 import type { MonthYear, AllocationSummary, Transaction, ViewMode } from "./types";
 import type { AccountWithType } from "@/app/balancesheet/types";
 import { PageShell, PageHeader, PageContent } from "@/components/layout/page-shell";
+import type { AllocationNewMonthDefault } from "@/app/settings/actions";
 
 interface AllocationClientProps {
 	initialYear: number;
@@ -30,6 +36,14 @@ interface AllocationClientProps {
 	initialSummary: AllocationSummary | null;
 	initialTransactions: Transaction[];
 	initialAccounts: AccountWithType[];
+	previousMonthData?: {
+		categoryCount: number;
+		totalBudget: number;
+		hasData: boolean;
+	} | null;
+	userSettings?: {
+		newMonthDefault: AllocationNewMonthDefault;
+	};
 }
 
 const MONTH_NAMES = [
@@ -53,6 +67,8 @@ export function AllocationClient({
 	initialSummary,
 	initialTransactions,
 	initialAccounts,
+	previousMonthData,
+	userSettings,
 }: AllocationClientProps) {
 	const router = useRouter();
 
@@ -84,18 +100,40 @@ export function AllocationClient({
 		initialTransactions
 	);
 
-	// Show template dialog for new/empty months
+	// Handle new/empty months - apply user settings
 	useEffect(() => {
-		// Only show if we have no summary (truly empty month)
-		// In a real app, this would check if the allocation exists but has no categories
+		// Only act if we have no summary (truly empty month)
 		if (!summary && !templateDialogOpen) {
 			// Delay to avoid flash on initial load
 			const timer = setTimeout(() => {
-				setTemplateDialogOpen(true);
+				const defaultBehavior = userSettings?.newMonthDefault || "dialog";
+
+				switch (defaultBehavior) {
+					case "dialog":
+						setTemplateDialogOpen(true);
+						break;
+					case "import_previous":
+						// Auto-import with income prompt
+						// For now, show dialog - user can set income there
+						setTemplateDialogOpen(true);
+						break;
+					case "template":
+						// Auto-apply template with income prompt
+						// For now, show dialog - user can set income there
+						setTemplateDialogOpen(true);
+						break;
+					case "fresh":
+						// Auto-create empty allocation
+						// For now, show dialog - user can set income there
+						setTemplateDialogOpen(true);
+						break;
+					default:
+						setTemplateDialogOpen(true);
+				}
 			}, 500);
 			return () => clearTimeout(timer);
 		}
-	}, [summary, currentMonth]);
+	}, [summary, currentMonth, userSettings?.newMonthDefault]);
 
 	// Handle month changes by navigating to new URL
 	const handleMonthChange = (newMonth: MonthYear) => {
@@ -124,14 +162,35 @@ export function AllocationClient({
 		}
 	};
 
-	// Template dialog handlers (placeholder implementations)
-	const handleImportPrevious = (expectedIncome: number) => {
-		toast.info("Import from previous month coming soon!");
+	// Template dialog handlers
+	const handleImportPrevious = async (expectedIncome: number) => {
+		const allocation = await importPreviousMonthCategories(currentMonth.year, currentMonth.month, expectedIncome);
+		if (allocation) {
+			toast.success("Categories imported from previous month!");
+			router.refresh();
+		} else {
+			toast.error("Failed to import categories");
+		}
 		setTemplateDialogOpen(false);
 	};
 
-	const handleUseTemplate = (templateId: string, expectedIncome: number) => {
-		toast.info("Template import coming soon!");
+	const handleUseTemplate = async (templateId: string, expectedIncome: number) => {
+		// First create the allocation
+		const allocation = await getOrCreateAllocation(currentMonth.year, currentMonth.month, expectedIncome);
+		if (!allocation) {
+			toast.error("Failed to create budget");
+			setTemplateDialogOpen(false);
+			return;
+		}
+
+		// Then apply the template
+		const success = await applyTemplateToAllocation(templateId, allocation.id);
+		if (success) {
+			toast.success("Template applied!");
+			router.refresh();
+		} else {
+			toast.error("Failed to apply template");
+		}
 		setTemplateDialogOpen(false);
 	};
 
@@ -153,8 +212,8 @@ export function AllocationClient({
 		return {
 			name: MONTH_NAMES[prevMonth - 1],
 			year: prevYear,
-			categoryCount: 5, // Placeholder
-			totalBudget: 3500, // Placeholder
+			categoryCount: previousMonthData?.categoryCount || 0,
+			totalBudget: previousMonthData?.totalBudget || 0,
 		};
 	};
 

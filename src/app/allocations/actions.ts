@@ -3,6 +3,38 @@
 import { createClient } from "@/lib/supabase/server";
 import { revalidatePath } from "next/cache";
 import type { Allocation, AllocationCategory, AllocationSummary, AllocationTemplate, Transaction } from "./types";
+import { sampleAllocationSummary, sampleTransactions } from "@/mock-data/allocations";
+
+/**
+ * Check if allocation exists for a specific month (without creating)
+ */
+export async function getAllocation(year: number, month: number): Promise<Allocation | null> {
+	// Handle sample data mode
+	if (process.env.NEXT_PUBLIC_USE_SAMPLE_DATA === "true") {
+		const now = new Date();
+		if (year === now.getFullYear() && month === now.getMonth() + 1) {
+			return sampleAllocationSummary.allocation;
+		}
+		return null;
+	}
+
+	const supabase = await createClient();
+
+	const {
+		data: { user },
+	} = await supabase.auth.getUser();
+	if (!user) return null;
+
+	const { data: existing } = await supabase
+		.from("allocations")
+		.select("*")
+		.eq("user_id", user.id)
+		.eq("year", year)
+		.eq("month", month)
+		.single();
+
+	return existing as Allocation | null;
+}
 
 /**
  * Get or create allocation for a specific month
@@ -12,6 +44,11 @@ export async function getOrCreateAllocation(
 	month: number,
 	expectedIncome: number = 0
 ): Promise<Allocation | null> {
+	// Handle sample data mode
+	if (process.env.NEXT_PUBLIC_USE_SAMPLE_DATA === "true") {
+		return sampleAllocationSummary.allocation;
+	}
+
 	const supabase = await createClient();
 
 	const {
@@ -144,6 +181,11 @@ async function syncRecurringExpenses(allocationId: string, userId: string, targe
  * Uses the database RPC function for proper JSON serialization
  */
 export async function getAllocationSummary(allocationId: string): Promise<AllocationSummary | null> {
+	// Handle sample data mode
+	if (process.env.NEXT_PUBLIC_USE_SAMPLE_DATA === "true") {
+		return sampleAllocationSummary;
+	}
+
 	const supabase = await createClient();
 
 	const { data, error } = await supabase.rpc("get_allocation_summary", {
@@ -156,6 +198,95 @@ export async function getAllocationSummary(allocationId: string): Promise<Alloca
 	}
 
 	return data as AllocationSummary;
+}
+
+/**
+ * Get previous month's allocation summary for import preview
+ */
+export async function getPreviousMonthSummary(
+	year: number,
+	month: number
+): Promise<{ summary: AllocationSummary | null; prevYear: number; prevMonth: number }> {
+	// Calculate previous month (handle year boundary)
+	const prevMonth = month === 1 ? 12 : month - 1;
+	const prevYear = month === 1 ? year - 1 : year;
+
+	// Get the previous month's allocation
+	const prevAllocation = await getAllocation(prevYear, prevMonth);
+
+	if (!prevAllocation) {
+		return { summary: null, prevYear, prevMonth };
+	}
+
+	const summary = await getAllocationSummary(prevAllocation.id);
+	return { summary, prevYear, prevMonth };
+}
+
+/**
+ * Import previous month's categories to new month
+ * Only copies categories and budget caps - NOT transactions
+ */
+export async function importPreviousMonthCategories(
+	targetYear: number,
+	targetMonth: number,
+	expectedIncome: number
+): Promise<Allocation | null> {
+	const supabase = await createClient();
+
+	const {
+		data: { user },
+	} = await supabase.auth.getUser();
+	if (!user) return null;
+
+	// Calculate previous month (handle year boundary)
+	const prevMonth = targetMonth === 1 ? 12 : targetMonth - 1;
+	const prevYear = targetMonth === 1 ? targetYear - 1 : targetYear;
+
+	// Get previous month's allocation
+	const prevAllocation = await getAllocation(prevYear, prevMonth);
+
+	// Create new allocation for target month
+	const newAllocation = await getOrCreateAllocation(targetYear, targetMonth, expectedIncome);
+	if (!newAllocation) return null;
+
+	// If no previous allocation, just return the empty new allocation
+	if (!prevAllocation) {
+		return newAllocation;
+	}
+
+	// Fetch categories from previous month
+	const { data: prevCategories, error: fetchError } = await supabase
+		.from("allocation_categories")
+		.select("*")
+		.eq("allocation_id", prevAllocation.id)
+		.order("display_order");
+
+	if (fetchError || !prevCategories || prevCategories.length === 0) {
+		return newAllocation;
+	}
+
+	// Copy categories to new allocation
+	const newCategories = prevCategories.map((cat) => ({
+		allocation_id: newAllocation.id,
+		user_id: user.id,
+		name: cat.name,
+		budget_cap: cat.budget_cap,
+		is_recurring: cat.is_recurring,
+		display_order: cat.display_order,
+		color: cat.color,
+		icon: cat.icon,
+		notes: cat.notes,
+	}));
+
+	const { error: insertError } = await supabase.from("allocation_categories").insert(newCategories);
+
+	if (insertError) {
+		console.error("Error copying categories:", insertError);
+		// Return the allocation anyway - categories just weren't copied
+	}
+
+	revalidatePath("/allocations");
+	return newAllocation;
 }
 
 /**
@@ -306,6 +437,11 @@ export async function reorderCategories(categoryOrders: { id: string; display_or
  * Get transactions for a specific month
  */
 export async function getTransactionsForMonth(year: number, month: number): Promise<Transaction[]> {
+	// Handle sample data mode
+	if (process.env.NEXT_PUBLIC_USE_SAMPLE_DATA === "true") {
+		return sampleTransactions;
+	}
+
 	const supabase = await createClient();
 
 	const {

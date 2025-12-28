@@ -18,7 +18,7 @@ export function SidebarHeader({ isCollapsed, onToggleCollapse, userProfile, onSi
 	return (
 		<div
 			className={cn(
-				"hidden lg:flex items-center gap-2 px-4 pt-4 pb-2 relative z-50",
+				"hidden lg:flex items-center gap-2 px-4 pt-4 pb-2 relative z-50 overflow-hidden",
 				isCollapsed ? "flex-col" : "flex-row"
 			)}
 		>
@@ -32,7 +32,7 @@ export function SidebarHeader({ isCollapsed, onToggleCollapse, userProfile, onSi
 			>
 				{isCollapsed ? <ChevronRight className="w-4 h-4" /> : <ChevronLeft className="w-4 h-4" />}
 			</Button>
-			<div className={cn(isCollapsed && "w-full")}>
+			<div className={cn("flex-1 min-w-0 overflow-hidden", isCollapsed && "w-full")}>
 				<UserProfileMenu userProfile={userProfile} onSignOut={onSignOut} isCollapsed={isCollapsed} />
 			</div>
 		</div>

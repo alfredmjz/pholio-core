@@ -2,6 +2,7 @@
 
 import { createClient } from "@/lib/supabase/server";
 import { revalidatePath } from "next/cache";
+import { sampleProfile } from "@/mock-data/profile";
 
 /**
  * Update user profile (full name)
@@ -283,5 +284,101 @@ export async function uploadProfileAvatar(formData: FormData) {
 	} catch (error) {
 		console.error("Unexpected error in uploadProfileAvatar:", error);
 		return { error: "An unexpected error occurred" };
+	}
+}
+
+// =============================================================================
+// ALLOCATION SETTINGS
+// =============================================================================
+
+export type AllocationNewMonthDefault = "dialog" | "import_previous" | "template" | "fresh";
+
+/**
+ * Get user's allocation settings
+ */
+export async function getAllocationSettings(): Promise<{
+	newMonthDefault: AllocationNewMonthDefault;
+}> {
+	// Handle sample data mode
+	if (process.env.NEXT_PUBLIC_USE_SAMPLE_DATA === "true") {
+		return {
+			newMonthDefault: (sampleProfile.allocation_new_month_default as AllocationNewMonthDefault) || "dialog",
+		};
+	}
+
+	try {
+		const supabase = await createClient();
+
+		const {
+			data: { user },
+		} = await supabase.auth.getUser();
+
+		if (!user) {
+			return { newMonthDefault: "dialog" };
+		}
+
+		const { data: profile } = await supabase
+			.from("users")
+			.select("allocation_new_month_default")
+			.eq("id", user.id)
+			.single();
+
+		return {
+			newMonthDefault: (profile?.allocation_new_month_default as AllocationNewMonthDefault) || "dialog",
+		};
+	} catch (error) {
+		console.error("Error getting allocation settings:", error);
+		return { newMonthDefault: "dialog" };
+	}
+}
+
+/**
+ * Update user's allocation settings
+ */
+export async function updateAllocationSettings(settings: {
+	newMonthDefault?: AllocationNewMonthDefault;
+}): Promise<{ success: boolean; error?: string }> {
+	// Handle sample data mode
+	if (process.env.NEXT_PUBLIC_USE_SAMPLE_DATA === "true") {
+		return { success: true };
+	}
+
+	try {
+		const supabase = await createClient();
+
+		const {
+			data: { user },
+		} = await supabase.auth.getUser();
+
+		if (!user) {
+			return { success: false, error: "You must be logged in" };
+		}
+
+		const updates: Record<string, unknown> = {
+			updated_at: new Date().toISOString(),
+		};
+
+		if (settings.newMonthDefault) {
+			// Validate the value
+			const validOptions = ["dialog", "import_previous", "template", "fresh"];
+			if (!validOptions.includes(settings.newMonthDefault)) {
+				return { success: false, error: "Invalid setting value" };
+			}
+			updates.allocation_new_month_default = settings.newMonthDefault;
+		}
+
+		const { error } = await supabase.from("users").update(updates).eq("id", user.id);
+
+		if (error) {
+			console.error("Error updating allocation settings:", error);
+			return { success: false, error: "Failed to update settings" };
+		}
+
+		revalidatePath("/settings");
+		revalidatePath("/allocations");
+		return { success: true };
+	} catch (error) {
+		console.error("Unexpected error in updateAllocationSettings:", error);
+		return { success: false, error: "An unexpected error occurred" };
 	}
 }

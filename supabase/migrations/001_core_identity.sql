@@ -34,6 +34,13 @@ CREATE TABLE public.users (
     is_guest BOOLEAN DEFAULT false NOT NULL,
     guest_name TEXT,
     has_seen_welcome BOOLEAN DEFAULT false NOT NULL,
+    -- Allocation settings: Controls default behavior when navigating to a new month
+    -- 'dialog': Show import template dialog (default)
+    -- 'import_previous': Automatically import categories from previous month
+    -- 'template': Automatically apply default template
+    -- 'fresh': Create empty allocation
+    allocation_new_month_default TEXT DEFAULT 'dialog'
+        CHECK (allocation_new_month_default IN ('dialog', 'import_previous', 'template', 'fresh')),
     created_at TIMESTAMP WITH TIME ZONE DEFAULT TIMEZONE('utc', NOW()) NOT NULL,
     updated_at TIMESTAMP WITH TIME ZONE DEFAULT TIMEZONE('utc', NOW()) NOT NULL
 );

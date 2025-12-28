@@ -4,6 +4,7 @@ import type {
 	BalanceSheetSummary,
 	AccountTransaction,
 	HistoricalDataPoint,
+	AccountHistory,
 } from "@/app/balancesheet/types";
 
 // Sample account types (mimicking system defaults)
@@ -357,4 +358,52 @@ export const sampleAccountTransactions: Record<string, AccountTransaction[]> = {
 			created_at: "2024-12-10T10:00:00Z",
 		},
 	],
+};
+
+export const sampleAccountHistory: Record<string, AccountHistory[]> = {
+	"acc-1": generateHistoricalData(7500, 8500, 0.005).map((p, i) => ({
+		id: `h-1-${i}`,
+		account_id: "acc-1",
+		user_id: "sample-user",
+		balance: p.value,
+		recorded_at: p.date,
+		source: "auto",
+		created_at: p.date,
+	})),
+	"acc-2": generateHistoricalData(28000, 32100, 0.01).map((p, i) => ({
+		id: `h-2-${i}`,
+		account_id: "acc-2",
+		user_id: "sample-user",
+		balance: p.value,
+		recorded_at: p.date,
+		source: "auto",
+		created_at: p.date,
+	})),
+	"acc-3": generateHistoricalData(40000, 45000, 0.002).map((p, i) => ({
+		id: `h-3-${i}`,
+		account_id: "acc-3",
+		user_id: "sample-user",
+		balance: p.value,
+		recorded_at: p.date,
+		source: "auto",
+		created_at: p.date,
+	})),
+	"acc-4": generateHistoricalData(3000, 2450, 0.003).map((p, i) => ({
+		id: `h-4-${i}`,
+		account_id: "acc-4",
+		user_id: "sample-user",
+		balance: p.value,
+		recorded_at: p.date,
+		source: "auto",
+		created_at: p.date,
+	})),
+	"acc-5": generateHistoricalData(20000, 18500, 0.001).map((p, i) => ({
+		id: `h-5-${i}`,
+		account_id: "acc-5",
+		user_id: "sample-user",
+		balance: p.value,
+		recorded_at: p.date,
+		source: "auto",
+		created_at: p.date,
+	})),
 };

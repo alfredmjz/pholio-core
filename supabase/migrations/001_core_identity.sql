@@ -33,6 +33,7 @@ CREATE TABLE public.users (
     avatar_url TEXT,
     is_guest BOOLEAN DEFAULT false NOT NULL,
     guest_name TEXT,
+    has_seen_welcome BOOLEAN DEFAULT false NOT NULL,
     created_at TIMESTAMP WITH TIME ZONE DEFAULT TIMEZONE('utc', NOW()) NOT NULL,
     updated_at TIMESTAMP WITH TIME ZONE DEFAULT TIMEZONE('utc', NOW()) NOT NULL
 );

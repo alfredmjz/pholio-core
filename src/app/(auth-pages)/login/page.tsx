@@ -38,8 +38,10 @@ export default function Page() {
 	const { handleSubmit, isLoading, error, setError, isMounted } = useAuthForm({
 		action: login,
 		validate,
-		onSuccess: () => {
-			router.push("/");
+		onSuccess: (result) => {
+			// Check if this is first login - redirect with welcome param
+			const redirectUrl = (result as { showWelcome?: boolean })?.showWelcome ? "/?welcome=true" : "/";
+			router.push(redirectUrl);
 			// Detect if navigation failed (still on login page after timeout)
 			setTimeout(() => {
 				if (window.location.pathname === "/login") {

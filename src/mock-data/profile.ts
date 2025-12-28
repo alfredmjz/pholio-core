@@ -3,6 +3,7 @@ export const sampleProfile = {
 	full_name: "Demo User",
 	is_guest: false,
 	guest_name: null,
+	has_seen_welcome: true,
 	avatar_url: null,
 	email: "demo@example.com",
 	created_at: new Date().toISOString(),

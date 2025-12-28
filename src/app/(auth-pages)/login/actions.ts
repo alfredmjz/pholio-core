@@ -35,9 +35,31 @@ export async function login(formData: FormData) {
 		return { error: "Please verify your email address before logging in." };
 	}
 
-	console.log("[Login Action] Login successful");
+	// Check if this is the user's first login (hasn't seen welcome)
+	// Only show welcome for registered users, not guests
+	let showWelcome = false;
+	const { data: profile, error: profileError } = await supabase
+		.from("users")
+		.select("has_seen_welcome, is_guest")
+		.eq("id", data.user.id)
+		.single();
+
+	console.log("[Login Action] Profile check:", { profile, profileError: profileError?.message });
+
+	// has_seen_welcome could be null (for existing users before migration) - treat as false
+	if (profile && profile.has_seen_welcome !== true && !profile.is_guest) {
+		showWelcome = true;
+		// Mark as seen
+		const { error: updateError } = await supabase
+			.from("users")
+			.update({ has_seen_welcome: true })
+			.eq("id", data.user.id);
+		console.log("[Login Action] Updated has_seen_welcome:", { updateError: updateError?.message });
+	}
+
+	console.log("[Login Action] Login successful, showWelcome:", showWelcome);
 	revalidatePath("/", "layout");
-	return {};
+	return { showWelcome };
 }
 
 /**

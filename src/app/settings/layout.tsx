@@ -1,3 +1,4 @@
+import { type ReactNode } from "react";
 import { SettingsNav, SettingsNavMobile } from "./components/settings-nav";
 import { PlaceholderBanner } from "./components/placeholder-banner";
 
@@ -19,7 +20,7 @@ import { PlaceholderBanner } from "./components/placeholder-banner";
  *
  * @param props - React children (nested pages like /profile, /profile/security)
  */
-export default function ProfileLayout({ children }: { children: React.ReactNode }) {
+export default function ProfileLayout({ children }: { children: ReactNode }) {
 	return (
 		<div className="flex flex-col items-center w-full min-h-screen">
 			{/* Mobile/Tablet Navigation - Horizontal tabs */}

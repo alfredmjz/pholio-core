@@ -1,4 +1,4 @@
-import * as React from "react";
+import { useState } from "react";
 import { format } from "date-fns";
 import { Calendar as CalendarIcon } from "lucide-react";
 
@@ -24,7 +24,7 @@ export function DatePicker({
 	placeholder = "Pick a date",
 	id,
 }: DatePickerProps) {
-	const [open, setOpen] = React.useState(false);
+	const [open, setOpen] = useState(false);
 
 	// Force local time interpretation by appending T00:00:00 to YYYY-MM-DD string
 	const selectedDate = value ? new Date(value + "T00:00:00") : undefined;

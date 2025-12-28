@@ -1,6 +1,6 @@
 "use client";
 
-import * as React from "react";
+import { useState, useMemo, type ComponentType } from "react";
 import Link from "next/link";
 import { usePathname } from "next/navigation";
 import { User, Shield, Settings, Lock, CreditCard, Search } from "lucide-react";
@@ -10,7 +10,7 @@ import { Input } from "@/components/ui/input";
 interface NavItem {
 	label: string;
 	href: string;
-	icon: React.ComponentType<{ className?: string }>;
+	icon: ComponentType<{ className?: string }>;
 	disabled?: boolean;
 	badge?: string;
 	keywords?: string[];
@@ -92,9 +92,9 @@ const navItems: NavItem[] = [
  */
 export function SettingsNav() {
 	const pathname = usePathname();
-	const [query, setQuery] = React.useState("");
+	const [query, setQuery] = useState("");
 
-	const filteredItems = React.useMemo(() => {
+	const filteredItems = useMemo(() => {
 		if (!query) return navItems;
 		const lowerQuery = query.toLowerCase();
 		return navItems.filter(

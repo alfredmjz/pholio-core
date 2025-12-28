@@ -10,15 +10,12 @@ import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@
 import { Textarea } from "@/components/ui/textarea";
 import { DatePicker } from "@/components/ui/date-picker";
 
-import { Loader2, Info, TrendingDown, TrendingUp } from "lucide-react";
+import { Loader2, Info, TrendingDown } from "lucide-react";
 import { toast } from "sonner";
 import { createTransaction, updateTransaction } from "../actions";
 import type { Transaction, AllocationCategory } from "../types";
-import { inferTransactionType } from "./TransactionTypeIcon";
 import { FormSection } from "@/components/FormSection";
-import { ProminentAmountInput } from "@/components/ProminentAmountInput";
 import { CardSelector } from "@/components/CardSelector";
-import { cn } from "@/lib/utils";
 
 interface TransactionDialogProps {
 	open: boolean;

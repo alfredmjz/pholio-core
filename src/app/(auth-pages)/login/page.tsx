@@ -40,6 +40,14 @@ export default function Page() {
 		validate,
 		onSuccess: () => {
 			router.push("/");
+			// Detect if navigation failed (still on login page after timeout)
+			setTimeout(() => {
+				if (window.location.pathname === "/login") {
+					toast.error("Login Failed", {
+						description: "Unable to complete login. Please try again.",
+					});
+				}
+			}, 2000);
 		},
 	});
 

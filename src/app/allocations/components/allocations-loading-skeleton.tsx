@@ -24,7 +24,7 @@ export function AllocationsLoadingSkeleton() {
 						{/* Summary Cards Skeleton */}
 						<div className="grid gap-4 md:grid-cols-2 lg:grid-cols-4">
 							{[1, 2, 3, 4].map((i) => (
-								<div key={i} className="rounded-xl border bg-card text-card shadow p-6">
+								<div key={i} className="rounded-xl border border-border bg-card text-card shadow p-6">
 									<Skeleton className="h-4 w-24 mb-2" />
 									<Skeleton className="h-8 w-32" />
 								</div>
@@ -32,7 +32,7 @@ export function AllocationsLoadingSkeleton() {
 						</div>
 
 						{/* Category Performance Skeleton */}
-						<div className="rounded-xl border bg-card text-card shadow h-[400px] p-6">
+						<div className="rounded-xl border border-border bg-card text-card shadow h-[400px] p-6">
 							<div className="space-y-4">
 								<div className="flex justify-between items-center mb-6">
 									<Skeleton className="h-6 w-48" />
@@ -53,7 +53,7 @@ export function AllocationsLoadingSkeleton() {
 
 					<div className="lg:flex-[1]">
 						{/* Donut Chart Skeleton */}
-						<div className="rounded-xl border bg-card text-card shadow h-[400px] p-6 flex items-center justify-center">
+						<div className="rounded-xl border border-border bg-card text-card shadow h-[400px] p-6 flex items-center justify-center">
 							<Skeleton className="h-48 w-48 rounded-full" />
 						</div>
 					</div>

@@ -35,7 +35,7 @@ export async function fetchData(table: string) {
  * @param payload - Data to insert
  * @returns Inserted record or null if error occurs
  */
-export async function insertData(table: string, payload: any) {
+export async function insertData(table: string, payload: Record<string, unknown>) {
 	const { data, error } = await supabase.from(table).insert(payload);
 	if (error) {
 		console.error("Error inserting data:", error);
@@ -52,7 +52,7 @@ export async function insertData(table: string, payload: any) {
  * @param payload - Data to update
  * @returns Updated record or null if error occurs
  */
-export async function updateData(table: string, id: string, payload: any) {
+export async function updateData(table: string, id: string, payload: Record<string, unknown>) {
 	const { data, error } = await supabase.from(table).update(payload).eq("id", id);
 	if (error) {
 		console.error("Error updating data:", error);

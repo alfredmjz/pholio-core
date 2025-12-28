@@ -23,12 +23,25 @@ interface CashflowWidgetProps {
 	className?: string;
 }
 
+// Custom Tooltip Props - based on Recharts TooltipProps
+interface TooltipPayloadEntry {
+	dataKey: string;
+	value: number;
+	color?: string;
+}
+
+interface CustomTooltipProps {
+	active?: boolean;
+	payload?: TooltipPayloadEntry[];
+	label?: string;
+}
+
 // Custom Tooltip Component
-function CustomTooltip({ active, payload, label }: any) {
+function CustomTooltip({ active, payload, label }: CustomTooltipProps) {
 	if (!active || !payload || payload.length === 0) return null;
 
-	const income = payload.find((p: any) => p.dataKey === "income")?.value || 0;
-	const expenses = payload.find((p: any) => p.dataKey === "expenses")?.value || 0;
+	const income = payload.find((p) => p.dataKey === "income")?.value || 0;
+	const expenses = payload.find((p) => p.dataKey === "expenses")?.value || 0;
 	const net = income - expenses;
 
 	return (

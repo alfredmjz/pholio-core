@@ -14,7 +14,6 @@ export async function POST(req: NextRequest) {
 		} = await supabase.auth.getUser();
 
 		if (userError || !user) {
-			console.log("[GoogleExport] No authenticated user found");
 			return NextResponse.json({ error: "Unauthorized" }, { status: 401 });
 		}
 
@@ -31,7 +30,6 @@ export async function POST(req: NextRequest) {
 		const accessToken = token || session?.provider_token;
 
 		if (!accessToken) {
-			console.log("[GoogleExport] No provider_token found in session or body");
 			return NextResponse.json(
 				{ error: "Google account not linked or session missing provider token" },
 				{ status: 401 }

@@ -122,7 +122,7 @@ export function ImportTemplateDialog({
 			{step === "choose" ? (
 				<div className="space-y-3 py-4">
 					{/* Import from Previous Month */}
-					{previousMonth && (
+					{previousMonth && previousMonth.categoryCount > 0 && (
 						<button
 							onClick={() => handleOptionSelect("previous")}
 							className={cn(

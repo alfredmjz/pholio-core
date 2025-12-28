@@ -14,6 +14,7 @@ import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
 import { Textarea } from "@/components/ui/textarea";
+import { DatePicker } from "@/components/ui/date-picker";
 import { toast } from "sonner";
 import { Loader2, TrendingUp, TrendingDown, Info } from "lucide-react";
 import { createUnifiedTransaction, getSuggestedAccountForCategory } from "@/lib/actions/unified-transaction-actions";
@@ -188,14 +189,7 @@ export function UnifiedTransactionDialog({
 						<div className="flex flex-row justify-between gap-4">
 							<div className="flex-1 space-y-2">
 								<Label htmlFor="date">Date *</Label>
-								<Input
-									id="date"
-									type="date"
-									value={date}
-									onChange={(e) => setDate(e.target.value)}
-									required
-									className="h-10"
-								/>
+								<DatePicker id="date" value={date} onChange={setDate} placeholder="Select transaction date" />
 							</div>
 
 							<div className="flex-1 space-y-2">

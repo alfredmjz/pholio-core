@@ -8,8 +8,9 @@ import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
 import { Textarea } from "@/components/ui/textarea";
+import { DatePicker } from "@/components/ui/date-picker";
 
-import { Loader2, CalendarIcon, Info, TrendingDown, TrendingUp } from "lucide-react";
+import { Loader2, Info, TrendingDown, TrendingUp } from "lucide-react";
 import { toast } from "sonner";
 import { createTransaction, updateTransaction } from "../actions";
 import type { Transaction, AllocationCategory } from "../types";
@@ -145,17 +146,7 @@ export function TransactionDialog({
 					<div className="flex flex-row gap-4">
 						<div className="flex-1 space-y-2">
 							<Label htmlFor="date">Date</Label>
-							<div className="relative">
-								<CalendarIcon className="absolute left-3 top-1/2 -translate-y-1/2 h-4 w-4 text-muted-foreground" />
-								<Input
-									id="date"
-									type="date"
-									value={date}
-									onChange={(e) => setDate(e.target.value)}
-									required
-									className="pl-10 h-10"
-								/>
-							</div>
+							<DatePicker id="date" value={date} onChange={setDate} placeholder="Select transaction date" />
 						</div>
 
 						<div className="flex-1 space-y-2">
@@ -218,4 +209,3 @@ export function TransactionDialog({
 		</ControlBasedDialog>
 	);
 }
-

@@ -63,7 +63,7 @@ export function UserProfileMenu({ userProfile, onSignOut, isCollapsed }: UserPro
 				<DropdownMenuTrigger asChild>
 					<div
 						className={cn(
-							"flex items-center gap-3 p-2 rounded-md h-auto outline-none cursor-pointer",
+							"inline-flex items-center gap-2 p-2 rounded-md h-auto outline-none cursor-pointer max-w-full",
 							isCollapsed ? "justify-center" : "justify-start"
 						)}
 					>
@@ -80,7 +80,7 @@ export function UserProfileMenu({ userProfile, onSignOut, isCollapsed }: UserPro
 						)}
 						{!isCollapsed && (
 							<>
-								<span className="truncate max-w-[120px] text-left text-sm font-medium text-primary">{displayName}</span>
+								<span className="truncate text-left text-sm font-medium text-primary max-w-[120px]">{displayName}</span>
 								<ChevronDown
 									className={cn(
 										"h-3 w-3 flex-shrink-0 transition-transform duration-200 text-primary",
@@ -95,7 +95,7 @@ export function UserProfileMenu({ userProfile, onSignOut, isCollapsed }: UserPro
 					side="right"
 					align="start"
 					sideOffset={-20}
-					alignOffset={40}
+					alignOffset={30}
 					className="border-border border-2 w-40"
 				>
 					<DropdownMenuItem asChild>

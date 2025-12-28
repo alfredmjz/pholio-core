@@ -72,7 +72,7 @@ export default function ResetPasswordPage() {
 								<div className="flex flex-col gap-3 pt-2">
 									<Button
 										type="submit"
-										className="w-full h-10 bg-primary hover:bg-primary/90 text-primary shadow-sm font-medium transition-all"
+										className="w-full h-10 bg-primary hover:bg-primary/90 text-primary-foreground shadow-sm font-medium transition-all"
 										disabled={isLoading || !isMounted}
 									>
 										{isLoading ? "Resetting..." : "Reset Password"}

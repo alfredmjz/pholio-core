@@ -20,7 +20,7 @@ interface GuestLogoutAlertProps {
 export function GuestLogoutAlert({ open, onOpenChange, onConfirm }: GuestLogoutAlertProps) {
 	return (
 		<AlertDialog open={open} onOpenChange={onOpenChange}>
-			<AlertDialogContent>
+			<AlertDialogContent className="">
 				<AlertDialogHeader>
 					<AlertDialogTitle className="flex items-center gap-2 text-error">Warning: Data Loss</AlertDialogTitle>
 					<AlertDialogDescription>
@@ -30,8 +30,8 @@ export function GuestLogoutAlert({ open, onOpenChange, onConfirm }: GuestLogoutA
 					</AlertDialogDescription>
 				</AlertDialogHeader>
 				<AlertDialogFooter>
-					<AlertDialogCancel className="bg-primary text-primary shadow hover:bg-primary/90">Go Back</AlertDialogCancel>
-					<AlertDialogAction onClick={onConfirm} className="bg-error text-error hover:bg-error/90">
+					<AlertDialogCancel>Go Back</AlertDialogCancel>
+					<AlertDialogAction variant="destructive" onClick={onConfirm}>
 						Log Out Anyway
 					</AlertDialogAction>
 				</AlertDialogFooter>

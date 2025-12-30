@@ -12,128 +12,118 @@
 		/* Light theme - Notion-inspired palette - HSL Format for Opacity Support */
 
 		/* Base colors */
-		--background: 0 0% 100%; /* #ffffff */
-		--foreground: 30 6% 25%; /* #37352f */
-		--border: 60 4% 91%; /* #e9e9e7 */
-		--ring: 200 75% 52%; /* #2eaadc */
-		--radius: 0.5rem;
+		--background: 0 0% 100%;
+		--border: 210 10% 90%;
+		--ring: 200 71% 46%;
+		--radius: 0.375rem;
 
 		/* Primary */
-		--primary: 30 6% 25%; /* #37352f */
-		--primary-foreground: 0 0% 100%; /* #ffffff */
-		--primary-hover: 0 0% 18%; /* #2f2f2f */
-		--primary-border: 30 6% 25%; /* #37352f */
+		--primary: 30 6% 25%;
+		--primary-foreground: 0 0% 100%;
+		--primary-hover: 0 0% 18%;
+		--primary-border: 30 6% 25%;
 
 		/* Secondary */
-		--secondary: 40 10% 96%; /* #f7f7f5 */
-		--secondary-foreground: 30 6% 25%; /* #37352f */
-		--secondary-hover: 0 0% 94%; /* #efefef */
-		--secondary-border: 60 4% 91%; /* #e9e9e7 */
+		--secondary: 210 10% 90%;
+		--secondary-foreground: 30 6% 25%;
+		--secondary-hover: 210 10% 85%;
+		--secondary-muted: 210 10% 88%;
+		--secondary-border: 210 10% 85%;
 
 		/* Accent */
-		--accent: 40 10% 96%; /* #f7f7f5 */
-		--accent-foreground: 30 6% 25%; /* #37352f */
+		--accent: 210 10% 94%;
+		--accent-foreground: 30 6% 25%;
+		--accent-hover: 210 10% 91%;
+		--accent-muted: 210 10% 88%;
 
 		/* Hover */
-		--hover: 40 20% 94%; /* Warm cream for hover */
-
-		/* Muted */
-		--muted: 40 10% 96%; /* #f7f7f5 */
-		--muted-foreground: 30 2% 47%; /* #787774 */
+		--hover: 210 15% 95%;
 
 		/* Popover */
-		--popover: 0 0% 100%; /* #ffffff */
-		--popover-foreground: 30 6% 25%; /* #37352f */
+		--popover: 0 0% 100%;
+		--popover-foreground: 30 6% 25%;
+		--popover-muted: 210 10% 90%;
 
 		/* Card */
-		--card: 0 0% 100%; /* #ffffff */
-		--card-foreground: 30 6% 25%; /* #37352f */
+		--card: 0 0% 100%;
+		--card-foreground: 30 6% 25%;
+		--card-muted: 210 10% 90%;
 
 		/* Status */
-		--success: 124 38% 45%; /* #489f4e */
-		--success-foreground: 0 0% 100%; /* #ffffff */
-		--success-muted: 120 33% 89%; /* #dbeddb */
+		--success: 124 38% 45%;
+		--success-foreground: 0 0% 100%;
+		--success-muted: 120 33% 89%;
 
-		--warning: 45 61% 49%; /* #cb912f */
-		--warning-foreground: 0 0% 100%; /* #ffffff */
-		--warning-muted: 41 87% 89%; /* #fdecc8 */
+		--warning: 45 61% 49%;
+		--warning-foreground: 0 0% 100%;
+		--warning-muted: 41 87% 89%;
 
-		--error: 2 60% 55%; /* #d44c47 */
-		--error-foreground: 0 0% 100%; /* #ffffff */
-		--error-muted: 10 100% 93%; /* #ffe2dd */
+		--error: 2 60% 55%;
+		--error-foreground: 0 0% 100%;
+		--error-muted: 10 100% 93%;
 
-		--info: 200 75% 52%; /* #2eaadc */
-		--info-foreground: 0 0% 100%; /* #ffffff */
-		--info-muted: 201 54% 88%; /* #d3e5ef */
-
-		/* Text */
-		--text-primary: 30 6% 25%; /* #37352f */
-		--text-secondary: 30 2% 47%; /* #787774 */
-		--text-secondary-highlight: 30 6% 25%; /* #37352f */
+		--info: 210 80% 50%;
+		--info-foreground: 0 0% 100%;
+		--info-muted: 210 50% 90%;
 	}
 
 	.dark {
 		/* Dark theme - Notion-inspired palette */
 
 		/* Base colors */
-		--background: 0 0% 10%; /* #191919 */
-		--foreground: 0 0% 83%; /* #d4d4d4 */
-		--border: 0 0% 18%; /* #2f2f2f */
-		--ring: 200 75% 52%; /* #2eaadc */
+		--background: 30 5% 15%;
+		--border: 30 5% 25%;
+		--ring: 200 71% 46%;
+		--radius: 0.375rem;
 
 		/* Primary */
-		--primary: 0 0% 100%; /* #ffffff */
-		--primary-foreground: 0 0% 10%; /* #191919 */
-		--primary-hover: 0 0% 88%; /* #e0e0e0 */
-		--primary-border: 0 0% 100%; /* #ffffff */
+		--primary: 0 0% 100%;
+		--primary-foreground: 30 5% 15%;
+		--primary-hover: 0 0% 92%;
+		--primary-border: 0 0% 100%;
 
 		/* Secondary */
-		--secondary: 0 0% 13%; /* #202020 */
-		--secondary-foreground: 0 0% 83%; /* #d4d4d4 */
-		--secondary-hover: 0 0% 17%; /* #2c2c2c */
-		--secondary-border: 0 0% 22%; /* #373737 */
+		--secondary: 30 5% 28%;
+		--secondary-foreground: 0 0% 92%;
+		--secondary-hover: 30 5% 32%;
+		--secondary-muted: 30 5% 30%;
+		--secondary-border: 30 5% 30%;
 
 		/* Accent */
-		--accent: 0 0% 17%; /* #2c2c2c */
-		--accent-foreground: 0 0% 83%; /* #d4d4d4 */
+		--accent: 30 5% 22%;
+		--accent-foreground: 0 0% 92%;
+		--accent-hover: 30 5% 25%;
+		--accent-muted: 30 5% 28%;
 
 		/* Hover */
-		--hover: 0 0% 22%; /* Subtle gray for hover */
-
-		/* Muted */
-		--muted: 0 0% 17%; /* #2c2c2c */
-		--muted-foreground: 0 0% 61%; /* #9b9b9b */
+		--hover: 30 5% 25%;
 
 		/* Popover */
-		--popover: 0 0% 15%; /* #262626 */
-		--popover-foreground: 0 0% 83%; /* #d4d4d4 */
+		--popover: 30 5% 18%;
+		--popover-foreground: 0 0% 92%;
+		--popover-muted: 30 5% 25%;
 
 		/* Card */
-		--card: 0 0% 13%; /* #202020 */
-		--card-foreground: 0 0% 83%; /* #d4d4d4 */
+		--card: 30 5% 18%;
+		--card-foreground: 0 0% 92%;
+		--card-muted: 30 5% 25%;
 
 		/* Status */
-		--success: 153 38% 49%; /* #4dab73 */
-		--success-foreground: 0 0% 10%; /* #191919 */
-		--success-muted: 153 30% 15%; /* Darker green for background */
-		/* Note: For dark mode muted backgrounds with opacity, we use the base color + opacity utility */
+		--success: 153 38% 49%;
+		--success-foreground: 30 5% 15%;
+		--success-muted: 153 30% 15%;
 
-		--warning: 48 100% 64%; /* #ffdc49 */
-		--warning-foreground: 0 0% 10%; /* #191919 */
-		--warning-muted: 48 30% 15%; /* Darker yellow/brown for background */
+		--warning: 48 100% 64%;
+		--warning-foreground: 30 5% 15%;
+		--warning-muted: 48 30% 15%;
 
-		--error: 4 100% 71%; /* #ff7369 */
-		--error-foreground: 0 0% 10%; /* #191919 */
-		--error-muted: 4 30% 18%; /* Darker red for background */
+		--error: 4 100% 71%;
+		--error-foreground: 30 5% 15%;
+		--error-muted: 4 30% 18%;
 
-		--info: 203 52% 56%; /* #529cca */
-		--info-foreground: 0 0% 10%; /* #191919 */
-		--info-muted: 203 30% 18%; /* Darker blue for background */
-
-		/* Text */
-		--text-primary: 0 0% 83%; /* #d4d4d4 */
-		--text-secondary: 0 0% 61%; /* #9b9b9b */
-		--text-secondary-highlight: 0 0% 83%; /* #d4d4d4 */
+		--info: 210 80% 55%;
+		--info-foreground: 30 5% 15%;
+		--info-muted: 210 30% 18%;
 	}
 }
 
@@ -149,11 +139,11 @@
 		@apply text-inherit no-underline;
 	}
 	ul,
-	ol {
+	ol,
+	li {
 		@apply list-none m-0 p-0;
 	}
 
-	/* Hide number input spinners */
 	input[type="number"]::-webkit-inner-spin-button,
 	input[type="number"]::-webkit-outer-spin-button {
 		-webkit-appearance: none;
@@ -165,16 +155,23 @@
 }
 
 @layer utilities {
-	/* Hide scrollbar but keep functionality for horizontal nav on mobile */
 	.scrollbar-hide {
-		-ms-overflow-style: none; /* IE and Edge */
-		scrollbar-width: none; /* Firefox */
+		-ms-overflow-style: none;
+		scrollbar-width: none;
 	}
 	.scrollbar-hide::-webkit-scrollbar {
-		display: none; /* Chrome, Safari and Opera */
+		display: none;
 	}
 
 	.underline-animation {
 		@apply relative after:absolute after:bottom-0 after:left-0 after:h-[1px] after:w-full after:origin-bottom-left after:scale-x-0 after:bg-primary after:transition-transform after:duration-300 hover:after:scale-x-100;
 	}
+
+	.icon-bounce-hover {
+		transition: transform 0.3s cubic-bezier(0.34, 1.56, 0.64, 1);
+	}
+	.icon-bounce-hover:hover {
+		transform: scale(1.1) rotate(3deg);
+	}
 }
+

@@ -105,21 +105,17 @@ export function AccountDetailClient({
 					</Link>
 					<div>
 						<h1 className="text-2xl font-bold tracking-tight">{account.name}</h1>
-						<p className="text-sm text-muted-foreground">
+						<p className="text-sm text-primary">
 							{account.institution} • {account.account_type?.name}
 						</p>
 					</div>
 				</div>
 				<div className="flex items-center gap-2">
-					<Button variant="outline" size="sm" onClick={() => setEditDialogOpen(true)}>
-						<Edit className="h-4 w-4 mr-2" />
-						Edit
-					</Button>
 					<Button
 						variant="ghost"
 						size="icon"
 						onClick={() => setDeleteDialogOpen(true)}
-						className="text-destructive hover:text-destructive"
+						className="text-error hover:text-error"
 					>
 						<Trash2 className="h-4 w-4" />
 					</Button>
@@ -146,9 +142,7 @@ export function AccountDetailClient({
 						<ActivityCard
 							transactions={transactions}
 							isLoading={isLoadingTransactions}
-							accountClass={accountClass}
 							formatCurrency={formatCurrency}
-							onRecordTransaction={handleRecordDeposit}
 						/>
 					</div>
 
@@ -195,6 +189,7 @@ export function AccountDetailClient({
 				categories={[]}
 				accounts={[account]}
 				defaultAccountId={account.id}
+				defaultType={transactionType === "deposit" ? "income" : "expense"}
 				onSuccess={handleTransactionSuccess}
 				context="balancesheet"
 			/>

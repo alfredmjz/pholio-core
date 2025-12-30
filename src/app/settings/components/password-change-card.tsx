@@ -14,7 +14,9 @@ import {
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
 import { toast } from "sonner";
+import { Lock, KeyRound } from "lucide-react";
 import { changePassword } from "../actions";
+import { FormSection } from "@/components/FormSection";
 
 export default function PasswordChangeCard() {
 	const [isOpen, setIsOpen] = useState(false);
@@ -63,7 +65,7 @@ export default function PasswordChangeCard() {
 		<div className="flex flex-col gap-3">
 			<div>
 				<h3 className="text-sm font-medium">Password</h3>
-				<p className="text-xs text-muted-foreground">Change your password to keep your account secure</p>
+				<p className="text-xs text-primary">Change your password to keep your account secure</p>
 			</div>
 			<Dialog open={isOpen} onOpenChange={setIsOpen}>
 				<DialogTrigger asChild>
@@ -71,14 +73,15 @@ export default function PasswordChangeCard() {
 						Change Password
 					</Button>
 				</DialogTrigger>
-				<DialogContent>
-					<form onSubmit={handleSubmit}>
-						<DialogHeader>
-							<DialogTitle>Change Password</DialogTitle>
-							<DialogDescription>Enter your current password and choose a new one</DialogDescription>
-						</DialogHeader>
-
-						<div className="space-y-4 py-4">
+				<DialogContent showCloseButton={false}>
+					<form onSubmit={handleSubmit} className="flex flex-col gap-5">
+						{/* Current Password - Section */}
+						<FormSection
+							icon={<Lock />}
+							title="Security"
+							description="We need to verify your identity"
+							variant="subtle"
+						>
 							<div className="space-y-2">
 								<Label htmlFor="currentPassword">Current Password</Label>
 								<Input
@@ -88,37 +91,45 @@ export default function PasswordChangeCard() {
 									value={formData.currentPassword}
 									onChange={(e) => setFormData({ ...formData, currentPassword: e.target.value })}
 									disabled={isPending}
+									className="h-11"
 								/>
 							</div>
+						</FormSection>
 
-							<div className="space-y-2">
-								<Label htmlFor="newPassword">New Password</Label>
-								<Input
-									id="newPassword"
-									type="password"
-									required
-									minLength={8}
-									value={formData.newPassword}
-									onChange={(e) => setFormData({ ...formData, newPassword: e.target.value })}
-									disabled={isPending}
-								/>
-								<p className="text-xs text-muted-foreground">Minimum 8 characters</p>
+						{/* New Password - Section */}
+						<FormSection icon={<KeyRound />} title="New Password" variant="default">
+							<div className="space-y-4">
+								<div className="space-y-2">
+									<Label htmlFor="newPassword">New Password</Label>
+									<Input
+										id="newPassword"
+										type="password"
+										required
+										minLength={8}
+										value={formData.newPassword}
+										onChange={(e) => setFormData({ ...formData, newPassword: e.target.value })}
+										disabled={isPending}
+										className="h-11"
+									/>
+									<p className="text-xs text-primary-muted">Minimum 8 characters</p>
+								</div>
+
+								<div className="space-y-2">
+									<Label htmlFor="confirmPassword">Confirm New Password</Label>
+									<Input
+										id="confirmPassword"
+										type="password"
+										required
+										value={formData.confirmPassword}
+										onChange={(e) => setFormData({ ...formData, confirmPassword: e.target.value })}
+										disabled={isPending}
+										className="h-11"
+									/>
+								</div>
 							</div>
+						</FormSection>
 
-							<div className="space-y-2">
-								<Label htmlFor="confirmPassword">Confirm New Password</Label>
-								<Input
-									id="confirmPassword"
-									type="password"
-									required
-									value={formData.confirmPassword}
-									onChange={(e) => setFormData({ ...formData, confirmPassword: e.target.value })}
-									disabled={isPending}
-								/>
-							</div>
-						</div>
-
-						<DialogFooter>
+						<DialogFooter className="pt-6">
 							<Button type="button" variant="outline" onClick={handleCancel} disabled={isPending}>
 								Cancel
 							</Button>

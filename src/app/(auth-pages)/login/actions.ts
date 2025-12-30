@@ -16,7 +16,6 @@ export async function login(formData: FormData) {
 	const email = formData.get("email") as string;
 	const password = formData.get("password") as string;
 
-	console.log("[Login Action] Attempting sign in...");
 	const { data, error } = await supabase.auth.signInWithPassword({
 		email,
 		password,
@@ -27,17 +26,29 @@ export async function login(formData: FormData) {
 		return { error: error.message };
 	}
 
-	console.log("[Login Action] Sign in successful. Checking email confirmation...");
-
 	if (data.user && !data.user.email_confirmed_at) {
-		console.warn("[Login Action] Email not confirmed.");
 		await supabase.auth.signOut();
 		return { error: "Please verify your email address before logging in." };
 	}
 
-	console.log("[Login Action] Login successful");
+	// Check if this is the user's first login (hasn't seen welcome)
+	// Only show welcome for registered users, not guests
+	let showWelcome = false;
+	const { data: profile } = await supabase
+		.from("users")
+		.select("has_seen_welcome, is_guest")
+		.eq("id", data.user.id)
+		.single();
+
+	// has_seen_welcome could be null (for existing users before migration) - treat as false
+	if (profile && profile.has_seen_welcome !== true && !profile.is_guest) {
+		showWelcome = true;
+		// Mark as seen
+		await supabase.from("users").update({ has_seen_welcome: true }).eq("id", data.user.id);
+	}
+
 	revalidatePath("/", "layout");
-	return {};
+	return { showWelcome };
 }
 
 /**
@@ -77,7 +88,6 @@ export async function signup(formData: FormData) {
 		return { error: "Failed to create user account" };
 	}
 
-	console.log("[Signup Action] Account created. Returning redirect URL.");
 	revalidatePath("/", "layout");
 	return { success: "Account created", redirectUrl: `/signup/success?email=${encodeURIComponent(email)}` };
 }
@@ -117,7 +127,6 @@ export async function resendConfirmationEmail(email: string) {
  * @returns Error object if guest creation fails, success message on completion
  */
 export async function loginAsGuest() {
-	console.log("[Guest Login] Starting guest session creation...");
 	const supabase = await createClient();
 
 	const { data, error } = await supabase.auth.signInAnonymously();
@@ -131,8 +140,6 @@ export async function loginAsGuest() {
 		console.error("[Guest Login] No user returned from signInAnonymously");
 		return { error: "Failed to create guest session" };
 	}
-
-	console.log("[Guest Login] Session created for user:", data.user.id);
 
 	// Wait for database trigger to create profile
 	await new Promise((resolve) => setTimeout(resolve, 200));
@@ -169,7 +176,6 @@ export async function loginAsGuest() {
 		}
 	}
 
-	console.log("[Guest Login] Session created successfully");
 	revalidatePath("/", "layout");
 	return { success: "Guest session created" };
 }

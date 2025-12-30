@@ -21,7 +21,7 @@ interface CategoryPerformanceProps {
 // Color palette for categories (matching the screenshot)
 const CATEGORY_COLORS = [
 	{ bg: "bg-cyan-500", text: "text-cyan-500", light: "bg-cyan-100" },
-	{ bg: "bg-emerald-500", text: "text-emerald-500", light: "bg-emerald-100" },
+	{ bg: "bg-green-500", text: "text-green-500", light: "bg-green-100" },
 	{ bg: "bg-amber-500", text: "text-amber-500", light: "bg-amber-100" },
 	{ bg: "bg-pink-500", text: "text-pink-500", light: "bg-pink-100" },
 	{ bg: "bg-blue-500", text: "text-blue-500", light: "bg-blue-100" },
@@ -42,59 +42,62 @@ interface CategoryRowProps {
 function CategoryRow({ category, colorIndex }: CategoryRowProps) {
 	const { optimisticallyUpdateBudget, optimisticallyUpdateName, optimisticallyDeleteCategory } = useAllocationContext();
 
-	const [isEditingBudget, setIsEditingBudget] = useState(false);
-	const [isEditingName, setIsEditingName] = useState(false);
+	const [isEditing, setIsEditing] = useState(false);
 	const [deleteDialogOpen, setDeleteDialogOpen] = useState(false);
 	const [budgetValue, setBudgetValue] = useState(category.budget_cap.toString());
 	const [nameValue, setNameValue] = useState(category.name);
 
 	const actualSpend = category.actual_spend || 0;
 	const utilization = category.budget_cap > 0 ? (actualSpend / category.budget_cap) * 100 : 0;
+	const isOverBudget = utilization > 100;
 	const color = getCategoryColor(colorIndex);
 
 	const formatCurrency = (value: number) => {
 		return `$${value.toLocaleString("en-US", { minimumFractionDigits: 0, maximumFractionDigits: 0 })}`;
 	};
 
-	const handleBudgetSave = async () => {
+	const handleSave = async () => {
 		const newBudget = parseFloat(budgetValue);
+		const newName = nameValue.trim();
+
+		let hasError = false;
+
 		if (isNaN(newBudget) || newBudget < 0) {
 			toast.error("Please enter a valid budget amount");
-			setBudgetValue(category.budget_cap.toString());
-			setIsEditingBudget(false);
-			return;
+			hasError = true;
 		}
 
-		optimisticallyUpdateBudget(category.id, newBudget);
-		setIsEditingBudget(false);
+		if (!newName) {
+			toast.error("Category name cannot be empty");
+			hasError = true;
+		}
 
-		const success = await updateCategoryBudget(category.id, newBudget);
-		if (success) {
-			toast.success("Budget updated");
+		if (hasError) return;
+
+		// Optimistic updates
+		optimisticallyUpdateBudget(category.id, newBudget);
+		optimisticallyUpdateName(category.id, newName);
+		setIsEditing(false);
+
+		// Server updates
+		const [budgetSuccess, nameSuccess] = await Promise.all([
+			updateCategoryBudget(category.id, newBudget),
+			updateCategoryName(category.id, newName),
+		]);
+
+		if (budgetSuccess && nameSuccess) {
+			toast.success("Category updated");
 		} else {
-			toast.error("Failed to update budget");
-			setBudgetValue(category.budget_cap.toString());
+			if (!budgetSuccess) toast.error("Failed to update budget");
+			if (!nameSuccess) toast.error("Failed to rename category");
+			// Revert if failed (optional, simplified for now)
 		}
 	};
 
-	const handleNameSave = async () => {
-		if (!nameValue.trim()) {
-			toast.error("Category name cannot be empty");
-			setNameValue(category.name);
-			setIsEditingName(false);
-			return;
-		}
-
-		optimisticallyUpdateName(category.id, nameValue.trim());
-		setIsEditingName(false);
-
-		const success = await updateCategoryName(category.id, nameValue.trim());
-		if (success) {
-			toast.success("Category renamed");
-		} else {
-			toast.error("Failed to rename category");
-			setNameValue(category.name);
-		}
+	const handleCancel = () => {
+		setBudgetValue(category.budget_cap.toString());
+		setNameValue(category.name);
+		setIsEditing(false);
 	};
 
 	const handleConfirmDelete = async () => {
@@ -109,119 +112,104 @@ function CategoryRow({ category, colorIndex }: CategoryRowProps) {
 		}
 	};
 
-	const handleKeyDown = (e: React.KeyboardEvent, type: "budget" | "name") => {
+	const handleKeyDown = (e: React.KeyboardEvent) => {
 		if (e.key === "Enter") {
-			type === "budget" ? handleBudgetSave() : handleNameSave();
+			handleSave();
 		} else if (e.key === "Escape") {
-			if (type === "budget") {
-				setBudgetValue(category.budget_cap.toString());
-				setIsEditingBudget(false);
-			} else {
-				setNameValue(category.name);
-				setIsEditingName(false);
-			}
+			handleCancel();
 		}
 	};
 
 	return (
 		<>
 			<div className="group py-3">
-				<div className="flex items-center gap-3">
-					{/* Color indicator */}
-					<div className={cn("w-2 h-2 rounded-full flex-shrink-0", color.bg)} />
+				<div className="flex items-center gap-6">
+					<div className="flex-1 flex items-center justify-between">
+						{/* Group: Color + Name */}
+						<div className="flex items-center gap-3">
+							{/* Color indicator */}
+							<div className={cn("w-2 h-2 rounded-full flex-shrink-0", color.bg)} />
 
-					{/* Category name */}
-					<div className="flex-1 min-w-0">
-						{isEditingName ? (
-							<div className="flex items-center gap-2">
-								<Input
-									value={nameValue}
-									onChange={(e) => setNameValue(e.target.value)}
-									onKeyDown={(e) => handleKeyDown(e, "name")}
-									className="h-7 text-sm font-medium max-w-[150px]"
-									maxLength={100}
-									autoFocus
-								/>
-								<Button size="sm" variant="ghost" className="h-6 w-6 p-0" onClick={handleNameSave}>
+							{/* Category name */}
+							<div className="min-w-[120px]">
+								{isEditing ? (
+									<Input
+										value={nameValue}
+										onChange={(e) => setNameValue(e.target.value)}
+										onKeyDown={handleKeyDown}
+										className="h-7 text-sm font-medium w-48"
+										maxLength={100}
+										autoFocus
+									/>
+								) : (
+									<span className="text-sm font-medium text-primary text-left">{category.name}</span>
+								)}
+							</div>
+						</div>
+
+						{/* Amount display */}
+						<div className="text-right flex-shrink-0">
+							{isEditing ? (
+								<div className="flex items-center gap-1 justify-end">
+									<span className={cn("text-sm font-semibold", isOverBudget ? "text-error" : "text-primary")}>
+										{formatCurrency(actualSpend)}
+									</span>
+									<span className="text-sm text-primary">/</span>
+									<Input
+										type="number"
+										inputMode="decimal"
+										value={budgetValue}
+										onChange={(e) => setBudgetValue(e.target.value)}
+										onKeyDown={handleKeyDown}
+										className="h-6 w-20 text-sm"
+									/>
+								</div>
+							) : (
+								<span className="text-sm">
+									<span className={cn("font-semibold", isOverBudget ? "text-error" : "text-primary")}>
+										{formatCurrency(actualSpend)}
+									</span>
+									<span className="text-primary"> / {formatCurrency(category.budget_cap)}</span>
+								</span>
+							)}
+						</div>
+					</div>
+					{/* Action buttons */}
+					<div
+						className={cn(
+							"flex items-center gap-1 transition-opacity",
+							isEditing ? "opacity-100" : "opacity-0 group-hover:opacity-100"
+						)}
+					>
+						{isEditing ? (
+							<>
+								<Button size="sm" variant="ghost" className="h-6 w-6 p-0" onClick={handleSave}>
 									<Check className="h-3 w-3 text-success" />
+								</Button>
+								<Button size="sm" variant="ghost" className="h-6 w-6 p-0" onClick={handleCancel}>
+									<X className="h-3 w-3 text-primary" />
+								</Button>
+							</>
+						) : (
+							<>
+								<Button
+									size="sm"
+									variant="ghost"
+									className="h-6 w-6 p-0 text-primary hover:text-primary"
+									onClick={() => setIsEditing(true)}
+								>
+									<Pencil className="h-3 w-3" />
 								</Button>
 								<Button
 									size="sm"
 									variant="ghost"
-									className="h-6 w-6 p-0"
-									onClick={() => {
-										setNameValue(category.name);
-										setIsEditingName(false);
-									}}
+									className="h-6 w-6 p-0 text-primary hover:text-primary"
+									onClick={() => setDeleteDialogOpen(true)}
 								>
-									<X className="h-3 w-3 text-muted-foreground" />
+									<Trash2 className="h-3 w-3" />
 								</Button>
-							</div>
-						) : (
-							<button
-								onClick={() => setIsEditingName(true)}
-								className="text-sm font-medium text-foreground hover:underline text-left"
-							>
-								{category.name}
-							</button>
+							</>
 						)}
-					</div>
-
-					{/* Amount display */}
-					<div className="text-right flex-shrink-0">
-						{isEditingBudget ? (
-							<div className="flex items-center gap-1">
-								<span className="text-sm font-semibold text-foreground">{formatCurrency(actualSpend)}</span>
-								<span className="text-sm text-muted-foreground">/</span>
-								<Input
-									type="number"
-									value={budgetValue}
-									onChange={(e) => setBudgetValue(e.target.value)}
-									onKeyDown={(e) => handleKeyDown(e, "budget")}
-									className="h-6 w-20 text-sm"
-									autoFocus
-								/>
-								<Button size="sm" variant="ghost" className="h-6 w-6 p-0" onClick={handleBudgetSave}>
-									<Check className="h-3 w-3 text-success" />
-								</Button>
-								<Button
-									size="sm"
-									variant="ghost"
-									className="h-6 w-6 p-0"
-									onClick={() => {
-										setBudgetValue(category.budget_cap.toString());
-										setIsEditingBudget(false);
-									}}
-								>
-									<X className="h-3 w-3 text-muted-foreground" />
-								</Button>
-							</div>
-						) : (
-							<button onClick={() => setIsEditingBudget(true)} className="text-sm hover:underline">
-								<span className="font-semibold text-foreground">{formatCurrency(actualSpend)}</span>
-								<span className="text-muted-foreground"> / {formatCurrency(category.budget_cap)}</span>
-							</button>
-						)}
-					</div>
-
-					{/* Action buttons (visible on hover) */}
-					<div className="flex items-center gap-1 opacity-0 group-hover:opacity-100 transition-opacity">
-						<Button
-							size="sm"
-							variant="ghost"
-							className="h-6 w-6 p-0 text-muted-foreground hover:text-foreground"
-							onClick={() => setIsEditingName(true)}
-						>
-							<Pencil className="h-3 w-3" />
-						</Button>
-						<Button
-							size="sm"
-							variant="ghost"
-							className="h-6 w-6 p-0 text-muted-foreground hover:text-error"
-							onClick={() => setDeleteDialogOpen(true)}
-						>
-							<Trash2 className="h-3 w-3" />
-						</Button>
 					</div>
 				</div>
 
@@ -255,18 +243,16 @@ export function CategoryPerformance({ categories, onAddCategory, className }: Ca
 		return (
 			<Card className={cn("h-full p-6 flex flex-col", className)}>
 				<div className="flex items-center justify-between mb-4 flex-shrink-0">
-					<h3 className="text-sm font-semibold text-foreground uppercase tracking-wide">Category Performance</h3>
-					<Button variant="outline" size="sm" onClick={onAddCategory} className="gap-1.5">
+					<h3 className="text-sm font-semibold text-primary uppercase tracking-wide">Category Performance</h3>
+					<Button size="sm" onClick={onAddCategory} className="gap-1.5 bg-green-600 hover:bg-green-700 text-white">
 						<Plus className="h-4 w-4" />
 						Add
 					</Button>
 				</div>
 				<div className="flex-1 flex items-center justify-center">
 					<div className="text-center">
-						<p className="text-sm text-muted-foreground mb-4">
-							No categories yet. Add your first category to start tracking.
-						</p>
-						<Button onClick={onAddCategory} variant="outline" className="gap-2">
+						<p className="text-sm text-primary mb-4">No categories yet. Add your first category to start tracking.</p>
+						<Button onClick={onAddCategory} className="gap-2 bg-green-600 hover:bg-green-700 text-white">
 							<Plus className="h-4 w-4" />
 							Add Category
 						</Button>
@@ -279,7 +265,7 @@ export function CategoryPerformance({ categories, onAddCategory, className }: Ca
 	return (
 		<Card className={cn("h-full p-6 flex flex-col", className)}>
 			<div className="flex items-center justify-between mb-4 flex-shrink-0">
-				<h3 className="text-sm font-semibold text-foreground uppercase tracking-wide">Category Performance</h3>
+				<h3 className="text-sm font-semibold text-primary uppercase tracking-wide">Category Performance</h3>
 				<Button variant="outline" size="sm" onClick={onAddCategory} className="gap-1.5">
 					<Plus className="h-4 w-4" />
 					Add

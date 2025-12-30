@@ -29,6 +29,7 @@ interface MinimalTiptapProps {
 	placeholder?: string;
 	editable?: boolean;
 	className?: string;
+	editorContentClassName?: string;
 }
 
 function MinimalTiptap({
@@ -37,6 +38,7 @@ function MinimalTiptap({
 	placeholder = "Start typing...",
 	editable = true,
 	className,
+	editorContentClassName,
 }: MinimalTiptapProps) {
 	const editor = useEditor({
 		extensions: [
@@ -61,7 +63,8 @@ function MinimalTiptap({
 			attributes: {
 				class: cn(
 					"prose-base dark:prose-invert max-w-none focus:outline-none",
-					"min-h-[12rem] p-4 border-0 text-foreground"
+					"min-h-[12rem] p-4 border-0 text-primary",
+					editorContentClassName
 				),
 			},
 		},
@@ -72,8 +75,8 @@ function MinimalTiptap({
 	}
 
 	return (
-		<div className={cn("border rounded-lg overflow-hidden", className)}>
-			<div className="border-b p-2 flex flex-wrap items-center gap-1">
+		<div className={cn("border border-border rounded-lg overflow-hidden", className)}>
+			<div className="border-b border-border p-2 flex flex-wrap items-center gap-1">
 				<Toggle
 					size="sm"
 					pressed={editor.isActive("bold")}
@@ -195,4 +198,3 @@ function MinimalTiptap({
 }
 
 export { MinimalTiptap, type MinimalTiptapProps };
-

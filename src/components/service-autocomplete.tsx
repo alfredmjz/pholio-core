@@ -100,15 +100,11 @@ export function ServiceAutocomplete({
 		switch (e.key) {
 			case "ArrowDown":
 				e.preventDefault();
-				setHighlightedIndex((prev) =>
-					prev < suggestions.length - 1 ? prev + 1 : 0
-				);
+				setHighlightedIndex((prev) => (prev < suggestions.length - 1 ? prev + 1 : 0));
 				break;
 			case "ArrowUp":
 				e.preventDefault();
-				setHighlightedIndex((prev) =>
-					prev > 0 ? prev - 1 : suggestions.length - 1
-				);
+				setHighlightedIndex((prev) => (prev > 0 ? prev - 1 : suggestions.length - 1));
 				break;
 			case "Enter":
 				e.preventDefault();
@@ -145,7 +141,7 @@ export function ServiceAutocomplete({
 				/>
 				{isLoading && (
 					<div className="absolute right-3 top-1/2 -translate-y-1/2">
-						<Loader2 className="h-4 w-4 animate-spin text-muted-foreground" />
+						<Loader2 className="h-4 w-4 animate-spin text-primary" />
 					</div>
 				)}
 			</div>
@@ -158,9 +154,7 @@ export function ServiceAutocomplete({
 							key={suggestion.domain}
 							className={cn(
 								"flex items-center gap-3 px-3 py-2 cursor-pointer transition-colors",
-								index === highlightedIndex
-									? "bg-accent text-accent-foreground"
-									: "hover:bg-muted"
+								index === highlightedIndex ? "bg-accent text-accent" : "hover:bg-muted"
 							)}
 							onClick={() => selectSuggestion(suggestion)}
 							onMouseEnter={() => setHighlightedIndex(index)}
@@ -173,12 +167,8 @@ export function ServiceAutocomplete({
 								className="flex-shrink-0"
 							/>
 							<div className="flex flex-col min-w-0">
-								<span className="font-medium text-sm truncate">
-									{suggestion.name}
-								</span>
-								<span className="text-xs text-muted-foreground truncate">
-									{suggestion.domain}
-								</span>
+								<span className="font-medium text-sm truncate">{suggestion.name}</span>
+								<span className="text-xs text-primary truncate">{suggestion.domain}</span>
 							</div>
 						</div>
 					))}

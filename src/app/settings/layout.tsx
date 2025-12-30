@@ -1,3 +1,4 @@
+import { type ReactNode } from "react";
 import { SettingsNav, SettingsNavMobile } from "./components/settings-nav";
 import { PlaceholderBanner } from "./components/placeholder-banner";
 
@@ -19,23 +20,25 @@ import { PlaceholderBanner } from "./components/placeholder-banner";
  *
  * @param props - React children (nested pages like /profile, /profile/security)
  */
-export default function ProfileLayout({ children }: { children: React.ReactNode }) {
+export default function ProfileLayout({ children }: { children: ReactNode }) {
 	return (
 		<div className="flex flex-col items-center w-full min-h-screen">
-			<PlaceholderBanner />
-
 			{/* Mobile/Tablet Navigation - Horizontal tabs */}
 			<div className="w-full">
 				<SettingsNavMobile />
 			</div>
 
 			{/* Desktop Layout - Two-column */}
-			<div className="flex-1 w-full max-w-6xl lg:flex lg:gap-8 md:px-6 lg:px-8 pt-20 pb-12">
+			<div className="flex-1 w-full max-w-6xl lg:flex lg:gap-8 md:px-6 lg:px-8 pt-6 pb-12">
 				{/* Settings Navigation - Vertical sidebar on desktop */}
 				<SettingsNav />
 
 				{/* Main Content Area */}
-				<main className="flex-1 min-w-0">{children}</main>
+				<main className="flex-1 min-w-0">
+					{/* Banner is now inside content area so it centers relative to content, not viewport */}
+					<PlaceholderBanner />
+					{children}
+				</main>
 			</div>
 		</div>
 	);

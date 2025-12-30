@@ -3,8 +3,10 @@ export const sampleProfile = {
 	full_name: "Demo User",
 	is_guest: false,
 	guest_name: null,
+	has_seen_welcome: true,
 	avatar_url: null,
 	email: "demo@example.com",
+	allocation_new_month_default: "dialog" as const,
 	created_at: new Date().toISOString(),
 	updated_at: new Date().toISOString(),
 };

@@ -7,6 +7,7 @@ import {
 	sampleAccountTypes,
 	sampleAccountTransactions,
 	sampleBalanceSheetSummary,
+	sampleAccountHistory,
 } from "@/mock-data/balancesheet";
 
 import type {
@@ -403,7 +404,7 @@ export async function getAccountTransactions(accountId: string, limit: number = 
  */
 export async function getAccountHistory(accountId: string, limit: number = 30): Promise<AccountHistory[]> {
 	if (process.env.NEXT_PUBLIC_USE_SAMPLE_DATA === "true") {
-		return []; // No sample history yet
+		return sampleAccountHistory[accountId] || [];
 	}
 	const supabase = await createClient();
 	const {

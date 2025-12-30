@@ -216,6 +216,7 @@ export function AddRecurringDialog({ open, onOpenChange }: AddRecurringDialogPro
 							<Label>Amount</Label>
 							<Input
 								type="number"
+								inputMode="decimal"
 								startAdornment="$"
 								value={formData.amount}
 								onChange={(e) => setFormData({ ...formData, amount: e.target.value })}
@@ -248,7 +249,7 @@ export function AddRecurringDialog({ open, onOpenChange }: AddRecurringDialogPro
 									variant={"outline"}
 									className={cn(
 										"w-full justify-start text-left font-normal",
-										!formData.next_due_date && "text-muted-foreground"
+										!formData.next_due_date && "text-primary"
 									)}
 								>
 									<CalendarIcon className="mr-2 h-4 w-4" />

@@ -71,7 +71,7 @@ export function NetWorthWidget({
 
 		const BRIGHT_COLORS = [
 			"#06b6d4", // cyan-500
-			"#10b981", // emerald-500
+			"#10b981", // green-500
 			"#f59e0b", // amber-500
 			"#ec4899", // pink-500
 			"#3b82f6", // blue-500
@@ -117,8 +117,8 @@ export function NetWorthWidget({
 
 	const CenterContent = (
 		<div className="flex flex-col items-center justify-center">
-			<span className="text-xs text-muted-foreground">Net Worth</span>
-			<span className="text-xl font-bold text-foreground">{formatCurrency(netWorth)}</span>
+			<span className="text-xs text-primary">Net Worth</span>
+			<span className="text-xl font-bold text-primary">{formatCurrency(netWorth)}</span>
 		</div>
 	);
 
@@ -135,7 +135,7 @@ export function NetWorthWidget({
 						)}
 					</div>
 					<div>
-						<h3 className="text-xl font-semibold text-foreground">Net Worth</h3>
+						<h3 className="text-xl font-semibold text-primary">Net Worth</h3>
 						{trend && (
 							<div className="flex items-center gap-1.5 mt-0.5">
 								{trend.direction === "up" && <ArrowUp className="h-3.5 w-3.5 text-success" />}
@@ -145,7 +145,7 @@ export function NetWorthWidget({
 										"text-xs font-medium",
 										trend.direction === "up" && "text-success",
 										trend.direction === "down" && "text-error",
-										trend.direction === "neutral" && "text-muted-foreground"
+										trend.direction === "neutral" && "text-primary"
 									)}
 								>
 									{trend.value > 0 ? "+" : ""}
@@ -189,8 +189,8 @@ export function NetWorthWidget({
 						: "bg-gradient-to-br from-error-muted to-warning-muted"
 				)}
 			>
-				<p className="text-sm text-muted-foreground mb-1">Total Net Worth</p>
-				<p className="text-4xl font-bold text-foreground tracking-tight">{formatCurrency(netWorth)}</p>
+				<p className="text-sm text-primary mb-1">Total Net Worth</p>
+				<p className="text-4xl font-bold text-primary tracking-tight">{formatCurrency(netWorth)}</p>
 			</div>
 
 			{hasData ? (
@@ -220,7 +220,7 @@ export function NetWorthWidget({
 						<div className="p-4 bg-info-muted rounded-lg border border-border">
 							<div className="flex items-center gap-2 mb-2">
 								<Wallet className="h-4 w-4 text-info" />
-								<span className="text-xs font-medium text-muted-foreground">Assets</span>
+								<span className="text-xs font-medium text-primary">Assets</span>
 							</div>
 							<p className="text-xl font-semibold text-info">{formatCurrency(totalAssets)}</p>
 						</div>
@@ -229,7 +229,7 @@ export function NetWorthWidget({
 						<div className="p-4 bg-error-muted rounded-lg border border-border">
 							<div className="flex items-center gap-2 mb-2">
 								<CreditCard className="h-4 w-4 text-error" />
-								<span className="text-xs font-medium text-muted-foreground">Liabilities</span>
+								<span className="text-xs font-medium text-primary">Liabilities</span>
 							</div>
 							<p className="text-xl font-semibold text-error">{formatCurrency(totalLiabilities)}</p>
 						</div>
@@ -241,12 +241,9 @@ export function NetWorthWidget({
 							onClick={() => setIsExpanded(!isExpanded)}
 							className="flex items-center justify-between w-full p-3 rounded-lg hover:bg-muted transition-colors duration-150 text-left"
 						>
-							<span className="text-sm font-medium text-foreground">View detailed breakdown</span>
+							<span className="text-sm font-medium text-primary">View detailed breakdown</span>
 							<ChevronDown
-								className={cn(
-									"h-4 w-4 text-muted-foreground transition-transform duration-200",
-									isExpanded && "rotate-180"
-								)}
+								className={cn("h-4 w-4 text-primary transition-transform duration-200", isExpanded && "rotate-180")}
 							/>
 						</button>
 
@@ -280,9 +277,9 @@ function TrendChart({ data, mounted }: { data: { date: string; value: number }[]
 	if (data.length === 0) {
 		return (
 			<div className="h-56 flex flex-col items-center justify-center text-center">
-				<LineChart className="h-8 w-8 text-muted-foreground mb-2" />
-				<p className="text-sm text-muted-foreground">Not enough data for trend view</p>
-				<p className="text-xs text-muted-foreground">Track your balances monthly to see trends</p>
+				<LineChart className="h-8 w-8 text-primary mb-2" />
+				<p className="text-sm text-primary">Not enough data for trend view</p>
+				<p className="text-xs text-primary">Track your balances monthly to see trends</p>
 			</div>
 		);
 	}
@@ -299,15 +296,9 @@ function TrendChart({ data, mounted }: { data: { date: string; value: number }[]
 							</linearGradient>
 						</defs>
 						<CartesianGrid strokeDasharray="3 3" stroke="hsl(var(--border))" vertical={false} />
-						<XAxis
-							dataKey="date"
-							stroke="hsl(var(--muted-foreground))"
-							fontSize={12}
-							tickLine={false}
-							axisLine={false}
-						/>
+						<XAxis dataKey="date" stroke="hsl(var(--text-primary))" fontSize={12} tickLine={false} axisLine={false} />
 						<YAxis
-							stroke="hsl(var(--muted-foreground))"
+							stroke="hsl(var(--text-primary))"
 							fontSize={12}
 							tickLine={false}
 							axisLine={false}
@@ -319,7 +310,7 @@ function TrendChart({ data, mounted }: { data: { date: string; value: number }[]
 								if (!active || !payload || payload.length === 0) return null;
 								return (
 									<div className="bg-card border border-border rounded-lg shadow-lg p-3">
-										<p className="text-xs text-muted-foreground">{label}</p>
+										<p className="text-xs text-primary">{label}</p>
 										<p className="text-sm font-semibold text-success">{formatCurrency(payload[0].value as number)}</p>
 									</div>
 								);
@@ -379,12 +370,12 @@ function DetailedBreakdown({
 								<div className="flex items-center justify-between mb-1">
 									<div className="flex items-center gap-2">
 										<span
-											className={cn(!assetColors[asset.category] && "text-muted-foreground")}
+											className={cn(!assetColors[asset.category] && "text-primary")}
 											style={{ color: assetColors[asset.category] }}
 										>
 											{getCategoryIcon(asset.category)}
 										</span>
-										<span className="text-sm font-medium text-foreground capitalize">{asset.category}</span>
+										<span className="text-sm font-medium text-primary capitalize">{asset.category}</span>
 									</div>
 									<span className="text-sm font-semibold text-info">{formatCurrency(asset.value)}</span>
 								</div>
@@ -392,8 +383,8 @@ function DetailedBreakdown({
 									<div className="ml-6 space-y-1">
 										{asset.accounts.map((account) => (
 											<div key={account.name} className="flex items-center justify-between text-xs">
-												<span className="text-muted-foreground">{account.name}</span>
-												<span className="text-foreground">{formatCurrency(account.value)}</span>
+												<span className="text-primary">{account.name}</span>
+												<span className="text-primary">{formatCurrency(account.value)}</span>
 											</div>
 										))}
 									</div>
@@ -414,12 +405,12 @@ function DetailedBreakdown({
 								<div className="flex items-center justify-between mb-1">
 									<div className="flex items-center gap-2">
 										<span
-											className={cn(!liabilityColors[liability.category] && "text-muted-foreground")}
+											className={cn(!liabilityColors[liability.category] && "text-primary")}
 											style={{ color: liabilityColors[liability.category] }}
 										>
 											{getCategoryIcon(liability.category)}
 										</span>
-										<span className="text-sm font-medium text-foreground capitalize">{liability.category}</span>
+										<span className="text-sm font-medium text-primary capitalize">{liability.category}</span>
 									</div>
 									<span className="text-sm font-semibold text-error">{formatCurrency(liability.value)}</span>
 								</div>
@@ -427,8 +418,8 @@ function DetailedBreakdown({
 									<div className="ml-6 space-y-1">
 										{liability.accounts.map((account) => (
 											<div key={account.name} className="flex items-center justify-between text-xs">
-												<span className="text-muted-foreground">{account.name}</span>
-												<span className="text-foreground">{formatCurrency(account.value)}</span>
+												<span className="text-primary">{account.name}</span>
+												<span className="text-primary">{formatCurrency(account.value)}</span>
 											</div>
 										))}
 									</div>
@@ -446,13 +437,13 @@ function EmptyState() {
 	return (
 		<div className="h-64 flex flex-col items-center justify-center text-center">
 			<div className="p-4 rounded-full bg-muted mb-4">
-				<PieChart className="h-8 w-8 text-muted-foreground" />
+				<PieChart className="h-8 w-8 text-primary" />
 			</div>
-			<h4 className="text-base font-semibold text-foreground mb-1">Build your net worth snapshot</h4>
-			<p className="text-sm text-muted-foreground mb-4 max-w-sm">
+			<h4 className="text-base font-semibold text-primary mb-1">Build your net worth snapshot</h4>
+			<p className="text-sm text-primary mb-4 max-w-sm">
 				Add your assets and liabilities to track your financial health
 			</p>
-			<Button size="sm" variant="outline" className="gap-2">
+			<Button size="sm" className="gap-2 bg-green-600 hover:bg-green-700 text-white">
 				<Plus className="h-4 w-4" />
 				Add Account
 			</Button>

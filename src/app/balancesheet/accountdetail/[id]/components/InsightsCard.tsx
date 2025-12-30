@@ -95,7 +95,7 @@ export function InsightsCard({ account, transactions, accountClass, formatCurren
 				{/* Transaction Count */}
 				<div className="flex flex-col gap-2">
 					<div className="text-3xl font-bold">{stats.totalTransactions}</div>
-					<div className="text-sm text-muted-foreground">Total transactions</div>
+					<div className="text-sm text-primary">Total transactions</div>
 
 					{/* Segmented Progress Bar */}
 					{stats.categories.length > 0 && (
@@ -132,20 +132,20 @@ export function InsightsCard({ account, transactions, accountClass, formatCurren
 							{stats.thisMonthChange >= 0 ? "+" : ""}
 							{formatCurrency(stats.thisMonthChange)}
 						</div>
-						<div className="text-sm text-muted-foreground">This month</div>
+						<div className="text-sm text-primary">This month</div>
 					</div>
 
 					{stats.monthsToGoal !== null && (
 						<div className="flex flex-col gap-1">
 							<div className="text-2xl font-bold">{stats.monthsToGoal} months</div>
-							<div className="text-sm text-muted-foreground">To goal</div>
+							<div className="text-sm text-primary">To goal</div>
 						</div>
 					)}
 
 					{account.interest_rate && (
 						<div className="flex flex-col gap-1">
 							<div className="text-2xl font-bold">{(account.interest_rate * 100).toFixed(1)}%</div>
-							<div className="text-sm text-muted-foreground">Current APY</div>
+							<div className="text-sm text-primary">Current APY</div>
 						</div>
 					)}
 				</div>

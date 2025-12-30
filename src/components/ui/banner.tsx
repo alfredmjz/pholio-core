@@ -48,13 +48,7 @@ const Banner = ({
 
 	return (
 		<BannerContext.Provider value={{ icon, open, onClose, onOpenChange: setOpen }}>
-			<div
-				className={cn(
-					"relative flex w-full items-center gap-3 rounded-lg border p-4",
-					className
-				)}
-				{...props}
-			/>
+			<div className={cn("relative flex w-full items-center gap-3 rounded-lg border p-4", className)} {...props} />
 		</BannerContext.Provider>
 	);
 };
@@ -81,12 +75,7 @@ const BannerTitle = ({ className, ...props }: HTMLAttributes<HTMLHeadingElement>
 );
 
 const BannerAction = ({ className, ...props }: ComponentProps<typeof Button>) => (
-	<Button
-		variant="ghost"
-		size="sm"
-		className={cn("h-auto p-0 text-sm underline", className)}
-		{...props}
-	/>
+	<Button variant="ghost" size="sm" className={cn("h-auto p-0 text-sm underline", className)} {...props} />
 );
 
 const BannerClose = ({ className, ...props }: ComponentProps<typeof Button>) => {
@@ -110,3 +99,4 @@ const BannerClose = ({ className, ...props }: ComponentProps<typeof Button>) => 
 };
 
 export { Banner, BannerAction, BannerClose, BannerIcon, BannerTitle };
+

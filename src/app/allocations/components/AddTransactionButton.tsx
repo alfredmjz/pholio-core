@@ -29,7 +29,12 @@ export function AddTransactionButton({
 
 	return (
 		<>
-			<Button onClick={() => setOpen(true)} className={cn("gap-2", className)} variant={variant} size={size}>
+			<Button
+				onClick={() => setOpen(true)}
+				className={cn("gap-2 bg-green-600 hover:bg-green-700 text-white", className)}
+				variant={variant}
+				size={size}
+			>
 				<Plus className="h-4 w-4" />
 				Add Transaction
 			</Button>

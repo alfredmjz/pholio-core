@@ -93,7 +93,7 @@ export function useAllocationSync(
 
 	// Subscribe to Realtime changes
 	useEffect(() => {
-		if (!allocationId) return;
+		if (!allocationId || process.env.NEXT_PUBLIC_USE_SAMPLE_DATA === "true") return;
 
 		// Subscribe to allocation_categories changes
 		const categoriesChannel = supabase
@@ -107,15 +107,10 @@ export function useAllocationSync(
 					filter: `allocation_id=eq.${allocationId}`,
 				},
 				(payload: any) => {
-					console.log("Category changed:", payload);
 					scheduleRefetch();
 				}
 			)
-			.subscribe((status: any) => {
-				if (status === "SUBSCRIBED") {
-					console.log("Subscribed to allocation_categories changes");
-				}
-			});
+			.subscribe();
 
 		// Subscribe to transactions changes (for future transaction feature)
 		// Note: You may need to add year/month columns to transactions table
@@ -132,15 +127,10 @@ export function useAllocationSync(
 					// filter: `year=eq.${year},month=eq.${month}`,
 				},
 				(payload: any) => {
-					console.log("Transaction changed:", payload);
 					scheduleRefetch();
 				}
 			)
-			.subscribe((status: any) => {
-				if (status === "SUBSCRIBED") {
-					console.log("Subscribed to transactions changes");
-				}
-			});
+			.subscribe();
 
 		// Monitor connection status
 		const connectionChannel = supabase.channel("connection-monitor");

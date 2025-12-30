@@ -1,65 +1,106 @@
-import { Suspense } from "react";
+import { SuspenseOnSearchParams } from "@/components/layout/suspense-on-search-params";
 import { requireAuth } from "@/lib/auth";
 import { AllocationClient } from "./client";
-import { getOrCreateAllocation, getAllocationSummary, getTransactionsForMonth } from "./actions";
+import { getAllocation, getAllocationSummary, getTransactionsForMonth, getPreviousMonthSummary } from "./actions";
 import { getAccountsForSelector } from "@/lib/actions/unified-transaction-actions";
+import { getAllocationSettings } from "@/app/settings/actions";
+import { AllocationsLoadingSkeleton } from "./components/allocations-loading-skeleton";
 
 import { sampleAllocationSummary, sampleTransactions } from "@/mock-data/allocations";
-import { AllocationsLoadingSkeleton } from "./components/allocations-loading-skeleton";
 
 export default async function AllocationsPage({
 	searchParams,
 }: {
 	searchParams: Promise<{ year?: string; month?: string }>;
 }) {
+	const params = await searchParams;
+	const now = new Date();
+	const year = params.year ? parseInt(params.year) : now.getFullYear();
+	const month = params.month ? parseInt(params.month) : now.getMonth() + 1;
+
+	return (
+		<SuspenseOnSearchParams
+			searchParams={searchParams}
+			fallback={<AllocationsLoadingSkeleton />}
+			filterParams={["year", "month"]}
+		>
+			<AllocationsLoader year={year} month={month} />
+		</SuspenseOnSearchParams>
+	);
+}
+
+async function AllocationsLoader({ year, month }: { year: number; month: number }) {
 	// Require authentication - automatically redirects to /login if not authenticated
 	// Skip auth check if using sample data to allow easy dev
 	if (process.env.NEXT_PUBLIC_USE_SAMPLE_DATA !== "true") {
 		await requireAuth();
 	}
 
-	// Await searchParams in Next.js 15
-	const params = await searchParams;
-
-	// Default to current month if not specified
 	const now = new Date();
-	const year = params.year ? parseInt(params.year) : now.getFullYear();
-	const month = params.month ? parseInt(params.month) : now.getMonth() + 1;
 
 	let summary = null;
 	let transactions: any[] = [];
 	let accounts: any[] = [];
+	let previousMonthData: { categoryCount: number; totalBudget: number; hasData: boolean } | null = null;
+
+	// Fetch user settings
+	const userSettings = await getAllocationSettings();
 
 	if (process.env.NEXT_PUBLIC_USE_SAMPLE_DATA === "true") {
-		summary = sampleAllocationSummary;
-		transactions = sampleTransactions;
+		// Simulate network delay to show loading skeleton
+		await new Promise((resolve) => setTimeout(resolve, 2000));
+
+		const mockData = require("@/mock-data/allocations").getSmartMockData(year, month);
+		summary = mockData.summary;
+		transactions = mockData.transactions;
+
 		// Initialize accounts with sample data if needed, or just let it fetch
 		accounts = await getAccountsForSelector();
 	} else {
-		// Fetch data on server side
-		const allocation = await getOrCreateAllocation(year, month, 9000);
+		// Check if allocation exists (don't create yet - let dialog handle it)
+		const existingAllocation = await getAllocation(year, month);
 
-		if (allocation) {
-			// Parallelize independent queries for better performance (50% faster)
+		if (existingAllocation) {
+			// Allocation exists - load its data
 			[summary, transactions, accounts] = await Promise.all([
-				getAllocationSummary(allocation.id),
+				getAllocationSummary(existingAllocation.id),
 				getTransactionsForMonth(year, month),
 				getAccountsForSelector(),
 			]);
+		} else {
+			// No allocation yet - fetch previous month data for dialog preview
+			const [prevMonthResult, accountsResult] = await Promise.all([
+				getPreviousMonthSummary(year, month),
+				getAccountsForSelector(),
+			]);
+
+			accounts = accountsResult;
+
+			if (prevMonthResult.summary) {
+				previousMonthData = {
+					categoryCount: prevMonthResult.summary.categories?.length || 0,
+					totalBudget: prevMonthResult.summary.summary?.total_budget_caps || 0,
+					hasData: true,
+				};
+			} else {
+				previousMonthData = {
+					categoryCount: 0,
+					totalBudget: 0,
+					hasData: false,
+				};
+			}
 		}
 	}
 
 	return (
-		<div className="flex-1 w-full flex flex-col gap-6 px-4 py-8">
-			<Suspense fallback={<AllocationsLoadingSkeleton />}>
-				<AllocationClient
-					initialYear={year}
-					initialMonth={month}
-					initialSummary={summary}
-					initialTransactions={transactions}
-					initialAccounts={accounts}
-				/>
-			</Suspense>
-		</div>
+		<AllocationClient
+			initialYear={year}
+			initialMonth={month}
+			initialSummary={summary}
+			initialTransactions={transactions}
+			initialAccounts={accounts}
+			previousMonthData={previousMonthData}
+			userSettings={userSettings}
+		/>
 	);
 }

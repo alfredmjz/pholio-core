@@ -70,8 +70,8 @@ export const TRANSACTION_TYPE_CONFIG: Record<TransactionType, TransactionTypeCon
 	},
 	income: {
 		icon: DollarSign,
-		bgColor: "bg-emerald-100 dark:bg-emerald-900/30",
-		textColor: "text-emerald-700 dark:text-emerald-400",
+		bgColor: "bg-green-100 dark:bg-green-900/30",
+		textColor: "text-green-700 dark:text-green-400",
 		label: "Income",
 	},
 	transfer: {

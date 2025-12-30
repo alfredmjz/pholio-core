@@ -170,7 +170,7 @@ export default function ProfileAvatarUpload({ currentAvatarUrl, currentInitials,
 					</div>
 				) : (
 					<div className="relative w-16 h-16 rounded-full overflow-hidden">
-						<div className="absolute inset-0 bg-foreground flex items-center justify-center text-background text-xl font-semibold transition-opacity group-hover:opacity-70">
+						<div className="absolute inset-0 bg-primary flex items-center justify-center text-background text-xl font-semibold transition-opacity group-hover:opacity-70">
 							{currentInitials}
 						</div>
 						{!isGuest && (
@@ -206,7 +206,7 @@ export default function ProfileAvatarUpload({ currentAvatarUrl, currentInitials,
 					</div>
 
 					<div className="flex items-center gap-4 py-4">
-						<ZoomOut className="w-4 h-4 text-muted-foreground" />
+						<ZoomOut className="w-4 h-4 text-primary" />
 						<Slider
 							value={[zoom]}
 							min={1}
@@ -215,7 +215,7 @@ export default function ProfileAvatarUpload({ currentAvatarUrl, currentInitials,
 							onValueChange={(value: number[]) => setZoom(value[0])}
 							className="flex-1"
 						/>
-						<ZoomIn className="w-4 h-4 text-muted-foreground" />
+						<ZoomIn className="w-4 h-4 text-primary" />
 					</div>
 
 					<DialogFooter>

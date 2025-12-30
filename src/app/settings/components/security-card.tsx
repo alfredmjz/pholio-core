@@ -12,7 +12,7 @@ export default function SecurityCard({ userEmail }: SecurityCardProps) {
 		<div className="flex flex-col gap-6">
 			<div>
 				<h3 className="text-lg font-medium">Credentials</h3>
-				<p className="text-sm text-muted-foreground">Change your password or email address</p>
+				<p className="text-sm text-primary">Change your password or email address</p>
 			</div>
 			{/* Password Change Section */}
 			<PasswordChangeCard />

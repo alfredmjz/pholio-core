@@ -3,6 +3,38 @@
 import { createClient } from "@/lib/supabase/server";
 import { revalidatePath } from "next/cache";
 import type { Allocation, AllocationCategory, AllocationSummary, AllocationTemplate, Transaction } from "./types";
+import { sampleAllocationSummary, sampleTransactions } from "@/mock-data/allocations";
+
+/**
+ * Check if allocation exists for a specific month (without creating)
+ */
+export async function getAllocation(year: number, month: number): Promise<Allocation | null> {
+	// Handle sample data mode
+	if (process.env.NEXT_PUBLIC_USE_SAMPLE_DATA === "true") {
+		const now = new Date();
+		if (year === now.getFullYear() && month === now.getMonth() + 1) {
+			return sampleAllocationSummary.allocation;
+		}
+		return null;
+	}
+
+	const supabase = await createClient();
+
+	const {
+		data: { user },
+	} = await supabase.auth.getUser();
+	if (!user) return null;
+
+	const { data: existing } = await supabase
+		.from("allocations")
+		.select("*")
+		.eq("user_id", user.id)
+		.eq("year", year)
+		.eq("month", month)
+		.single();
+
+	return existing as Allocation | null;
+}
 
 /**
  * Get or create allocation for a specific month
@@ -12,6 +44,11 @@ export async function getOrCreateAllocation(
 	month: number,
 	expectedIncome: number = 0
 ): Promise<Allocation | null> {
+	// Handle sample data mode
+	if (process.env.NEXT_PUBLIC_USE_SAMPLE_DATA === "true") {
+		return sampleAllocationSummary.allocation;
+	}
+
 	const supabase = await createClient();
 
 	const {
@@ -29,10 +66,10 @@ export async function getOrCreateAllocation(
 		.single();
 
 	if (existing) {
-        // [MODIFIED] Check/Update recurring expenses even if allocation exists
-        await syncRecurringExpenses(existing.id, user.id, month);
-        return existing as Allocation;
-    }
+		// [MODIFIED] Check/Update recurring expenses even if allocation exists
+		await syncRecurringExpenses(existing.id, user.id, month);
+		return existing as Allocation;
+	}
 
 	// Create new allocation if it doesn't exist
 	const { data: newAllocation, error: createError } = await supabase
@@ -51,8 +88,8 @@ export async function getOrCreateAllocation(
 		return null;
 	}
 
-    // [NEW] Sync recurring expenses for the new allocation
-    await syncRecurringExpenses(newAllocation.id, user.id, month);
+	// [NEW] Sync recurring expenses for the new allocation
+	await syncRecurringExpenses(newAllocation.id, user.id, month);
 
 	return newAllocation as Allocation;
 }
@@ -62,86 +99,81 @@ export async function getOrCreateAllocation(
  * This ensures that if the user adds a subscription mid-month, it's reflected.
  */
 async function syncRecurringExpenses(allocationId: string, userId: string, targetMonth: number) {
-    const supabase = await createClient();
+	const supabase = await createClient();
 
-    // 1. Fetch active recurring expenses
-    const { data: recurring } = await supabase
-        .from("recurring_expenses")
-        .select("*")
-        .eq("user_id", userId)
-        .eq("is_active", true);
+	// 1. Fetch active recurring expenses
+	const { data: recurring } = await supabase
+		.from("recurring_expenses")
+		.select("*")
+		.eq("user_id", userId)
+		.eq("is_active", true);
 
-    if (!recurring || recurring.length === 0) return;
+	if (!recurring || recurring.length === 0) return;
 
-    // 2. Calculate total
-    let totalRecurring = 0;
+	// 2. Calculate total
+	let totalRecurring = 0;
 
-    for (const expense of recurring) {
-        // Logic: active subscriptions hit the budget
-        // Check billing period vs target month?
-        // Spec: "Annual where we will track the one time expense for that month"
+	for (const expense of recurring) {
+		// Logic: active subscriptions hit the budget
+		// Check billing period vs target month?
+		// Spec: "Annual where we will track the one time expense for that month"
 
-        let applies = false;
-        if (expense.billing_period === 'monthly') {
-            applies = true;
-        } else if (expense.billing_period === 'yearly') {
-            // Check if next_due_date month matches targetMonth
-            // Note: date format is YYYY-MM-DD.
-             const dueDate = new Date(expense.next_due_date);
-             // JS Month is 0-indexed, targetMonth is 1-indexed (based on usage in page.tsx: now.getMonth() + 1)
-             if (dueDate.getMonth() + 1 === targetMonth) {
-                 applies = true;
-             }
-        } else {
-             // weekly/biweekly - simplified for MVP: assume 4 weeks / 2 biweeks or just standard monthly cost?
-             // Spec didn't specify weekly logic detail, but implied "automatically allocated for that month".
-             // Let's assume standard monthly occurrence (1x) for weekly/biweekly if simpler,
-             // OR better: calculate actual occurrences in that month.
-             // For MVP, allow them all (simplification).
-             applies = true;
-        }
+		let applies = false;
+		if (expense.billing_period === "monthly") {
+			applies = true;
+		} else if (expense.billing_period === "yearly") {
+			// Check if next_due_date month matches targetMonth
+			// Note: date format is YYYY-MM-DD.
+			const dueDate = new Date(expense.next_due_date);
+			// JS Month is 0-indexed, targetMonth is 1-indexed (based on usage in page.tsx: now.getMonth() + 1)
+			if (dueDate.getMonth() + 1 === targetMonth) {
+				applies = true;
+			}
+		} else {
+			// weekly/biweekly - simplified for MVP: assume 4 weeks / 2 biweeks or just standard monthly cost?
+			// Spec didn't specify weekly logic detail, but implied "automatically allocated for that month".
+			// Let's assume standard monthly occurrence (1x) for weekly/biweekly if simpler,
+			// OR better: calculate actual occurrences in that month.
+			// For MVP, allow them all (simplification).
+			applies = true;
+		}
 
-        if (applies) {
-             totalRecurring += Number(expense.amount);
-        }
-    }
+		if (applies) {
+			totalRecurring += Number(expense.amount);
+		}
+	}
 
-    if (totalRecurring === 0) return;
+	if (totalRecurring === 0) return;
 
-    // 3. Find or Create "Fixed Expenses" category
-    const { data: categories } = await supabase
-        .from("allocation_categories")
-        .select("*")
-        .eq("allocation_id", allocationId)
-        .eq("name", "Fixed Expenses")
-        .single();
+	// 3. Find or Create "Fixed Expenses" category
+	const { data: categories } = await supabase
+		.from("allocation_categories")
+		.select("*")
+		.eq("allocation_id", allocationId)
+		.eq("name", "Fixed Expenses")
+		.single();
 
-    if (categories) {
-        // Update existing
-        // We probably shouldn't OVERWRITE if the user manually changed it?
-        // Spec says: "automatically populate".
-        // Let's only update if the calculated amount is different, or maybe just leave it be if the user customized it?
-        // Safe bet: Update it, but maybe we should have a flag?
-        // For MVP: Update it. "Master Setting" implies this table drives the budget.
-        if (Number(categories.budget_cap) !== totalRecurring) {
-              await supabase
-                .from("allocation_categories")
-                .update({ budget_cap: totalRecurring })
-                .eq("id", categories.id);
-        }
-    } else {
-        // Create new
-         await supabase
-            .from("allocation_categories")
-            .insert({
-                allocation_id: allocationId,
-                user_id: userId,
-                name: "Fixed Expenses",
-                budget_cap: totalRecurring,
-                is_recurring: true,
-                display_order: 0 // Put at top
-            });
-    }
+	if (categories) {
+		// Update existing
+		// We probably shouldn't OVERWRITE if the user manually changed it?
+		// Spec says: "automatically populate".
+		// Let's only update if the calculated amount is different, or maybe just leave it be if the user customized it?
+		// Safe bet: Update it, but maybe we should have a flag?
+		// For MVP: Update it. "Master Setting" implies this table drives the budget.
+		if (Number(categories.budget_cap) !== totalRecurring) {
+			await supabase.from("allocation_categories").update({ budget_cap: totalRecurring }).eq("id", categories.id);
+		}
+	} else {
+		// Create new
+		await supabase.from("allocation_categories").insert({
+			allocation_id: allocationId,
+			user_id: userId,
+			name: "Fixed Expenses",
+			budget_cap: totalRecurring,
+			is_recurring: true,
+			display_order: 0, // Put at top
+		});
+	}
 }
 
 /**
@@ -149,6 +181,11 @@ async function syncRecurringExpenses(allocationId: string, userId: string, targe
  * Uses the database RPC function for proper JSON serialization
  */
 export async function getAllocationSummary(allocationId: string): Promise<AllocationSummary | null> {
+	// Handle sample data mode
+	if (process.env.NEXT_PUBLIC_USE_SAMPLE_DATA === "true") {
+		return sampleAllocationSummary;
+	}
+
 	const supabase = await createClient();
 
 	const { data, error } = await supabase.rpc("get_allocation_summary", {
@@ -161,6 +198,95 @@ export async function getAllocationSummary(allocationId: string): Promise<Alloca
 	}
 
 	return data as AllocationSummary;
+}
+
+/**
+ * Get previous month's allocation summary for import preview
+ */
+export async function getPreviousMonthSummary(
+	year: number,
+	month: number
+): Promise<{ summary: AllocationSummary | null; prevYear: number; prevMonth: number }> {
+	// Calculate previous month (handle year boundary)
+	const prevMonth = month === 1 ? 12 : month - 1;
+	const prevYear = month === 1 ? year - 1 : year;
+
+	// Get the previous month's allocation
+	const prevAllocation = await getAllocation(prevYear, prevMonth);
+
+	if (!prevAllocation) {
+		return { summary: null, prevYear, prevMonth };
+	}
+
+	const summary = await getAllocationSummary(prevAllocation.id);
+	return { summary, prevYear, prevMonth };
+}
+
+/**
+ * Import previous month's categories to new month
+ * Only copies categories and budget caps - NOT transactions
+ */
+export async function importPreviousMonthCategories(
+	targetYear: number,
+	targetMonth: number,
+	expectedIncome: number
+): Promise<Allocation | null> {
+	const supabase = await createClient();
+
+	const {
+		data: { user },
+	} = await supabase.auth.getUser();
+	if (!user) return null;
+
+	// Calculate previous month (handle year boundary)
+	const prevMonth = targetMonth === 1 ? 12 : targetMonth - 1;
+	const prevYear = targetMonth === 1 ? targetYear - 1 : targetYear;
+
+	// Get previous month's allocation
+	const prevAllocation = await getAllocation(prevYear, prevMonth);
+
+	// Create new allocation for target month
+	const newAllocation = await getOrCreateAllocation(targetYear, targetMonth, expectedIncome);
+	if (!newAllocation) return null;
+
+	// If no previous allocation, just return the empty new allocation
+	if (!prevAllocation) {
+		return newAllocation;
+	}
+
+	// Fetch categories from previous month
+	const { data: prevCategories, error: fetchError } = await supabase
+		.from("allocation_categories")
+		.select("*")
+		.eq("allocation_id", prevAllocation.id)
+		.order("display_order");
+
+	if (fetchError || !prevCategories || prevCategories.length === 0) {
+		return newAllocation;
+	}
+
+	// Copy categories to new allocation
+	const newCategories = prevCategories.map((cat) => ({
+		allocation_id: newAllocation.id,
+		user_id: user.id,
+		name: cat.name,
+		budget_cap: cat.budget_cap,
+		is_recurring: cat.is_recurring,
+		display_order: cat.display_order,
+		color: cat.color,
+		icon: cat.icon,
+		notes: cat.notes,
+	}));
+
+	const { error: insertError } = await supabase.from("allocation_categories").insert(newCategories);
+
+	if (insertError) {
+		console.error("Error copying categories:", insertError);
+		// Return the allocation anyway - categories just weren't copied
+	}
+
+	revalidatePath("/allocations");
+	return newAllocation;
 }
 
 /**
@@ -311,6 +437,11 @@ export async function reorderCategories(categoryOrders: { id: string; display_or
  * Get transactions for a specific month
  */
 export async function getTransactionsForMonth(year: number, month: number): Promise<Transaction[]> {
+	// Handle sample data mode
+	if (process.env.NEXT_PUBLIC_USE_SAMPLE_DATA === "true") {
+		return sampleTransactions;
+	}
+
 	const supabase = await createClient();
 
 	const {

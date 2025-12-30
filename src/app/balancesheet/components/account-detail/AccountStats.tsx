@@ -20,7 +20,7 @@ export function AccountStats({ account, accountClass, progress, formatCurrency }
 		<div className="flex items-start gap-8 flex-wrap">
 			{/* Current Balance */}
 			<div className="flex flex-col gap-1">
-				<span className="text-xs font-medium text-muted-foreground uppercase tracking-wider">Current Balance</span>
+				<span className="text-xs font-medium text-primary uppercase tracking-wider">Current Balance</span>
 				<div
 					className={cn(
 						"text-3xl font-bold tracking-tight",
@@ -30,7 +30,7 @@ export function AccountStats({ account, accountClass, progress, formatCurrency }
 					{formatCurrency(account.current_balance)}
 				</div>
 				{account.interest_rate && (
-					<div className="flex items-center gap-2 text-sm text-muted-foreground">
+					<div className="flex items-center gap-2 text-sm text-primary">
 						<Badge variant="secondary" className="text-xs">
 							APY
 						</Badge>
@@ -43,10 +43,10 @@ export function AccountStats({ account, accountClass, progress, formatCurrency }
 			{account.target_balance && (
 				<div className="flex flex-col gap-2 flex-1 min-w-[200px]">
 					<div className="flex items-center justify-between">
-						<span className="text-xs font-medium text-muted-foreground uppercase tracking-wider">
+						<span className="text-xs font-medium text-primary uppercase tracking-wider">
 							{accountClass === "asset" ? "Target Goal" : "Original Loan"}
 						</span>
-						<span className="text-sm font-medium text-muted-foreground">{formatCurrency(account.target_balance)}</span>
+						<span className="text-sm font-medium text-primary">{formatCurrency(account.target_balance)}</span>
 					</div>
 					{progress !== null && (
 						<div className="flex flex-col gap-2 relative mt-4">

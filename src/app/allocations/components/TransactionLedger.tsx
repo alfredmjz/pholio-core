@@ -1,23 +1,19 @@
 "use client";
 
 import { useState, useMemo } from "react";
+import { Search, Filter, X, ArrowUpDown, ChevronUp, ChevronDown } from "lucide-react";
 import { Card } from "@/components/ui/card";
 import { Input } from "@/components/ui/input";
 import { Button } from "@/components/ui/button";
 import { Badge } from "@/components/ui/badge";
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
-import { Search, ArrowUpDown, Plus, Filter, X, ChevronDown, ChevronUp } from "lucide-react";
 import { cn } from "@/lib/utils";
-import {
-	TransactionType,
-	TransactionTypeIcon,
-	TRANSACTION_TYPE_CONFIG,
-	inferTransactionType,
-} from "./TransactionTypeIcon";
-import type { Transaction, AllocationCategory } from "../types";
+import type { AllocationCategory, Transaction } from "../types";
+import type { TransactionType } from "./TransactionTypeIcon";
+import { inferTransactionType, TRANSACTION_TYPE_CONFIG, TransactionTypeIcon } from "./TransactionTypeIcon";
 import { getCategoryColor } from "./CategoryPerformance";
-import { TransactionDialog } from "./TransactionDialog";
 import { AddTransactionButton } from "./AddTransactionButton";
+import { TransactionDialog } from "./TransactionDialog";
 
 interface TransactionLedgerProps {
 	transactions: Transaction[];
@@ -149,10 +145,7 @@ export function TransactionLedger({
 		searchQuery || categoryFilter !== "all" || typeFilter !== "all" || externalTypeFilter || minAmount || maxAmount;
 
 	const SortButton = ({ field, children }: { field: SortField; children: React.ReactNode }) => (
-		<button
-			onClick={() => toggleSort(field)}
-			className="flex items-center gap-1 hover:text-foreground transition-colors"
-		>
+		<button onClick={() => toggleSort(field)} className="flex items-center gap-1 hover:text-primary transition-colors">
 			{children}
 			{sortField === field ? (
 				sortDirection === "asc" ? (
@@ -161,7 +154,7 @@ export function TransactionLedger({
 					<ChevronDown className="h-3.5 w-3.5 text-info" />
 				)
 			) : (
-				<ArrowUpDown className="h-3.5 w-3.5 text-muted-foreground" />
+				<ArrowUpDown className="h-3.5 w-3.5 text-primary" />
 			)}
 		</button>
 	);
@@ -171,17 +164,11 @@ export function TransactionLedger({
 			{/* Header */}
 			<div className="flex items-center justify-between mb-4">
 				<div>
-					<h3 className="text-sm font-semibold text-foreground uppercase tracking-wide">Transaction Ledger</h3>
-					<p className="text-xs text-muted-foreground mt-0.5">
+					<h3 className="text-sm font-semibold text-primary uppercase tracking-wide">Transaction Ledger</h3>
+					<p className="text-xs text-primary mt-0.5">
 						{transactions.length} {transactions.length === 1 ? "transaction" : "transactions"} this month
 					</p>
 				</div>
-				<AddTransactionButton
-					categories={categories}
-					accounts={accounts}
-					className="bg-foreground hover:bg-foreground/90 text-background"
-					onSuccess={onTransactionSuccess}
-				/>
 			</div>
 
 			{/* ... Filters ... */}
@@ -192,19 +179,19 @@ export function TransactionLedger({
 			<div className="flex items-center gap-3 mb-4">
 				{/* Search */}
 				<div className="relative flex-1 max-w-md">
-					<Search className="absolute left-3 top-1/2 -translate-y-1/2 h-4 w-4 text-muted-foreground" />
+					<Search className="absolute left-3 top-1/2 -translate-y-1/2 h-4 w-4 text-primary" />
 					<Input
 						type="text"
 						placeholder="Search transactions..."
 						value={searchQuery}
 						onChange={(e) => setSearchQuery(e.target.value)}
-						className="pl-9 bg-card border-border"
+						className="pl-9 bg-background border-border"
 					/>
 				</div>
 
 				{/* Category Filter */}
 				<Select value={categoryFilter} onValueChange={setCategoryFilter}>
-					<SelectTrigger className="w-48 bg-card border-border">
+					<SelectTrigger className="w-48 bg-background border-border">
 						<SelectValue placeholder="All Categories" />
 					</SelectTrigger>
 					<SelectContent>
@@ -227,7 +214,7 @@ export function TransactionLedger({
 						setTypeFilter(v as TransactionType | "all");
 					}}
 				>
-					<SelectTrigger className="w-44 bg-card border-border">
+					<SelectTrigger className="w-44 bg-background border-border">
 						<SelectValue placeholder="All Types" />
 					</SelectTrigger>
 					<SelectContent>
@@ -246,7 +233,7 @@ export function TransactionLedger({
 				{/* Advanced Filters Toggle */}
 				<Button
 					variant="outline"
-					size="sm"
+					size="default"
 					onClick={() => setShowFilters(!showFilters)}
 					className={cn(showFilters && "bg-muted")}
 				>
@@ -255,12 +242,7 @@ export function TransactionLedger({
 
 				{/* Clear Filters */}
 				{hasActiveFilters && (
-					<Button
-						variant="ghost"
-						size="sm"
-						onClick={clearAllFilters}
-						className="text-muted-foreground hover:text-foreground"
-					>
+					<Button variant="ghost" size="sm" onClick={clearAllFilters} className="text-primary hover:text-primary">
 						<X className="h-4 w-4 mr-1" />
 						Clear
 					</Button>
@@ -270,17 +252,19 @@ export function TransactionLedger({
 			{/* Advanced Filters (Amount Range) */}
 			{showFilters && (
 				<div className="flex items-center gap-3 mb-4 p-3 bg-muted/50 rounded-lg">
-					<span className="text-sm text-muted-foreground">Amount:</span>
+					<span className="text-sm text-primary">Amount:</span>
 					<Input
 						type="number"
+						inputMode="decimal"
 						placeholder="Min"
 						value={minAmount}
 						onChange={(e) => setMinAmount(e.target.value)}
 						className="w-24 h-8 text-sm"
 					/>
-					<span className="text-muted-foreground">to</span>
+					<span className="text-primary">to</span>
 					<Input
 						type="number"
+						inputMode="decimal"
 						placeholder="Max"
 						value={maxAmount}
 						onChange={(e) => setMaxAmount(e.target.value)}
@@ -292,7 +276,7 @@ export function TransactionLedger({
 			{/* External Filter Badge */}
 			{externalTypeFilter && (
 				<div className="flex items-center gap-2 mb-4">
-					<span className="text-sm text-muted-foreground">Filtered by:</span>
+					<span className="text-sm text-primary">Filtered by:</span>
 					<Badge
 						variant="secondary"
 						className={cn(
@@ -315,19 +299,19 @@ export function TransactionLedger({
 					<table className="w-full">
 						<thead className="bg-muted/50 border-b border-border">
 							<tr>
-								<th className="px-4 py-3 text-left text-xs font-semibold text-muted-foreground uppercase tracking-wider w-[100px]">
+								<th className="px-4 py-3 text-left text-xs font-semibold text-primary uppercase tracking-wider w-[100px]">
 									<SortButton field="date">Date</SortButton>
 								</th>
-								<th className="px-4 py-3 text-left text-xs font-semibold text-muted-foreground uppercase tracking-wider">
+								<th className="px-4 py-3 text-left text-xs font-semibold text-primary uppercase tracking-wider">
 									<SortButton field="name">Name</SortButton>
 								</th>
-								<th className="px-4 py-3 text-left text-xs font-semibold text-muted-foreground uppercase tracking-wider w-[140px]">
+								<th className="px-4 py-3 text-left text-xs font-semibold text-primary uppercase tracking-wider w-[140px]">
 									<SortButton field="category">Category</SortButton>
 								</th>
-								<th className="px-4 py-3 text-left text-xs font-semibold text-muted-foreground uppercase tracking-wider w-[120px]">
+								<th className="px-4 py-3 text-left text-xs font-semibold text-primary uppercase tracking-wider w-[120px]">
 									<SortButton field="type">Type</SortButton>
 								</th>
-								<th className="px-4 py-3 text-right text-xs font-semibold text-muted-foreground uppercase tracking-wider w-[100px]">
+								<th className="px-4 py-3 text-right text-xs font-semibold text-primary uppercase tracking-wider w-[100px]">
 									<SortButton field="amount">Amount</SortButton>
 								</th>
 							</tr>
@@ -335,7 +319,7 @@ export function TransactionLedger({
 						<tbody className="divide-y divide-border bg-card">
 							{filteredTransactions.length === 0 ? (
 								<tr>
-									<td colSpan={5} className="px-4 py-12 text-center text-muted-foreground">
+									<td colSpan={5} className="px-4 py-12 text-center text-primary">
 										{hasActiveFilters ? "No transactions match your filters" : "No transactions for this month"}
 									</td>
 								</tr>
@@ -348,7 +332,7 @@ export function TransactionLedger({
 									const categoryStyle =
 										categoryIndex !== -1
 											? getCategoryColor(categoryIndex)
-											: { bg: "bg-secondary", text: "text-secondary-foreground", light: "bg-secondary/50" };
+											: { bg: "bg-secondary", text: "text-primary", light: "bg-secondary/50" };
 
 									return (
 										<tr
@@ -357,7 +341,7 @@ export function TransactionLedger({
 											onClick={() => handleEditTransaction(transaction)}
 										>
 											<td className="px-4 py-3 whitespace-nowrap">
-												<span className="text-sm text-foreground">
+												<span className="text-sm text-primary">
 													{new Date(transaction.transaction_date).toLocaleDateString("en-US", {
 														month: "short",
 														day: "numeric",
@@ -365,11 +349,9 @@ export function TransactionLedger({
 												</span>
 											</td>
 											<td className="px-4 py-3">
-												<div className="text-sm font-medium text-foreground">{transaction.name}</div>
+												<div className="text-sm font-medium text-primary">{transaction.name}</div>
 												{transaction.notes && (
-													<div className="text-xs text-muted-foreground truncate max-w-[200px]">
-														{transaction.notes}
-													</div>
+													<div className="text-xs text-primary truncate max-w-[200px]">{transaction.notes}</div>
 												)}
 											</td>
 											<td className="px-4 py-3">
@@ -378,14 +360,14 @@ export function TransactionLedger({
 														variant="secondary"
 														className={cn(
 															categoryIndex !== -1 ? categoryStyle.light : "bg-secondary",
-															categoryIndex !== -1 ? categoryStyle.text : "text-muted-foreground",
+															categoryIndex !== -1 ? categoryStyle.text : "text-primary",
 															"font-medium border-0"
 														)}
 													>
 														{transaction.category_name}
 													</Badge>
 												) : (
-													<span className="text-xs text-muted-foreground">Uncategorized</span>
+													<span className="text-xs text-primary">Uncategorized</span>
 												)}
 											</td>
 											<td className="px-4 py-3">
@@ -412,7 +394,7 @@ export function TransactionLedger({
 
 			{/* Count */}
 			{filteredTransactions.length > 0 && (
-				<div className="mt-3 text-xs text-muted-foreground text-right">
+				<div className="mt-3 text-xs text-primary text-right">
 					Showing {filteredTransactions.length} of {transactions.length}{" "}
 					{transactions.length === 1 ? "transaction" : "transactions"}
 				</div>

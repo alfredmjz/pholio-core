@@ -9,22 +9,31 @@ import { toast } from "sonner";
 import { useAuthForm } from "@/hooks/use-auth-form";
 
 export default function ResetPasswordPage() {
+	const [fieldErrors, setFieldErrors] = useState<{ password?: string; confirmPassword?: string }>({});
+
 	const validate = (formData: FormData): string | null => {
 		const password = formData.get("password") as string;
 		const confirmPassword = formData.get("confirmPassword") as string;
+		let hasError = false;
+		const newErrors: typeof fieldErrors = {};
 
-		if (password.length < 8) {
-			toast.error("Weak Password", {
-				description: "Password must be at least 8 characters long.",
-			});
-			return "Weak Password";
+		if (!password || password.length < 8) {
+			newErrors.password = "Password must be at least 8 characters long";
+			hasError = true;
 		}
 
 		if (password !== confirmPassword) {
-			toast.error("Passwords do not match", {
-				description: "Please ensure both passwords are the same.",
+			newErrors.confirmPassword = "Passwords do not match";
+			hasError = true;
+		}
+
+		setFieldErrors(newErrors);
+
+		if (hasError) {
+			toast.error("Please fill in all required fields", {
+				description: "Check the form for displayed errors.",
 			});
-			return "Passwords do not match";
+			return "Validation Failed";
 		}
 
 		return null;
@@ -54,7 +63,12 @@ export default function ResetPasswordPage() {
 										label="Password"
 										required
 										className="border-border focus-visible:ring-offset-0 focus-visible:ring-ring bg-card/80"
+										hasError={!!fieldErrors.password}
+										onChange={() => {
+											if (fieldErrors.password) setFieldErrors({ ...fieldErrors, password: undefined });
+										}}
 									/>
+									{fieldErrors.password && <p className="text-xs text-error">{fieldErrors.password}</p>}
 								</div>
 								<div className="grid gap-2">
 									<FloatingLabelInput
@@ -64,7 +78,12 @@ export default function ResetPasswordPage() {
 										label="Confirm Password"
 										required
 										className="border-border focus-visible:ring-offset-0 focus-visible:ring-ring bg-card/80"
+										hasError={!!fieldErrors.confirmPassword}
+										onChange={() => {
+											if (fieldErrors.confirmPassword) setFieldErrors({ ...fieldErrors, confirmPassword: undefined });
+										}}
 									/>
+									{fieldErrors.confirmPassword && <p className="text-xs text-error">{fieldErrors.confirmPassword}</p>}
 								</div>
 								{error && (
 									<div className="p-3 text-sm text-error bg-error/10 rounded-md border border-error/20">{error}</div>

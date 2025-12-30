@@ -44,7 +44,7 @@ export function TransactionHistory({
 					</Button>
 					<Button size="sm" onClick={onRecordTransaction}>
 						<Plus className="h-4 w-4" />
-						Record Transaction
+						Add Transaction
 					</Button>
 				</div>
 			</div>
@@ -53,12 +53,12 @@ export function TransactionHistory({
 				{isLoading ? (
 					<TransactionSkeleton />
 				) : transactions.length === 0 ? (
-					<div className="h-full flex flex-col items-center justify-center text-center p-8 border-2 border-dashed rounded-xl border-muted-foreground/20 gap-3">
+					<div className="h-full flex flex-col items-center justify-center text-center p-8 border-2 border-dashed rounded-xl border-border gap-3">
 						<div className="p-4 rounded-full bg-muted">
-							<Plus className="h-6 w-6 text-muted-foreground" />
+							<Plus className="h-6 w-6 text-primary" />
 						</div>
 						<p className="font-medium">No transactions yet</p>
-						<p className="text-sm text-muted-foreground">Record your first transaction to get started</p>
+						<p className="text-sm text-primary">Record your first transaction to get started</p>
 					</div>
 				) : (
 					transactions.map((txn) => (

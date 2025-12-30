@@ -11,7 +11,7 @@ const NavigationMenu = React.forwardRef<
 >(({ className, children, ...props }, ref) => (
 	<NavigationMenuPrimitive.Root
 		ref={ref}
-		className={cn("relative z-10 flex max-w-max flex-1 justify-center", className)}
+		className={cn("relative z-10 flex max-w-max justify-center", className)}
 		delayDuration={0}
 		skipDelayDuration={0}
 		onPointerMove={(e) => e.preventDefault()}

@@ -30,30 +30,30 @@ export function ActiveSessionsCard() {
 		<div className="flex flex-col gap-6">
 			<div>
 				<h3 className="text-lg font-medium">Active Sessions</h3>
-				<p className="text-sm text-muted-foreground">Manage your active sessions on other devices</p>
+				<p className="text-sm text-primary">Manage your active sessions on other devices</p>
 			</div>
 
 			<div className="flex flex-col gap-3">
 				{MOCK_SESSIONS.map((session) => (
 					<div key={session.id} className="flex items-start justify-between">
 						<div className="flex items-start gap-4">
-							<div className="p-2 bg-secondary rounded-full text-muted-foreground mt-0.5">{getIcon(session.icon)}</div>
+							<div className="p-2 bg-secondary rounded-full text-primary mt-0.5">{getIcon(session.icon)}</div>
 							<div className="flex flex-col gap-1">
 								<p className="text-sm font-medium leading-none">
 									{session.device}
 									{session.current && <span className="ml-2 text-xs text-success font-normal">(Current session)</span>}
 								</p>
-								<p className="text-xs text-muted-foreground">
+								<p className="text-xs text-primary">
 									{session.browser} • {session.location}
 								</p>
-								<p className="text-xs text-muted-foreground">Last active: {session.lastActive}</p>
+								<p className="text-xs text-primary">Last active: {session.lastActive}</p>
 							</div>
 						</div>
 						{!session.current && (
 							<Button
 								variant="ghost"
 								size="sm"
-								className="text-muted-foreground hover:text-error"
+								className="text-primary hover:text-error"
 								onClick={() => handleSignOutSession(session.id)}
 							>
 								Revoke

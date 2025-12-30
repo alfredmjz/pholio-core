@@ -53,7 +53,7 @@ export function RecentActivity() {
 		<Card className="flex flex-col h-full bg-card border shadow-sm">
 			<div className="p-6 pb-4">
 				<h3 className="text-lg font-bold">Recent Activity</h3>
-				<p className="text-sm text-muted-foreground">Latest account updates</p>
+				<p className="text-sm text-primary">Latest account updates</p>
 			</div>
 
 			<div className="flex-1 overflow-y-auto px-6 pb-6">
@@ -68,7 +68,7 @@ export function RecentActivity() {
 							{/* Icon */}
 							<div className="absolute left-0 top-1 z-10">
 								{item.type === "updated" && (
-									<div className="flex items-center justify-center w-6 h-6 rounded-full bg-emerald-100 dark:bg-emerald-950 text-emerald-600">
+									<div className="flex items-center justify-center w-6 h-6 rounded-full bg-green-100 dark:bg-green-950 text-green-600">
 										<CheckCircle2 className="w-4 h-4" />
 									</div>
 								)}
@@ -88,10 +88,10 @@ export function RecentActivity() {
 							<div className="flex flex-col gap-0.5">
 								<div className="flex items-center justify-between">
 									<h4 className="text-sm font-bold">{item.title}</h4>
-									<span className="text-xs text-muted-foreground">{item.time}</span>
+									<span className="text-xs text-primary">{item.time}</span>
 								</div>
-								<p className="text-sm font-medium text-foreground/80">{item.subtitle}</p>
-								<p className="text-xs text-muted-foreground leading-relaxed">{item.details}</p>
+								<p className="text-sm font-medium text-primary/80">{item.subtitle}</p>
+								<p className="text-xs text-primary leading-relaxed">{item.details}</p>
 							</div>
 						</div>
 					))}

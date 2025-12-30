@@ -1,4 +1,4 @@
-import * as React from "react";
+import { type ComponentProps, useEffect, useRef } from "react";
 import { ChevronDownIcon, ChevronLeftIcon, ChevronRightIcon } from "lucide-react";
 import { DayButton, DayPicker, getDefaultClassNames } from "react-day-picker";
 
@@ -14,8 +14,8 @@ function Calendar({
 	formatters,
 	components,
 	...props
-}: React.ComponentProps<typeof DayPicker> & {
-	buttonVariant?: React.ComponentProps<typeof Button>["variant"];
+}: ComponentProps<typeof DayPicker> & {
+	buttonVariant?: ComponentProps<typeof Button>["variant"];
 }) {
 	const defaultClassNames = getDefaultClassNames();
 
@@ -65,18 +65,15 @@ function Calendar({
 					"select-none font-medium",
 					captionLayout === "label"
 						? "text-sm"
-						: "[&>svg]:text-muted-foreground flex h-8 items-center gap-1 rounded-md pl-2 pr-1 text-sm [&>svg]:size-3.5",
+						: "[&>svg]:text-primary flex h-8 items-center gap-1 rounded-md pl-2 pr-1 text-sm [&>svg]:size-3.5",
 					defaultClassNames.caption_label
 				),
 				table: "w-full border-collapse",
 				weekdays: cn("flex", defaultClassNames.weekdays),
-				weekday: cn(
-					"text-muted-foreground flex-1 select-none rounded-md text-[0.8rem] font-normal",
-					defaultClassNames.weekday
-				),
+				weekday: cn("text-primary flex-1 select-none rounded-md text-[0.8rem] font-normal", defaultClassNames.weekday),
 				week: cn("mt-2 flex w-full", defaultClassNames.week),
 				week_number_header: cn("w-[--cell-size] select-none", defaultClassNames.week_number_header),
-				week_number: cn("text-muted-foreground select-none text-[0.8rem]", defaultClassNames.week_number),
+				week_number: cn("text-primary select-none text-[0.8rem]", defaultClassNames.week_number),
 				day: cn(
 					"group/day relative aspect-square h-full w-full select-none p-0 text-center [&:first-child[data-selected=true]_button]:rounded-l-md [&:last-child[data-selected=true]_button]:rounded-r-md",
 					defaultClassNames.day
@@ -88,8 +85,8 @@ function Calendar({
 					"bg-accent text-accent-foreground rounded-md data-[selected=true]:rounded-none",
 					defaultClassNames.today
 				),
-				outside: cn("text-muted-foreground aria-selected:text-muted-foreground", defaultClassNames.outside),
-				disabled: cn("text-muted-foreground opacity-50", defaultClassNames.disabled),
+				outside: cn("text-primary aria-selected:text-primary", defaultClassNames.outside),
+				disabled: cn("text-primary opacity-50", defaultClassNames.disabled),
 				hidden: cn("invisible", defaultClassNames.hidden),
 				...classNames,
 			}}
@@ -123,11 +120,11 @@ function Calendar({
 	);
 }
 
-function CalendarDayButton({ className, day, modifiers, ...props }: React.ComponentProps<typeof DayButton>) {
+function CalendarDayButton({ className, day, modifiers, ...props }: ComponentProps<typeof DayButton>) {
 	const defaultClassNames = getDefaultClassNames();
 
-	const ref = React.useRef<HTMLButtonElement>(null);
-	React.useEffect(() => {
+	const ref = useRef<HTMLButtonElement>(null);
+	useEffect(() => {
 		if (modifiers.focused) ref.current?.focus();
 	}, [modifiers.focused]);
 

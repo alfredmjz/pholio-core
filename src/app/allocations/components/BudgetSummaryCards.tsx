@@ -53,8 +53,8 @@ export function BudgetSummaryCards({
 				</div>
 
 				<div className="relative">
-					<p className="text-sm text-muted-foreground font-medium mb-1">Expected Income</p>
-					<p className="text-3xl font-bold text-foreground">{formatCurrency(expectedIncome)}</p>
+					<p className="text-sm text-primary font-medium mb-1">Expected Income</p>
+					<p className="text-3xl font-bold text-primary">{formatCurrency(expectedIncome)}</p>
 					<div className="flex items-center gap-1.5 mt-2">
 						<CheckCircle2 className="h-4 w-4 text-success" />
 						<span className="text-xs text-success font-medium">Verified</span>
@@ -64,7 +64,7 @@ export function BudgetSummaryCards({
 
 			{/* Left to Spend Card */}
 			<Card className="p-5 bg-card border border-border">
-				<p className="text-sm text-muted-foreground font-medium mb-1">Left to Spend</p>
+				<p className="text-sm text-primary font-medium mb-1">Left to Spend</p>
 				<p className={cn("text-3xl font-bold", isOverBudget ? "text-error" : "text-success")}>
 					{isOverBudget ? "-" : ""}
 					{formatCurrency(Math.abs(leftToSpend))}
@@ -86,8 +86,8 @@ export function BudgetSummaryCards({
 
 			{/* Total Spent Card */}
 			<Card className="p-5 bg-card border border-border">
-				<p className="text-sm text-muted-foreground font-medium mb-1">Total Spent</p>
-				<p className="text-3xl font-bold text-foreground">{formatCurrency(totalSpent)}</p>
+				<p className="text-sm text-primary font-medium mb-1">Total Spent</p>
+				<p className="text-3xl font-bold text-primary">{formatCurrency(totalSpent)}</p>
 				{/* Progress bar */}
 				<div className="mt-3">
 					<div className="h-2 bg-muted rounded-full overflow-hidden">

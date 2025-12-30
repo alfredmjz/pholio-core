@@ -88,81 +88,82 @@ export function AddCategoryDialog({ open, onOpenChange, onSubmit, unallocatedFun
 			className="sm:max-w-[425px]"
 		>
 			<form onSubmit={handleSubmit}>
-					<div className="grid gap-4 py-4">
-						{/* Category Name */}
-						<div className="grid gap-2">
-							<Label htmlFor="category-name">
-								Category Name <span className="text-error">*</span>
-							</Label>
-							<Input
-								id="category-name"
-								value={name}
-								onChange={(e) => {
-									setName(e.target.value);
-									if (nameError) validateName(e.target.value);
-								}}
-								onBlur={(e) => validateName(e.target.value)}
-								placeholder="e.g., Housing, Groceries, Entertainment"
-								maxLength={100}
-								className={nameError ? "border-error" : ""}
-							/>
-							{nameError && (
-								<p className="text-xs text-error" role="alert">
-									{nameError}
-								</p>
-							)}
-						</div>
-
-						{/* Budget Cap */}
-						<div className="grid gap-2">
-							<Label htmlFor="budget-cap">
-								Budget Cap <span className="text-error">*</span>
-							</Label>
-							<div className="relative">
-								<span className="absolute left-3 top-1/2 -translate-y-1/2 text-muted-foreground">$</span>
-								<Input
-									id="budget-cap"
-									type="number"
-									value={budgetCap}
-									onChange={(e) => {
-										setBudgetCap(e.target.value);
-										if (budgetError) validateBudget(e.target.value);
-									}}
-									onBlur={(e) => validateBudget(e.target.value)}
-									placeholder="0.00"
-									step="0.01"
-									min="0"
-									className={`pl-7 ${budgetError ? "border-error" : ""}`}
-								/>
-							</div>
-							{budgetError && (
-								<p className="text-xs text-error" role="alert">
-									{budgetError}
-								</p>
-							)}
-							{!budgetError && isOverAllocated && (
-								<p className="text-xs text-warning flex items-center gap-1" role="alert">
-									<span>⚠</span>
-									<span>This exceeds your unallocated funds by ${(budgetNum - unallocatedFunds).toFixed(2)}</span>
-								</p>
-							)}
-							{!budgetError && !isOverAllocated && budgetNum > 0 && (
-								<p className="text-xs text-muted-foreground" aria-describedby="budget-cap">
-									You have ${unallocatedFunds.toFixed(2)} unallocated
-								</p>
-							)}
-						</div>
+				<div className="grid gap-4 py-4">
+					{/* Category Name */}
+					<div className="grid gap-2">
+						<Label htmlFor="category-name">
+							Category Name <span className="text-error">*</span>
+						</Label>
+						<Input
+							id="category-name"
+							value={name}
+							onChange={(e) => {
+								setName(e.target.value);
+								if (nameError) validateName(e.target.value);
+							}}
+							onBlur={(e) => validateName(e.target.value)}
+							placeholder="e.g., Housing, Groceries, Entertainment"
+							maxLength={100}
+							className={nameError ? "border-error" : ""}
+						/>
+						{nameError && (
+							<p className="text-xs text-error" role="alert">
+								{nameError}
+							</p>
+						)}
 					</div>
 
-					<DialogFooter>
-						<Button type="button" variant="outline" onClick={() => onOpenChange(false)}>
-							Cancel
-						</Button>
-						<Button type="submit" disabled={!isFormValid}>
-							Add Category
-						</Button>
-					</DialogFooter>
-				</form>
+					{/* Budget Cap */}
+					<div className="grid gap-2">
+						<Label htmlFor="budget-cap">
+							Budget Cap <span className="text-error">*</span>
+						</Label>
+						<div className="relative">
+							<span className="absolute left-3 top-1/2 -translate-y-1/2 text-primary">$</span>
+							<Input
+								id="budget-cap"
+								type="number"
+								inputMode="decimal"
+								value={budgetCap}
+								onChange={(e) => {
+									setBudgetCap(e.target.value);
+									if (budgetError) validateBudget(e.target.value);
+								}}
+								onBlur={(e) => validateBudget(e.target.value)}
+								placeholder="0.00"
+								step="0.01"
+								min="0"
+								className={`pl-7 ${budgetError ? "border-error" : ""}`}
+							/>
+						</div>
+						{budgetError && (
+							<p className="text-xs text-error" role="alert">
+								{budgetError}
+							</p>
+						)}
+						{!budgetError && isOverAllocated && (
+							<p className="text-xs text-warning flex items-center gap-1" role="alert">
+								<span>⚠</span>
+								<span>This exceeds your unallocated funds by ${(budgetNum - unallocatedFunds).toFixed(2)}</span>
+							</p>
+						)}
+						{!budgetError && !isOverAllocated && budgetNum > 0 && (
+							<p className="text-xs text-primary" aria-describedby="budget-cap">
+								You have ${unallocatedFunds.toFixed(2)} unallocated
+							</p>
+						)}
+					</div>
+				</div>
+
+				<DialogFooter>
+					<Button type="button" variant="outline" onClick={() => onOpenChange(false)}>
+						Cancel
+					</Button>
+					<Button type="submit" disabled={!isFormValid}>
+						Add Category
+					</Button>
+				</DialogFooter>
+			</form>
 		</ControlBasedDialog>
 	);
 }

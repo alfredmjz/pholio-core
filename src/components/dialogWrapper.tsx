@@ -18,12 +18,9 @@ interface TriggerBasedDialogProps {
 	buttonLabel?: React.ReactNode;
 	formId?: string;
 	showSubmit?: boolean;
+	showCloseButton?: boolean;
 }
 
-/**
- * Trigger-based dialog - opens when trigger is clicked
- * Use for simple dialogs triggered by a button click
- */
 export function TriggerBasedDialog({
 	title,
 	description,
@@ -32,18 +29,19 @@ export function TriggerBasedDialog({
 	buttonLabel = "Submit",
 	formId,
 	showSubmit = true,
+	showCloseButton = true,
 }: TriggerBasedDialogProps) {
 	return (
 		<Dialog>
 			<DialogTrigger asChild>{trigger}</DialogTrigger>
-			<DialogContent className="sm:max-w-md">
+			<DialogContent className="sm:max-w-md" showCloseButton={showCloseButton}>
 				<DialogHeader>
 					<DialogTitle>{title}</DialogTitle>
-					<DialogDescription>{description}</DialogDescription>
+					{description && <DialogDescription>{description}</DialogDescription>}
 				</DialogHeader>
 				{content}
 				{showSubmit && (
-					<DialogFooter className="justify-end">
+					<DialogFooter>
 						<Button type="submit" form={formId}>
 							{buttonLabel}
 						</Button>
@@ -61,12 +59,9 @@ interface ControlBasedDialogProps {
 	description?: React.ReactNode;
 	children: React.ReactNode;
 	className?: string;
+	showCloseButton?: boolean;
 }
 
-/**
- * Controlled-based dialog - state managed externally via open/onOpenChange props
- * Use for dialogs that need programmatic control (e.g., forms, multi-step flows)
- */
 export function ControlBasedDialog({
 	open,
 	onOpenChange,
@@ -74,10 +69,11 @@ export function ControlBasedDialog({
 	description,
 	children,
 	className = "sm:max-w-md",
+	showCloseButton = true,
 }: ControlBasedDialogProps) {
 	return (
 		<Dialog open={open} onOpenChange={onOpenChange}>
-			<DialogContent className={className}>
+			<DialogContent className={className} showCloseButton={showCloseButton}>
 				<DialogHeader>
 					<DialogTitle>{title}</DialogTitle>
 					{description && <DialogDescription>{description}</DialogDescription>}

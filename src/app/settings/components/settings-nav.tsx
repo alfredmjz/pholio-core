@@ -1,6 +1,6 @@
 "use client";
 
-import * as React from "react";
+import { useState, useMemo, type ComponentType } from "react";
 import Link from "next/link";
 import { usePathname } from "next/navigation";
 import { User, Shield, Settings, Lock, CreditCard, Search } from "lucide-react";
@@ -10,7 +10,7 @@ import { Input } from "@/components/ui/input";
 interface NavItem {
 	label: string;
 	href: string;
-	icon: React.ComponentType<{ className?: string }>;
+	icon: ComponentType<{ className?: string }>;
 	disabled?: boolean;
 	badge?: string;
 	keywords?: string[];
@@ -27,13 +27,39 @@ const navItems: NavItem[] = [
 		label: "Security",
 		href: "/settings/security",
 		icon: Shield,
-		keywords: ["password", "change password", "mfa", "2fa", "multi-factor", "authentication", "login", "sessions", "devices", "connect", "disconnect"],
+		keywords: [
+			"password",
+			"change password",
+			"mfa",
+			"2fa",
+			"multi-factor",
+			"authentication",
+			"login",
+			"sessions",
+			"devices",
+			"connect",
+			"disconnect",
+		],
 	},
 	{
 		label: "Preferences",
 		href: "/settings/preferences",
 		icon: Settings,
-		keywords: ["theme", "dark mode", "light mode", "notifications", "appearance", "color"],
+		keywords: [
+			"theme",
+			"dark mode",
+			"light mode",
+			"notifications",
+			"appearance",
+			"color",
+			"allocations",
+			"budget",
+			"new month",
+			"new month default",
+			"currency",
+			"language",
+			"regional",
+		],
 	},
 	{
 		label: "Data & Privacy",
@@ -66,9 +92,9 @@ const navItems: NavItem[] = [
  */
 export function SettingsNav() {
 	const pathname = usePathname();
-	const [query, setQuery] = React.useState("");
+	const [query, setQuery] = useState("");
 
-	const filteredItems = React.useMemo(() => {
+	const filteredItems = useMemo(() => {
 		if (!query) return navItems;
 		const lowerQuery = query.toLowerCase();
 		return navItems.filter(
@@ -85,9 +111,9 @@ export function SettingsNav() {
 		>
 			{/* Section title */}
 			<div className="mb-6">
-				<h2 className="text-sm font-semibold text-foreground mb-4">Settings</h2>
+				<h2 className="text-sm font-semibold text-primary mb-4">Settings</h2>
 				<div className="relative">
-					<Search className="absolute left-2 top-2.5 h-4 w-4 text-muted-foreground" />
+					<Search className="absolute left-2 top-2.5 h-4 w-4 text-primary" />
 					<Input
 						placeholder="Search settings..."
 						className="pl-8 h-9 text-sm"
@@ -109,13 +135,13 @@ export function SettingsNav() {
 								<div
 									className={cn(
 										"flex items-center gap-3 px-3 py-2 text-sm rounded-md",
-										"text-muted-foreground opacity-50 cursor-not-allowed"
+										"text-primary opacity-50 cursor-not-allowed"
 									)}
 								>
 									<Icon className="w-4 h-4 flex-shrink-0" />
 									<span className="flex-1">{item.label}</span>
 									{item.badge && (
-										<span className="px-2 py-0.5 text-xs rounded bg-secondary text-muted-foreground">{item.badge}</span>
+										<span className="px-2 py-0.5 text-xs rounded bg-secondary text-primary">{item.badge}</span>
 									)}
 								</div>
 							</li>
@@ -131,8 +157,8 @@ export function SettingsNav() {
 									"flex items-center gap-3 px-3 py-2 text-sm rounded-md transition-all duration-200",
 									"border-l-2 border-transparent",
 									isActive
-										? "bg-accent/50 border-l-primary text-foreground font-medium"
-										: "text-muted-foreground hover:text-foreground hover:bg-accent/50"
+										? "bg-accent/50 border-l-primary text-primary font-medium"
+										: "text-primary hover:text-primary hover:bg-accent/50"
 								)}
 							>
 								<Icon className="w-4 h-4 flex-shrink-0" />
@@ -141,7 +167,7 @@ export function SettingsNav() {
 						</li>
 					);
 				})}
-				{filteredItems.length === 0 && <li className="px-3 py-2 text-sm text-muted-foreground">No results found</li>}
+				{filteredItems.length === 0 && <li className="px-3 py-2 text-sm text-primary">No results found</li>}
 			</ul>
 		</nav>
 	);
@@ -177,7 +203,7 @@ export function SettingsNavMobile() {
 								key={item.href}
 								className={cn(
 									"flex items-center gap-2 px-4 py-3 text-sm whitespace-nowrap",
-									"text-muted-foreground opacity-50 cursor-not-allowed"
+									"text-primary opacity-50 cursor-not-allowed"
 								)}
 							>
 								<span>{item.label}</span>
@@ -195,8 +221,8 @@ export function SettingsNavMobile() {
 								"flex items-center gap-2 px-4 py-3 text-sm whitespace-nowrap transition-colors",
 								"border-b-2",
 								isActive
-									? "border-primary text-foreground font-medium"
-									: "border-transparent text-muted-foreground hover:text-foreground"
+									? "border-primary text-primary font-medium"
+									: "border-transparent text-primary hover:text-primary"
 							)}
 						>
 							{item.label}

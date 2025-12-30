@@ -21,10 +21,7 @@ export function DashboardGuard({ children }: DashboardGuardProps) {
 	return (
 		<>
 			<div
-				className={cn(
-					"flex min-h-screen w-full flex-col",
-					showWelcome && "pointer-events-none select-none blur-[2px]"
-				)}
+				className={cn("flex min-h-screen w-full flex-col", showWelcome && "pointer-events-none select-none blur-[2px]")}
 				inert={showWelcome ? true : undefined}
 				// aria-hidden={showWelcome} // Optional: hide from screen readers if welcome is modal
 			>

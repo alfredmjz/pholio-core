@@ -252,7 +252,7 @@ export function ExportDialog({ open, onOpenChange, currentYear, currentMonth }: 
 							<h3 className="font-medium text-lg">
 								{currentMonthName} {currentYear}
 							</h3>
-							<p className="text-sm text-muted-foreground text-center mt-1">
+							<p className="text-sm text-primary text-center mt-1">
 								Export all transactions for the currently viewed month.
 							</p>
 						</div>

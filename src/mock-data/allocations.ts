@@ -178,3 +178,81 @@ export const sampleTransactions: Transaction[] = [
 	createTx("tx-18", "Paycheck", 2500, 15, undefined, "income"),
 	createTx("tx-19", "Paycheck", 2500, 30, undefined, "income"),
 ];
+
+// Helper to deep copy and modify dates
+function getMockData(year: number, month: number, type: "base" | "default" = "base") {
+	const summary = JSON.parse(JSON.stringify(sampleAllocationSummary));
+	summary.allocation.year = year;
+	summary.allocation.month = month;
+
+	// Adjust dates for all items
+	const dateStr = new Date(year, month - 1, 1).toISOString();
+	summary.allocation.created_at = dateStr;
+	summary.allocation.updated_at = dateStr;
+
+	if (type === "default") {
+		// Default Template: Simple structure
+		summary.categories = [
+			{
+				...sampleCategories[0],
+				name: "Essentials",
+				budget_cap: 3000,
+				actual_spend: 0,
+				transaction_count: 0,
+				id: "cat-def-1",
+			},
+			{
+				...sampleCategories[5],
+				name: "Savings",
+				budget_cap: 1000,
+				actual_spend: 0,
+				transaction_count: 0,
+				id: "cat-def-2",
+			},
+			{
+				...sampleCategories[4],
+				name: "Wants",
+				budget_cap: 1500,
+				actual_spend: 0,
+				transaction_count: 0,
+				id: "cat-def-3",
+			},
+		];
+		summary.summary = {
+			total_budget_caps: 5500,
+			total_actual_spend: 0,
+			unallocated_funds: -500,
+			overall_utilization: 0,
+		};
+		// No transactions for "Default" month
+		return { summary, transactions: [] };
+	}
+
+	// Base/Imported (Jan 2026 mimics Dec 2025)
+	if (year === 2026 && month === 1) {
+		// Imported means categories exist (same as base), but transactions are usually empty?
+		// User said: "Transactions are unique for each month".
+		// So Jan 2026 should have categories (Allocation set up) but NO transactions.
+		return { summary, transactions: [] };
+	}
+
+	return { summary, transactions: sampleTransactions };
+}
+
+export function getSmartMockData(year: number, month: number) {
+	// Dec 2025: Base Scenario
+	if (year === 2025 && month === 12) {
+		return getMockData(year, month, "base");
+	}
+	// Jan 2026: Imported Scenario (Categories exist, Transactions empty)
+	if (year === 2026 && month === 1) {
+		return getMockData(year, month, "base");
+	}
+	// Feb 2026: Default Template Scenario
+	if (year === 2026 && month === 2) {
+		return getMockData(year, month, "default");
+	}
+
+	// Default: Empty for other months
+	return { summary: null, transactions: [] };
+}

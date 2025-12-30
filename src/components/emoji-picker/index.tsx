@@ -111,7 +111,7 @@ export function EmojiPicker({
 					</div>
 
 					{/* Address Bar */}
-					<div className="flex-1 bg-background/50 rounded-md h-6 flex items-center justify-center border text-[10px] text-muted-foreground shadow-sm mx-1 px-2 relative group transition-colors hover:bg-background">
+					<div className="flex-1 bg-background/50 rounded-md h-6 flex items-center justify-center border text-[10px] text-primary shadow-sm mx-1 px-2 relative group transition-colors hover:bg-background">
 						<div className="absolute left-1.5 top-1/2 -translate-y-1/2 opacity-30">🔒</div>
 						<span className="font-medium truncate max-w-[120px]">
 							{EMOJI_CATEGORIES[currentSlide]?.name || "Select Icon"}
@@ -171,7 +171,7 @@ export function EmojiPicker({
 							<Button
 								variant="ghost"
 								size="sm"
-								className="h-8 px-2 text-xs text-muted-foreground hover:text-foreground"
+								className="h-8 px-2 text-xs text-primary hover:text-primary"
 								onClick={handleReset}
 							>
 								Reset Default

@@ -63,12 +63,10 @@ export default function EmailChangeCard({ currentEmail }: EmailChangeCardProps) 
 		<div className="flex flex-col gap-3">
 			<div>
 				<h3 className="text-sm font-medium">Email Address</h3>
-				<p className="text-xs text-muted-foreground">
+				<p className="text-xs text-primary">
 					Current email: <span className="font-medium text-success">{currentEmail}</span>
 				</p>
-				<p className="text-xs text-muted-foreground">
-					Update your email address. You'll need to verify the new address.
-				</p>
+				<p className="text-xs text-primary">Update your email address. You'll need to verify the new address.</p>
 			</div>
 			<Dialog open={isOpen} onOpenChange={setIsOpen}>
 				<DialogTrigger asChild>
@@ -107,11 +105,11 @@ export default function EmailChangeCard({ currentEmail }: EmailChangeCardProps) 
 									onChange={(e) => setFormData({ ...formData, currentPassword: e.target.value })}
 									disabled={isPending}
 								/>
-								<p className="text-xs text-muted-foreground">We need your password to verify this change</p>
+								<p className="text-xs text-primary">We need your password to verify this change</p>
 							</div>
 
 							<div className="rounded-md bg-info-muted p-3 border border-info/30">
-								<p className="text-xs text-info-foreground">
+								<p className="text-xs text-info">
 									After submitting, you'll receive a verification email at your new address. Click the link in that
 									email to complete the change.
 								</p>

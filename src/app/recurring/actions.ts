@@ -9,102 +9,105 @@ import { MOCK_TRANSACTIONS } from "@/mock-data/transactions";
 export type RecurringExpenseStatus = "paid" | "partial" | "unpaid" | "overpaid" | "upcoming" | "overdue";
 
 export type RecurringExpense = Database["public"]["Tables"]["recurring_expenses"]["Row"] & {
-    status?: RecurringExpenseStatus;
-    paid_amount?: number;
+	status?: RecurringExpenseStatus;
+	paid_amount?: number;
 };
 export type NewRecurringExpense = Database["public"]["Tables"]["recurring_expenses"]["Insert"];
 
 export async function getRecurringExpenses(): Promise<RecurringExpense[]> {
 	const supabase = await createClient();
 
-    // [NEW] Logic to check payment status
-    // 1. Get current month range
-    const now = new Date();
-    const startOfMonth = new Date(now.getFullYear(), now.getMonth(), 1).toISOString();
-    const endOfMonth = new Date(now.getFullYear(), now.getMonth() + 1, 0).toISOString();
+	// [NEW] Logic to check payment status
+	// 1. Get current month range
+	const now = new Date();
+	const startOfMonth = new Date(now.getFullYear(), now.getMonth(), 1).toISOString();
+	const endOfMonth = new Date(now.getFullYear(), now.getMonth() + 1, 0).toISOString();
 
-    let expenses: RecurringExpense[] = [];
-    let transactions: any[] = [];
+	let expenses: RecurringExpense[] = [];
+	let transactions: any[] = [];
 
-    // [Step 1: Data Retrieval]
-    if (process.env.NEXT_PUBLIC_USE_SAMPLE_DATA === "true") {
-        // Use Mock Data
-        expenses = MOCK_RECURRING_EXPENSES;
-        transactions = MOCK_TRANSACTIONS;
-    } else {
-        // Use Supabase Data
-        const { data: { user } } = await supabase.auth.getUser();
-        if (!user) return [];
+	// [Step 1: Data Retrieval]
+	if (process.env.NEXT_PUBLIC_USE_SAMPLE_DATA === "true") {
+		// Use Mock Data
+		expenses = MOCK_RECURRING_EXPENSES;
+		transactions = MOCK_TRANSACTIONS;
+	} else {
+		// Use Supabase Data
+		const {
+			data: { user },
+		} = await supabase.auth.getUser();
+		if (!user) return [];
 
-        const { data: dbExpenses, error: expensesError } = await supabase
-            .from("recurring_expenses")
-            .select("*")
-            .eq("user_id", user.id)
-            .order("next_due_date", { ascending: true });
+		const { data: dbExpenses, error: expensesError } = await supabase
+			.from("recurring_expenses")
+			.select("*")
+			.eq("user_id", user.id)
+			.order("next_due_date", { ascending: true });
 
-        if (expensesError) {
-             console.error("Error fetching recurring expenses:", expensesError);
-             return [];
-        }
-        expenses = dbExpenses || [];
+		if (expensesError) {
+			console.error("Error fetching recurring expenses:", expensesError);
+			return [];
+		}
+		expenses = dbExpenses || [];
 
-        // Optimization: In a real app we might want to filter but for personal finance scale all month txns is fine
-        const { data: dbTransactions } = await supabase
-            .from("transactions")
-            .select("id, name, amount, transaction_date, recurring_expense_id")
-            .eq("user_id", user.id)
-            .gte("transaction_date", startOfMonth)
-            .lte("transaction_date", endOfMonth);
+		// Optimization: In a real app we might want to filter but for personal finance scale all month txns is fine
+		const { data: dbTransactions } = await supabase
+			.from("transactions")
+			.select("id, name, amount, transaction_date, recurring_expense_id")
+			.eq("user_id", user.id)
+			.gte("transaction_date", startOfMonth)
+			.lte("transaction_date", endOfMonth);
 
-        transactions = dbTransactions || [];
-    }
+		transactions = dbTransactions || [];
+	}
 
-    if (!expenses.length) return [];
+	if (!expenses.length) return [];
 
-    // [Step 2: Business Logic]
-    const enrichedExpenses = expenses.map(expense => {
-        let status: RecurringExpenseStatus = "upcoming";
-        let paidAmount = 0;
+	// [Step 2: Business Logic]
+	const enrichedExpenses = expenses.map((expense) => {
+		let status: RecurringExpenseStatus = "upcoming";
+		let paidAmount = 0;
 
-        // Check if past due
-        const dueDate = new Date(expense.next_due_date);
-        const isPastDue = new Date() > dueDate;
+		// Check if past due
+		const dueDate = new Date(expense.next_due_date);
+		const isPastDue = new Date() > dueDate;
 
-        if (transactions.length > 0) {
-            // Priority 1: Manual Link via recurring_expense_id
-            const manualMatches = transactions.filter(t => t.recurring_expense_id === expense.id);
+		if (transactions.length > 0) {
+			// Priority 1: Manual Link via recurring_expense_id
+			const manualMatches = transactions.filter((t) => t.recurring_expense_id === expense.id);
 
-            if (manualMatches.length > 0) {
-                 paidAmount = manualMatches.reduce((sum, t) => sum + Math.abs(t.amount), 0);
-            } else {
-                // Priority 2: Auto Match via Name (Fallback)
-                const autoMatches = transactions.filter(t =>
-                    // Ensure not linked to another expense
-                    !t.recurring_expense_id &&
-                    (t.name.toLowerCase().includes(expense.name.toLowerCase()) ||
-                     expense.name.toLowerCase().includes(t.name.toLowerCase()))
-                );
-                 paidAmount = autoMatches.reduce((sum, t) => sum + Math.abs(t.amount), 0);
-            }
-        }
+			if (manualMatches.length > 0) {
+				paidAmount = manualMatches.reduce((sum, t) => sum + Math.abs(t.amount), 0);
+			} else {
+				// Priority 2: Auto Match via Name (Fallback)
+				const autoMatches = transactions.filter(
+					(t) =>
+						// Ensure not linked to another expense
+						!t.recurring_expense_id &&
+						(t.name.toLowerCase().includes(expense.name.toLowerCase()) ||
+							expense.name.toLowerCase().includes(t.name.toLowerCase()))
+				);
+				paidAmount = autoMatches.reduce((sum, t) => sum + Math.abs(t.amount), 0);
+			}
+		}
 
-        // Determine Status
-        if (paidAmount >= Number(expense.amount)) {
-            status = "paid";
-        } else if (paidAmount > 0) {
-            status = "partial";
-        } else if (isPastDue) {
-            status = "overdue";
-        } else {
-            status = "upcoming";
-        }
+		// Determine Status
+		if (paidAmount >= Number(expense.amount)) {
+			status = "paid";
+		} else if (paidAmount > 0) {
+			status = "partial";
+		} else if (isPastDue) {
+			status = "overdue";
+		} else {
+			status = "upcoming";
+		}
 
-        return {
-            ...expense,
-            status,
-            paid_amount: paidAmount
-        };
-    });
+		return {
+			...expense,
+			status,
+			paid_amount: paidAmount,
+		};
+	});
 
 	return enrichedExpenses;
 }
@@ -112,17 +115,21 @@ export async function getRecurringExpenses(): Promise<RecurringExpense[]> {
 /**
  * Add a new recurring expense
  */
-export async function addRecurringExpense(expense: Omit<NewRecurringExpense, "user_id" | "id" | "created_at" | "updated_at">): Promise<RecurringExpense | null> {
+export async function addRecurringExpense(
+	expense: Omit<NewRecurringExpense, "user_id" | "id" | "created_at" | "updated_at">
+): Promise<RecurringExpense | null> {
 	const supabase = await createClient();
 
-    const { data: { user } } = await supabase.auth.getUser();
-    if (!user) return null;
+	const {
+		data: { user },
+	} = await supabase.auth.getUser();
+	if (!user) return null;
 
 	const { data, error } = await supabase
 		.from("recurring_expenses")
 		.insert({
 			...expense,
-			user_id: user.id
+			user_id: user.id,
 		})
 		.select()
 		.single();
@@ -133,7 +140,7 @@ export async function addRecurringExpense(expense: Omit<NewRecurringExpense, "us
 	}
 
 	revalidatePath("/recurring");
-    revalidatePath("/allocations")
+	revalidatePath("/allocations");
 	return data;
 }
 
@@ -143,10 +150,7 @@ export async function addRecurringExpense(expense: Omit<NewRecurringExpense, "us
 export async function toggleSubscription(id: string, isActive: boolean): Promise<boolean> {
 	const supabase = await createClient();
 
-	const { error } = await supabase
-		.from("recurring_expenses")
-		.update({ is_active: isActive })
-		.eq("id", id);
+	const { error } = await supabase.from("recurring_expenses").update({ is_active: isActive }).eq("id", id);
 
 	if (error) {
 		console.error("Error toggling subscription:", error);
@@ -154,7 +158,7 @@ export async function toggleSubscription(id: string, isActive: boolean): Promise
 	}
 
 	revalidatePath("/recurring");
-    revalidatePath("/allocations");
+	revalidatePath("/allocations");
 	return true;
 }
 
@@ -164,10 +168,7 @@ export async function toggleSubscription(id: string, isActive: boolean): Promise
 export async function updateRecurringExpense(id: string, updates: Partial<RecurringExpense>): Promise<boolean> {
 	const supabase = await createClient();
 
-	const { error } = await supabase
-		.from("recurring_expenses")
-		.update(updates)
-		.eq("id", id);
+	const { error } = await supabase.from("recurring_expenses").update(updates).eq("id", id);
 
 	if (error) {
 		console.error("Error updating recurring expense:", error);
@@ -175,7 +176,7 @@ export async function updateRecurringExpense(id: string, updates: Partial<Recurr
 	}
 
 	revalidatePath("/recurring");
-    revalidatePath("/allocations");
+	revalidatePath("/allocations");
 	return true;
 }
 
@@ -185,10 +186,7 @@ export async function updateRecurringExpense(id: string, updates: Partial<Recurr
 export async function deleteRecurringExpense(id: string): Promise<boolean> {
 	const supabase = await createClient();
 
-	const { error } = await supabase
-		.from("recurring_expenses")
-		.delete()
-		.eq("id", id);
+	const { error } = await supabase.from("recurring_expenses").delete().eq("id", id);
 
 	if (error) {
 		console.error("Error deleting recurring expense:", error);
@@ -196,6 +194,6 @@ export async function deleteRecurringExpense(id: string): Promise<boolean> {
 	}
 
 	revalidatePath("/recurring");
-    revalidatePath("/allocations");
+	revalidatePath("/allocations");
 	return true;
 }

@@ -59,7 +59,7 @@ export function TransactionRow({ transaction, accountClass, formatCurrency, form
 							TRANSACTION_TYPE_LABELS[transaction.transaction_type] ||
 							transaction.transaction_type}
 					</p>
-					<p className="text-xs text-muted-foreground">{formatDate(transaction.transaction_date)}</p>
+					<p className="text-xs text-primary">{formatDate(transaction.transaction_date)}</p>
 				</div>
 			</div>
 

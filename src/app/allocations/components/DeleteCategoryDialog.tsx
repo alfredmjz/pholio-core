@@ -37,8 +37,8 @@ export function DeleteCategoryDialog({
 			}
 			className="sm:max-w-[425px]"
 		>
-			<div className="space-y-3">
-				<p className="text-foreground">
+			<div className="flex flex-col gap-3 mb-6">
+				<p className="text-primary">
 					Are you sure you want to delete <span className="font-semibold">"{categoryName}"</span>?
 				</p>
 				{transactionCount > 0 && (
@@ -49,10 +49,10 @@ export function DeleteCategoryDialog({
 						</p>
 					</div>
 				)}
-				<p className="text-sm text-muted-foreground">This action cannot be undone.</p>
+				<p className="text-sm text-primary">This action cannot be undone.</p>
 			</div>
 
-			<DialogFooter className="gap-2 sm:gap-0">
+			<DialogFooter className="flex gap-2">
 				<Button type="button" variant="outline" onClick={() => onOpenChange(false)}>
 					Cancel
 				</Button>

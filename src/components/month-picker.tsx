@@ -12,11 +12,20 @@ interface MonthPickerProps {
 	setDate: (date?: Date) => void;
 	placeholder?: string;
 	className?: string;
+	align?: "center" | "start" | "end";
+	customLabel?: React.ReactNode;
 }
 
 const MONTH_NAMES = ["Jan", "Feb", "Mar", "Apr", "May", "Jun", "Jul", "Aug", "Sep", "Oct", "Nov", "Dec"];
 
-export function MonthPicker({ date, setDate, placeholder = "Pick a month", className }: MonthPickerProps) {
+export function MonthPicker({
+	date,
+	setDate,
+	placeholder = "Pick a month",
+	className,
+	align = "start",
+	customLabel,
+}: MonthPickerProps) {
 	const [viewYear, setViewYear] = React.useState<number>(new Date().getFullYear());
 	const [isOpen, setIsOpen] = React.useState(false);
 
@@ -38,13 +47,17 @@ export function MonthPicker({ date, setDate, placeholder = "Pick a month", class
 			<PopoverTrigger asChild>
 				<Button
 					variant={"outline"}
-					className={cn("w-full justify-start text-left font-normal", !date && "text-muted-foreground", className)}
+					className={cn(
+						"w-full justify-start text-left font-normal transform-none transition-none",
+						!date && "text-primary",
+						className
+					)}
 				>
-					<CalendarIcon className="mr-2 h-4 w-4" />
-					{date ? format(date, "MMMM yyyy") : <span>{placeholder}</span>}
+					{!customLabel && <CalendarIcon className="mr-2 h-4 w-4" />}
+					{customLabel ? customLabel : date ? format(date, "MMMM yyyy") : <span>{placeholder}</span>}
 				</Button>
 			</PopoverTrigger>
-			<PopoverContent className="w-64 p-3" align="start">
+			<PopoverContent className="w-64 p-3" align={align}>
 				{/* Year Navigation */}
 				<div className="flex items-center justify-between mb-2">
 					<Button variant="ghost" size="icon" className="h-7 w-7" onClick={() => setViewYear(viewYear - 1)}>

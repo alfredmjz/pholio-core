@@ -99,7 +99,7 @@ export function DonutChart({
 					fill="none"
 					stroke="currentColor"
 					strokeWidth={strokeWidth}
-					className="text-muted/20"
+					className="text-primary/20"
 				/>
 
 				{/* Data segments */}
@@ -129,7 +129,7 @@ export function DonutChart({
 			{/* Tooltip */}
 			{showTooltip && hoveredIndex !== null && segments[hoveredIndex] && (
 				<div
-					className="absolute bg-popover text-popover-foreground px-2 py-1 rounded shadow-md text-xs z-50 whitespace-nowrap pointer-events-none border border-border"
+					className="absolute bg-popover text-popover px-2 py-1 rounded shadow-md text-xs z-50 whitespace-nowrap pointer-events-none border border-border"
 					style={{
 						top: "50%",
 						left: "50%",
@@ -138,7 +138,7 @@ export function DonutChart({
 				>
 					<div className="font-semibold">{segments[hoveredIndex].name}</div>
 					<div>{formatCurrency(segments[hoveredIndex].value)}</div>
-					<div className="text-muted-foreground text-[10px]">{segments[hoveredIndex].percentage.toFixed(1)}%</div>
+					<div className="text-primary text-[10px]">{segments[hoveredIndex].percentage.toFixed(1)}%</div>
 				</div>
 			)}
 		</div>

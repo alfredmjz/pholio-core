@@ -104,15 +104,15 @@ export function AccountCard({ account, onClick }: AccountCardProps) {
 				<div className="flex items-start justify-between gap-4">
 					<div>
 						<div className="flex items-center gap-2 mb-1">
-							<span className="font-semibold truncate text-foreground text-sm">{account.name}</span>
+							<span className="font-semibold truncate text-primary text-sm">{account.name}</span>
 							<Badge
 								variant="secondary"
-								className="text-[10px] px-1.5 py-0 h-5 font-normal text-muted-foreground border-border/50 bg-secondary/50"
+								className="text-[10px] px-1.5 py-0 h-5 font-normal text-primary border-border/50 bg-secondary/50"
 							>
 								{getAccountTypeLabel()}
 							</Badge>
 						</div>
-						<div className="text-xs text-muted-foreground mb-3">{account.institution || "Generic Bank"}</div>
+						<div className="text-xs text-primary mb-3">{account.institution || "Generic Bank"}</div>
 					</div>
 
 					<div className="text-right">
@@ -131,15 +131,15 @@ export function AccountCard({ account, onClick }: AccountCardProps) {
 				{progress !== null && (
 					<div className="mt-2 space-y-1.5">
 						<div className="flex items-center justify-between text-xs font-medium">
-							<span className="text-muted-foreground">{accountClass === "asset" ? "Goal Progress" : "Repayment"}</span>
+							<span className="text-primary">{accountClass === "asset" ? "Goal Progress" : "Repayment"}</span>
 							<div className="flex items-center gap-1">
 								{contributionProgress > 0 ? (
 									<>
-										<span className="text-foreground">{(baseProgress ?? 0).toFixed(0)}%</span>
-										<span className="text-emerald-500"> + {contributionProgress.toFixed(0)}%</span>
+										<span className="text-primary">{(baseProgress ?? 0).toFixed(0)}%</span>
+										<span className="text-green-500"> + {contributionProgress.toFixed(0)}%</span>
 									</>
 								) : (
-									<span className="text-foreground">{progress.toFixed(0)}%</span>
+									<span className="text-primary">{progress.toFixed(0)}%</span>
 								)}
 							</div>
 						</div>
@@ -147,7 +147,7 @@ export function AccountCard({ account, onClick }: AccountCardProps) {
 							{/* Base Bar */}
 							<div
 								className={cn(
-									"h-full rounded-r-full transition-all duration-500",
+									"h-full transition-all duration-500",
 									accountClass === "asset" ? "bg-green-600 dark:bg-green-500" : "bg-red-500"
 								)}
 								style={{ width: `${Math.min(baseProgress || progress || 0, 100)}%` }}
@@ -155,7 +155,7 @@ export function AccountCard({ account, onClick }: AccountCardProps) {
 							{/* Contribution Segment (Assets only) */}
 							{contributionProgress > 0 && (
 								<div
-									className="h-full bg-green-500/30 border border-green-500 rounded-r-full -ml-0.5 box-border transition-all duration-500"
+									className="h-full bg-green-500/30 border border-green-500 rounded-r-full box-border transition-all duration-500"
 									style={{ width: `${Math.min(contributionProgress, 100 - (baseProgress || 0))}%` }}
 								/>
 							)}

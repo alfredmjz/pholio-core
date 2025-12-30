@@ -2,19 +2,19 @@
 
 import { useEffect, useState } from "react";
 import { useTheme } from "next-themes";
-import { Monitor, Moon, Sun, Globe, DollarSign, Bell } from "lucide-react";
+import { Monitor, Moon, Sun, Calendar } from "lucide-react";
 
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card";
 import { Label } from "@/components/ui/label";
 import { Switch } from "@/components/ui/switch";
-import {
-	Select,
-	SelectContent,
-	SelectItem,
-	SelectTrigger,
-	SelectValue,
-} from "@/components/ui/select";
+import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
 import { ToggleGroup, ToggleGroupItem } from "@/components/ui/toggle-group";
+import { toast } from "sonner";
+import {
+	getAllocationSettings,
+	updateAllocationSettings,
+	type AllocationNewMonthDefault,
+} from "@/app/settings/actions";
 
 export default function PreferencesCard() {
 	const { theme, setTheme } = useTheme();
@@ -26,9 +26,31 @@ export default function PreferencesCard() {
 	const [emailNotifications, setEmailNotifications] = useState(true);
 	const [pushNotifications, setPushNotifications] = useState(false);
 
+	// Allocation settings (persisted)
+	const [newMonthDefault, setNewMonthDefault] = useState<AllocationNewMonthDefault>("dialog");
+	const [isLoadingSettings, setIsLoadingSettings] = useState(true);
+
 	useEffect(() => {
 		setMounted(true);
+		// Load allocation settings
+		getAllocationSettings().then((settings) => {
+			setNewMonthDefault(settings.newMonthDefault);
+			setIsLoadingSettings(false);
+		});
 	}, []);
+
+	const handleNewMonthDefaultChange = async (value: AllocationNewMonthDefault) => {
+		const previousValue = newMonthDefault;
+		setNewMonthDefault(value);
+
+		const result = await updateAllocationSettings({ newMonthDefault: value });
+		if (!result.success) {
+			setNewMonthDefault(previousValue);
+			toast.error(result.error || "Failed to update setting");
+		} else {
+			toast.success("Setting updated");
+		}
+	};
 
 	if (!mounted) {
 		return null; // or a skeleton loader
@@ -38,18 +60,14 @@ export default function PreferencesCard() {
 		<Card>
 			<CardHeader>
 				<CardTitle>Preferences</CardTitle>
-				<CardDescription>
-					Customize your application experience
-				</CardDescription>
+				<CardDescription>Customize your application experience</CardDescription>
 			</CardHeader>
 			<CardContent className="space-y-8">
 				{/* Appearance Section */}
 				<div className="space-y-4">
 					<div>
 						<h3 className="text-sm font-medium leading-none mb-1">Appearance</h3>
-						<p className="text-sm text-muted-foreground">
-							Select your preferred theme for the application.
-						</p>
+						<p className="text-sm text-primary">Select your preferred theme for the application.</p>
 					</div>
 
 					<ToggleGroup
@@ -87,13 +105,41 @@ export default function PreferencesCard() {
 					</ToggleGroup>
 				</div>
 
+				{/* Allocations Section */}
+				<div className="space-y-4">
+					<div>
+						<h3 className="text-sm font-medium leading-none mb-1">Allocations</h3>
+						<p className="text-sm text-primary">Configure how new months are handled in budget allocations.</p>
+					</div>
+
+					<div className="space-y-2">
+						<Label htmlFor="newMonthDefault">New Month Default</Label>
+						<Select
+							value={newMonthDefault}
+							onValueChange={(value) => handleNewMonthDefaultChange(value as AllocationNewMonthDefault)}
+							disabled={isLoadingSettings}
+						>
+							<SelectTrigger id="newMonthDefault" className="w-full max-w-[300px]">
+								<SelectValue placeholder="Select default behavior" />
+							</SelectTrigger>
+							<SelectContent>
+								<SelectItem value="dialog">Ask me each time</SelectItem>
+								<SelectItem value="import_previous">Import from previous month</SelectItem>
+								<SelectItem value="template">Use default template</SelectItem>
+								<SelectItem value="fresh">Start fresh (blank)</SelectItem>
+							</SelectContent>
+						</Select>
+						<p className="text-xs text-muted-foreground">
+							This setting controls what happens when you navigate to a month without a budget.
+						</p>
+					</div>
+				</div>
+
 				{/* Regional Settings */}
 				<div className="space-y-4">
 					<div>
 						<h3 className="text-sm font-medium leading-none mb-1">Regional Settings</h3>
-						<p className="text-sm text-muted-foreground">
-							Set your preferred language and currency.
-						</p>
+						<p className="text-sm text-primary">Set your preferred language and currency.</p>
 					</div>
 
 					<div className="grid gap-4 md:grid-cols-2">
@@ -134,36 +180,24 @@ export default function PreferencesCard() {
 				<div className="space-y-4">
 					<div>
 						<h3 className="text-sm font-medium leading-none mb-1">Notifications</h3>
-						<p className="text-sm text-muted-foreground">
-							Manage how you want to receive alerts.
-						</p>
+						<p className="text-sm text-primary">Manage how you want to receive alerts.</p>
 					</div>
 
 					<div className="space-y-4">
-						<div className="flex items-center justify-between rounded-lg border p-4">
+						<div className="flex items-center justify-between rounded-lg border border-border p-4">
 							<div className="space-y-0.5">
 								<Label className="text-base">Email Notifications</Label>
-								<p className="text-sm text-muted-foreground">
-									Receive daily summaries and critical alerts.
-								</p>
+								<p className="text-sm text-primary">Receive daily summaries and critical alerts.</p>
 							</div>
-							<Switch
-								checked={emailNotifications}
-								onCheckedChange={setEmailNotifications}
-							/>
+							<Switch checked={emailNotifications} onCheckedChange={setEmailNotifications} />
 						</div>
 
-						<div className="flex items-center justify-between rounded-lg border p-4">
+						<div className="flex items-center justify-between rounded-lg border border-border p-4">
 							<div className="space-y-0.5">
 								<Label className="text-base">Push Notifications</Label>
-								<p className="text-sm text-muted-foreground">
-									Receive real-time alerts on your device.
-								</p>
+								<p className="text-sm text-primary">Receive real-time alerts on your device.</p>
 							</div>
-							<Switch
-								checked={pushNotifications}
-								onCheckedChange={setPushNotifications}
-							/>
+							<Switch checked={pushNotifications} onCheckedChange={setPushNotifications} />
 						</div>
 					</div>
 				</div>

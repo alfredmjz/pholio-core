@@ -25,17 +25,20 @@ export function PlaceholderBanner() {
 	};
 
 	// We control the visibility via the `open` prop
+	// Use sticky positioning so the banner stays centered within the content area
+	// rather than the entire viewport (which ignores the resizable sidebar)
 	return (
-		<div className="fixed top-6 left-1/2 -translate-x-1/2 z-50 w-full max-w-3xl px-4 pointer-events-none">
-			<div className="pointer-events-auto">
+		<div className="sticky top-0 z-50 w-full flex justify-center pointer-events-none pb-4">
+			<div className="pointer-events-auto max-w-3xl w-full px-4">
 				<Banner
 					open={isVisible}
 					onOpenChange={handleOpenChange}
-					className="bg-foreground text-background shadow-lg rounded-full py-2 pl-4 pr-2 border-none"
+					className="bg-primary text-background shadow-lg rounded-full py-2 pl-4 pr-2 border-none"
 				>
 					<BannerIcon icon={Info} className="text-background/80" />
 					<BannerTitle className="text-background">
-						<span className="font-semibold">Note:</span> MFA, Active Sessions, Regional Settings, Notifications and Data & Privacy are placeholders.
+						<span className="font-semibold">Note:</span> MFA, Active Sessions, Regional Settings, Notifications and Data
+						& Privacy are placeholders.
 					</BannerTitle>
 					<BannerClose className="text-background/70 hover:bg-background/20 hover:text-background rounded-full" />
 				</Banner>

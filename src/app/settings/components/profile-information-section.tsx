@@ -102,8 +102,8 @@ export default function ProfileInformationSection({ profile, userEmail }: Profil
 		<div className="space-y-6">
 			{/* Section Header */}
 			<div className="pb-3 border-b border-border">
-				<h2 className="text-lg font-semibold text-foreground">Profile Information</h2>
-				<p className="text-sm text-muted-foreground mt-1">
+				<h2 className="text-lg font-semibold text-primary">Profile Information</h2>
+				<p className="text-sm text-primary mt-1">
 					{profile?.is_guest ? "Your guest account information" : "Update your personal details"}
 				</p>
 			</div>
@@ -116,8 +116,8 @@ export default function ProfileInformationSection({ profile, userEmail }: Profil
 					isGuest={!!profile?.is_guest}
 				/>
 				<div>
-					<p className="text-sm font-medium text-foreground">{displayName}</p>
-					<p className="text-xs text-muted-foreground mt-0.5">{profile?.is_guest ? "Guest Account" : userEmail}</p>
+					<p className="text-sm font-medium text-primary">{displayName}</p>
+					<p className="text-xs text-primary mt-0.5">{profile?.is_guest ? "Guest Account" : userEmail}</p>
 				</div>
 			</div>
 
@@ -125,7 +125,7 @@ export default function ProfileInformationSection({ profile, userEmail }: Profil
 			<div className="space-y-5 max-w-md">
 				{/* Full Name Field */}
 				<div className="space-y-2">
-					<Label htmlFor="fullName" className="text-sm font-medium text-foreground">
+					<Label htmlFor="fullName" className="text-sm font-medium text-primary">
 						{profile?.is_guest ? "Display Name" : "Full Name"}
 					</Label>
 					{!isEditingName ? (
@@ -135,7 +135,7 @@ export default function ProfileInformationSection({ profile, userEmail }: Profil
 								profile?.is_guest && "opacity-60 cursor-not-allowed"
 							)}
 						>
-							<span className="text-sm text-foreground">{displayName}</span>
+							<span className="text-sm text-primary">{displayName}</span>
 							{!profile?.is_guest && (
 								<Button
 									variant="ghost"
@@ -183,21 +183,17 @@ export default function ProfileInformationSection({ profile, userEmail }: Profil
 
 				{/* Email Field (Read-only) */}
 				<div className="space-y-2">
-					<Label className="text-sm font-medium text-foreground">Email</Label>
+					<Label className="text-sm font-medium text-primary">Email</Label>
 					<div className="px-3 py-2.5 rounded-md border border-border bg-muted">
-						<p className="text-sm text-foreground">
-							{profile?.is_guest ? (
-								<span className="text-muted-foreground italic">No email (Guest Account)</span>
-							) : (
-								userEmail
-							)}
+						<p className="text-sm text-primary">
+							{profile?.is_guest ? <span className="text-primary italic">No email (Guest Account)</span> : userEmail}
 						</p>
 					</div>
 				</div>
 
 				{/* Member Since */}
 				<div className="pt-4 border-t border-border">
-					<p className="text-xs text-muted-foreground">
+					<p className="text-xs text-primary">
 						Member since {profile?.created_at ? formatDate(profile.created_at) : "N/A"}
 					</p>
 				</div>

@@ -51,10 +51,7 @@ function CompactTiptap({
 		},
 		editorProps: {
 			attributes: {
-				class: cn(
-					"prose-sm dark:prose-invert max-w-none focus:outline-none",
-					"min-h-[6rem] p-3 border-0 text-foreground"
-				),
+				class: cn("prose-sm dark:prose-invert max-w-none focus:outline-none", "min-h-[6rem] p-3 border-0 text-primary"),
 			},
 		},
 	});
@@ -64,8 +61,8 @@ function CompactTiptap({
 	}
 
 	return (
-		<div className={cn("border rounded-lg overflow-hidden", className)}>
-			<div className="border-b px-2 py-1.5 flex items-center gap-0.5 bg-muted/30">
+		<div className={cn("border border-border rounded-lg overflow-hidden", className)}>
+			<div className="border-b border-border px-2 py-1.5 flex items-center gap-0.5 bg-muted/30">
 				<Toggle
 					size="sm"
 					pressed={editor.isActive("bold")}

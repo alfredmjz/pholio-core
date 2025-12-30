@@ -100,7 +100,7 @@ export default function ProfileInformationCard({ profile, userEmail }: ProfileIn
 					</div>
 					<div>
 						<p className="text-sm font-medium">{displayName}</p>
-						<p className="text-xs text-muted-foreground mt-1">{profile?.is_guest ? "Guest Account" : userEmail}</p>
+						<p className="text-xs text-primary mt-1">{profile?.is_guest ? "Guest Account" : userEmail}</p>
 					</div>
 				</div>
 
@@ -156,21 +156,17 @@ export default function ProfileInformationCard({ profile, userEmail }: ProfileIn
 					<Label>Email</Label>
 					<div className="p-3 rounded-md border bg-muted/50">
 						<p className="text-sm">
-							{profile?.is_guest ? (
-								<span className="text-muted-foreground italic">No email (Guest Account)</span>
-							) : (
-								userEmail
-							)}
+							{profile?.is_guest ? <span className="text-primary italic">No email (Guest Account)</span> : userEmail}
 						</p>
 					</div>
 					{!profile?.is_guest && (
-						<p className="text-xs text-muted-foreground">To change your email, use the Security section below</p>
+						<p className="text-xs text-primary">To change your email, use the Security section below</p>
 					)}
 				</div>
 
 				{/* Member Since */}
 				<div className="pt-4 border-t">
-					<p className="text-sm text-muted-foreground">
+					<p className="text-sm text-primary">
 						Member since {profile?.created_at ? formatDate(profile.created_at) : "N/A"}
 					</p>
 				</div>

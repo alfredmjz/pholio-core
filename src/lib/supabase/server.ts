@@ -28,7 +28,6 @@ export async function createClient() {
 				} catch (e) {
 					// GOTCHA: setAll called from Server Component cannot set cookies
 					// This is expected - middleware handles session refresh
-					console.debug("[createClient] Failed to set cookies (expected in Server Components):", e);
 				}
 			},
 		},

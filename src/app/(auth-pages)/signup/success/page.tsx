@@ -68,7 +68,7 @@ function SuccessContent() {
 							<button
 								onClick={handleResend}
 								disabled={isResending}
-								className="font-medium text-secondary after:bg-primary/50 disabled:opacity-50 disabled:cursor-not-allowed underline-animation"
+								className="font-medium text-primary after:bg-primary/50 disabled:opacity-50 disabled:cursor-not-allowed underline-animation"
 							>
 								{isResending ? "Sending..." : "Resend"}
 							</button>

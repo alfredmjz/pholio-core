@@ -33,23 +33,20 @@ export function ThemeToggle({ isCollapsed }: ThemeToggleProps) {
 					<Button
 						variant="ghost"
 						size="icon"
-						className="w-8 h-8 rounded-md bg-transparent hover:bg-secondary-hover transition-colors"
+						className="w-8 h-8 rounded-md bg-transparent hover:bg-accent hover:text-accent-foreground transition-colors"
 						aria-label="Toggle theme"
 					>
 						<ThemeIcon className="h-4 w-4" />
 					</Button>
 				</PopoverTrigger>
-				<PopoverContent side="right" align="center" className="w-auto p-2" sideOffset={10}>
+				<PopoverContent side="right" align="center" className="border border-border w-auto p-2" sideOffset={10}>
 					<div className="flex flex-col gap-1">
-						<div className="px-2 py-1.5 text-xs font-semibold text-muted-foreground">Theme</div>
+						<div className="px-2 py-1.5 text-xs font-semibold text-primary">Theme</div>
 						<Button
 							variant="ghost"
 							size="sm"
 							onClick={() => setTheme("light")}
-							className={cn(
-								"justify-start gap-2 h-8 px-2 w-full",
-								theme === "light" && "bg-accent text-accent-foreground"
-							)}
+							className={cn("justify-start gap-2 h-8 px-2 w-full", theme === "light" && "bg-accent text-primary")}
 						>
 							<Sun className="h-4 w-4" />
 							<span>Light</span>
@@ -58,10 +55,7 @@ export function ThemeToggle({ isCollapsed }: ThemeToggleProps) {
 							variant="ghost"
 							size="sm"
 							onClick={() => setTheme("dark")}
-							className={cn(
-								"justify-start gap-2 h-8 px-2 w-full",
-								theme === "dark" && "bg-accent text-accent-foreground"
-							)}
+							className={cn("justify-start gap-2 h-8 px-2 w-full", theme === "dark" && "bg-accent text-primary")}
 						>
 							<Moon className="h-4 w-4" />
 							<span>Dark</span>
@@ -70,10 +64,7 @@ export function ThemeToggle({ isCollapsed }: ThemeToggleProps) {
 							variant="ghost"
 							size="sm"
 							onClick={() => setTheme("system")}
-							className={cn(
-								"justify-start gap-2 h-8 px-2 w-full",
-								theme === "system" && "bg-accent text-accent-foreground"
-							)}
+							className={cn("justify-start gap-2 h-8 px-2 w-full", theme === "system" && "bg-accent text-primary")}
 						>
 							<Monitor className="h-4 w-4" />
 							<span>System</span>
@@ -92,8 +83,8 @@ export function ThemeToggle({ isCollapsed }: ThemeToggleProps) {
 				type="button"
 				onClick={() => setTheme("light")}
 				className={cn(
-					"relative h-auto w-auto p-1.5 rounded-full text-muted-foreground transition-all duration-200 hover:bg-transparent hover:text-foreground",
-					theme === "light" && "bg-background text-foreground shadow-sm ring-1 ring-black/5"
+					"relative h-auto w-auto p-1.5 rounded-full text-primary transition-all duration-200 hover:bg-accent hover:text-accent-foreground",
+					theme === "light" && "bg-background shadow-sm ring-1 ring-black/5"
 				)}
 				aria-label="Light theme"
 			>
@@ -105,8 +96,8 @@ export function ThemeToggle({ isCollapsed }: ThemeToggleProps) {
 				type="button"
 				onClick={() => setTheme("dark")}
 				className={cn(
-					"relative h-auto w-auto p-1.5 rounded-full text-muted-foreground transition-all duration-200 hover:bg-transparent hover:text-foreground",
-					theme === "dark" && "bg-background text-foreground shadow-sm ring-1 ring-black/5"
+					"relative h-auto w-auto p-1.5 rounded-full text-primary transition-all duration-200 hover:bg-accent hover:text-accent-foreground",
+					theme === "dark" && "bg-background shadow-sm ring-1 ring-black/5"
 				)}
 				aria-label="Dark theme"
 			>
@@ -118,8 +109,8 @@ export function ThemeToggle({ isCollapsed }: ThemeToggleProps) {
 				type="button"
 				onClick={() => setTheme("system")}
 				className={cn(
-					"relative h-auto w-auto p-1.5 rounded-full text-muted-foreground transition-all duration-200 hover:bg-transparent hover:text-foreground",
-					theme === "system" && "bg-background text-foreground shadow-sm ring-1 ring-black/5"
+					"relative h-auto w-auto p-1.5 rounded-full text-primary transition-all duration-200 hover:bg-accent hover:text-accent-foreground",
+					theme === "system" && "bg-background shadow-sm ring-1 ring-black/5"
 				)}
 				aria-label="System theme"
 			>

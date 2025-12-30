@@ -50,7 +50,6 @@ export function useAuthForm({ action, validate, onSuccess, successMessage }: Use
 			} else {
 				if (result?.success) {
 					setSuccess(result.success);
-					setIsLoading(false);
 				}
 
 				if (successMessage || result?.success) {
@@ -58,6 +57,10 @@ export function useAuthForm({ action, validate, onSuccess, successMessage }: Use
 						description: successMessage || result?.success,
 					});
 				}
+
+				// Always reset loading state on success before calling onSuccess
+				// This ensures the UI updates even if navigation is slow or fails
+				setIsLoading(false);
 
 				if (onSuccess) {
 					onSuccess(result);

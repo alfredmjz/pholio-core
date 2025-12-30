@@ -19,7 +19,7 @@ interface MetricCardProps {
 const variantStyles = {
 	default: {
 		iconBg: "bg-muted",
-		iconColor: "text-muted-foreground",
+		iconColor: "text-primary",
 	},
 	success: {
 		iconBg: "bg-success-muted",
@@ -69,7 +69,7 @@ export function MetricCard({
 		<Card className={cn("p-6 bg-card border border-border hover:shadow-md transition-shadow duration-200", className)}>
 			{/* Icon + Label Row */}
 			<div className="flex items-center justify-between mb-3">
-				<span className="text-sm font-medium text-muted-foreground">{label}</span>
+				<span className="text-sm font-medium text-primary">{label}</span>
 				{icon && (
 					<div className={cn("p-2.5 rounded-lg", styles.iconBg)}>
 						<div className={styles.iconColor}>{icon}</div>
@@ -78,20 +78,20 @@ export function MetricCard({
 			</div>
 
 			{/* Value */}
-			<div className="text-3xl font-bold tracking-tight text-foreground mb-2">{formatCurrency(value)}</div>
+			<div className="text-3xl font-bold tracking-tight text-primary mb-2">{formatCurrency(value)}</div>
 
 			{/* Trend Indicator */}
 			{trend && (
 				<div className="flex items-center gap-1.5">
 					{trend.direction === "up" && <TrendingUp className="h-4 w-4 text-success" />}
 					{trend.direction === "down" && <TrendingDown className="h-4 w-4 text-error" />}
-					{trend.direction === "neutral" && <Minus className="h-4 w-4 text-muted-foreground" />}
+					{trend.direction === "neutral" && <Minus className="h-4 w-4 text-primary" />}
 					<span
 						className={cn(
 							"text-xs font-medium",
 							trend.direction === "up" && "text-success",
 							trend.direction === "down" && "text-error",
-							trend.direction === "neutral" && "text-muted-foreground"
+							trend.direction === "neutral" && "text-primary"
 						)}
 					>
 						{trend.value > 0 ? "+" : ""}

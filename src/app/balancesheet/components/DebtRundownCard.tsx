@@ -58,39 +58,41 @@ export function DebtRundownCard({
 				</div>
 			</div>
 
-			<div className="mt-6 w-full h-[120px] flex flex-col items-center justify-center">
-				<ResponsiveContainer width="100%" height="100%">
-					<LineChart data={historicalData} margin={{ top: 5, right: 5, left: 5, bottom: 5 }}>
-						<Line
-							type="monotone"
-							dataKey="value"
-							stroke="#f97316"
-							strokeWidth={2}
-							dot={(props: any) => {
-								const { cx, cy, payload } = props;
-								if (payload.hasActivity) {
-									return <circle cx={cx} cy={cy} r={3} fill="#f97316" stroke="none" />;
-								}
-								return <></>;
-							}}
-							isAnimationActive={false}
-							activeDot={{ r: 4, fill: "#f97316" }}
-						/>
-						<Tooltip
-							content={({ active, payload }) => {
-								if (active && payload && payload.length) {
-									return (
-										<div className="bg-background border rounded-lg p-2 shadow-md text-xs">
-											<div className="text-muted-foreground mb-1">{payload[0].payload.date}</div>
-											<div className="font-bold">{formatFullCurrency(Number(payload[0].value))}</div>
-										</div>
-									);
-								}
-								return null;
-							}}
-						/>
-					</LineChart>
-				</ResponsiveContainer>
+			<div className="mt-6 w-full flex flex-col items-center justify-center">
+				<div className="h-[120px] w-full min-h-[120px]">
+					<ResponsiveContainer width="100%" height="100%">
+						<LineChart data={historicalData} margin={{ top: 5, right: 5, left: 5, bottom: 5 }}>
+							<Line
+								type="monotone"
+								dataKey="value"
+								stroke="#f97316"
+								strokeWidth={2}
+								dot={(props: any) => {
+									const { cx, cy, payload } = props;
+									if (payload.hasActivity) {
+										return <circle cx={cx} cy={cy} r={3} fill="#f97316" stroke="none" />;
+									}
+									return <></>;
+								}}
+								isAnimationActive={false}
+								activeDot={{ r: 4, fill: "#f97316" }}
+							/>
+							<Tooltip
+								content={({ active, payload }) => {
+									if (active && payload && payload.length) {
+										return (
+											<div className="bg-background border rounded-lg p-2 shadow-md text-xs">
+												<div className="text-muted-foreground mb-1">{payload[0].payload.date}</div>
+												<div className="font-bold">{formatFullCurrency(Number(payload[0].value))}</div>
+											</div>
+										);
+									}
+									return null;
+								}}
+							/>
+						</LineChart>
+					</ResponsiveContainer>
+				</div>
 				<p className="text-[10px] text-primary mt-1 w-full text-left">Last 30 days</p>
 			</div>
 		</Card>

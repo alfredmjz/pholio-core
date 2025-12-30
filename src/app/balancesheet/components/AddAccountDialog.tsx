@@ -14,7 +14,7 @@ import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
 import { Popover, PopoverContent, PopoverTrigger } from "@/components/ui/popover";
 import { Command, CommandEmpty, CommandGroup, CommandInput, CommandItem, CommandList } from "@/components/ui/command";
-import { CompactTiptap } from "@/components/ui/shadcn-io/compact-tiptap";
+import { MinimalTiptap } from "@/components/ui/shadcn-io/minimal-tiptap";
 import { toast } from "sonner";
 import { Check, ChevronsUpDown, Plus, Wallet, Info } from "lucide-react";
 import { createAccount, getAccountTypes, createAccountType } from "../actions";
@@ -29,13 +29,19 @@ interface AddAccountDialogProps {
 	onSuccess: (account: AccountWithType) => void;
 }
 
+interface ValidationErrors {
+	name?: string;
+	account_type_id?: string;
+	current_balance?: string;
+	target_balance?: string;
+}
+
 export function AddAccountDialog({ open, onOpenChange, onSuccess }: AddAccountDialogProps) {
 	const [loading, setLoading] = useState(false);
 	const [accountType, setAccountType] = useState<AccountClass>("asset");
 	const [allAccountTypes, setAllAccountTypes] = useState<AccountType[]>([]);
-	const [formData, setFormData] = useState<Partial<CreateAccountInput>>({
-		current_balance: 0,
-	});
+	const [formData, setFormData] = useState<Partial<CreateAccountInput>>({});
+	const [errors, setErrors] = useState<ValidationErrors>({});
 	const [openCombobox, setOpenCombobox] = useState(false);
 	const [searchValue, setSearchValue] = useState("");
 
@@ -61,6 +67,7 @@ export function AddAccountDialog({ open, onOpenChange, onSuccess }: AddAccountDi
 			if (newType) {
 				setAllAccountTypes((prev) => [...prev, newType]);
 				setFormData({ ...formData, account_type_id: newType.id });
+				setErrors({ ...errors, account_type_id: undefined });
 				setOpenCombobox(false);
 				setSearchValue("");
 				toast.success(`Category "${searchValue}" created`);
@@ -74,15 +81,58 @@ export function AddAccountDialog({ open, onOpenChange, onSuccess }: AddAccountDi
 		}
 	};
 
+	const validateForm = (): boolean => {
+		const newErrors: ValidationErrors = {};
+		let isValid = true;
+
+		if (!formData.name?.trim()) {
+			newErrors.name = "Account name is required";
+			isValid = false;
+		}
+
+		if (!formData.account_type_id) {
+			newErrors.account_type_id = "Category is required";
+			isValid = false;
+		}
+
+		if (formData.current_balance === undefined || formData.current_balance === null) {
+			newErrors.current_balance = "Current balance is required";
+			isValid = false;
+		}
+
+		// Target balance is required for assets, but optional (or 0) for liabilities
+		if (accountType === "asset") {
+			if (formData.target_balance === undefined || formData.target_balance === null) {
+				newErrors.target_balance = "Target goal is required";
+				isValid = false;
+			}
+		}
+
+		setErrors(newErrors);
+
+		if (!isValid) {
+			toast.error("Please fill in all required fields", {
+				description: "Check the form for displayed errors.",
+			});
+		}
+
+		return isValid;
+	};
+
 	const handleSubmit = async (e: React.FormEvent) => {
 		e.preventDefault();
+
+		if (!validateForm()) {
+			return;
+		}
+
 		setLoading(true);
 
 		try {
 			const input: CreateAccountInput = {
 				name: formData.name!,
 				account_type_id: formData.account_type_id!,
-				current_balance: formData.current_balance || 0,
+				current_balance: formData.current_balance!,
 				interest_rate: formData.interest_rate || null,
 				interest_type: formData.interest_rate ? "compound" : null,
 				target_balance: formData.target_balance || null,
@@ -97,7 +147,8 @@ export function AddAccountDialog({ open, onOpenChange, onSuccess }: AddAccountDi
 				onOpenChange(false);
 				onSuccess(result);
 				// Reset form
-				setFormData({ current_balance: accountType === "asset" ? 0 : undefined });
+				setFormData({});
+				setErrors({});
 				setSearchValue("");
 			} else {
 				toast.error("Failed to create account");
@@ -144,8 +195,9 @@ export function AddAccountDialog({ open, onOpenChange, onSuccess }: AddAccountDi
 								setFormData({
 									...formData,
 									account_type_id: undefined,
-									current_balance: val === "asset" ? 0 : undefined,
+									current_balance: undefined,
 								});
+								setErrors({});
 							}}
 						/>
 					</FormSection>
@@ -154,19 +206,26 @@ export function AddAccountDialog({ open, onOpenChange, onSuccess }: AddAccountDi
 					<FormSection icon={<Info />} title="Account Details" variant="subtle">
 						<div className="grid grid-cols-2 gap-4">
 							<div className="space-y-2">
-								<Label htmlFor="name">Account Name *</Label>
+								<Label htmlFor="name">
+									Account Name <span className="text-error">*</span>
+								</Label>
 								<Input
 									id="name"
 									placeholder="Emergency Fund"
 									value={formData.name || ""}
-									onChange={(e) => setFormData({ ...formData, name: e.target.value })}
-									required
-									className="h-10"
+									onChange={(e) => {
+										setFormData({ ...formData, name: e.target.value });
+										if (errors.name) setErrors({ ...errors, name: undefined });
+									}}
+									className={cn("h-10", errors.name && "border-error")}
 								/>
+								{errors.name && <p className="text-sm text-error">{errors.name}</p>}
 							</div>
 
 							<div className="space-y-2">
-								<Label htmlFor="type-id">Category *</Label>
+								<Label htmlFor="type-id">
+									Category <span className="text-error">*</span>
+								</Label>
 								<Popover open={openCombobox} onOpenChange={setOpenCombobox}>
 									<PopoverTrigger asChild>
 										<Button
@@ -175,7 +234,8 @@ export function AddAccountDialog({ open, onOpenChange, onSuccess }: AddAccountDi
 											aria-expanded={openCombobox}
 											className={cn(
 												"w-full justify-between h-10",
-												!formData.account_type_id && formData.name && "border-error"
+												!formData.account_type_id && !errors.account_type_id && "text-muted-foreground",
+												errors.account_type_id && "border-error"
 											)}
 										>
 											{selectedType ? selectedType.name : "Select category"}
@@ -207,6 +267,7 @@ export function AddAccountDialog({ open, onOpenChange, onSuccess }: AddAccountDi
 															value={type.id}
 															onSelect={() => {
 																setFormData({ ...formData, account_type_id: type.id });
+																setErrors({ ...errors, account_type_id: undefined });
 																setOpenCombobox(false);
 															}}
 														>
@@ -224,12 +285,15 @@ export function AddAccountDialog({ open, onOpenChange, onSuccess }: AddAccountDi
 										</Command>
 									</PopoverContent>
 								</Popover>
+								{errors.account_type_id && <p className="text-sm text-error">{errors.account_type_id}</p>}
 							</div>
 						</div>
 
 						<div className="grid grid-cols-2 gap-4">
 							<div className="space-y-2">
-								<Label htmlFor="balance">Current Balance *</Label>
+								<Label htmlFor="balance">
+									Current Balance <span className="text-error">*</span>
+								</Label>
 								<Input
 									id="balance"
 									type="number"
@@ -237,33 +301,42 @@ export function AddAccountDialog({ open, onOpenChange, onSuccess }: AddAccountDi
 									step="0.01"
 									placeholder="0.00"
 									value={formData.current_balance ?? ""}
-									onChange={(e) =>
-										setFormData({ ...formData, current_balance: e.target.value ? parseFloat(e.target.value) : 0 })
-									}
-									required
-									className="h-10"
+									onChange={(e) => {
+										const val = e.target.value === "" ? undefined : parseFloat(e.target.value);
+										setFormData({ ...formData, current_balance: val });
+										if (errors.current_balance) setErrors({ ...errors, current_balance: undefined });
+									}}
+									className={cn("h-10", errors.current_balance && "border-error")}
 								/>
+								{errors.current_balance && <p className="text-sm text-error">{errors.current_balance}</p>}
 							</div>
 
 							<div className="space-y-2">
-								<Label htmlFor="target">{accountType === "asset" ? "Target Goal *" : "Original Amount *"}</Label>
+								<Label htmlFor="target">
+									{accountType === "asset" ? "Target Goal" : "Original Amount"}{" "}
+									{accountType === "asset" && <span className="text-error">*</span>}
+								</Label>
 								<Input
 									id="target"
 									type="number"
 									inputMode="decimal"
 									step="0.01"
 									placeholder="0.00"
-									value={formData.target_balance || ""}
-									onChange={(e) => setFormData({ ...formData, target_balance: parseFloat(e.target.value) || null })}
-									required
-									className="h-10"
+									value={formData.target_balance ?? ""}
+									onChange={(e) => {
+										const val = e.target.value === "" ? undefined : parseFloat(e.target.value);
+										setFormData({ ...formData, target_balance: val });
+										if (errors.target_balance) setErrors({ ...errors, target_balance: undefined });
+									}}
+									className={cn("h-10", errors.target_balance && "border-error")}
 								/>
+								{errors.target_balance && <p className="text-sm text-error">{errors.target_balance}</p>}
 							</div>
 						</div>
 
 						<div className="grid grid-cols-2 gap-4">
 							<div className="space-y-2">
-								<Label htmlFor="interest">Interest Rate (APR/APY %)</Label>
+								<Label htmlFor="interest">Interest Rate ({accountType === "asset" ? "APY" : "APR"} %)</Label>
 								<Input
 									id="interest"
 									type="number"
@@ -295,7 +368,7 @@ export function AddAccountDialog({ open, onOpenChange, onSuccess }: AddAccountDi
 					<FormSection variant="subtle">
 						<div className="space-y-2">
 							<Label>Notes</Label>
-							<CompactTiptap
+							<MinimalTiptap
 								content={formData.notes || ""}
 								onChange={(content) => setFormData({ ...formData, notes: content })}
 								placeholder="Additional information about this account..."
@@ -307,7 +380,7 @@ export function AddAccountDialog({ open, onOpenChange, onSuccess }: AddAccountDi
 						<Button type="button" variant="outline" onClick={() => onOpenChange(false)} disabled={loading}>
 							Cancel
 						</Button>
-						<Button type="submit" disabled={loading || !formData.name || !formData.account_type_id}>
+						<Button type="submit" disabled={loading}>
 							{loading ? "Creating..." : "Create Account"}
 						</Button>
 					</DialogFooter>

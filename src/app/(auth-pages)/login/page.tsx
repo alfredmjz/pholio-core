@@ -13,24 +13,35 @@ import { useAuthForm } from "@/hooks/use-auth-form";
 export default function Page() {
 	const router = useRouter();
 	const [isGuestLoading, setIsGuestLoading] = useState(false);
+	const [fieldErrors, setFieldErrors] = useState<{ email?: string; password?: string }>({});
 
 	const validate = (formData: FormData): string | null => {
 		const email = formData.get("email") as string;
 		const password = formData.get("password") as string;
 		const emailRegex = /^[^\s@]+@[^\s@]+\.[^\s@]+$/;
+		const newErrors: { email?: string; password?: string } = {};
+		let hasError = false;
 
-		if (!email || !emailRegex.test(email)) {
-			toast.error("Invalid Email", {
-				description: "Please enter a valid email address.",
-			});
-			return "Invalid Email";
+		if (!email) {
+			newErrors.email = "Email is required";
+			hasError = true;
+		} else if (!emailRegex.test(email)) {
+			newErrors.email = "Please enter a valid email address";
+			hasError = true;
 		}
 
 		if (!password) {
-			toast.error("Password Required", {
-				description: "Please enter your password.",
+			newErrors.password = "Password is required";
+			hasError = true;
+		}
+
+		setFieldErrors(newErrors);
+
+		if (hasError) {
+			toast.error("Please fill in all required fields", {
+				description: "Check the form for displayed errors.",
 			});
-			return "Password Required";
+			return "Validation Failed";
 		}
 		return null;
 	};
@@ -97,7 +108,12 @@ export default function Page() {
 										label="Email"
 										required
 										className="border-border focus-visible:ring-offset-0 focus-visible:ring-ring bg-card/80"
+										hasError={!!fieldErrors.email}
+										onChange={() => {
+											if (fieldErrors.email) setFieldErrors({ ...fieldErrors, email: undefined });
+										}}
 									/>
+									{fieldErrors.email && <p className="text-xs text-error">{fieldErrors.email}</p>}
 								</div>
 								<div className="grid gap-2">
 									<FloatingLabelInput
@@ -107,7 +123,12 @@ export default function Page() {
 										label="Password"
 										required
 										className="border-border focus-visible:ring-offset-0 focus-visible:ring-ring bg-card/80"
+										hasError={!!fieldErrors.password}
+										onChange={() => {
+											if (fieldErrors.password) setFieldErrors({ ...fieldErrors, password: undefined });
+										}}
 									/>
+									{fieldErrors.password && <p className="text-xs text-error">{fieldErrors.password}</p>}
 									<div className="pl-1 flex justify-start">
 										<Link href="/forgot-password" className="font-medium text-xs text-primary underline-animation">
 											Forgot password?

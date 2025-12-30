@@ -14,40 +14,49 @@ import { useAuthForm } from "@/hooks/use-auth-form";
 export default function Page() {
 	const router = useRouter();
 	const [isGuestLoading, setIsGuestLoading] = useState(false);
+	const [fieldErrors, setFieldErrors] = useState<{
+		fullName?: string;
+		email?: string;
+		password?: string;
+		repeatPassword?: string;
+	}>({});
 
 	const validate = (formData: FormData): string | null => {
 		const password = formData.get("password") as string;
 		const repeatPassword = formData.get("repeatPassword") as string;
 		const email = formData.get("email") as string;
 		const fullName = formData.get("fullName") as string;
+		const newErrors: typeof fieldErrors = {};
+		let hasError = false;
 
 		if (!fullName || fullName.trim().length < 2) {
-			toast.error("Invalid Name", {
-				description: "Please enter your full name (at least 2 characters).",
-			});
-			return "Invalid Name";
+			newErrors.fullName = "Full name must be at least 2 characters";
+			hasError = true;
 		}
 
 		const emailRegex = /^[^\s@]+@[^\s@]+\.[^\s@]+$/;
 		if (!email || !emailRegex.test(email)) {
-			toast.error("Invalid Email", {
-				description: "Please enter a valid email address.",
-			});
-			return "Invalid Email";
+			newErrors.email = "Please enter a valid email address";
+			hasError = true;
 		}
 
-		if (password.length < 8) {
-			toast.error("Weak Password", {
-				description: "Password must be at least 8 characters long.",
-			});
-			return "Weak Password";
+		if (!password || password.length < 8) {
+			newErrors.password = "Password must be at least 8 characters long";
+			hasError = true;
 		}
 
 		if (password !== repeatPassword) {
-			toast.error("Passwords do not match", {
-				description: "Please ensure both passwords are the same.",
+			newErrors.repeatPassword = "Passwords do not match";
+			hasError = true;
+		}
+
+		setFieldErrors(newErrors);
+
+		if (hasError) {
+			toast.error("Please fill in all required fields", {
+				description: "Check the form for displayed errors.",
 			});
-			return "Passwords do not match";
+			return "Validation Failed";
 		}
 
 		return null;
@@ -101,7 +110,12 @@ export default function Page() {
 										label="Full Name"
 										required
 										className="border-border focus-visible:ring-offset-0 focus-visible:ring-ring bg-card/80"
+										hasError={!!fieldErrors.fullName}
+										onChange={() => {
+											if (fieldErrors.fullName) setFieldErrors({ ...fieldErrors, fullName: undefined });
+										}}
 									/>
+									{fieldErrors.fullName && <p className="text-xs text-error">{fieldErrors.fullName}</p>}
 									<FloatingLabelInput
 										id="email"
 										name="email"
@@ -109,25 +123,44 @@ export default function Page() {
 										label="Email"
 										required
 										className="border-border focus-visible:ring-offset-0 focus-visible:ring-ring bg-card/80"
+										hasError={!!fieldErrors.email}
+										onChange={() => {
+											if (fieldErrors.email) setFieldErrors({ ...fieldErrors, email: undefined });
+										}}
 									/>
+									{fieldErrors.email && <p className="text-xs text-error">{fieldErrors.email}</p>}
 								</div>
 								<div className="flex flex-row gap-2">
-									<FloatingLabelInput
-										id="password"
-										name="password"
-										type="password"
-										label="Password"
-										required
-										className="border-border focus-visible:ring-offset-0 focus-visible:ring-ring bg-card/80"
-									/>
-									<FloatingLabelInput
-										id="repeatPassword"
-										name="repeatPassword"
-										type="password"
-										label="Repeat Password"
-										required
-										className="border-border focus-visible:ring-offset-0 focus-visible:ring-ring bg-card/80"
-									/>
+									<div className="flex-1">
+										<FloatingLabelInput
+											id="password"
+											name="password"
+											type="password"
+											label="Password"
+											required
+											className="border-border focus-visible:ring-offset-0 focus-visible:ring-ring bg-card/80"
+											hasError={!!fieldErrors.password}
+											onChange={() => {
+												if (fieldErrors.password) setFieldErrors({ ...fieldErrors, password: undefined });
+											}}
+										/>
+										{fieldErrors.password && <p className="text-xs text-error">{fieldErrors.password}</p>}
+									</div>
+									<div className="flex-1">
+										<FloatingLabelInput
+											id="repeatPassword"
+											name="repeatPassword"
+											type="password"
+											label="Repeat Password"
+											required
+											className="border-border focus-visible:ring-offset-0 focus-visible:ring-ring bg-card/80"
+											hasError={!!fieldErrors.repeatPassword}
+											onChange={() => {
+												if (fieldErrors.repeatPassword) setFieldErrors({ ...fieldErrors, repeatPassword: undefined });
+											}}
+										/>
+										{fieldErrors.repeatPassword && <p className="text-xs text-error">{fieldErrors.repeatPassword}</p>}
+									</div>
 								</div>
 
 								{error && (

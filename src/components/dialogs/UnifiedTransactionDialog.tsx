@@ -24,6 +24,7 @@ import type { UnifiedTransactionInput } from "@/lib/types/unified-transaction";
 import { FormSection } from "@/components/FormSection";
 import { ProminentAmountInput } from "@/components/ProminentAmountInput";
 import { CardSelector } from "@/components/CardSelector";
+import { cn } from "@/lib/utils";
 
 interface UnifiedTransactionDialogProps {
 	open: boolean;
@@ -36,6 +37,13 @@ interface UnifiedTransactionDialogProps {
 	defaultType?: "income" | "expense";
 	onSuccess?: () => void;
 	context?: "balancesheet" | "allocations";
+}
+
+interface ValidationErrors {
+	description?: string;
+	amount?: string;
+	date?: string;
+	accountId?: string;
 }
 
 export function UnifiedTransactionDialog({
@@ -65,6 +73,7 @@ export function UnifiedTransactionDialog({
 	const [accountId, setAccountId] = useState<string>(defaultAccountId || "none");
 	const [notes, setNotes] = useState("");
 	const [suggestedAccountInfo, setSuggestedAccountInfo] = useState<string | null>(null);
+	const [errors, setErrors] = useState<ValidationErrors>({});
 
 	useEffect(() => {
 		if (open) {
@@ -76,6 +85,7 @@ export function UnifiedTransactionDialog({
 			setAccountId(defaultAccountId || "none");
 			setNotes("");
 			setSuggestedAccountInfo(null);
+			setErrors({});
 		}
 	}, [open, defaultDate, defaultCategoryId, defaultAccountId, defaultType]);
 
@@ -102,16 +112,45 @@ export function UnifiedTransactionDialog({
 		loadSuggestedAccount();
 	}, [categoryId]);
 
-	const handleSubmit = async (e: React.FormEvent) => {
-		e.preventDefault();
+	const validateForm = (): boolean => {
+		const newErrors: ValidationErrors = {};
+		let isValid = true;
 
-		if (!description || !amount || !date) {
-			toast.error("Please fill in all required fields");
-			return;
+		if (!description.trim()) {
+			newErrors.description = "Description is required";
+			isValid = false;
+		}
+
+		if (!amount || parseFloat(amount) <= 0) {
+			newErrors.amount = "Valid amount is required";
+			isValid = false;
+		}
+
+		if (!date) {
+			newErrors.date = "Date is required";
+			isValid = false;
 		}
 
 		if (accountRequired && (accountId === "none" || !accountId)) {
-			toast.error("Please select an account");
+			newErrors.accountId = "Account is required";
+			isValid = false;
+		}
+
+		setErrors(newErrors);
+
+		if (!isValid) {
+			toast.error("Please fill in all required fields", {
+				description: "Check the form for displayed errors.",
+			});
+		}
+
+		return isValid;
+	};
+
+	const handleSubmit = async (e: React.FormEvent) => {
+		e.preventDefault();
+
+		if (!validateForm()) {
 			return;
 		}
 
@@ -188,32 +227,53 @@ export function UnifiedTransactionDialog({
 					<FormSection icon={<Info />} title="Transaction Details" variant="subtle">
 						<div className="flex flex-row justify-between gap-4">
 							<div className="flex-1 space-y-2">
-								<Label htmlFor="date">Date *</Label>
+								<Label htmlFor="date">
+									Date <span className="text-error">*</span>
+								</Label>
 								<DatePicker id="date" value={date} onChange={setDate} placeholder="Select transaction date" />
+								{errors.date && <p className="text-sm text-error">{errors.date}</p>}
 							</div>
 
 							<div className="flex-1 space-y-2">
-								<Label htmlFor="description">Description *</Label>
+								<Label htmlFor="description">
+									Description <span className="text-error">*</span>
+								</Label>
 								<Input
 									id="description"
 									placeholder="e.g. Grocery Store"
 									value={description}
-									onChange={(e) => setDescription(e.target.value)}
+									onChange={(e) => {
+										setDescription(e.target.value);
+										if (errors.description) setErrors({ ...errors, description: undefined });
+									}}
 									required
-									className="h-10"
+									className={cn("h-10", errors.description && "border-error")}
 								/>
+								{errors.description && <p className="text-sm text-error">{errors.description}</p>}
 							</div>
 						</div>
 
 						<div className="space-y-2">
-							<Label htmlFor="date">Amount</Label>
-							<ProminentAmountInput value={amount} onChange={setAmount} id="amount" />
+							<Label htmlFor="amount">
+								Amount <span className="text-error">*</span>
+							</Label>
+							<ProminentAmountInput
+								value={amount}
+								onChange={(val) => {
+									setAmount(val);
+									if (errors.amount) setErrors({ ...errors, amount: undefined });
+								}}
+								id="amount"
+								hasError={!!errors.amount}
+							/>
+							{errors.amount && <p className="text-sm text-error">{errors.amount}</p>}
 						</div>
 					</FormSection>
 
 					<div className="space-y-2">
 						<Label htmlFor="category">
-							Budget Category{categoryRequired && " *"}
+							Budget Category{categoryRequired && <span className="text-error">*</span>}
+							{categoryRequired && !categoryDisabled && " "}
 							{categoryDisabled && (
 								<span className="ml-2 text-xs text-primary">(Not applicable for balance sheet)</span>
 							)}
@@ -246,9 +306,18 @@ export function UnifiedTransactionDialog({
 					</div>
 
 					<div className="space-y-2">
-						<Label htmlFor="account">Account{accountRequired ? " *" : " (Optional)"}</Label>
-						<Select value={accountId} onValueChange={setAccountId}>
-							<SelectTrigger>
+						<Label htmlFor="account">
+							Account
+							{accountRequired ? <span className="text-error">*</span> : " (Optional)"}
+						</Label>
+						<Select
+							value={accountId}
+							onValueChange={(val) => {
+								setAccountId(val);
+								if (errors.accountId) setErrors({ ...errors, accountId: undefined });
+							}}
+						>
+							<SelectTrigger className={cn(errors.accountId && "border-error")}>
 								<SelectValue placeholder={accountRequired ? "Select an account" : "No account selected"} />
 							</SelectTrigger>
 							<SelectContent>
@@ -261,6 +330,7 @@ export function UnifiedTransactionDialog({
 							</SelectContent>
 						</Select>
 						{suggestedAccountInfo && <p className="text-xs text-primary">{suggestedAccountInfo}</p>}
+						{errors.accountId && <p className="text-sm text-error">{errors.accountId}</p>}
 					</div>
 
 					{accountId === "none" && categoryId !== "uncategorized" && (

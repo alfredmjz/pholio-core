@@ -12,6 +12,7 @@ interface ProminentAmountInputProps {
 	currency?: string;
 	className?: string;
 	id?: string;
+	hasError?: boolean;
 }
 
 export function ProminentAmountInput({
@@ -21,6 +22,7 @@ export function ProminentAmountInput({
 	currency = "$",
 	className,
 	id,
+	hasError,
 }: ProminentAmountInputProps) {
 	return (
 		<div className={cn("space-y-2", className)}>
@@ -53,7 +55,7 @@ export function ProminentAmountInput({
 							onChange(inputValue);
 						}
 					}}
-					className="pl-16 py-4 text-2xl font-bold tracking-tight border-2 h-auto"
+					className={cn("pl-16 py-4 text-2xl font-bold tracking-tight border-2 h-auto", hasError ? "border-error" : "")}
 				/>
 			</div>
 		</div>

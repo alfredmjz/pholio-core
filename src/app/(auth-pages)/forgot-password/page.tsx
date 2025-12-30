@@ -10,14 +10,29 @@ import { toast } from "sonner";
 import { useAuthForm } from "@/hooks/use-auth-form";
 
 export default function ForgotPasswordPage() {
+	const [fieldErrors, setFieldErrors] = useState<{ email?: string }>({});
+
 	const validate = (formData: FormData): string | null => {
 		const email = formData.get("email") as string;
 		const emailRegex = /^[^\s@]+@[^\s@]+\.[^\s@]+$/;
-		if (!email || !emailRegex.test(email)) {
-			toast.error("Invalid Email", {
-				description: "Please enter a valid email address.",
+		let hasError = false;
+		const newErrors: { email?: string } = {};
+
+		if (!email) {
+			newErrors.email = "Email is required";
+			hasError = true;
+		} else if (!emailRegex.test(email)) {
+			newErrors.email = "Please enter a valid email address";
+			hasError = true;
+		}
+
+		setFieldErrors(newErrors);
+
+		if (hasError) {
+			toast.error("Please fill in all required fields", {
+				description: "Check the form for displayed errors.",
 			});
-			return "Invalid Email";
+			return "Validation Failed";
 		}
 		return null;
 	};
@@ -46,7 +61,12 @@ export default function ForgotPasswordPage() {
 										label="Email"
 										required
 										className="border-border focus-visible:ring-offset-0 focus-visible:ring-ring bg-card/80"
+										hasError={!!fieldErrors.email}
+										onChange={() => {
+											if (fieldErrors.email) setFieldErrors({ ...fieldErrors, email: undefined });
+										}}
 									/>
+									{fieldErrors.email && <p className="text-xs text-error">{fieldErrors.email}</p>}
 								</div>
 								{error && (
 									<div className="p-3 text-sm text-error bg-error/10 rounded-md border border-error/20">{error}</div>

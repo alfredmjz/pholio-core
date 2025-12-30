@@ -46,7 +46,7 @@ export function RecurringLoadingSkeleton() {
 
 					{/* Subscription List Skeleton */}
 					<Card>
-						<div className="divide-y">
+						<div className="border border-border">
 							{[1, 2, 3, 4, 5].map((i) => (
 								<div key={i} className="flex items-center justify-between p-4">
 									<div className="flex items-center gap-4">

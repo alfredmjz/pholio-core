@@ -135,7 +135,7 @@ export default function DataPrivacyCard() {
 									</AlertDialogHeader>
 									<AlertDialogFooter>
 										<AlertDialogCancel>Cancel</AlertDialogCancel>
-										<AlertDialogAction onClick={handleDeleteAccount} className="bg-error text-error hover:bg-error/90">
+										<AlertDialogAction onClick={handleDeleteAccount} className="bg-error hover:bg-error/90">
 											Yes, delete my account
 										</AlertDialogAction>
 									</AlertDialogFooter>

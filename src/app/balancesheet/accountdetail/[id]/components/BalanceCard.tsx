@@ -30,7 +30,7 @@ export function BalanceCard({ account, accountClass, formatCurrency }: BalanceCa
 
 	return (
 		<Card className="p-6">
-			<div className="flex flex-col gap-4">
+			<div className="flex flex-col gap-6">
 				{/* Balance Header */}
 				<div className="flex items-start justify-between gap-4">
 					<div className="flex flex-col gap-1">

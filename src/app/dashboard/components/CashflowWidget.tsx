@@ -19,6 +19,7 @@ interface CashflowWidgetProps {
 	netCashflow: number;
 	selectedPeriod: Period;
 	onPeriodChange: (period: Period) => void;
+	onAddTransaction?: () => void;
 	loading?: boolean;
 	className?: string;
 }
@@ -82,6 +83,7 @@ export function CashflowWidget({
 	netCashflow,
 	selectedPeriod,
 	onPeriodChange,
+	onAddTransaction,
 	loading = false,
 	className,
 }: CashflowWidgetProps) {
@@ -159,15 +161,9 @@ export function CashflowWidget({
 							<ResponsiveContainer width="100%" height="100%">
 								<BarChart data={data} margin={{ top: 10, right: 10, left: -10, bottom: 0 }} barGap={4}>
 									<CartesianGrid strokeDasharray="3 3" stroke="hsl(var(--border))" vertical={false} />
-									<XAxis
-										dataKey="label"
-										stroke="hsl(var(--text-primary))"
-										fontSize={12}
-										tickLine={false}
-										axisLine={false}
-									/>
+									<XAxis dataKey="label" stroke="hsl(var(--primary))" fontSize={12} tickLine={false} axisLine={false} />
 									<YAxis
-										stroke="hsl(var(--text-primary))"
+										stroke="hsl(var(--primary))"
 										fontSize={12}
 										tickLine={false}
 										axisLine={false}
@@ -202,13 +198,13 @@ export function CashflowWidget({
 					</div>
 				</>
 			) : (
-				<EmptyState />
+				<EmptyState onAddTransaction={onAddTransaction} />
 			)}
 		</Card>
 	);
 }
 
-function EmptyState() {
+function EmptyState({ onAddTransaction }: { onAddTransaction?: () => void }) {
 	return (
 		<div className="h-72 flex flex-col items-center justify-center text-center">
 			<div className="p-4 rounded-full bg-muted mb-4">
@@ -218,7 +214,7 @@ function EmptyState() {
 			<p className="text-sm text-primary mb-4 max-w-sm">
 				Start tracking your income and expenses to see your cashflow trends
 			</p>
-			<Button size="sm" className="gap-2 bg-green-600 hover:bg-green-700 text-white">
+			<Button size="sm" className="gap-2 bg-green-600 hover:bg-green-700 text-white" onClick={onAddTransaction}>
 				<Plus className="h-4 w-4" />
 				Add Transaction
 			</Button>

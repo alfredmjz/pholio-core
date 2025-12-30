@@ -160,8 +160,8 @@ export function AddAccountDialog({ open, onOpenChange, onSuccess }: AddAccountDi
 		}
 	};
 
-	const availableTypes = allAccountTypes.filter((t) => t.class === accountType);
-	const selectedType = allAccountTypes.find((t) => t.id === formData.account_type_id);
+	const availableTypes = (allAccountTypes || []).filter((t) => t.class === accountType);
+	const selectedType = (allAccountTypes || []).find((t) => t.id === formData.account_type_id);
 
 	return (
 		<Dialog open={open} onOpenChange={onOpenChange}>

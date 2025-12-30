@@ -58,6 +58,52 @@ export function AllocationsLoadingSkeleton() {
 						</div>
 					</div>
 				</div>
+
+				{/* Transaction Ledger Skeleton */}
+				<div className="rounded-xl border border-border bg-card text-card shadow p-6 mt-6">
+					{/* Header */}
+					<div className="mb-4">
+						<Skeleton className="h-5 w-40 mb-1" />
+						<Skeleton className="h-3 w-48" />
+					</div>
+
+					{/* Filters */}
+					<div className="flex gap-3 mb-6">
+						<Skeleton className="h-10 flex-1 max-w-md" />
+						<Skeleton className="h-10 w-48" />
+						<Skeleton className="h-10 w-44" />
+						<Skeleton className="h-10 w-10" />
+					</div>
+
+					{/* Table Skeleton */}
+					<div className="border border-border rounded-lg overflow-hidden">
+						{/* Table Header */}
+						<div className="bg-muted/50 border-b border-border p-3 flex justify-between">
+							<Skeleton className="h-4 w-16" />
+							<Skeleton className="h-4 w-32" />
+							<Skeleton className="h-4 w-24" />
+							<Skeleton className="h-4 w-16" />
+							<Skeleton className="h-4 w-20" />
+						</div>
+
+						{/* Table Rows */}
+						{[1, 2, 3, 4, 5].map((i) => (
+							<div
+								key={i}
+								className="p-4 flex items-center justify-between border-b border-border last:border-0 hover:bg-muted/30"
+							>
+								<Skeleton className="h-4 w-20" /> {/* Date */}
+								<div className="flex-1 px-4">
+									<Skeleton className="h-4 w-48 mb-1" /> {/* Name */}
+									<Skeleton className="h-3 w-24" /> {/* Notes */}
+								</div>
+								<Skeleton className="h-6 w-24 mx-4" /> {/* Category Badge */}
+								<Skeleton className="h-5 w-20 mx-4" /> {/* Type */}
+								<Skeleton className="h-5 w-20 text-right" /> {/* Amount */}
+							</div>
+						))}
+					</div>
+				</div>
 			</PageContent>
 		</PageShell>
 	);

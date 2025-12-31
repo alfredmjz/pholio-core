@@ -4,6 +4,7 @@ import { createClient } from "@/lib/supabase/server";
 import { revalidatePath } from "next/cache";
 import type { Allocation, AllocationCategory, AllocationSummary, AllocationTemplate, Transaction } from "./types";
 import { sampleAllocationSummary, sampleTransactions } from "@/mock-data/allocations";
+import { Logger } from "@/lib/logger";
 
 /**
  * Check if allocation exists for a specific month (without creating)
@@ -84,7 +85,7 @@ export async function getOrCreateAllocation(
 		.single();
 
 	if (createError) {
-		console.error("Error creating allocation:", createError);
+		Logger.error("Error creating allocation", { error: createError });
 		return null;
 	}
 
@@ -193,7 +194,7 @@ export async function getAllocationSummary(allocationId: string): Promise<Alloca
 	});
 
 	if (error) {
-		console.error("Error getting allocation summary:", error);
+		Logger.error("Error getting allocation summary", { error });
 		return null;
 	}
 
@@ -281,7 +282,7 @@ export async function importPreviousMonthCategories(
 	const { error: insertError } = await supabase.from("allocation_categories").insert(newCategories);
 
 	if (insertError) {
-		console.error("Error copying categories:", insertError);
+		Logger.error("Error copying categories", { error: insertError });
 		// Return the allocation anyway - categories just weren't copied
 	}
 
@@ -301,7 +302,7 @@ export async function updateExpectedIncome(allocationId: string, expectedIncome:
 		.eq("id", allocationId);
 
 	if (error) {
-		console.error("Error updating expected income:", error);
+		Logger.error("Error updating expected income", { error });
 		return false;
 	}
 
@@ -352,7 +353,7 @@ export async function createCategory(
 		.single();
 
 	if (error) {
-		console.error("Error creating category:", error);
+		Logger.error("Error creating category", { error });
 		return null;
 	}
 
@@ -369,7 +370,7 @@ export async function updateCategoryBudget(categoryId: string, budgetCap: number
 	const { error } = await supabase.from("allocation_categories").update({ budget_cap: budgetCap }).eq("id", categoryId);
 
 	if (error) {
-		console.error("Error updating category budget:", error);
+		Logger.error("Error updating category budget", { error });
 		return false;
 	}
 
@@ -386,7 +387,7 @@ export async function updateCategoryName(categoryId: string, name: string): Prom
 	const { error } = await supabase.from("allocation_categories").update({ name }).eq("id", categoryId);
 
 	if (error) {
-		console.error("Error updating category name:", error);
+		Logger.error("Error updating category name", { error });
 		return false;
 	}
 
@@ -403,7 +404,7 @@ export async function deleteCategory(categoryId: string): Promise<boolean> {
 	const { error } = await supabase.from("allocation_categories").delete().eq("id", categoryId);
 
 	if (error) {
-		console.error("Error deleting category:", error);
+		Logger.error("Error deleting category", { error });
 		return false;
 	}
 
@@ -425,7 +426,7 @@ export async function reorderCategories(categoryOrders: { id: string; display_or
 	const results = await Promise.all(promises);
 
 	if (results.some((result) => result.error)) {
-		console.error("Error reordering categories");
+		Logger.error("Error reordering categories");
 		return false;
 	}
 
@@ -468,7 +469,7 @@ export async function getTransactionsForMonth(year: number, month: number): Prom
 		.order("transaction_date", { ascending: false });
 
 	if (error) {
-		console.error("Error fetching transactions:", error);
+		Logger.error("Error fetching transactions", { error });
 		return [];
 	}
 
@@ -515,7 +516,7 @@ export async function createTransaction(
 		.single();
 
 	if (error) {
-		console.error("Error creating transaction:", error);
+		Logger.error("Error creating transaction", { error });
 		return null;
 	}
 
@@ -570,7 +571,7 @@ export async function updateTransaction(
 	const { error } = await supabase.from("transactions").update(updates).eq("id", transactionId);
 
 	if (error) {
-		console.error("Error updating transaction:", error);
+		Logger.error("Error updating transaction", { error });
 		return false;
 	}
 
@@ -595,7 +596,7 @@ export async function deleteTransaction(transactionId: string): Promise<boolean>
 	const { error } = await supabase.from("transactions").delete().eq("id", transactionId);
 
 	if (error) {
-		console.error("Error deleting transaction:", error);
+		Logger.error("Error deleting transaction", { error });
 		return false;
 	}
 
@@ -617,7 +618,7 @@ export async function getUserTemplates(): Promise<AllocationTemplate[]> {
 	const { data, error } = await supabase.from("allocation_templates").select("*").eq("user_id", user.id).order("name");
 
 	if (error) {
-		console.error("Error fetching templates:", error);
+		Logger.error("Error fetching templates", { error });
 		return [];
 	}
 
@@ -636,7 +637,7 @@ export async function applyTemplateToAllocation(templateId: string, allocationId
 	});
 
 	if (error) {
-		console.error("Error applying template:", error);
+		Logger.error("Error applying template", { error });
 		return false;
 	}
 
@@ -671,7 +672,7 @@ export async function createTemplateFromAllocation(
 		.single();
 
 	if (templateError) {
-		console.error("Error creating template:", templateError);
+		Logger.error("Error creating template", { error: templateError });
 		return null;
 	}
 
@@ -698,7 +699,7 @@ export async function createTemplateFromAllocation(
 		const { error: categoriesError } = await supabase.from("template_categories").insert(templateCategories);
 
 		if (categoriesError) {
-			console.error("Error creating template categories:", categoriesError);
+			Logger.error("Error creating template categories", { error: categoriesError });
 			// Clean up template
 			await supabase.from("allocation_templates").delete().eq("id", template.id);
 			return null;

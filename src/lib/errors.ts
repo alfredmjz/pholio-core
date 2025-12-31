@@ -170,12 +170,14 @@ export function logError(
 		metadata?: Record<string, unknown>;
 	}
 ) {
+	// Import logger dynamically to avoid circular dependencies
+	// eslint-disable-next-line @typescript-eslint/no-require-imports
+	const { Logger } = require("./logger");
+
 	const isAppError = error instanceof AppError;
 	const isOperational = isAppError ? error.isOperational : false;
 
 	const logData = {
-		timestamp: new Date().toISOString(),
-		message: error.message,
 		code: isAppError ? error.code : "UNKNOWN_ERROR",
 		statusCode: isAppError ? error.statusCode : 500,
 		isOperational,
@@ -183,12 +185,12 @@ export function logError(
 		...context,
 	};
 
-	// Use console.error for non-operational errors (bugs)
-	// Use console.warn for operational errors (expected issues)
+	// Use warn for operational errors (expected issues)
+	// Use error for non-operational errors (bugs)
 	if (isOperational) {
-		console.warn("Operational Error:", JSON.stringify(logData, null, 2));
+		Logger.warn(error.message, logData);
 	} else {
-		console.error("Non-Operational Error (Bug):", JSON.stringify(logData, null, 2));
+		Logger.error(error.message, logData);
 	}
 }
 

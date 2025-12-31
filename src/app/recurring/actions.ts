@@ -5,6 +5,7 @@ import { revalidatePath } from "next/cache";
 import { Database } from "@/lib/database.types";
 import { MOCK_RECURRING_EXPENSES } from "@/mock-data/recurring";
 import { MOCK_TRANSACTIONS } from "@/mock-data/transactions";
+import { Logger } from "@/lib/logger";
 
 export type RecurringExpenseStatus = "paid" | "partial" | "unpaid" | "overpaid" | "upcoming" | "overdue";
 
@@ -45,7 +46,7 @@ export async function getRecurringExpenses(): Promise<RecurringExpense[]> {
 			.order("next_due_date", { ascending: true });
 
 		if (expensesError) {
-			console.error("Error fetching recurring expenses:", expensesError);
+			Logger.error("Error fetching recurring expenses", { error: expensesError });
 			return [];
 		}
 		expenses = dbExpenses || [];
@@ -135,7 +136,7 @@ export async function addRecurringExpense(
 		.single();
 
 	if (error) {
-		console.error("Error adding recurring expense:", error);
+		Logger.error("Error adding recurring expense", { error });
 		return null;
 	}
 
@@ -153,7 +154,7 @@ export async function toggleSubscription(id: string, isActive: boolean): Promise
 	const { error } = await supabase.from("recurring_expenses").update({ is_active: isActive }).eq("id", id);
 
 	if (error) {
-		console.error("Error toggling subscription:", error);
+		Logger.error("Error toggling subscription", { error });
 		return false;
 	}
 
@@ -171,7 +172,7 @@ export async function updateRecurringExpense(id: string, updates: Partial<Recurr
 	const { error } = await supabase.from("recurring_expenses").update(updates).eq("id", id);
 
 	if (error) {
-		console.error("Error updating recurring expense:", error);
+		Logger.error("Error updating recurring expense", { error });
 		return false;
 	}
 
@@ -189,7 +190,7 @@ export async function deleteRecurringExpense(id: string): Promise<boolean> {
 	const { error } = await supabase.from("recurring_expenses").delete().eq("id", id);
 
 	if (error) {
-		console.error("Error deleting recurring expense:", error);
+		Logger.error("Error deleting recurring expense", { error });
 		return false;
 	}
 

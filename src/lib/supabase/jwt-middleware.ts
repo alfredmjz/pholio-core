@@ -1,66 +1,60 @@
 /**
  * JWT Middleware for Supabase Authentication
- * Provides fast local JWT verification to avoid API timeouts
+ * Uses ES256 (ECC) verification via JWKS endpoint only
  */
 
-import { jwtVerify, type JWTPayload } from "jose";
+import { jwtVerify, createRemoteJWKSet, type JWTPayload, type JWTVerifyGetKey } from "jose";
 import type { NextRequest } from "next/server";
 
+// Cache for JWKS to avoid repeated fetches
+let cachedJWKS: JWTVerifyGetKey | null = null;
+
 /**
- * Verify Supabase JWT token locally using jose library
- * This is MUCH faster (1-2ms vs 200-300ms API call)
+ * Get the JWKS (JSON Web Key Set) for ES256 verification
+ * Uses Supabase's standard JWKS endpoint
+ */
+function getJWKS(): JWTVerifyGetKey {
+	if (cachedJWKS) {
+		return cachedJWKS;
+	}
+
+	const supabaseUrl = process.env.NEXT_PUBLIC_SUPABASE_URL;
+	if (!supabaseUrl) {
+		throw new Error("NEXT_PUBLIC_SUPABASE_URL is required for JWKS verification");
+	}
+
+	// Supabase exposes JWKS at /auth/v1/.well-known/jwks.json
+	const jwksUrl = new URL("/auth/v1/.well-known/jwks.json", supabaseUrl);
+	cachedJWKS = createRemoteJWKSet(jwksUrl);
+	return cachedJWKS;
+}
+
+/**
+ * Verify Supabase JWT token using ES256 (ECC) via JWKS endpoint
  *
  * @param token - The JWT access token to verify
  * @returns The JWT payload if valid, null otherwise
  */
 export async function verifySupabaseJWT(token: string): Promise<JWTPayload | null> {
-	// Only use server-side secret (never expose in NEXT_PUBLIC_)
-	const jwtSecret = process.env.SUPABASE_JWT_SECRET;
-
-	if (!jwtSecret) {
-		// Only allow insecure decode when using mock/sample data (no Supabase connection)
-		if (process.env.NEXT_PUBLIC_USE_SAMPLE_DATA === "true") {
-			return decodeJWTUnsafe(token);
-		}
-
-		// Real Supabase connection requires JWT secret
-		console.error("[JWT] SUPABASE_JWT_SECRET is required when connecting to Supabase");
-		return null;
+	// Skip verification for mock/sample data mode - return mock payload
+	if (process.env.NEXT_PUBLIC_USE_SAMPLE_DATA === "true") {
+		return { sub: "mock-user-id", aud: "authenticated" };
 	}
 
 	try {
-		const secret = new TextEncoder().encode(jwtSecret);
-		const { payload } = await jwtVerify(token, secret, {
-			audience: "authenticated",
-		});
+		const JWKS = getJWKS();
+
+		// Race verification against a 2-second timeout to prevent hangs
+		// (Common issue in some runtimes or network conditions)
+		const { payload } = await Promise.race([
+			jwtVerify(token, JWKS, { audience: "authenticated" }),
+			new Promise<{ payload: any }>((_, reject) =>
+				setTimeout(() => reject(new Error("Verification timed out (2s)")), 2000)
+			),
+		]);
+
 		return payload;
-	} catch {
-		// Token invalid or expired
-		return null;
-	}
-}
-
-/**
- * Decode JWT without signature verification (DEVELOPMENT ONLY)
- * This allows routing to work without JWT secret, but is NOT secure
- */
-function decodeJWTUnsafe(token: string): JWTPayload | null {
-	try {
-		const parts = token.split(".");
-		if (parts.length !== 3) return null;
-
-		// Decode base64url to base64, then decode
-		const payloadJson = atob(parts[1].replace(/-/g, "+").replace(/_/g, "/"));
-		const payload = JSON.parse(payloadJson) as JWTPayload;
-
-		// Check if token is expired
-		if (payload.exp && payload.exp < Date.now() / 1000) {
-			return null;
-		}
-
-		// Must have a user ID
-		return payload.sub ? payload : null;
-	} catch {
+	} catch (error) {
 		return null;
 	}
 }

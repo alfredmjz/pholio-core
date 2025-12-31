@@ -18,6 +18,7 @@ import type {
 	SuggestedAccount,
 } from "@/lib/types/unified-transaction";
 import type { AccountWithType } from "@/app/balancesheet/types";
+import { Logger } from "@/lib/logger";
 
 /**
  * Create a unified transaction that updates both budget and account balance
@@ -55,7 +56,7 @@ export async function createUnifiedTransaction(input: UnifiedTransactionInput): 
 			.single();
 
 		if (allocError) {
-			console.error("Allocation transaction error:", allocError);
+			Logger.error("Allocation transaction error", { error: allocError });
 			return { success: false, error: "Failed to create budget transaction" };
 		}
 
@@ -112,7 +113,7 @@ export async function createUnifiedTransaction(input: UnifiedTransactionInput): 
 				.single();
 
 			if (acctError) {
-				console.error("Account transaction error:", acctError);
+				Logger.error("Account transaction error", { error: acctError });
 				// Rollback allocation transaction if account transaction fails
 				if (allocationTxId) {
 					await supabase.from("transactions").delete().eq("id", allocationTxId);
@@ -131,7 +132,7 @@ export async function createUnifiedTransaction(input: UnifiedTransactionInput): 
 				.eq("id", input.accountId);
 
 			if (balanceError) {
-				console.error("Balance update error:", balanceError);
+				Logger.error("Balance update error", { error: balanceError });
 				// Rollback both transactions
 				if (allocationTxId) {
 					await supabase.from("transactions").delete().eq("id", allocationTxId);
@@ -161,7 +162,7 @@ export async function createUnifiedTransaction(input: UnifiedTransactionInput): 
 			accountTransactionId: accountTxId,
 		};
 	} catch (error) {
-		console.error("Unified transaction error:", error);
+		Logger.error("Unified transaction error", { error });
 		return { success: false, error: "An unexpected error occurred" };
 	}
 }
@@ -210,7 +211,7 @@ export async function getSuggestedAccountForCategory(categoryId: string): Promis
 			reason,
 		};
 	} catch (error) {
-		console.error("Error getting suggested account:", error);
+		Logger.error("Error getting suggested account", { error });
 		return null;
 	}
 }
@@ -236,7 +237,7 @@ export async function getAccountsForSelector(): Promise<AccountWithType[]> {
 
 		return (accounts as AccountWithType[]) || [];
 	} catch (error) {
-		console.error("Error fetching accounts:", error);
+		Logger.error("Error fetching accounts", { error });
 		return [];
 	}
 }

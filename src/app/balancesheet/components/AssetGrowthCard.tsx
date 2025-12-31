@@ -34,6 +34,17 @@ export function AssetGrowthCard({ totalAssets, previousTotalAssets, historicalDa
 	const percentChange = previousTotalAssets ? ((totalAssets - previousTotalAssets) / previousTotalAssets) * 100 : 0;
 	const isPositive = percentChange >= 0;
 
+	// Find max value to calculate a proportional minimum bar height (3% of max)
+	const maxValue = Math.max(...historicalData.map((d) => d.value), 1);
+	const minBarValue = maxValue * 0.03;
+
+	// Transform data to give zero-value bars a visible minimum height
+	const chartData = historicalData.map((d) => ({
+		...d,
+		displayValue: d.value > 0 ? d.value : minBarValue,
+		actualValue: d.value,
+	}));
+
 	return (
 		<Card className="p-6 h-full flex flex-col justify-between">
 			<div className="flex items-center justify-between mb-2">
@@ -54,9 +65,9 @@ export function AssetGrowthCard({ totalAssets, previousTotalAssets, historicalDa
 			<div className="mt-6 w-full flex flex-col items-center justify-center">
 				<div className="h-[120px] w-full min-h-[120px]">
 					<ResponsiveContainer width="100%" height="100%">
-						<BarChart data={historicalData} margin={{ top: 0, right: 0, left: 0, bottom: 0 }}>
-							<Bar dataKey="value" isAnimationActive={false}>
-								{historicalData.map((entry, index) => (
+						<BarChart data={chartData} margin={{ top: 0, right: 0, left: 0, bottom: 0 }}>
+							<Bar dataKey="displayValue" isAnimationActive={false}>
+								{chartData.map((entry, index) => (
 									<Cell key={`cell-${index}`} fill={entry.hasActivity ? "#10b981" : "#10b98140"} />
 								))}
 							</Bar>
@@ -67,7 +78,7 @@ export function AssetGrowthCard({ totalAssets, previousTotalAssets, historicalDa
 										return (
 											<div className="bg-background border rounded-lg p-2 shadow-md text-xs">
 												<div className="text-primary mb-1">{payload[0].payload.date}</div>
-												<div className="font-bold">{formatFullCurrency(Number(payload[0].value))}</div>
+												<div className="font-bold">{formatFullCurrency(payload[0].payload.actualValue)}</div>
 											</div>
 										);
 									}

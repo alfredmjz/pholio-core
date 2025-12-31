@@ -1,6 +1,7 @@
 import { NextResponse } from "next/server";
 import { createClient } from "@/lib/supabase/server";
 import { asyncHandler, validate, ValidationError, InternalServerError } from "@/lib/errors";
+import { Logger } from "@/lib/logger";
 
 export const POST = asyncHandler(
 	async (request: Request) => {
@@ -55,7 +56,7 @@ export const POST = asyncHandler(
 
 			if (updateError) {
 				// Log but don't fail - user can update later
-				console.warn("Failed to update full name:", updateError);
+				Logger.warn("Failed to update full name", { error: updateError });
 			}
 		}
 

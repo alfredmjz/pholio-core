@@ -1,5 +1,6 @@
 import { NextRequest, NextResponse } from "next/server";
 import { cacheGetOrSet, CACHE_KEYS, CACHE_TTL } from "@/lib/redis";
+import { Logger } from "@/lib/logger";
 
 export interface BrandSearchResult {
 	name: string;
@@ -25,7 +26,7 @@ export async function GET(request: NextRequest) {
 	const secretKey = process.env.LOGO_DEV_SECRET_KEY;
 
 	if (!secretKey) {
-		console.warn("[Logo Search API] LOGO_DEV_SECRET_KEY not configured");
+		Logger.warn("LOGO_DEV_SECRET_KEY not configured");
 		return NextResponse.json({ results: [], error: "Search API not configured" }, { status: 503 });
 	}
 
@@ -48,7 +49,7 @@ export async function GET(request: NextRequest) {
 				});
 
 				if (!response.ok) {
-					console.error("[Logo Search API] Error from logo.dev:", response.status, response.statusText);
+					Logger.error("Error from logo.dev API", { statusCode: response.status, statusText: response.statusText });
 					throw new Error(`Search failed: ${response.status}`);
 				}
 
@@ -71,7 +72,7 @@ export async function GET(request: NextRequest) {
 			}
 		);
 	} catch (error) {
-		console.error("[Logo Search API] Error:", error);
+		Logger.error("Logo Search API Error", { error, statusCode: 500 });
 		return NextResponse.json({ results: [], error: "Search failed" }, { status: 500 });
 	}
 }

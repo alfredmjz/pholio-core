@@ -3,6 +3,7 @@
 import { createClient } from "@/lib/supabase/server";
 import { revalidatePath } from "next/cache";
 import { headers } from "next/headers";
+import { Logger } from "@/lib/logger";
 
 /**
  * Authenticates a user with email and password.
@@ -22,7 +23,7 @@ export async function login(formData: FormData) {
 	});
 
 	if (error) {
-		console.error("[Login Action] Error:", error.message);
+		Logger.error("Login failed", { error });
 		return { error: error.message };
 	}
 
@@ -132,12 +133,12 @@ export async function loginAsGuest() {
 	const { data, error } = await supabase.auth.signInAnonymously();
 
 	if (error) {
-		console.error("[Guest Login] signInAnonymously failed:", error.message);
+		Logger.error("Guest signInAnonymously failed", { error });
 		return { error: error.message };
 	}
 
 	if (!data.user) {
-		console.error("[Guest Login] No user returned from signInAnonymously");
+		Logger.error("Guest login: No user returned from signInAnonymously");
 		return { error: "Failed to create guest session" };
 	}
 
@@ -172,7 +173,7 @@ export async function loginAsGuest() {
 		});
 
 		if (insertError) {
-			console.error("Failed to create guest profile:", insertError);
+			Logger.error("Failed to create guest profile", { error: insertError });
 		}
 	}
 

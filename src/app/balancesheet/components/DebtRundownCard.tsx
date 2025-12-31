@@ -43,6 +43,17 @@ export function DebtRundownCard({
 	// Decrease (negative change) is good (Green)
 	const isGood = percentChange <= 0;
 
+	// Find max value to calculate a proportional minimum line height (3% of max) for visibility
+	const maxValue = Math.max(...historicalData.map((d) => d.value), 1);
+	const minLineValue = maxValue * 0.03;
+
+	// Transform data to give zero-value points a visible minimum for the line chart
+	const chartData = historicalData.map((d) => ({
+		...d,
+		displayValue: d.value > 0 ? d.value : minLineValue,
+		actualValue: d.value,
+	}));
+
 	return (
 		<Card className="p-6 h-full flex flex-col justify-between">
 			<div className="flex items-center justify-between mb-2">
@@ -61,10 +72,10 @@ export function DebtRundownCard({
 			<div className="mt-6 w-full flex flex-col items-center justify-center">
 				<div className="h-[120px] w-full min-h-[120px]">
 					<ResponsiveContainer width="100%" height="100%">
-						<LineChart data={historicalData} margin={{ top: 5, right: 5, left: 5, bottom: 5 }}>
+						<LineChart data={chartData} margin={{ top: 5, right: 5, left: 5, bottom: 5 }}>
 							<Line
 								type="monotone"
-								dataKey="value"
+								dataKey="displayValue"
 								stroke="#f97316"
 								strokeWidth={2}
 								dot={(props: any) => {
@@ -83,7 +94,7 @@ export function DebtRundownCard({
 										return (
 											<div className="bg-background border rounded-lg p-2 shadow-md text-xs">
 												<div className="text-muted-foreground mb-1">{payload[0].payload.date}</div>
-												<div className="font-bold">{formatFullCurrency(Number(payload[0].value))}</div>
+												<div className="font-bold">{formatFullCurrency(payload[0].payload.actualValue)}</div>
 											</div>
 										);
 									}
@@ -98,4 +109,3 @@ export function DebtRundownCard({
 		</Card>
 	);
 }
-

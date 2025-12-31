@@ -6,6 +6,8 @@ import { MetricCard } from "./components/MetricCard";
 import { CashflowWidget } from "./components/CashflowWidget";
 import { NetWorthWidget } from "./components/NetWorthWidget";
 import { RecentTransactions } from "./components/RecentTransactions";
+import { AddAccountDialog } from "@/app/balancesheet/components/AddAccountDialog";
+import { UnifiedTransactionDialog } from "@/components/dialogs/UnifiedTransactionDialog";
 import { TrendingUp, Wallet, CreditCard, PiggyBank } from "lucide-react";
 import type { DashboardData, Period, ChartType } from "./types";
 
@@ -18,6 +20,10 @@ export function DashboardClient({ initialData }: DashboardClientProps) {
 	const [cashflowPeriod, setCashflowPeriod] = useState<Period>("month");
 	const [netWorthChartType, setNetWorthChartType] = useState<ChartType>("donut");
 
+	// Dialog states for empty state actions
+	const [addAccountOpen, setAddAccountOpen] = useState(false);
+	const [addTransactionOpen, setAddTransactionOpen] = useState(false);
+
 	// Initialize with the month data, but we have all data available in initialData.cashflow
 	const [cashflowData, setCashflowData] = useState(initialData.cashflow.month);
 
@@ -29,6 +35,16 @@ export function DashboardClient({ initialData }: DashboardClientProps) {
 
 	const handleViewAllTransactions = () => {
 		router.push("/allocations");
+	};
+
+	const handleAddAccountSuccess = () => {
+		setAddAccountOpen(false);
+		router.refresh();
+	};
+
+	const handleAddTransactionSuccess = () => {
+		setAddTransactionOpen(false);
+		router.refresh();
 	};
 
 	return (
@@ -82,6 +98,7 @@ export function DashboardClient({ initialData }: DashboardClientProps) {
 					netCashflow={cashflowData.netCashflow}
 					selectedPeriod={cashflowPeriod}
 					onPeriodChange={handlePeriodChange}
+					onAddTransaction={() => setAddTransactionOpen(true)}
 				/>
 				<NetWorthWidget
 					netWorth={initialData.netWorth.netWorth}
@@ -93,11 +110,22 @@ export function DashboardClient({ initialData }: DashboardClientProps) {
 					trendData={initialData.netWorth.trendData}
 					chartType={netWorthChartType}
 					onChartTypeChange={setNetWorthChartType}
+					onAddAccount={() => setAddAccountOpen(true)}
 				/>
 			</div>
 
 			{/* Recent Transactions */}
 			<RecentTransactions transactions={initialData.recentTransactions} onViewAll={handleViewAllTransactions} />
+
+			{/* Dialogs for empty state actions */}
+			<AddAccountDialog open={addAccountOpen} onOpenChange={setAddAccountOpen} onSuccess={handleAddAccountSuccess} />
+			<UnifiedTransactionDialog
+				open={addTransactionOpen}
+				onOpenChange={setAddTransactionOpen}
+				categories={[]}
+				accounts={[]}
+				onSuccess={handleAddTransactionSuccess}
+			/>
 		</>
 	);
 }

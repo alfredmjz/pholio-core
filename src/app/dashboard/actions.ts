@@ -2,28 +2,68 @@
 
 import { createClient } from "@/lib/supabase/server";
 import type { DashboardData, CashflowSummary, AllCashflowData, NetWorthData, Transaction, Period } from "./types";
+import { Logger } from "@/lib/logger";
 
 /**
  * Fetch all dashboard data for the current user
  */
 export async function getDashboardData(): Promise<DashboardData> {
+	// Handle sample data mode (early return pattern from allocations/actions.ts)
+	if (process.env.NEXT_PUBLIC_USE_SAMPLE_DATA === "true") {
+		return getMockDashboardData();
+	}
+
 	const supabase = await createClient();
 	const {
 		data: { user },
 	} = await supabase.auth.getUser();
 
 	if (!user) {
-		// Return empty dashboard data for unauthenticated users
 		return getEmptyDashboardData();
 	}
 
-	// If explicitly asked for sample data
-	if (process.env.NEXT_PUBLIC_USE_SAMPLE_DATA === "true") {
-		return getMockDashboardData();
-	}
+	// Fetch accounts with their types for net worth calculation
+	const { data: accounts } = await supabase
+		.from("accounts")
+		.select(`*, account_type:account_types(*)`)
+		.eq("user_id", user.id)
+		.eq("is_active", true);
 
-	// For now, return empty data since the accounts table isn't set up yet
-	return getEmptyDashboardData();
+	// Fetch account history for trend data
+	const { data: history } = await supabase
+		.from("account_history")
+		.select("balance, recorded_at")
+		.eq("user_id", user.id)
+		.order("recorded_at", { ascending: true })
+		.limit(180); // ~6 months of daily data
+
+	// Compute net worth from accounts
+	const netWorthData = computeNetWorthFromAccounts(accounts || [], history || []);
+
+	// Get current month transactions for metrics
+	const now = new Date();
+	const startOfMonth = `${now.getFullYear()}-${String(now.getMonth() + 1).padStart(2, "0")}-01`;
+	const { data: monthlyTxs } = await supabase
+		.from("transactions")
+		.select("amount, transaction_date")
+		.eq("user_id", user.id)
+		.gte("transaction_date", startOfMonth);
+
+	// Compute metrics from transactions
+	const metrics = computeMetrics(monthlyTxs || [], netWorthData.netWorth);
+
+	// Compute cashflow data from historical transactions
+	const cashflow = await computeCashflowData(supabase, user.id);
+
+	// Get recent transactions
+	const recentTransactions = await getRecentTransactions(10);
+
+	return {
+		metrics,
+		cashflow,
+		netWorth: netWorthData,
+		recentTransactions,
+	};
 }
 
 /**
@@ -103,7 +143,7 @@ export async function getRecentTransactions(limit: number = 10): Promise<Transac
 		.limit(limit);
 
 	if (error || !transactions) {
-		console.error("Error fetching transactions:", error);
+		Logger.error("Error fetching transactions", { error });
 		if (process.env.NEXT_PUBLIC_USE_SAMPLE_DATA === "true") {
 			return getMockTransactions();
 		}
@@ -118,6 +158,209 @@ export async function getRecentTransactions(limit: number = 10): Promise<Transac
 		amount: Math.abs(t.amount),
 		type: t.amount >= 0 ? ("income" as const) : ("expense" as const),
 	}));
+}
+
+// ============================================================================
+// Helper Functions - Compute Real Data
+// ============================================================================
+
+interface AccountWithType {
+	id: string;
+	current_balance: number;
+	account_type: {
+		class: "asset" | "liability";
+		category: string;
+		name: string;
+	} | null;
+	name: string;
+}
+
+interface HistoryRecord {
+	balance: number;
+	recorded_at: string;
+}
+
+interface TransactionRecord {
+	amount: number;
+	transaction_date: string;
+}
+
+/**
+ * Compute net worth data from accounts and history
+ */
+function computeNetWorthFromAccounts(accounts: AccountWithType[], history: HistoryRecord[]): NetWorthData {
+	const assetAccounts = accounts.filter((a) => a.account_type?.class === "asset");
+	const liabilityAccounts = accounts.filter((a) => a.account_type?.class === "liability");
+
+	const totalAssets = assetAccounts.reduce((sum, a) => sum + Number(a.current_balance), 0);
+	const totalLiabilities = liabilityAccounts.reduce((sum, a) => sum + Number(a.current_balance), 0);
+	const netWorth = totalAssets - totalLiabilities;
+
+	// Group accounts by category for breakdown
+	const assetBreakdown = groupAccountsByCategory(assetAccounts);
+	const liabilityBreakdown = groupAccountsByCategory(liabilityAccounts);
+
+	// Compute trend data from history (aggregate by month)
+	const trendData = computeTrendData(history);
+
+	return {
+		netWorth,
+		totalAssets,
+		totalLiabilities,
+		assetBreakdown,
+		liabilityBreakdown,
+		trendData,
+	};
+}
+
+function groupAccountsByCategory(accounts: AccountWithType[]) {
+	const grouped: Record<string, { category: string; value: number; accounts: { name: string; value: number }[] }> = {};
+
+	for (const account of accounts) {
+		const category = account.account_type?.category || "other";
+		if (!grouped[category]) {
+			grouped[category] = { category, value: 0, accounts: [] };
+		}
+		grouped[category].value += Number(account.current_balance);
+		grouped[category].accounts.push({
+			name: account.name,
+			value: Number(account.current_balance),
+		});
+	}
+
+	return Object.values(grouped);
+}
+
+function computeTrendData(history: HistoryRecord[]): { date: string; value: number }[] {
+	if (history.length === 0) return [];
+
+	// Group by month and sum balances
+	const monthlyTotals: Record<string, number> = {};
+	for (const h of history) {
+		const month = h.recorded_at.substring(0, 7); // YYYY-MM
+		monthlyTotals[month] = (monthlyTotals[month] || 0) + Number(h.balance);
+	}
+
+	// Take last 6 months
+	const sortedMonths = Object.keys(monthlyTotals).sort().slice(-6);
+	return sortedMonths.map((month) => ({
+		date: new Date(month + "-01").toLocaleDateString("en-US", { month: "short" }),
+		value: monthlyTotals[month],
+	}));
+}
+
+/**
+ * Compute metrics from monthly transactions
+ */
+function computeMetrics(transactions: TransactionRecord[], netWorth: number): DashboardData["metrics"] {
+	const monthlyIncome = transactions.filter((t) => t.amount > 0).reduce((sum, t) => sum + Number(t.amount), 0);
+
+	const monthlyExpenses = transactions
+		.filter((t) => t.amount < 0)
+		.reduce((sum, t) => sum + Math.abs(Number(t.amount)), 0);
+
+	const savingsRate = monthlyIncome - monthlyExpenses;
+
+	return {
+		netWorth: { label: "Net Worth", value: netWorth },
+		monthlyIncome: { label: "Monthly Income", value: monthlyIncome },
+		monthlyExpenses: { label: "Monthly Expenses", value: monthlyExpenses },
+		savingsRate: { label: "Savings Rate", value: savingsRate },
+	};
+}
+
+/**
+ * Compute cashflow data from historical transactions
+ */
+async function computeCashflowData(
+	supabase: Awaited<ReturnType<typeof createClient>>,
+	userId: string
+): Promise<AllCashflowData> {
+	const now = new Date();
+
+	// Fetch last 12 months of transactions for all periods
+	const startDate = new Date(now.getFullYear() - 1, now.getMonth(), 1);
+	const { data: transactions } = await supabase
+		.from("transactions")
+		.select("amount, transaction_date")
+		.eq("user_id", userId)
+		.gte("transaction_date", startDate.toISOString().split("T")[0])
+		.order("transaction_date", { ascending: true });
+
+	const txs = transactions || [];
+
+	return {
+		month: computeCashflowForPeriod(txs, "month"),
+		quarter: computeCashflowForPeriod(txs, "quarter"),
+		year: computeCashflowForPeriod(txs, "year"),
+	};
+}
+
+function computeCashflowForPeriod(transactions: TransactionRecord[], period: Period): CashflowSummary {
+	const now = new Date();
+	const grouped: Record<string, { income: number; expenses: number }> = {};
+
+	for (const tx of transactions) {
+		const date = new Date(tx.transaction_date);
+		let key: string;
+		let label: string;
+
+		if (period === "month") {
+			key = `${date.getFullYear()}-${String(date.getMonth() + 1).padStart(2, "0")}`;
+			label = date.toLocaleDateString("en-US", { month: "short" });
+		} else if (period === "quarter") {
+			const quarter = Math.floor(date.getMonth() / 3) + 1;
+			key = `${date.getFullYear()}-Q${quarter}`;
+			label = `Q${quarter} ${date.getFullYear()}`;
+		} else {
+			key = String(date.getFullYear());
+			label = String(date.getFullYear());
+		}
+
+		if (!grouped[key]) {
+			grouped[key] = { income: 0, expenses: 0 };
+		}
+
+		if (tx.amount > 0) {
+			grouped[key].income += Number(tx.amount);
+		} else {
+			grouped[key].expenses += Math.abs(Number(tx.amount));
+		}
+	}
+
+	// Convert to array and take last N entries based on period
+	const limit = period === "month" ? 6 : period === "quarter" ? 4 : 3;
+	const sortedKeys = Object.keys(grouped).sort().slice(-limit);
+
+	const data = sortedKeys.map((key) => {
+		let label: string;
+		if (period === "month") {
+			const [year, month] = key.split("-");
+			label = new Date(Number(year), Number(month) - 1).toLocaleDateString("en-US", { month: "short" });
+		} else if (period === "quarter") {
+			label = key.replace("-", " ");
+		} else {
+			label = key;
+		}
+
+		return {
+			date: key,
+			label,
+			income: grouped[key].income,
+			expenses: grouped[key].expenses,
+		};
+	});
+
+	const totalIncome = data.reduce((sum, d) => sum + d.income, 0);
+	const totalExpenses = data.reduce((sum, d) => sum + d.expenses, 0);
+
+	return {
+		totalIncome,
+		totalExpenses,
+		netCashflow: totalIncome - totalExpenses,
+		period,
+		data,
+	};
 }
 
 // ============================================================================

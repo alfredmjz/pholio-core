@@ -12,6 +12,7 @@
 
 import { NextRequest, NextResponse } from "next/server";
 import { cacheGet, cacheSet, CACHE_KEYS, CACHE_TTL } from "@/lib/redis";
+import { Logger } from "@/lib/logger";
 
 // Response type for cached logos
 interface CachedLogo {
@@ -56,7 +57,7 @@ export async function GET(request: NextRequest, { params }: { params: Promise<{ 
 			});
 		}
 	} catch (error) {
-		console.warn("[Logo API] Cache read error:", error);
+		Logger.warn("Cache read error", { error });
 		// Continue to fetch from origin
 	}
 
@@ -64,7 +65,7 @@ export async function GET(request: NextRequest, { params }: { params: Promise<{ 
 	const logoDevToken = process.env.NEXT_PUBLIC_LOGO_DEV_TOKEN;
 
 	if (!logoDevToken) {
-		console.warn("[Logo API] NEXT_PUBLIC_LOGO_DEV_TOKEN not configured");
+		Logger.warn("NEXT_PUBLIC_LOGO_DEV_TOKEN not configured");
 		return NextResponse.json({ error: "Logo service not configured" }, { status: 503 });
 	}
 
@@ -94,7 +95,7 @@ export async function GET(request: NextRequest, { params }: { params: Promise<{ 
 		};
 
 		cacheSet(cacheKey, JSON.stringify(cacheData), { ttl: CACHE_TTL.LOGO }).catch((err) =>
-			console.error("[Logo API] Failed to cache logo:", err)
+			Logger.error("Failed to cache logo", { error: err })
 		);
 
 		// 4. Return the image
@@ -107,7 +108,7 @@ export async function GET(request: NextRequest, { params }: { params: Promise<{ 
 			},
 		});
 	} catch (error) {
-		console.error("[Logo API] Error fetching logo:", error);
+		Logger.error("Error fetching logo", { error, statusCode: 500 });
 		return NextResponse.json({ error: "Failed to fetch logo" }, { status: 500 });
 	}
 }

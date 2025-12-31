@@ -21,7 +21,7 @@ services:
       dockerfile: Dockerfile
       args:
         NEXT_PUBLIC_SUPABASE_URL: ${LOCAL_SUPABASE_URL}
-        NEXT_PUBLIC_SUPABASE_ANON_KEY: ${LOCAL_SUPABASE_ANON_KEY}
+        NEXT_PUBLIC_SUPABASE_PUBLISHABLE_KEY: ${LOCAL_SUPABASE_PUBLISHABLE_KEY}
     depends_on:
       redis:
         condition: service_healthy
@@ -39,7 +39,7 @@ services:
       - src/.env.local
     environment:
       - NEXT_PUBLIC_SUPABASE_URL=${LOCAL_SUPABASE_URL}
-      - NEXT_PUBLIC_SUPABASE_ANON_KEY=${LOCAL_SUPABASE_ANON_KEY}
+      - NEXT_PUBLIC_SUPABASE_PUBLISHABLE_KEY=${LOCAL_SUPABASE_PUBLISHABLE_KEY}
       - REDIS_URL=redis://redis:6379
 
 volumes:

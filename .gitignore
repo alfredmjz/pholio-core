@@ -47,6 +47,7 @@
 #supabase
 supabase/.*/
 supabase/generated/
+supabase/signing_keys.json
 
 #Screenshot testing folders
 .playwright-mcp/

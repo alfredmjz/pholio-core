@@ -50,17 +50,11 @@ export default function Page() {
 		action: login,
 		validate,
 		onSuccess: (result) => {
+			console.log("[Login] onSuccess called, result:", result);
 			// Check if this is first login - redirect with welcome param
 			const redirectUrl = (result as { showWelcome?: boolean })?.showWelcome ? "/?welcome=true" : "/";
+			console.log("[Login] Redirecting to:", redirectUrl);
 			router.push(redirectUrl);
-			// Detect if navigation failed (still on login page after timeout)
-			setTimeout(() => {
-				if (window.location.pathname === "/login") {
-					toast.error("Login Failed", {
-						description: "Unable to complete login. Please try again.",
-					});
-				}
-			}, 2000);
 		},
 	});
 

@@ -44,7 +44,7 @@ export async function updateSession(request: NextRequest) {
 	// Create Supabase client for session handling
 	const supabase = createServerClient(
 		process.env.NEXT_PUBLIC_SUPABASE_URL!,
-		process.env.NEXT_PUBLIC_SUPABASE_ANON_KEY!,
+		process.env.NEXT_PUBLIC_SUPABASE_PUBLISHABLE_KEY!,
 		{
 			cookies: {
 				getAll() {
@@ -71,21 +71,23 @@ export async function updateSession(request: NextRequest) {
 
 	// JWT verification failed - fall back to API check with timeout
 	try {
-		const result = await Promise.race([
-			supabase.auth.getUser(),
-			new Promise<never>((_, reject) => setTimeout(() => reject(new Error("Auth timeout")), 5000)),
-		]);
+		// Add timeout to prevent hanging
+		const timeoutPromise = new Promise<{ data: { user: null }; error: Error }>((resolve) =>
+			setTimeout(() => resolve({ data: { user: null }, error: new Error("Auth timeout (3s)") }), 3000)
+		);
+
+		const result = await Promise.race([supabase.auth.getUser(), timeoutPromise]);
 
 		const {
 			data: { user },
 			error,
-		} = result as Awaited<ReturnType<typeof supabase.auth.getUser>>;
+		} = result;
 
 		if (!error && user) {
 			return supabaseResponse;
 		}
-	} catch {
-		// Timeout or error - redirect to login
+	} catch (err) {
+		// Silent fallback
 	}
 
 	// Not authenticated - redirect to login

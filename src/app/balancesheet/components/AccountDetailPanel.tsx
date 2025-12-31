@@ -86,10 +86,15 @@ export function AccountDetailPanel({
 				toast.success("Account updated");
 				setIsEditing(false);
 			} else {
-				toast.error("Failed to update account");
+				toast.error("Update Failed", {
+					description: "Failed to update account details. Please try again.",
+				});
 			}
 		} catch (error) {
-			toast.error("An error occurred");
+			const errorMessage = error instanceof Error ? error.message : "An unexpected error occurred.";
+			toast.error("Update Error", {
+				description: errorMessage,
+			});
 		}
 	};
 

@@ -32,13 +32,18 @@ export function SubscriptionRow({ subscription }: SubscriptionRowProps) {
 			const success = await toggleSubscription(subscription.id, checked);
 			if (!success) {
 				setIsActive(!checked); // Revert
-				toast.error("Failed to update subscription status");
+				toast.error("Status Update Failed", {
+					description: "Could not update subscription status. Please try again.",
+				});
 			} else {
 				toast.success(checked ? "Subscription active" : "Subscription paused");
 			}
-		} catch (error) {
+		} catch (err) {
 			setIsActive(!checked);
-			toast.error("An error occurred");
+			const errorMessage = err instanceof Error ? err.message : "An unexpected error occurred.";
+			toast.error("Update Error", {
+				description: errorMessage,
+			});
 		} finally {
 			setIsLoading(false);
 		}

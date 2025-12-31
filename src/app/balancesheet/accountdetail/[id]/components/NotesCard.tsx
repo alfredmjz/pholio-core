@@ -32,10 +32,15 @@ export function NotesCard({ account, onAccountUpdated }: NotesCardProps) {
 				setIsDialogOpen(false);
 				onAccountUpdated({ ...account, notes });
 			} else {
-				toast.error("Failed to update notes");
+				toast.error("Update Failed", {
+					description: "Failed to update notes. Please try again.",
+				});
 			}
-		} catch (error) {
-			toast.error("An error occurred");
+		} catch (err) {
+			const errorMessage = err instanceof Error ? err.message : "An unexpected error occurred.";
+			toast.error("Error", {
+				description: errorMessage,
+			});
 		} finally {
 			setIsSaving(false);
 		}

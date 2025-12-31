@@ -176,11 +176,15 @@ export function UnifiedTransactionDialog({
 				onOpenChange(false);
 				onSuccess?.();
 			} else {
-				toast.error(result.error || "Failed to add transaction");
+				toast.error("Transaction Failed", {
+					description: result.error || "Failed to add transaction. Please check your data and try again.",
+				});
 			}
-		} catch (error) {
-			console.error(error);
-			toast.error("An error occurred");
+		} catch (err) {
+			const errorMessage = err instanceof Error ? err.message : "An unexpected error occurred while saving.";
+			toast.error("Transaction Error", {
+				description: errorMessage,
+			});
 		} finally {
 			setIsLoading(false);
 		}

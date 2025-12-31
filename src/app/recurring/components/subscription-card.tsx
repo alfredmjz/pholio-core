@@ -24,13 +24,18 @@ export function SubscriptionCard({ subscription }: SubscriptionCardProps) {
 			const success = await toggleSubscription(subscription.id, checked);
 			if (!success) {
 				setIsActive(!checked); // Revert
-				toast.error("Failed to update subscription status");
+				toast.error("Update Failed", {
+					description: "Failed to update subscription status. Please try again.",
+				});
 			} else {
 				toast.success(checked ? "Subscription active" : "Subscription paused");
 			}
-		} catch (error) {
+		} catch (err) {
 			setIsActive(!checked);
-			toast.error("An error occurred");
+			const errorMessage = err instanceof Error ? err.message : "An unexpected error occurred.";
+			toast.error("Error", {
+				description: errorMessage,
+			});
 		} finally {
 			setIsLoading(false);
 		}

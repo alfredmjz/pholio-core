@@ -53,7 +53,9 @@ export function AccountDetailClient({
 			toast.success("Account deleted");
 			router.push("/balancesheet");
 		} else {
-			toast.error("Failed to delete account");
+			toast.error("Deletion Failed", {
+				description: "Could not delete the account. Please try again.",
+			});
 		}
 	};
 

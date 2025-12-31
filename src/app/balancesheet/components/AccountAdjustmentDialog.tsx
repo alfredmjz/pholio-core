@@ -29,7 +29,9 @@ export function AccountAdjustmentDialog({ open, onOpenChange, account, onSuccess
 	const handleSubmit = async (e: React.FormEvent) => {
 		e.preventDefault();
 		if (!amount || !description) {
-			toast.error("Please fill in all fields");
+			toast.error("Incomplete Form", {
+				description: "Please enter both an amount and a description for the adjustment.",
+			});
 			return;
 		}
 
@@ -52,11 +54,15 @@ export function AccountAdjustmentDialog({ open, onOpenChange, account, onSuccess
 				setDescription("");
 				setType("adjustment");
 			} else {
-				toast.error("Failed to adjust balance");
+				toast.error("Adjustment Failed", {
+					description: "Could not record the balance adjustment. Please try again.",
+				});
 			}
-		} catch (error) {
-			console.error(error);
-			toast.error("An error occurred");
+		} catch (err) {
+			const errorMessage = err instanceof Error ? err.message : "An unexpected error occurred.";
+			toast.error("Adjustment Error", {
+				description: errorMessage,
+			});
 		} finally {
 			setIsLoading(false);
 		}

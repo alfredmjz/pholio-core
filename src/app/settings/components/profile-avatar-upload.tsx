@@ -121,15 +121,19 @@ export default function ProfileAvatarUpload({ currentAvatarUrl, currentInitials,
 			const result = await uploadProfileAvatar(formData);
 
 			if (result.error) {
-				toast.error(result.error);
+				toast.error("Upload Failed", {
+					description: result.error,
+				});
 			} else {
 				toast.success("Profile picture updated");
 				setIsDialogOpen(false);
 				setSelectedFile(null);
 			}
-		} catch (error) {
-			console.error(error);
-			toast.error("Failed to process image");
+		} catch (err) {
+			const errorMessage = err instanceof Error ? err.message : "Failed to process the image.";
+			toast.error("Processing Error", {
+				description: errorMessage,
+			});
 		} finally {
 			setIsUploading(false);
 		}

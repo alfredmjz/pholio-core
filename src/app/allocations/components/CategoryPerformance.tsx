@@ -88,8 +88,16 @@ function CategoryRow({ category, colorIndex }: CategoryRowProps) {
 		if (budgetSuccess && nameSuccess) {
 			toast.success("Category updated");
 		} else {
-			if (!budgetSuccess) toast.error("Failed to update budget");
-			if (!nameSuccess) toast.error("Failed to rename category");
+			if (!budgetSuccess) {
+				toast.error("Update Failed", {
+					description: "Failed to update budget amount. Please try again.",
+				});
+			}
+			if (!nameSuccess) {
+				toast.error("Rename Failed", {
+					description: "Failed to rename the category. Please try again.",
+				});
+			}
 			// Revert if failed (optional, simplified for now)
 		}
 	};
@@ -108,7 +116,9 @@ function CategoryRow({ category, colorIndex }: CategoryRowProps) {
 		if (success) {
 			toast.success("Category deleted");
 		} else {
-			toast.error("Failed to delete category");
+			toast.error("Deletion Failed", {
+				description: "Could not delete the category. Please try again.",
+			});
 		}
 	};
 

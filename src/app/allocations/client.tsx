@@ -141,7 +141,9 @@ export function AllocationClient({
 		if (newCategory) {
 			toast.success("Category created");
 		} else {
-			toast.error("Failed to create category");
+			toast.error("Creation Failed", {
+				description: `Failed to create category "${name}". Please try again.`,
+			});
 			rollback(previousSummary);
 		}
 	};
@@ -153,7 +155,9 @@ export function AllocationClient({
 			toast.success("Categories imported from previous month!");
 			router.refresh();
 		} else {
-			toast.error("Failed to import categories");
+			toast.error("Import Failed", {
+				description: "Could not import categories from the previous month.",
+			});
 		}
 		setTemplateDialogOpen(false);
 	};
@@ -162,7 +166,9 @@ export function AllocationClient({
 		// First create the allocation
 		const allocation = await getOrCreateAllocation(currentMonth.year, currentMonth.month, expectedIncome);
 		if (!allocation) {
-			toast.error("Failed to create budget");
+			toast.error("Setup Failed", {
+				description: "Failed to initialize the budget for this month.",
+			});
 			setTemplateDialogOpen(false);
 			return;
 		}
@@ -173,7 +179,9 @@ export function AllocationClient({
 			toast.success("Template applied!");
 			router.refresh();
 		} else {
-			toast.error("Failed to apply template");
+			toast.error("Template Error", {
+				description: "Failed to apply the selected template categories.",
+			});
 		}
 		setTemplateDialogOpen(false);
 	};
@@ -184,7 +192,9 @@ export function AllocationClient({
 			toast.success("Budget created!");
 			router.refresh();
 		} else {
-			toast.error("Failed to create budget");
+			toast.error("Setup Failed", {
+				description: "Failed to initialize the budget for this month.",
+			});
 		}
 		setTemplateDialogOpen(false);
 	};

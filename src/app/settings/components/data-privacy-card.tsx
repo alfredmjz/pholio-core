@@ -31,7 +31,9 @@ export default function DataPrivacyCard() {
 
 	const handleDeleteAccount = () => {
 		// In a real app, this would trigger a server action
-		toast.error("Account deletion is not available in the demo.");
+		toast.error("Action Unavailable", {
+			description: "Account deletion is not available in the demo.",
+		});
 	};
 
 	return (

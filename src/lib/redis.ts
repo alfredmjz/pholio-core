@@ -1,3 +1,4 @@
+import { Logger } from "@/lib/logger";
 /**
  * Redis Client Utility
  *
@@ -63,7 +64,7 @@ async function getBunRedis(): Promise<BunRedisClient | null> {
 		}
 	} catch {
 		// Not running in Bun or Redis not available
-		console.warn("[Redis] Bun Redis not available in this environment");
+		Logger.warn("[Redis] Bun Redis not available in this environment");
 	}
 	return null;
 }
@@ -89,9 +90,9 @@ export async function getRedisClient(): Promise<BunRedisClient | null> {
 			// Test the connection
 			await client.ping();
 			redisClient = client;
-			console.log("[Redis] Connected successfully");
+			Logger.info("[Redis] Connected successfully");
 		} catch (error) {
-			console.warn("[Redis] Connection failed, caching disabled:", error);
+			Logger.warn("[Redis] Connection failed, caching disabled", { error });
 			connectionFailed = true;
 			return null;
 		}
@@ -112,7 +113,7 @@ export async function cacheGet(key: string): Promise<string | null> {
 		const value = await client.get(key);
 		return value;
 	} catch (error) {
-		console.error("[Redis] Error getting key:", key, error);
+		Logger.error("[Redis] Error getting key", { key, error });
 		return null;
 	}
 }
@@ -133,7 +134,7 @@ export async function cacheSet(key: string, value: string, options?: CacheOption
 
 		return true;
 	} catch (error) {
-		console.error("[Redis] Error setting key:", key, error);
+		Logger.error("[Redis] Error setting key", { key, error });
 		return false;
 	}
 }
@@ -149,7 +150,7 @@ export async function cacheDelete(key: string): Promise<boolean> {
 		await client.del(key);
 		return true;
 	} catch (error) {
-		console.error("[Redis] Error deleting key:", key, error);
+		Logger.error("[Redis] Error deleting key", { key, error });
 		return false;
 	}
 }
@@ -165,7 +166,7 @@ export async function cacheExists(key: string): Promise<boolean> {
 		const exists = await client.exists(key);
 		return exists === 1;
 	} catch (error) {
-		console.error("[Redis] Error checking key existence:", key, error);
+		Logger.error("[Redis] Error checking key existence", { key, error });
 		return false;
 	}
 }
@@ -188,7 +189,7 @@ export async function cacheGetOrSet<T>(
 			return deserialize(cached);
 		} catch {
 			// If deserialization fails, fetch fresh data
-			console.warn("[Redis] Failed to deserialize cached value, fetching fresh:", key);
+			Logger.warn("[Redis] Failed to deserialize cached value, fetching fresh", { key });
 		}
 	}
 
@@ -196,7 +197,9 @@ export async function cacheGetOrSet<T>(
 	const fresh = await fetchFn();
 
 	// Cache the result (don't await to avoid blocking)
-	cacheSet(key, serialize(fresh), { ttl }).catch((err) => console.error("[Redis] Failed to cache value:", key, err));
+	cacheSet(key, serialize(fresh), { ttl }).catch((err) =>
+		Logger.error("[Redis] Failed to cache value", { key, error: err })
+	);
 
 	return fresh;
 }

@@ -1,6 +1,7 @@
 import { createServerClient } from "@supabase/ssr";
 import { NextResponse, type NextRequest } from "next/server";
 import { verifySupabaseJWT, getAccessTokenFromRequest, isPublicRoute } from "./jwt-middleware";
+import { Logger } from "@/lib/logger";
 
 /**
  * Fast path auth check using local JWT verification
@@ -87,7 +88,7 @@ export async function updateSession(request: NextRequest) {
 			return supabaseResponse;
 		}
 	} catch (err) {
-		// Silent fallback
+		Logger.warn("Auth fallback check failed", { error: err });
 	}
 
 	// Not authenticated - redirect to login

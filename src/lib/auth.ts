@@ -1,4 +1,5 @@
 import { redirect } from "next/navigation";
+import { Logger } from "@/lib/logger";
 import { createClient } from "@/lib/supabase/server";
 import type { User } from "@supabase/supabase-js";
 import type { UserProfile } from "@/lib/getUserProfile";
@@ -66,7 +67,7 @@ export async function requireAuth(): Promise<AuthResult> {
 	const { data: profile, error: profileError } = await supabase.from("users").select("*").eq("id", user.id).single();
 
 	if (profileError || !profile) {
-		console.error("[requireAuth] Profile not found for authenticated user:", profileError);
+		Logger.error("[requireAuth] Profile not found for authenticated user", { profileError });
 		// User is authenticated but has no profile - should never happen due to DB trigger
 		// Sign them out and redirect to login
 		await supabase.auth.signOut();
@@ -123,7 +124,7 @@ export async function getAuth(): Promise<AuthResult | null> {
 
 		return { user, profile: profile as UserProfile };
 	} catch (error) {
-		console.error("Error getting auth:", error);
+		Logger.error("Error getting auth", { error });
 		return null;
 	}
 }

@@ -39,7 +39,9 @@ export default function EmailChangeCard({ currentEmail }: EmailChangeCardProps) 
 			const result = await changeEmail(data);
 
 			if (result.error) {
-				toast.error(result.error);
+				toast.error("Update Failed", {
+					description: result.error,
+				});
 			} else {
 				toast.success(result.message);
 				setIsOpen(false);

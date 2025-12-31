@@ -1,3 +1,4 @@
+import { Logger } from "@/lib/logger";
 import { createClient } from "@/lib/supabase/server";
 
 /**
@@ -17,7 +18,7 @@ export async function getGoogleAccessToken(): Promise<string | null> {
 	} = await supabase.auth.getSession();
 
 	if (error || !session) {
-		console.error("Error getting session for Google Auth:", error);
+		Logger.error("Error getting session for Google Auth", { error });
 		return null;
 	}
 
@@ -27,7 +28,7 @@ export async function getGoogleAccessToken(): Promise<string | null> {
 	const providerToken = session.provider_token;
 
 	if (!providerToken) {
-		console.warn("No provider token found in session. User might need to re-authenticate with Google.");
+		Logger.warn("No provider token found in session. User might need to re-authenticate with Google.");
 		return null;
 	}
 

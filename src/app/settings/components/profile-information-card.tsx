@@ -27,7 +27,9 @@ export default function ProfileInformationCard({ profile, userEmail }: ProfileIn
 
 	const handleNameSave = () => {
 		if (!nameValue.trim()) {
-			toast.error("Name cannot be empty");
+			toast.error("Invalid Name", {
+				description: "Name cannot be empty. Please enter your name.",
+			});
 			return;
 		}
 
@@ -38,7 +40,9 @@ export default function ProfileInformationCard({ profile, userEmail }: ProfileIn
 			const result = await updateProfile(formData);
 
 			if (result.error) {
-				toast.error(result.error);
+				toast.error("Update Failed", {
+					description: result.error,
+				});
 			} else {
 				toast.success(result.message);
 				setIsEditingName(false);

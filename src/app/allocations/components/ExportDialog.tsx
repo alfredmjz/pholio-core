@@ -127,7 +127,9 @@ export function ExportDialog({ open, onOpenChange, currentYear, currentMonth }: 
 			onOpenChange(false);
 		} catch (error) {
 			console.error(error);
-			toast.error(error instanceof Error ? error.message : "Export failed");
+			toast.error("Export Failed", {
+				description: error instanceof Error ? error.message : "Failed to generate Excel export.",
+			});
 		} finally {
 			setIsExporting(false);
 		}
@@ -220,7 +222,9 @@ export function ExportDialog({ open, onOpenChange, currentYear, currentMonth }: 
 			}
 		} catch (error) {
 			console.error(error);
-			toast.error(error instanceof Error ? error.message : "Google Export failed");
+			toast.error("Google Export Failed", {
+				description: error instanceof Error ? error.message : "Failed to export data to Google Sheets.",
+			});
 		} finally {
 			setIsGoogleExporting(false);
 		}

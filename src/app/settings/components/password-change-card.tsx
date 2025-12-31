@@ -39,7 +39,9 @@ export default function PasswordChangeCard() {
 			const result = await changePassword(data);
 
 			if (result.error) {
-				toast.error(result.error);
+				toast.error("Update Failed", {
+					description: result.error,
+				});
 			} else {
 				toast.success(result.message);
 				setIsOpen(false);

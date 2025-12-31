@@ -77,8 +77,10 @@ export function useAllocationSync(
 				if (freshSummary) syncWithServer(freshSummary);
 				setTransactions(freshTransactions);
 			} catch (error) {
-				console.error("Error refetching allocation data:", error);
-				toast.error("Failed to sync data. Please refresh the page.");
+				const errorMessage = error instanceof Error ? error.message : "Connection or server error.";
+				toast.error("Sync Failed", {
+					description: `Failed to refresh your budget data. ${errorMessage}`,
+				});
 			} finally {
 				setIsRefetching(false);
 			}

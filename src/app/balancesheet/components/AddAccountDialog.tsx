@@ -72,10 +72,15 @@ export function AddAccountDialog({ open, onOpenChange, onSuccess }: AddAccountDi
 				setSearchValue("");
 				toast.success(`Category "${searchValue}" created`);
 			} else {
-				toast.error("Failed to create category");
+				toast.error("Category Failed", {
+					description: `Failed to create category "${searchValue}".`,
+				});
 			}
-		} catch (error) {
-			toast.error("Error creating category");
+		} catch (err) {
+			const errorMessage = err instanceof Error ? err.message : "An unexpected error occurred.";
+			toast.error("Category Error", {
+				description: errorMessage,
+			});
 		} finally {
 			setLoading(false);
 		}
@@ -151,10 +156,15 @@ export function AddAccountDialog({ open, onOpenChange, onSuccess }: AddAccountDi
 				setErrors({});
 				setSearchValue("");
 			} else {
-				toast.error("Failed to create account");
+				toast.error("Creation Failed", {
+					description: "Failed to create account. Please check your data and try again.",
+				});
 			}
-		} catch (error) {
-			toast.error("An error occurred");
+		} catch (err) {
+			const errorMessage = err instanceof Error ? err.message : "An unexpected error occurred.";
+			toast.error("Creation Error", {
+				description: errorMessage,
+			});
 		} finally {
 			setLoading(false);
 		}

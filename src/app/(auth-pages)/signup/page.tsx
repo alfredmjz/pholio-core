@@ -89,8 +89,11 @@ export default function Page() {
 				router.push("/");
 			}
 		} catch (err) {
-			console.error("[Signup Guest Login] Error caught:", err);
-			toast.error("Something went wrong");
+			const errorMessage = err instanceof Error ? err.message : "Failed to create guest session";
+			setError(errorMessage);
+			toast.error("Guest Login Failed", {
+				description: errorMessage,
+			});
 			setIsGuestLoading(false);
 		}
 	};

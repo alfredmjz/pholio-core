@@ -67,7 +67,6 @@ export async function getOrCreateAllocation(
 		.single();
 
 	if (existing) {
-		// [MODIFIED] Check/Update recurring expenses even if allocation exists
 		await syncRecurringExpenses(existing.id, user.id, month);
 		return existing as Allocation;
 	}
@@ -131,11 +130,6 @@ async function syncRecurringExpenses(allocationId: string, userId: string, targe
 				applies = true;
 			}
 		} else {
-			// weekly/biweekly - simplified for MVP: assume 4 weeks / 2 biweeks or just standard monthly cost?
-			// Spec didn't specify weekly logic detail, but implied "automatically allocated for that month".
-			// Let's assume standard monthly occurrence (1x) for weekly/biweekly if simpler,
-			// OR better: calculate actual occurrences in that month.
-			// For MVP, allow them all (simplification).
 			applies = true;
 		}
 
@@ -155,12 +149,6 @@ async function syncRecurringExpenses(allocationId: string, userId: string, targe
 		.single();
 
 	if (categories) {
-		// Update existing
-		// We probably shouldn't OVERWRITE if the user manually changed it?
-		// Spec says: "automatically populate".
-		// Let's only update if the calculated amount is different, or maybe just leave it be if the user customized it?
-		// Safe bet: Update it, but maybe we should have a flag?
-		// For MVP: Update it. "Master Setting" implies this table drives the budget.
 		if (Number(categories.budget_cap) !== totalRecurring) {
 			await supabase.from("allocation_categories").update({ budget_cap: totalRecurring }).eq("id", categories.id);
 		}

@@ -176,12 +176,90 @@ export async function getBalanceSheetSummary(): Promise<BalanceSheetSummary> {
 	const totalAssets = assetAccounts.reduce((sum, acc) => sum + acc.current_balance, 0);
 	const totalLiabilities = liabilityAccounts.reduce((sum, acc) => sum + acc.current_balance, 0);
 
+	// Fetch historical data for charts (last 30 days)
+	const supabase = await createClient();
+	const {
+		data: { user },
+	} = await supabase.auth.getUser();
+
+	// Generate all 30 days (including today)
+	const generateLast30Days = () => {
+		const days: { date: string; dateKey: string }[] = [];
+		for (let i = 29; i >= 0; i--) {
+			const d = new Date();
+			d.setDate(d.getDate() - i);
+			days.push({
+				date: d.toLocaleDateString("en-US", { month: "short", day: "numeric" }),
+				dateKey: d.toISOString().split("T")[0], // YYYY-MM-DD for matching
+			});
+		}
+		return days;
+	};
+
+	const last30Days = generateLast30Days();
+
+	// Initialize with zeros for all days
+	let historicalAssets: { date: string; value: number; hasActivity: boolean }[] = last30Days.map((d) => ({
+		date: d.date,
+		value: 0,
+		hasActivity: false,
+	}));
+	let historicalLiabilities: { date: string; value: number; hasActivity: boolean }[] = last30Days.map((d) => ({
+		date: d.date,
+		value: 0,
+		hasActivity: false,
+	}));
+
+	if (user) {
+		const thirtyDaysAgo = new Date();
+		thirtyDaysAgo.setDate(thirtyDaysAgo.getDate() - 30);
+
+		const { data: history } = await supabase
+			.from("account_history")
+			.select("balance, recorded_at, account_id")
+			.eq("user_id", user.id)
+			.gte("recorded_at", thirtyDaysAgo.toISOString().split("T")[0])
+			.order("recorded_at", { ascending: true });
+
+		if (history && history.length > 0) {
+			const assetAccountIds = new Set(assetAccounts.map((a) => a.id));
+			const liabilityAccountIds = new Set(liabilityAccounts.map((a) => a.id));
+
+			// Group by date key (YYYY-MM-DD)
+			const assetsByDateKey = new Map<string, number>();
+			const liabilitiesByDateKey = new Map<string, number>();
+
+			history.forEach((h) => {
+				const dateKey = new Date(h.recorded_at).toISOString().split("T")[0];
+
+				if (assetAccountIds.has(h.account_id)) {
+					assetsByDateKey.set(dateKey, (assetsByDateKey.get(dateKey) || 0) + Number(h.balance));
+				} else if (liabilityAccountIds.has(h.account_id)) {
+					liabilitiesByDateKey.set(dateKey, (liabilitiesByDateKey.get(dateKey) || 0) + Number(h.balance));
+				}
+			});
+
+			// Update the 30-day arrays with actual values
+			historicalAssets = last30Days.map((d) => {
+				const value = assetsByDateKey.get(d.dateKey) || 0;
+				return { date: d.date, value, hasActivity: value > 0 };
+			});
+
+			historicalLiabilities = last30Days.map((d) => {
+				const value = liabilitiesByDateKey.get(d.dateKey) || 0;
+				return { date: d.date, value, hasActivity: value > 0 };
+			});
+		}
+	}
+
 	return {
 		totalAssets,
 		totalLiabilities,
 		netWorth: totalAssets - totalLiabilities,
 		assetAccounts,
 		liabilityAccounts,
+		historicalAssets,
+		historicalLiabilities,
 	};
 }
 

@@ -38,6 +38,7 @@ interface NetWorthWidgetProps {
 	trendData?: { date: string; value: number }[];
 	chartType: ChartType;
 	onChartTypeChange: (type: ChartType) => void;
+	onAddAccount?: () => void;
 	loading?: boolean;
 	className?: string;
 }
@@ -52,6 +53,7 @@ export function NetWorthWidget({
 	trendData,
 	chartType,
 	onChartTypeChange,
+	onAddAccount,
 	loading = false,
 	className,
 }: NetWorthWidgetProps) {
@@ -258,7 +260,7 @@ export function NetWorthWidget({
 					</div>
 				</>
 			) : (
-				<EmptyState />
+				<EmptyState onAddAccount={onAddAccount} />
 			)}
 		</Card>
 	);
@@ -296,9 +298,9 @@ function TrendChart({ data, mounted }: { data: { date: string; value: number }[]
 							</linearGradient>
 						</defs>
 						<CartesianGrid strokeDasharray="3 3" stroke="hsl(var(--border))" vertical={false} />
-						<XAxis dataKey="date" stroke="hsl(var(--text-primary))" fontSize={12} tickLine={false} axisLine={false} />
+						<XAxis dataKey="date" stroke="hsl(var(--primary))" fontSize={12} tickLine={false} axisLine={false} />
 						<YAxis
-							stroke="hsl(var(--text-primary))"
+							stroke="hsl(var(--primary))"
 							fontSize={12}
 							tickLine={false}
 							axisLine={false}
@@ -433,7 +435,7 @@ function DetailedBreakdown({
 	);
 }
 
-function EmptyState() {
+function EmptyState({ onAddAccount }: { onAddAccount?: () => void }) {
 	return (
 		<div className="h-64 flex flex-col items-center justify-center text-center">
 			<div className="p-4 rounded-full bg-muted mb-4">
@@ -443,7 +445,7 @@ function EmptyState() {
 			<p className="text-sm text-primary mb-4 max-w-sm">
 				Add your assets and liabilities to track your financial health
 			</p>
-			<Button size="sm" className="gap-2 bg-green-600 hover:bg-green-700 text-white">
+			<Button size="sm" className="gap-2 bg-green-600 hover:bg-green-700 text-white" onClick={onAddAccount}>
 				<Plus className="h-4 w-4" />
 				Add Account
 			</Button>

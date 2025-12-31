@@ -9,6 +9,7 @@ import {
 	sampleBalanceSheetSummary,
 	sampleAccountHistory,
 } from "@/mock-data/balancesheet";
+import { Logger } from "@/lib/logger";
 
 import type {
 	Account,
@@ -47,7 +48,7 @@ export async function getAccountTypes(): Promise<AccountType[]> {
 		.order("sort_order", { ascending: true });
 
 	if (error) {
-		console.error("Error fetching account types:", error);
+		Logger.error("Error fetching account types", { error });
 		return [];
 	}
 
@@ -78,7 +79,7 @@ export async function createAccountType(input: CreateAccountTypeInput): Promise<
 		.single();
 
 	if (error) {
-		console.error("Error creating account type:", error);
+		Logger.error("Error creating account type", { error });
 		return null;
 	}
 
@@ -120,7 +121,7 @@ export async function getAccounts(): Promise<AccountWithType[]> {
 		.order("created_at", { ascending: true });
 
 	if (error) {
-		console.error("Error fetching accounts:", error);
+		Logger.error("Error fetching accounts", { error });
 		throw new Error("Failed to fetch accounts");
 	}
 
@@ -157,7 +158,7 @@ export async function getAccountById(id: string): Promise<AccountWithType | null
 		.single();
 
 	if (error) {
-		console.error("Error fetching account:", error);
+		Logger.error("Error fetching account", { error });
 		return null;
 	}
 
@@ -288,7 +289,7 @@ export async function createAccount(input: CreateAccountInput): Promise<AccountW
 		.single();
 
 	if (error) {
-		console.error("Error creating account:", error);
+		Logger.error("Error creating account", { error });
 		return null;
 	}
 
@@ -318,7 +319,7 @@ export async function updateAccount(id: string, input: UpdateAccountInput): Prom
 		.single();
 
 	if (error) {
-		console.error("Error updating account:", error);
+		Logger.error("Error updating account", { error });
 		return null;
 	}
 
@@ -342,7 +343,7 @@ export async function deleteAccount(id: string): Promise<boolean> {
 	const { error } = await supabase.from("accounts").update({ is_active: false }).eq("id", id).eq("user_id", user.id);
 
 	if (error) {
-		console.error("Error deleting account:", error);
+		Logger.error("Error deleting account", { error });
 		return false;
 	}
 
@@ -383,7 +384,7 @@ export async function recordTransaction(input: RecordTransactionInput): Promise<
 		.single();
 
 	if (accountError || !account) {
-		console.error("Error fetching account:", accountError);
+		Logger.error("Error fetching account for transaction", { error: accountError });
 		return null;
 	}
 
@@ -419,7 +420,7 @@ export async function recordTransaction(input: RecordTransactionInput): Promise<
 		.single();
 
 	if (transactionError) {
-		console.error("Error creating transaction:", transactionError);
+		Logger.error("Error creating transaction", { error: transactionError });
 		return null;
 	}
 
@@ -431,7 +432,7 @@ export async function recordTransaction(input: RecordTransactionInput): Promise<
 		.eq("user_id", user.id);
 
 	if (updateError) {
-		console.error("Error updating account balance:", updateError);
+		Logger.error("Error updating account balance", { error: updateError });
 		return null;
 	}
 
@@ -466,7 +467,7 @@ export async function getAccountTransactions(accountId: string, limit: number = 
 		.limit(limit);
 
 	if (error) {
-		console.error("Error fetching transactions:", error);
+		Logger.error("Error fetching transactions", { error });
 		throw new Error("Failed to fetch transactions");
 	}
 
@@ -502,7 +503,7 @@ export async function getAccountHistory(accountId: string, limit: number = 30): 
 		.limit(limit);
 
 	if (error) {
-		console.error("Error fetching account history:", error);
+		Logger.error("Error fetching account history", { error });
 		throw new Error("Failed to fetch account history");
 	}
 

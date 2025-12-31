@@ -3,6 +3,7 @@
 import { createClient } from "@/lib/supabase/server";
 import { revalidatePath } from "next/cache";
 import { sampleProfile } from "@/mock-data/profile";
+import { Logger } from "@/lib/logger";
 
 /**
  * Update user profile (full name)
@@ -41,14 +42,14 @@ export async function updateProfile(formData: FormData) {
 			.eq("id", user.id);
 
 		if (updateError) {
-			console.error("Profile update error:", updateError);
+			Logger.error("Profile update error", { error: updateError });
 			return { error: "Failed to update profile" };
 		}
 
 		revalidatePath("/profile");
 		return { success: true, message: "Profile updated successfully" };
 	} catch (error) {
-		console.error("Unexpected error in updateProfile:", error);
+		Logger.error("Unexpected error in updateProfile", { error });
 		return { error: "An unexpected error occurred" };
 	}
 }
@@ -114,13 +115,13 @@ export async function changePassword(formData: FormData) {
 		});
 
 		if (updateError) {
-			console.error("Password update error:", updateError);
+			Logger.error("Password update error", { error: updateError });
 			return { error: updateError.message || "Failed to update password" };
 		}
 
 		return { success: true, message: "Password updated successfully" };
 	} catch (error) {
-		console.error("Unexpected error in changePassword:", error);
+		Logger.error("Unexpected error in changePassword", { error });
 		return { error: "An unexpected error occurred" };
 	}
 }
@@ -183,7 +184,7 @@ export async function changeEmail(formData: FormData) {
 		});
 
 		if (updateError) {
-			console.error("Email update error:", updateError);
+			Logger.error("Email update error", { error: updateError });
 
 			// Check for specific error messages
 			if (updateError.message.includes("already registered")) {
@@ -198,7 +199,7 @@ export async function changeEmail(formData: FormData) {
 			message: "Verification email sent to " + newEmail + ". Please check your inbox to confirm the change.",
 		};
 	} catch (error) {
-		console.error("Unexpected error in changeEmail:", error);
+		Logger.error("Unexpected error in changeEmail", { error });
 		return { error: "An unexpected error occurred" };
 	}
 }
@@ -258,7 +259,7 @@ export async function uploadProfileAvatar(formData: FormData) {
 		});
 
 		if (uploadError) {
-			console.error("Storage upload error:", uploadError);
+			Logger.error("Storage upload error", { error: uploadError });
 			return { error: "Failed to upload image. ensure the 'avatars' bucket exists and is public." };
 		}
 
@@ -274,7 +275,7 @@ export async function uploadProfileAvatar(formData: FormData) {
 			.eq("id", user.id);
 
 		if (updateError) {
-			console.error("Profile update error:", updateError);
+			Logger.error("Profile avatar update error", { error: updateError });
 			return { error: "Failed to update profile with new image" };
 		}
 
@@ -282,7 +283,7 @@ export async function uploadProfileAvatar(formData: FormData) {
 		revalidatePath("/settings"); // Revalidate settings page as well
 		return { success: true, message: "Profile picture updated successfully" };
 	} catch (error) {
-		console.error("Unexpected error in uploadProfileAvatar:", error);
+		Logger.error("Unexpected error in uploadProfileAvatar", { error });
 		return { error: "An unexpected error occurred" };
 	}
 }
@@ -327,7 +328,7 @@ export async function getAllocationSettings(): Promise<{
 			newMonthDefault: (profile?.allocation_new_month_default as AllocationNewMonthDefault) || "dialog",
 		};
 	} catch (error) {
-		console.error("Error getting allocation settings:", error);
+		Logger.error("Error getting allocation settings", { error });
 		return { newMonthDefault: "dialog" };
 	}
 }
@@ -370,7 +371,7 @@ export async function updateAllocationSettings(settings: {
 		const { error } = await supabase.from("users").update(updates).eq("id", user.id);
 
 		if (error) {
-			console.error("Error updating allocation settings:", error);
+			Logger.error("Error updating allocation settings", { error });
 			return { success: false, error: "Failed to update settings" };
 		}
 
@@ -378,7 +379,7 @@ export async function updateAllocationSettings(settings: {
 		revalidatePath("/allocations");
 		return { success: true };
 	} catch (error) {
-		console.error("Unexpected error in updateAllocationSettings:", error);
+		Logger.error("Unexpected error in updateAllocationSettings", { error });
 		return { success: false, error: "An unexpected error occurred" };
 	}
 }

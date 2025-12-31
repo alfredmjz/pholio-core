@@ -2,6 +2,7 @@ import { type NextRequest, NextResponse } from "next/server";
 import { createClient } from "@/lib/supabase/server";
 import { google } from "googleapis";
 import { format } from "date-fns";
+import { Logger } from "@/lib/logger";
 
 export async function POST(req: NextRequest) {
 	try {
@@ -81,7 +82,7 @@ export async function POST(req: NextRequest) {
 			.order("transaction_date", { ascending: false });
 
 		if (dbError) {
-			console.error("Database error:", dbError);
+			Logger.error("Database error fetching transactions", { error: dbError });
 			return NextResponse.json({ error: "Failed to fetch transactions" }, { status: 500 });
 		}
 
@@ -172,8 +173,11 @@ export async function POST(req: NextRequest) {
 		});
 
 		return NextResponse.json({ url: spreadsheetUrl });
-	} catch (error: any) {
-		console.error("Export API Error:", error);
-		return NextResponse.json({ error: error.message || "Internal Server Error" }, { status: 500 });
+	} catch (error: unknown) {
+		Logger.error("Export API Error", { error, statusCode: 500 });
+		return NextResponse.json(
+			{ error: error instanceof Error ? error.message : "Internal Server Error" },
+			{ status: 500 }
+		);
 	}
 }

@@ -2,6 +2,7 @@
 
 import { createClient } from "@/lib/supabase/server";
 import type { DashboardData, CashflowSummary, AllCashflowData, NetWorthData, Transaction, Period } from "./types";
+import { Logger } from "@/lib/logger";
 
 /**
  * Fetch all dashboard data for the current user
@@ -142,7 +143,7 @@ export async function getRecentTransactions(limit: number = 10): Promise<Transac
 		.limit(limit);
 
 	if (error || !transactions) {
-		console.error("Error fetching transactions:", error);
+		Logger.error("Error fetching transactions", { error });
 		if (process.env.NEXT_PUBLIC_USE_SAMPLE_DATA === "true") {
 			return getMockTransactions();
 		}

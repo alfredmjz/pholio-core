@@ -44,3 +44,7 @@ jobs:
         run: |
           bun add -d semantic-release @semantic-release/git @semantic-release/exec
           bunx semantic-release
+
+      - name: Trigger Vercel Production Deploy
+        if: success()
+        run: curl -X POST "${{ secrets.VERCEL_DEPLOY_HOOK }}"

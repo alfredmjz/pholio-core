@@ -59,7 +59,6 @@ Visit [http://localhost:3000](http://localhost:3000)
 
 Supabase credentials are available in your Supabase dashboard
 Logo API credentials are available from your dashboard at https://www.logo.dev/
-Vercel credentials are available from `src/.vercel/project.json` by running `bunx vercel link`
 
 ```env
 # Local Supabase (Docker)
@@ -74,11 +73,6 @@ NEXT_PUBLIC_SUPABASE_PUBLISHABLE_KEY=...
 # Logo API
 NEXT_PUBLIC_LOGO_DEV_TOKEN=pk_...
 LOGO_DEV_SECRET_KEY=sk_...
-
-# Vercel IDs
-VERCEL_OIDC_TOKEN=...
-VERCEL_ORG_ID=...
-VERCEL_PROJECT_ID=...
 
 ```
 

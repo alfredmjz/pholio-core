@@ -17,8 +17,8 @@ A comprehensive personal finance tracker and budgeting application.
 bun install
 
 # 2. Configure environment
-# Create src/.env.local with Supabase credentials (see Environment section)
-# Run src/scripts/generate-es256-keys.ts to generate JWT keys
+# - Create src/.env.local with Supabase credentials (see Environment section)
+# - Run src/scripts/generate-es256-keys.ts to generate JWT keys
 
 # 3. Setup database
 cd src && bun run db:migrate
@@ -30,7 +30,7 @@ bun run dev          # Start with real data
 bun run dev:mock     # Start with mock data
 bun run build        # Build for production
 
-# Docker (from root)
+# 5. Docker (from root)
 bun start            # Start containers
 bun run down         # Stop containers
 ```
@@ -59,6 +59,7 @@ Visit [http://localhost:3000](http://localhost:3000)
 
 Supabase credentials are available in your Supabase dashboard
 Logo API credentials are available from your dashboard at https://www.logo.dev/
+Vercel credentials are available from `src/.vercel/project.json` by running `bunx vercel link`
 
 ```env
 # Local Supabase (Docker)
@@ -67,12 +68,18 @@ LOCAL_SUPABASE_PUBLISHABLE_KEY=your-publishable-key
 LOCAL_SUPABASE_SERVICE_ROLE_KEY=your-service-role-key
 
 # Supabase API
-NEXT_PUBLIC_SUPABASE_URL=
-NEXT_PUBLIC_SUPABASE_PUBLISHABLE_KEY=
+NEXT_PUBLIC_SUPABASE_URL=...
+NEXT_PUBLIC_SUPABASE_PUBLISHABLE_KEY=...
 
 # Logo API
 NEXT_PUBLIC_LOGO_DEV_TOKEN=pk_...
 LOGO_DEV_SECRET_KEY=sk_...
+
+# Vercel IDs
+VERCEL_OIDC_TOKEN=...
+VERCEL_ORG_ID=...
+VERCEL_PROJECT_ID=...
+
 ```
 
 ---

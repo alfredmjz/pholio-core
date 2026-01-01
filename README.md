@@ -41,17 +41,17 @@ Visit [http://localhost:3000](http://localhost:3000)
 
 ## Technology Stack
 
-| Category      | Technology                               |
-| ------------- | ---------------------------------------- |
-| **Runtime**   | Bun                                      |
-| **Framework** | Next.js 15 (App Router, React 19)        |
-| **Database**  | Supabase (PostgreSQL), Redis             |
-| **Auth**      | Supabase Auth                            |
-| **UI**        | Tailwind CSS, Radix UI, Shadcn, Recharts |
-| **State**     | React hooks, Zustand                     |
-| **Logging**   | Pino                                     |
-| **DevOps**    | Docker, GitHub Actions, Semantic Release |
-| **Language**  | TypeScript (strict)                      |
+| Category      | Technology                                       |
+| ------------- | ------------------------------------------------ |
+| **Runtime**   | Bun                                              |
+| **Framework** | Next.js 15 (App Router, React 19)                |
+| **Database**  | Supabase (PostgreSQL), Redis                     |
+| **Auth**      | Supabase Auth                                    |
+| **UI**        | Tailwind CSS, Radix UI, Shadcn, Recharts         |
+| **State**     | React hooks, Zustand                             |
+| **Logging**   | Pino                                             |
+| **DevOps**    | Docker, Vercel, GitHub Actions, Semantic Release |
+| **Language**  | TypeScript (strict)                              |
 
 ---
 

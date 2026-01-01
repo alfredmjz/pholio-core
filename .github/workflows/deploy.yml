@@ -1,0 +1,67 @@
+name: Deploy to Vercel
+
+on:
+  # Trigger after a release is published
+  release:
+    types: [published]
+  # Also allow manual deployment
+  workflow_dispatch:
+    inputs:
+      environment:
+        description: "Deployment environment"
+        required: true
+        default: "production"
+        type: choice
+        options:
+          - production
+          - preview
+
+env:
+  VERCEL_ORG_ID: ${{ secrets.VERCEL_ORG_ID }}
+  VERCEL_PROJECT_ID: ${{ secrets.VERCEL_PROJECT_ID }}
+
+permissions:
+  id-token: write
+  contents: read
+
+jobs:
+  deploy:
+    runs-on: ubuntu-latest
+    steps:
+      - name: Checkout
+        uses: actions/checkout@v4
+
+      - name: Setup Bun
+        uses: oven-sh/setup-bun@v1
+        with:
+          bun-version: latest
+
+      - name: Install Vercel CLI
+        run: bun add -g vercel@latest
+
+      - name: Pull Vercel Environment
+        run: vercel pull --yes --environment=production
+        working-directory: ./src
+
+      - name: Build Project
+        run: vercel build --prod
+        working-directory: ./src
+
+      - name: Deploy to Vercel
+        id: deploy
+        run: |
+          URL=$(vercel deploy --prebuilt --prod)
+          echo "deployment_url=$URL" >> $GITHUB_OUTPUT
+        working-directory: ./src
+
+      - name: Comment Deployment URL
+        if: github.event_name == 'release'
+        uses: actions/github-script@v7
+        with:
+          script: |
+            github.rest.repos.createCommitComment({
+              owner: context.repo.owner,
+              repo: context.repo.repo,
+              commit_sha: context.sha,
+              body: `🚀 Deployed to Vercel: ${{ steps.deploy.outputs.deployment_url }}`
+            })

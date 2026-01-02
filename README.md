@@ -47,6 +47,7 @@ Visit [http://localhost:3000](http://localhost:3000)
 | **Framework** | Next.js 15 (App Router, React 19)                |
 | **Database**  | Supabase (PostgreSQL), Redis                     |
 | **Auth**      | Supabase Auth                                    |
+| **Email**     | Resend (SMTP)                                    |
 | **UI**        | Tailwind CSS, Radix UI, Shadcn, Recharts         |
 | **State**     | React hooks, Zustand                             |
 | **Logging**   | Pino                                             |
@@ -69,6 +70,9 @@ LOCAL_SUPABASE_SERVICE_ROLE_KEY=your-service-role-key
 # Supabase API
 NEXT_PUBLIC_SUPABASE_URL=...
 NEXT_PUBLIC_SUPABASE_PUBLISHABLE_KEY=...
+
+#Resend (SMTP)
+RESEND_API_KEY=...
 
 # Logo API
 NEXT_PUBLIC_LOGO_DEV_TOKEN=pk_...

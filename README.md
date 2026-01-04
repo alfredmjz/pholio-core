@@ -1,15 +1,4 @@
 # Pholio - Personal Finance & Portfolio Management
-
-A comprehensive personal finance tracker and budgeting application.
-
-## Features
-
-**Core**: User authentication, guest access, profile management, theme system
-**Financial**: Balance sheet, account management, budget allocations, transactions, recurring bills, dashboard
-**Technical**: Real-time sync, optimistic updates, Pino logging, RLS, TypeScript, semantic release
-
----
-
 ## Quick Start
 
 ```bash
@@ -58,7 +47,7 @@ Visit [http://localhost:3000](http://localhost:3000)
 
 ## Environment Variables
 
-Supabase credentials are available in your Supabase dashboard
+Supabase credentials are available in your Supabase dashboard  
 Logo API credentials are available from your dashboard at https://www.logo.dev/
 
 ```env
@@ -127,7 +116,8 @@ pholio/
 ---
 
 ## Documentation
-
+- [System Design & Architecture Document](https://pillows-fetch-408.craft.me/2YpClWZLlHneU3)
+- [Developer Bible](https://pillows-fetch-408.craft.me/SHcgbc3Pyy6Nqz)
 - `AGENTS.md` - AI coding guidelines
 - `.context/development-principles.md` - Workflow standards
 - `.context/design-principles.md` - UI/UX standards

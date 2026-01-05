@@ -7,6 +7,7 @@ import { Separator } from "@/components/ui/separator";
 import { TooltipProvider } from "@/components/ui/tooltip";
 import { toast } from "sonner";
 import { updateAccount } from "../actions";
+import { formatFullDate } from "@/lib/date-utils";
 
 import { EmptyAccountState, AccountHeader, AccountStats, AccountNotes, TransactionHistory } from "./account-detail";
 
@@ -61,14 +62,6 @@ export function AccountDetailPanel({
 			currency: "USD",
 			minimumFractionDigits: 2,
 		}).format(amount);
-	};
-
-	const formatDate = (dateString: string) => {
-		return new Date(dateString).toLocaleDateString("en-US", {
-			month: "short",
-			day: "numeric",
-			year: "numeric",
-		});
 	};
 
 	// Handle save action
@@ -157,7 +150,7 @@ export function AccountDetailPanel({
 					onRecordTransaction={onRecordTransaction}
 					onAdjustBalance={onAdjustBalance}
 					formatCurrency={formatCurrency}
-					formatDate={formatDate}
+					formatDate={formatFullDate}
 				/>
 			</Card>
 		</TooltipProvider>

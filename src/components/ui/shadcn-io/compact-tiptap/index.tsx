@@ -1,7 +1,7 @@
 "use client";
 
 import * as React from "react";
-import { EditorContent, useEditor } from "@tiptap/react";
+import { EditorContent, useEditor, useEditorState } from "@tiptap/react";
 import StarterKit from "@tiptap/starter-kit";
 import { Toggle } from "@/components/ui/toggle";
 import { Bold, Italic, List, ListOrdered } from "lucide-react";
@@ -56,16 +56,32 @@ function CompactTiptap({
 		},
 	});
 
+	// Subscribe to editor state changes to trigger re-renders
+	useEditorState({
+		editor,
+		selector: (ctx) => ctx.editor?.state,
+	});
+
 	if (!editor) {
 		return null;
 	}
+
+	// Helper to check if a mark is active OR stored (queued to be applied on next character)
+	const isMarkActive = (markName: string) => {
+		if (editor.isActive(markName)) return true;
+		const storedMarks = editor.state.storedMarks;
+		if (storedMarks) {
+			return storedMarks.some((mark) => mark.type.name === markName);
+		}
+		return false;
+	};
 
 	return (
 		<div className={cn("border border-border rounded-lg overflow-hidden", className)}>
 			<div className="border-b border-border px-2 py-1.5 flex items-center gap-0.5 bg-muted/30">
 				<Toggle
 					size="sm"
-					pressed={editor.isActive("bold")}
+					pressed={isMarkActive("bold")}
 					onPressedChange={() => editor.chain().focus().toggleBold().run()}
 					disabled={!editor.can().chain().focus().toggleBold().run()}
 					className="h-7 w-7 p-0"
@@ -75,7 +91,7 @@ function CompactTiptap({
 
 				<Toggle
 					size="sm"
-					pressed={editor.isActive("italic")}
+					pressed={isMarkActive("italic")}
 					onPressedChange={() => editor.chain().focus().toggleItalic().run()}
 					disabled={!editor.can().chain().focus().toggleItalic().run()}
 					className="h-7 w-7 p-0"

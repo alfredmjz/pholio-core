@@ -81,3 +81,47 @@ export function isYesterday(date: string | Date): boolean {
 	yesterday.setDate(yesterday.getDate() - 1);
 	return d.toDateString() === yesterday.toDateString();
 }
+
+/**
+ * Format a full date with year (e.g., "Jan 4, 2025")
+ *
+ * @param date - Date object or ISO string
+ * @returns Formatted date string with year
+ */
+export function formatFullDate(date: string | Date): string {
+	const d = typeof date === "string" ? new Date(date) : date;
+	return d.toLocaleDateString("en-US", {
+		month: "short",
+		day: "numeric",
+		year: "numeric",
+	});
+}
+
+/**
+ * Format time only (e.g., "3:45 PM")
+ *
+ * @param date - Date object or ISO string
+ * @returns Formatted time string
+ */
+export function formatTime(date: string | Date): string {
+	const d = typeof date === "string" ? new Date(date) : date;
+	return d.toLocaleTimeString("en-US", {
+		hour: "numeric",
+		minute: "2-digit",
+		hour12: true,
+	});
+}
+
+/**
+ * Format month and year (e.g., "January 2025")
+ *
+ * @param date - Date object or ISO string
+ * @returns Formatted month and year string
+ */
+export function formatMonthYear(date: string | Date): string {
+	const d = typeof date === "string" ? new Date(date) : date;
+	return d.toLocaleDateString("en-US", {
+		month: "long",
+		year: "numeric",
+	});
+}

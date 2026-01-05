@@ -144,6 +144,60 @@
 		@apply list-none m-0 p-0;
 	}
 
+	/* Restore list styles for prose/rich text content (e.g., Tiptap editor) */
+	.prose ul,
+	.prose-sm ul,
+	.prose-base ul,
+	.tiptap ul,
+	.ProseMirror ul,
+	div[class*="prose"] ul {
+		list-style-type: disc !important;
+		padding-left: 1.5rem !important;
+		margin-top: 0.5rem !important;
+		margin-bottom: 0.5rem !important;
+	}
+
+	.prose ol,
+	.prose-sm ol,
+	.prose-base ol,
+	.tiptap ol,
+	.ProseMirror ol,
+	div[class*="prose"] ol {
+		list-style-type: decimal !important;
+		padding-left: 1.5rem !important;
+		margin-top: 0.5rem !important;
+		margin-bottom: 0.5rem !important;
+	}
+
+	.prose li,
+	.prose-sm li,
+	.prose-base li,
+	.tiptap li,
+	.ProseMirror li,
+	div[class*="prose"] li {
+		list-style-type: inherit !important;
+		margin-top: 0.25rem !important;
+		margin-bottom: 0.25rem !important;
+		display: list-item !important;
+	}
+
+	/* Blockquote styles for rich text editors */
+	.prose blockquote,
+	.prose-sm blockquote,
+	.prose-base blockquote,
+	.tiptap blockquote,
+	.ProseMirror blockquote,
+	div[class*="prose"] blockquote {
+		border-left: 3px solid hsl(var(--border)) !important;
+		padding-left: 1rem !important;
+		margin-left: 0 !important;
+		margin-top: 0.5rem !important;
+		margin-bottom: 0.5rem !important;
+		font-style: italic !important;
+		color: currentColor !important;
+		opacity: 0.6 !important;
+	}
+
 	input[type="number"]::-webkit-inner-spin-button,
 	input[type="number"]::-webkit-outer-spin-button {
 		-webkit-appearance: none;
@@ -174,4 +228,3 @@
 		transform: scale(1.1) rotate(3deg);
 	}
 }
-

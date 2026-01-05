@@ -1,7 +1,7 @@
 "use client";
 
 import * as React from "react";
-import { EditorContent, useEditor } from "@tiptap/react";
+import { EditorContent, useEditor, useEditorState } from "@tiptap/react";
 import StarterKit from "@tiptap/starter-kit";
 import { Button } from "@/components/ui/button";
 import { Separator } from "@/components/ui/separator";
@@ -70,16 +70,33 @@ function MinimalTiptap({
 		},
 	});
 
+	// Subscribe to editor state changes to trigger re-renders
+	// This ensures that isMarkActive checks are always accurate
+	useEditorState({
+		editor,
+		selector: (ctx) => ctx.editor?.state,
+	});
+
 	if (!editor) {
 		return null;
 	}
+
+	// Helper to check if a mark is active OR stored (queued to be applied on next character)
+	const isMarkActive = (markName: string) => {
+		if (editor.isActive(markName)) return true;
+		const storedMarks = editor.state.storedMarks;
+		if (storedMarks) {
+			return storedMarks.some((mark) => mark.type.name === markName);
+		}
+		return false;
+	};
 
 	return (
 		<div className={cn("border border-border rounded-lg overflow-hidden", className)}>
 			<div className="border-b border-border p-2 flex flex-wrap items-center gap-1">
 				<Toggle
 					size="sm"
-					pressed={editor.isActive("bold")}
+					pressed={isMarkActive("bold")}
 					onPressedChange={() => editor.chain().focus().toggleBold().run()}
 					disabled={!editor.can().chain().focus().toggleBold().run()}
 				>
@@ -88,7 +105,7 @@ function MinimalTiptap({
 
 				<Toggle
 					size="sm"
-					pressed={editor.isActive("italic")}
+					pressed={isMarkActive("italic")}
 					onPressedChange={() => editor.chain().focus().toggleItalic().run()}
 					disabled={!editor.can().chain().focus().toggleItalic().run()}
 				>
@@ -97,7 +114,7 @@ function MinimalTiptap({
 
 				<Toggle
 					size="sm"
-					pressed={editor.isActive("strike")}
+					pressed={isMarkActive("strike")}
 					onPressedChange={() => editor.chain().focus().toggleStrike().run()}
 					disabled={!editor.can().chain().focus().toggleStrike().run()}
 				>
@@ -106,7 +123,7 @@ function MinimalTiptap({
 
 				<Toggle
 					size="sm"
-					pressed={editor.isActive("code")}
+					pressed={isMarkActive("code")}
 					onPressedChange={() => editor.chain().focus().toggleCode().run()}
 					disabled={!editor.can().chain().focus().toggleCode().run()}
 				>

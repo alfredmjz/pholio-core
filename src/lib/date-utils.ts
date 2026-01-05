@@ -1,9 +1,102 @@
 /**
  * Date and time utilities for formatting and manipulation
+ *
+ * This module provides date/time utilities built on date-fns.
+ * For functions that exist in date-fns, we re-export them directly.
+ * Custom functions are provided for app-specific formatting needs.
  */
 
+import {
+	format,
+	isToday as dateFnsIsToday,
+	isYesterday as dateFnsIsYesterday,
+	differenceInMinutes,
+	differenceInHours,
+	differenceInDays,
+} from "date-fns";
+
+// ============================================================================
+// Re-exported date-fns functions
+// ============================================================================
+
 /**
- * Format a timestamp as a human-readable relative time.
+ * Check if a date is today (re-exported from date-fns)
+ */
+export const isToday = (date: string | Date): boolean => {
+	const d = typeof date === "string" ? new Date(date) : date;
+	return dateFnsIsToday(d);
+};
+
+/**
+ * Check if a date is yesterday (re-exported from date-fns)
+ */
+export const isYesterday = (date: string | Date): boolean => {
+	const d = typeof date === "string" ? new Date(date) : date;
+	return dateFnsIsYesterday(d);
+};
+
+// ============================================================================
+// Formatting functions using date-fns format()
+// ============================================================================
+
+/**
+ * Format a date as a short date string (e.g., "Jan 4")
+ */
+export function formatShortDate(date: string | Date): string {
+	const d = typeof date === "string" ? new Date(date) : date;
+	return format(d, "MMM d");
+}
+
+/**
+ * Format a date with time (e.g., "Jan 4, 3:45 PM")
+ */
+export function formatDateTime(date: string | Date): string {
+	const d = typeof date === "string" ? new Date(date) : date;
+	return format(d, "MMM d, h:mm a");
+}
+
+/**
+ * Format a full date with year (e.g., "Jan 4, 2025")
+ */
+export function formatFullDate(date: string | Date): string {
+	const d = typeof date === "string" ? new Date(date) : date;
+	return format(d, "MMM d, yyyy");
+}
+
+/**
+ * Format time only (e.g., "3:45 PM")
+ */
+export function formatTime(date: string | Date): string {
+	const d = typeof date === "string" ? new Date(date) : date;
+	return format(d, "h:mm a");
+}
+
+/**
+ * Format month and year (e.g., "January 2025")
+ */
+export function formatMonthYear(date: string | Date): string {
+	const d = typeof date === "string" ? new Date(date) : date;
+	return format(d, "MMMM yyyy");
+}
+
+/**
+ * Get today's date as a YYYY-MM-DD string in local timezone.
+ * Uses date-fns format which respects local timezone, avoiding the
+ * UTC conversion issue with toISOString().
+ */
+export function getTodayDateString(): string {
+	return format(new Date(), "yyyy-MM-dd");
+}
+
+// ============================================================================
+// Custom functions with app-specific formatting
+// ============================================================================
+
+/**
+ * Format a timestamp as a human-readable relative time with compact output.
+ *
+ * This is a custom function because date-fns's formatDistanceToNow produces
+ * longer strings like "3 minutes ago" whereas we want compact "3m ago".
  *
  * @param timestamp - ISO timestamp string or Date object
  * @returns Formatted relative time string
@@ -11,117 +104,21 @@
  * @example
  * ```typescript
  * formatRelativeTime(new Date())  // => "Just now"
- * formatRelativeTime("2025-01-04T12:00:00Z")  // => "3h ago" (if now is 3pm)
+ * formatRelativeTime(someDate)    // => "3m ago", "2h ago", "Yesterday", "3d ago", "Jan 4"
  * ```
  */
 export function formatRelativeTime(timestamp: string | Date): string {
 	const date = typeof timestamp === "string" ? new Date(timestamp) : timestamp;
 	const now = new Date();
-	const diffMs = now.getTime() - date.getTime();
-	const diffMins = Math.floor(diffMs / 60000);
-	const diffHours = Math.floor(diffMs / 3600000);
-	const diffDays = Math.floor(diffMs / 86400000);
+
+	const diffMins = differenceInMinutes(now, date);
+	const diffHours = differenceInHours(now, date);
+	const diffDays = differenceInDays(now, date);
 
 	if (diffMins < 1) return "Just now";
 	if (diffMins < 60) return `${diffMins}m ago`;
 	if (diffHours < 24) return `${diffHours}h ago`;
 	if (diffDays === 1) return "Yesterday";
 	if (diffDays < 7) return `${diffDays}d ago`;
-	return date.toLocaleDateString("en-US", { month: "short", day: "numeric" });
-}
-
-/**
- * Format a date as a short date string (e.g., "Jan 4")
- *
- * @param date - Date object or ISO string
- * @returns Formatted date string
- */
-export function formatShortDate(date: string | Date): string {
-	const d = typeof date === "string" ? new Date(date) : date;
-	return d.toLocaleDateString("en-US", { month: "short", day: "numeric" });
-}
-
-/**
- * Format a date with time (e.g., "Jan 4, 3:45 PM")
- *
- * @param date - Date object or ISO string
- * @returns Formatted date and time string
- */
-export function formatDateTime(date: string | Date): string {
-	const d = typeof date === "string" ? new Date(date) : date;
-	return d.toLocaleDateString("en-US", {
-		month: "short",
-		day: "numeric",
-		hour: "numeric",
-		minute: "2-digit",
-	});
-}
-
-/**
- * Check if a date is today
- *
- * @param date - Date object or ISO string
- * @returns True if the date is today
- */
-export function isToday(date: string | Date): boolean {
-	const d = typeof date === "string" ? new Date(date) : date;
-	const today = new Date();
-	return d.toDateString() === today.toDateString();
-}
-
-/**
- * Check if a date is yesterday
- *
- * @param date - Date object or ISO string
- * @returns True if the date is yesterday
- */
-export function isYesterday(date: string | Date): boolean {
-	const d = typeof date === "string" ? new Date(date) : date;
-	const yesterday = new Date();
-	yesterday.setDate(yesterday.getDate() - 1);
-	return d.toDateString() === yesterday.toDateString();
-}
-
-/**
- * Format a full date with year (e.g., "Jan 4, 2025")
- *
- * @param date - Date object or ISO string
- * @returns Formatted date string with year
- */
-export function formatFullDate(date: string | Date): string {
-	const d = typeof date === "string" ? new Date(date) : date;
-	return d.toLocaleDateString("en-US", {
-		month: "short",
-		day: "numeric",
-		year: "numeric",
-	});
-}
-
-/**
- * Format time only (e.g., "3:45 PM")
- *
- * @param date - Date object or ISO string
- * @returns Formatted time string
- */
-export function formatTime(date: string | Date): string {
-	const d = typeof date === "string" ? new Date(date) : date;
-	return d.toLocaleTimeString("en-US", {
-		hour: "numeric",
-		minute: "2-digit",
-		hour12: true,
-	});
-}
-
-/**
- * Format month and year (e.g., "January 2025")
- *
- * @param date - Date object or ISO string
- * @returns Formatted month and year string
- */
-export function formatMonthYear(date: string | Date): string {
-	const d = typeof date === "string" ? new Date(date) : date;
-	return d.toLocaleDateString("en-US", {
-		month: "long",
-		year: "numeric",
-	});
+	return format(date, "MMM d");
 }

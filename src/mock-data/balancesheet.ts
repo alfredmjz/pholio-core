@@ -6,6 +6,7 @@ import type {
 	HistoricalDataPoint,
 	AccountHistory,
 } from "@/app/balancesheet/types";
+import type { RecentActivityItem } from "@/app/balancesheet/actions";
 
 // Sample account types (mimicking system defaults)
 export const sampleAccountTypes: AccountType[] = [
@@ -407,3 +408,60 @@ export const sampleAccountHistory: Record<string, AccountHistory[]> = {
 		created_at: p.date,
 	})),
 };
+
+// Helper to generate recent timestamps for mock activity
+const getRecentTimestamp = (minutesAgo: number): string => {
+	const date = new Date();
+	date.setMinutes(date.getMinutes() - minutesAgo);
+	return date.toISOString();
+};
+
+export const sampleRecentActivity: RecentActivityItem[] = [
+	{
+		id: "activity-1",
+		accountId: "acc-1",
+		accountName: "Emergency Fund",
+		type: "transaction",
+		transactionType: "deposit",
+		amount: 500,
+		description: "Monthly savings deposit",
+		timestamp: getRecentTimestamp(15), // 15 minutes ago
+	},
+	{
+		id: "activity-2",
+		accountId: "acc-2",
+		accountName: "Robinhood",
+		type: "transaction",
+		transactionType: "adjustment",
+		amount: 1247.5,
+		description: "Portfolio value increased",
+		timestamp: getRecentTimestamp(120), // 2 hours ago
+	},
+	{
+		id: "activity-3",
+		accountId: "acc-3",
+		accountName: "TFSA",
+		type: "account_created",
+		timestamp: getRecentTimestamp(60 * 24), // Yesterday
+	},
+	{
+		id: "activity-4",
+		accountId: "acc-5",
+		accountName: "Student Loans",
+		type: "transaction",
+		transactionType: "payment",
+		amount: 450,
+		description: "Monthly payment processed",
+		timestamp: getRecentTimestamp(60 * 26), // Yesterday
+	},
+	{
+		id: "activity-5",
+		accountId: "acc-4",
+		accountName: "Chase Sapphire Reserve",
+		type: "transaction",
+		transactionType: "payment",
+		amount: 300,
+		description: "Statement payment",
+		timestamp: getRecentTimestamp(60 * 48), // 2 days ago
+	},
+];

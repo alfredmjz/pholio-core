@@ -16,6 +16,7 @@ import { createTransaction, updateTransaction } from "../actions";
 import type { Transaction, AllocationCategory } from "../types";
 import { FormSection } from "@/components/FormSection";
 import { CardSelector } from "@/components/CardSelector";
+import { getTodayDateString } from "@/lib/date-utils";
 
 interface TransactionDialogProps {
 	open: boolean;
@@ -30,12 +31,12 @@ export function TransactionDialog({
 	onOpenChange,
 	transaction,
 	categories = [],
-	defaultDate = new Date().toISOString().split("T")[0],
+	defaultDate,
 }: TransactionDialogProps) {
 	const [isLoading, setIsLoading] = useState(false);
 	const [name, setName] = useState("");
 	const [amount, setAmount] = useState("");
-	const [date, setDate] = useState(defaultDate);
+	const [date, setDate] = useState(defaultDate || getTodayDateString());
 	const [categoryId, setCategoryId] = useState<string>("uncategorized");
 	const [type, setType] = useState<"income" | "expense">("expense");
 	const [notes, setNotes] = useState("");
@@ -52,7 +53,7 @@ export function TransactionDialog({
 			} else {
 				setName("");
 				setAmount("");
-				setDate(defaultDate);
+				setDate(defaultDate || getTodayDateString());
 				setCategoryId("uncategorized");
 				setType("expense");
 				setNotes("");

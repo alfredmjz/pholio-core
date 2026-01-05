@@ -25,6 +25,7 @@ import { FormSection } from "@/components/FormSection";
 import { ProminentAmountInput } from "@/components/ProminentAmountInput";
 import { CardSelector } from "@/components/CardSelector";
 import { cn } from "@/lib/utils";
+import { getTodayDateString } from "@/lib/date-utils";
 
 interface UnifiedTransactionDialogProps {
 	open: boolean;
@@ -51,7 +52,7 @@ export function UnifiedTransactionDialog({
 	onOpenChange,
 	categories = [],
 	accounts = [],
-	defaultDate = new Date().toISOString().split("T")[0],
+	defaultDate,
 	defaultCategoryId,
 	defaultAccountId,
 	defaultType,
@@ -68,7 +69,7 @@ export function UnifiedTransactionDialog({
 	const [type, setType] = useState<"income" | "expense">(defaultType || "expense");
 	const [description, setDescription] = useState("");
 	const [amount, setAmount] = useState("");
-	const [date, setDate] = useState(defaultDate);
+	const [date, setDate] = useState(defaultDate || getTodayDateString());
 	const [categoryId, setCategoryId] = useState<string>(defaultCategoryId || "uncategorized");
 	const [accountId, setAccountId] = useState<string>(defaultAccountId || "none");
 	const [notes, setNotes] = useState("");
@@ -80,7 +81,7 @@ export function UnifiedTransactionDialog({
 			setType(defaultType || "expense");
 			setDescription("");
 			setAmount("");
-			setDate(defaultDate);
+			setDate(defaultDate || getTodayDateString());
 			setCategoryId(defaultCategoryId || "uncategorized");
 			setAccountId(defaultAccountId || "none");
 			setNotes("");

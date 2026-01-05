@@ -556,3 +556,97 @@ export async function applyMonthlyInterest(accountId: string): Promise<boolean> 
 
 	return true;
 }
+
+// ============================================================================
+// Recent Activity
+// ============================================================================
+
+export interface RecentActivityItem {
+	id: string;
+	accountId: string;
+	accountName: string;
+	type: "transaction" | "account_created";
+	transactionType?: string;
+	amount?: number;
+	description?: string;
+	timestamp: string;
+}
+
+/**
+ * Get recent activity across all accounts (transactions + account creations)
+ */
+export async function getRecentActivity(limit: number = 10): Promise<RecentActivityItem[]> {
+	if (process.env.NEXT_PUBLIC_USE_SAMPLE_DATA === "true") {
+		return [];
+	}
+
+	const supabase = await createClient();
+	const {
+		data: { user },
+	} = await supabase.auth.getUser();
+
+	if (!user) {
+		return [];
+	}
+
+	const activity: RecentActivityItem[] = [];
+
+	// Get recent transactions with account names
+	const { data: transactions } = await supabase
+		.from("account_transactions")
+		.select(
+			`
+			id,
+			account_id,
+			amount,
+			transaction_type,
+			description,
+			created_at,
+			account:accounts(name)
+		`
+		)
+		.eq("user_id", user.id)
+		.order("created_at", { ascending: false })
+		.limit(limit);
+
+	if (transactions) {
+		transactions.forEach((tx) => {
+			activity.push({
+				id: tx.id,
+				accountId: tx.account_id,
+				accountName: (tx.account as any)?.name || "Unknown Account",
+				type: "transaction",
+				transactionType: tx.transaction_type,
+				amount: tx.amount,
+				description: tx.description || undefined,
+				timestamp: tx.created_at,
+			});
+		});
+	}
+
+	// Get recently created accounts
+	const { data: accounts } = await supabase
+		.from("accounts")
+		.select("id, name, created_at")
+		.eq("user_id", user.id)
+		.eq("is_active", true)
+		.order("created_at", { ascending: false })
+		.limit(limit);
+
+	if (accounts) {
+		accounts.forEach((acc) => {
+			activity.push({
+				id: `account-${acc.id}`,
+				accountId: acc.id,
+				accountName: acc.name,
+				type: "account_created",
+				timestamp: acc.created_at,
+			});
+		});
+	}
+
+	// Sort by timestamp descending and limit
+	activity.sort((a, b) => new Date(b.timestamp).getTime() - new Date(a.timestamp).getTime());
+
+	return activity.slice(0, limit);
+}

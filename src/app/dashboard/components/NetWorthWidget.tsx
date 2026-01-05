@@ -1,6 +1,6 @@
 "use client";
 
-import { useState, useMemo, useEffect } from "react";
+import { useState, useMemo } from "react";
 import { Card } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
 import { ToggleGroup, ToggleGroupItem } from "@/components/ui/toggle-group";
@@ -23,10 +23,11 @@ import {
 	Briefcase,
 	PiggyBank,
 } from "lucide-react";
-import { AreaChart, Area, XAxis, YAxis, CartesianGrid, Tooltip, ResponsiveContainer } from "recharts";
+import { AreaChart, Area, XAxis, YAxis, CartesianGrid, Tooltip } from "recharts";
 import type { ChartType, Trend, AssetBreakdown, LiabilityBreakdown } from "../types";
 import { Skeleton } from "@/components/ui/skeleton";
 import { DonutChart } from "@/components/common/DonutChart";
+import { ChartContainer } from "@/components/common/ChartContainer";
 
 interface NetWorthWidgetProps {
 	netWorth: number;
@@ -58,12 +59,7 @@ export function NetWorthWidget({
 	className,
 }: NetWorthWidgetProps) {
 	const [isExpanded, setIsExpanded] = useState(false);
-	const [mounted, setMounted] = useState(false);
 	const hasData = totalAssets > 0 || totalLiabilities > 0;
-
-	useEffect(() => {
-		setMounted(true);
-	}, []);
 
 	// Prepare donut chart data
 	const { donutData, assetColors, liabilityColors } = useMemo(() => {
@@ -200,20 +196,16 @@ export function NetWorthWidget({
 					{/* Chart Area */}
 					{chartType === "donut" ? (
 						<div className="h-56 flex items-center justify-center">
-							{mounted ? (
-								<DonutChart
-									data={donutData}
-									size={40}
-									strokeWidth={12}
-									centerContent={CenterContent}
-									showTooltip={true}
-								/>
-							) : (
-								<div className="w-40 h-40 rounded-full border-8 border-muted" />
-							)}
+							<DonutChart
+								data={donutData}
+								size={40}
+								strokeWidth={12}
+								centerContent={CenterContent}
+								showTooltip={true}
+							/>
 						</div>
 					) : (
-						<TrendChart data={trendData || []} mounted={mounted} />
+						<TrendChart data={trendData || []} />
 					)}
 
 					{/* Breakdown Summary */}
@@ -266,7 +258,7 @@ export function NetWorthWidget({
 	);
 }
 
-function TrendChart({ data, mounted }: { data: { date: string; value: number }[]; mounted: boolean }) {
+function TrendChart({ data }: { data: { date: string; value: number }[] }) {
 	const formatCompactCurrency = (value: number) => {
 		return new Intl.NumberFormat("en-US", {
 			style: "currency",
@@ -287,53 +279,45 @@ function TrendChart({ data, mounted }: { data: { date: string; value: number }[]
 	}
 
 	return (
-		<div className="h-56">
-			{mounted ? (
-				<ResponsiveContainer width="100%" height="100%">
-					<AreaChart data={data} margin={{ top: 10, right: 10, left: -10, bottom: 0 }}>
-						<defs>
-							<linearGradient id="netWorthGradient" x1="0" y1="0" x2="0" y2="1">
-								<stop offset="5%" stopColor="hsl(var(--success))" stopOpacity={0.3} />
-								<stop offset="95%" stopColor="hsl(var(--success))" stopOpacity={0} />
-							</linearGradient>
-						</defs>
-						<CartesianGrid strokeDasharray="3 3" stroke="hsl(var(--border))" vertical={false} />
-						<XAxis dataKey="date" stroke="hsl(var(--primary))" fontSize={12} tickLine={false} axisLine={false} />
-						<YAxis
-							stroke="hsl(var(--primary))"
-							fontSize={12}
-							tickLine={false}
-							axisLine={false}
-							tickFormatter={formatCompactCurrency}
-						/>
-						<Tooltip
-							isAnimationActive={false}
-							content={({ active, payload, label }) => {
-								if (!active || !payload || payload.length === 0) return null;
-								return (
-									<div className="bg-card border border-border rounded-lg shadow-lg p-3">
-										<p className="text-xs text-primary">{label}</p>
-										<p className="text-sm font-semibold text-success">{formatCurrency(payload[0].value as number)}</p>
-									</div>
-								);
-							}}
-						/>
-						<Area
-							type="monotone"
-							dataKey="value"
-							stroke="hsl(var(--success))"
-							strokeWidth={2}
-							fill="url(#netWorthGradient)"
-							animationDuration={500}
-						/>
-					</AreaChart>
-				</ResponsiveContainer>
-			) : (
-				<div className="h-full w-full flex items-center justify-center">
-					<Skeleton className="h-full w-full" />
-				</div>
-			)}
-		</div>
+		<ChartContainer height={224} className="h-56">
+			<AreaChart data={data} margin={{ top: 10, right: 10, left: -10, bottom: 0 }}>
+				<defs>
+					<linearGradient id="netWorthGradient" x1="0" y1="0" x2="0" y2="1">
+						<stop offset="5%" stopColor="hsl(var(--success))" stopOpacity={0.3} />
+						<stop offset="95%" stopColor="hsl(var(--success))" stopOpacity={0} />
+					</linearGradient>
+				</defs>
+				<CartesianGrid strokeDasharray="3 3" stroke="hsl(var(--border))" vertical={false} />
+				<XAxis dataKey="date" stroke="hsl(var(--primary))" fontSize={12} tickLine={false} axisLine={false} />
+				<YAxis
+					stroke="hsl(var(--primary))"
+					fontSize={12}
+					tickLine={false}
+					axisLine={false}
+					tickFormatter={formatCompactCurrency}
+				/>
+				<Tooltip
+					isAnimationActive={false}
+					content={({ active, payload, label }) => {
+						if (!active || !payload || payload.length === 0) return null;
+						return (
+							<div className="bg-card border border-border rounded-lg shadow-lg p-3">
+								<p className="text-xs text-primary">{label}</p>
+								<p className="text-sm font-semibold text-success">{formatCurrency(payload[0].value as number)}</p>
+							</div>
+						);
+					}}
+				/>
+				<Area
+					type="monotone"
+					dataKey="value"
+					stroke="hsl(var(--success))"
+					strokeWidth={2}
+					fill="url(#netWorthGradient)"
+					animationDuration={500}
+				/>
+			</AreaChart>
+		</ChartContainer>
 	);
 }
 

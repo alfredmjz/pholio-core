@@ -2,9 +2,10 @@
 
 import { Card } from "@/components/ui/card";
 import { Info, TrendingUp, TrendingDown } from "lucide-react";
-import { BarChart, Bar, ResponsiveContainer, Cell, Tooltip } from "recharts";
+import { BarChart, Bar, Cell, Tooltip } from "recharts";
 import { cn } from "@/lib/utils";
 import { HistoricalDataPoint } from "../types";
+import { ChartContainer } from "@/components/common/ChartContainer";
 
 interface AssetGrowthCardProps {
 	totalAssets: number;
@@ -63,31 +64,29 @@ export function AssetGrowthCard({ totalAssets, previousTotalAssets, historicalDa
 			</div>
 
 			<div className="mt-6 w-full flex flex-col items-center justify-center">
-				<div className="h-[120px] w-full min-h-[120px]">
-					<ResponsiveContainer width="100%" height="100%">
-						<BarChart data={chartData} margin={{ top: 0, right: 0, left: 0, bottom: 0 }}>
-							<Bar dataKey="displayValue" isAnimationActive={false}>
-								{chartData.map((entry, index) => (
-									<Cell key={`cell-${index}`} fill={entry.hasActivity ? "#10b981" : "#10b98140"} />
-								))}
-							</Bar>
-							<Tooltip
-								cursor={{ fill: "transparent" }}
-								content={({ active, payload }) => {
-									if (active && payload && payload.length) {
-										return (
-											<div className="bg-background border rounded-lg p-2 shadow-md text-xs">
-												<div className="text-primary mb-1">{payload[0].payload.date}</div>
-												<div className="font-bold">{formatFullCurrency(payload[0].payload.actualValue)}</div>
-											</div>
-										);
-									}
-									return null;
-								}}
-							/>
-						</BarChart>
-					</ResponsiveContainer>
-				</div>
+				<ChartContainer height={120} minWidth={0}>
+					<BarChart data={chartData} margin={{ top: 0, right: 0, left: 0, bottom: 0 }}>
+						<Bar dataKey="displayValue" isAnimationActive={false}>
+							{chartData.map((entry, index) => (
+								<Cell key={`cell-${index}`} fill={entry.hasActivity ? "#10b981" : "#10b98140"} />
+							))}
+						</Bar>
+						<Tooltip
+							cursor={{ fill: "transparent" }}
+							content={({ active, payload }) => {
+								if (active && payload && payload.length) {
+									return (
+										<div className="bg-background border rounded-lg p-2 shadow-md text-xs">
+											<div className="text-primary mb-1">{payload[0].payload.date}</div>
+											<div className="font-bold">{formatFullCurrency(payload[0].payload.actualValue)}</div>
+										</div>
+									);
+								}
+								return null;
+							}}
+						/>
+					</BarChart>
+				</ChartContainer>
 				<p className="text-[10px] text-primary mt-1 w-full text-left">Last 30 days</p>
 			</div>
 		</Card>

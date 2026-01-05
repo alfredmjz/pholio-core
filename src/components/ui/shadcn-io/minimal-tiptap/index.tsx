@@ -95,6 +95,7 @@ function MinimalTiptap({
 		<div className={cn("border border-border rounded-lg overflow-hidden", className)}>
 			<div className="border-b border-border p-2 flex flex-wrap items-center gap-1">
 				<Toggle
+					type="button"
 					size="sm"
 					pressed={isMarkActive("bold")}
 					onPressedChange={() => editor.chain().focus().toggleBold().run()}
@@ -104,6 +105,7 @@ function MinimalTiptap({
 				</Toggle>
 
 				<Toggle
+					type="button"
 					size="sm"
 					pressed={isMarkActive("italic")}
 					onPressedChange={() => editor.chain().focus().toggleItalic().run()}
@@ -113,6 +115,7 @@ function MinimalTiptap({
 				</Toggle>
 
 				<Toggle
+					type="button"
 					size="sm"
 					pressed={isMarkActive("strike")}
 					onPressedChange={() => editor.chain().focus().toggleStrike().run()}
@@ -122,6 +125,7 @@ function MinimalTiptap({
 				</Toggle>
 
 				<Toggle
+					type="button"
 					size="sm"
 					pressed={isMarkActive("code")}
 					onPressedChange={() => editor.chain().focus().toggleCode().run()}
@@ -133,6 +137,7 @@ function MinimalTiptap({
 				<Separator orientation="vertical" className="h-6" />
 
 				<Toggle
+					type="button"
 					size="sm"
 					pressed={editor.isActive("heading", { level: 1 })}
 					onPressedChange={() => editor.chain().focus().toggleHeading({ level: 1 }).run()}
@@ -141,6 +146,7 @@ function MinimalTiptap({
 				</Toggle>
 
 				<Toggle
+					type="button"
 					size="sm"
 					pressed={editor.isActive("heading", { level: 2 })}
 					onPressedChange={() => editor.chain().focus().toggleHeading({ level: 2 }).run()}
@@ -149,6 +155,7 @@ function MinimalTiptap({
 				</Toggle>
 
 				<Toggle
+					type="button"
 					size="sm"
 					pressed={editor.isActive("heading", { level: 3 })}
 					onPressedChange={() => editor.chain().focus().toggleHeading({ level: 3 }).run()}
@@ -159,6 +166,7 @@ function MinimalTiptap({
 				<Separator orientation="vertical" className="h-6" />
 
 				<Toggle
+					type="button"
 					size="sm"
 					pressed={editor.isActive("bulletList")}
 					onPressedChange={() => editor.chain().focus().toggleBulletList().run()}
@@ -167,6 +175,7 @@ function MinimalTiptap({
 				</Toggle>
 
 				<Toggle
+					type="button"
 					size="sm"
 					pressed={editor.isActive("orderedList")}
 					onPressedChange={() => editor.chain().focus().toggleOrderedList().run()}
@@ -175,6 +184,7 @@ function MinimalTiptap({
 				</Toggle>
 
 				<Toggle
+					type="button"
 					size="sm"
 					pressed={editor.isActive("blockquote")}
 					onPressedChange={() => editor.chain().focus().toggleBlockquote().run()}
@@ -184,13 +194,19 @@ function MinimalTiptap({
 
 				<Separator orientation="vertical" className="h-6" />
 
-				<Button variant="ghost" size="sm" onClick={() => editor.chain().focus().setHorizontalRule().run()}>
+				<Button
+					type="button"
+					variant="ghost"
+					size="sm"
+					onClick={() => editor.chain().focus().setHorizontalRule().run()}
+				>
 					<Minus className="h-4 w-4" />
 				</Button>
 
 				<Separator orientation="vertical" className="h-6" />
 
 				<Button
+					type="button"
 					variant="ghost"
 					size="sm"
 					onClick={() => editor.chain().focus().undo().run()}
@@ -200,6 +216,7 @@ function MinimalTiptap({
 				</Button>
 
 				<Button
+					type="button"
 					variant="ghost"
 					size="sm"
 					onClick={() => editor.chain().focus().redo().run()}

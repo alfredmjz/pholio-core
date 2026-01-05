@@ -80,6 +80,7 @@ function CompactTiptap({
 		<div className={cn("border border-border rounded-lg overflow-hidden", className)}>
 			<div className="border-b border-border px-2 py-1.5 flex items-center gap-0.5 bg-muted/30">
 				<Toggle
+					type="button"
 					size="sm"
 					pressed={isMarkActive("bold")}
 					onPressedChange={() => editor.chain().focus().toggleBold().run()}
@@ -90,6 +91,7 @@ function CompactTiptap({
 				</Toggle>
 
 				<Toggle
+					type="button"
 					size="sm"
 					pressed={isMarkActive("italic")}
 					onPressedChange={() => editor.chain().focus().toggleItalic().run()}
@@ -102,6 +104,7 @@ function CompactTiptap({
 				<div className="w-px h-4 bg-border mx-1" />
 
 				<Toggle
+					type="button"
 					size="sm"
 					pressed={editor.isActive("bulletList")}
 					onPressedChange={() => editor.chain().focus().toggleBulletList().run()}
@@ -111,6 +114,7 @@ function CompactTiptap({
 				</Toggle>
 
 				<Toggle
+					type="button"
 					size="sm"
 					pressed={editor.isActive("orderedList")}
 					onPressedChange={() => editor.chain().focus().toggleOrderedList().run()}

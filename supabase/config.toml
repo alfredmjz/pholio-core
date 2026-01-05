@@ -215,15 +215,18 @@ otp_expiry = 3600
 [auth.email.template.confirmation]
 content_path = "./supabase/templates/confirmation.html"
 
-# Use a production-ready SMTP server
-# [auth.email.smtp]
-# enabled = true
-# host = "smtp.sendgrid.net"
-# port = 587
-# user = "apikey"
-# pass = "env(SENDGRID_API_KEY)"
-# admin_email = "admin@email.com"
-# sender_name = "Admin"
+[auth.email.template.recovery]
+content_path = "./supabase/templates/recovery.html"
+
+# Use Resend for production-ready SMTP
+[auth.email.smtp]
+enabled = true
+host = "smtp.resend.com"
+port = 465
+user = "resend"
+pass = "env(RESEND_API_KEY)"
+admin_email = "noreply@pholio.app"
+sender_name = "Pholio"
 
 # Uncomment to customize email template
 # [auth.email.template.invite]

@@ -24,12 +24,17 @@ function SuccessContent() {
 		try {
 			const result = await resendConfirmationEmail(email);
 			if (result?.error) {
-				toast.error(result.error);
+				toast.error("Resend Failed", {
+					description: result.error,
+				});
 			} else {
 				toast.success("Confirmation email resent!");
 			}
-		} catch (error) {
-			toast.error("Failed to resend email");
+		} catch (err) {
+			const errorMessage = err instanceof Error ? err.message : "An unexpected error occurred.";
+			toast.error("Resend Failed", {
+				description: errorMessage,
+			});
 		} finally {
 			setIsResending(false);
 		}

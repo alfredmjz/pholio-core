@@ -87,7 +87,9 @@ export function TransactionDialog({
 					toast.success("Transaction updated");
 					onOpenChange(false);
 				} else {
-					toast.error("Failed to update transaction");
+					toast.error("Update Failed", {
+						description: "Failed to update the transaction. Please check your connection.",
+					});
 				}
 			} else {
 				const newTx = await createTransaction(name, numAmount, date, finalCategoryId, type, notes);
@@ -96,12 +98,16 @@ export function TransactionDialog({
 					toast.success("Transaction created");
 					onOpenChange(false);
 				} else {
-					toast.error("Failed to create transaction");
+					toast.error("Creation Failed", {
+						description: "Failed to create the transaction. Please try again.",
+					});
 				}
 			}
-		} catch (error) {
-			console.error(error);
-			toast.error("An error occurred");
+		} catch (err) {
+			const errorMessage = err instanceof Error ? err.message : "An unexpected error occurred.";
+			toast.error("Error", {
+				description: errorMessage,
+			});
 		} finally {
 			setIsLoading(false);
 		}

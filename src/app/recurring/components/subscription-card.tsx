@@ -8,6 +8,7 @@ import { StatusBadge } from "@/components/ui/status-badge";
 import { Calendar, CreditCard, ImageIcon } from "lucide-react";
 import { useState } from "react";
 import { toast } from "sonner";
+import { formatShortDate } from "@/lib/date-utils";
 
 interface SubscriptionCardProps {
 	subscription: RecurringExpense;
@@ -24,13 +25,18 @@ export function SubscriptionCard({ subscription }: SubscriptionCardProps) {
 			const success = await toggleSubscription(subscription.id, checked);
 			if (!success) {
 				setIsActive(!checked); // Revert
-				toast.error("Failed to update subscription status");
+				toast.error("Update Failed", {
+					description: "Failed to update subscription status. Please try again.",
+				});
 			} else {
 				toast.success(checked ? "Subscription active" : "Subscription paused");
 			}
-		} catch (error) {
+		} catch (err) {
 			setIsActive(!checked);
-			toast.error("An error occurred");
+			const errorMessage = err instanceof Error ? err.message : "An unexpected error occurred.";
+			toast.error("Error", {
+				description: errorMessage,
+			});
 		} finally {
 			setIsLoading(false);
 		}
@@ -62,7 +68,7 @@ export function SubscriptionCard({ subscription }: SubscriptionCardProps) {
 				</div>
 				<div className="flex items-center text-xs text-primary gap-1">
 					<Calendar className="h-3 w-3" />
-					Due: {new Date(subscription.next_due_date).toLocaleDateString(undefined, { day: "numeric", month: "short" })}
+					Due: {formatShortDate(subscription.next_due_date)}
 				</div>
 			</CardContent>
 		</Card>

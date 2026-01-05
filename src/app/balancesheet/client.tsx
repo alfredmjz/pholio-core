@@ -15,7 +15,7 @@ import { AccountCard } from "./components/AccountCard";
 import { AddAccountDialog } from "./components/AddAccountDialog";
 import { UnifiedTransactionDialog } from "@/components/dialogs/UnifiedTransactionDialog";
 import { AccountAdjustmentDialog } from "./components/AccountAdjustmentDialog";
-import { getAccountTransactions } from "./actions";
+import { getAccountTransactions, type RecentActivityItem } from "./actions";
 import type { AllocationCategory } from "@/app/allocations/types";
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
 
@@ -24,10 +24,16 @@ import { PageShell, PageHeader, PageContent } from "@/components/layout/page-she
 interface BalanceSheetClientProps {
 	initialAccounts: AccountWithType[];
 	initialCategories: AllocationCategory[];
+	initialActivity: RecentActivityItem[];
 	initialSummary: BalanceSheetSummary;
 }
 
-export function BalanceSheetClient({ initialAccounts, initialCategories, initialSummary }: BalanceSheetClientProps) {
+export function BalanceSheetClient({
+	initialAccounts,
+	initialCategories,
+	initialActivity,
+	initialSummary,
+}: BalanceSheetClientProps) {
 	const [accounts, setAccounts] = useState<AccountWithType[]>(initialAccounts);
 	const router = useRouter();
 	const [selectedAccount, setSelectedAccount] = useState<AccountWithType | null>(initialAccounts[0] || null);
@@ -264,7 +270,7 @@ export function BalanceSheetClient({ initialAccounts, initialCategories, initial
 
 						{/* Recent Activity Feed */}
 						<div className="lg:col-span-1">
-							<RecentActivity />
+							<RecentActivity activity={initialActivity} />
 						</div>
 					</div>
 				</div>

@@ -108,10 +108,15 @@ export function EditAccountDialog({ open, onOpenChange, account, onSuccess }: Ed
 				});
 				onOpenChange(false);
 			} else {
-				toast.error("Failed to update account");
+				toast.error("Update Failed", {
+					description: "Failed to update account details. Please try again.",
+				});
 			}
-		} catch (error) {
-			toast.error("An error occurred");
+		} catch (err) {
+			const errorMessage = err instanceof Error ? err.message : "An unexpected error occurred.";
+			toast.error("Update Error", {
+				description: errorMessage,
+			});
 		} finally {
 			setIsSubmitting(false);
 		}

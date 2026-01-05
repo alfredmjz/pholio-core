@@ -5,6 +5,7 @@
 
 import { jwtVerify, createRemoteJWKSet, type JWTPayload, type JWTVerifyGetKey } from "jose";
 import type { NextRequest } from "next/server";
+import { Logger } from "@/lib/logger";
 
 // Cache for JWKS to avoid repeated fetches
 let cachedJWKS: JWTVerifyGetKey | null = null;
@@ -54,7 +55,8 @@ export async function verifySupabaseJWT(token: string): Promise<JWTPayload | nul
 		]);
 
 		return payload;
-	} catch (error) {
+	} catch (err) {
+		Logger.debug("JWT verification failed", { error: err });
 		return null;
 	}
 }

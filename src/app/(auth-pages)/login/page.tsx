@@ -50,11 +50,18 @@ export default function Page() {
 		action: login,
 		validate,
 		onSuccess: (result) => {
-			console.log("[Login] onSuccess called, result:", result);
 			// Check if this is first login - redirect with welcome param
 			const redirectUrl = (result as { showWelcome?: boolean })?.showWelcome ? "/?welcome=true" : "/";
-			console.log("[Login] Redirecting to:", redirectUrl);
 			router.push(redirectUrl);
+			// Detect if navigation failed (still on login page after timeout)
+			setTimeout(() => {
+				if (window.location.pathname === "/login") {
+					toast.error("Navigation Timeout", {
+						description:
+							"Authentication was successful, but we're having trouble redirecting you. Please refresh or try navigating manually.",
+					});
+				}
+			}, 3000); // Increased to 3s to give more time for slow networks
 		},
 	});
 
@@ -75,9 +82,11 @@ export default function Page() {
 			} else {
 				router.push("/");
 			}
-		} catch {
-			toast.error("Something went wrong", {
-				description: "Please try again later.",
+		} catch (err) {
+			const errorMessage = err instanceof Error ? err.message : "Failed to create guest session";
+			setError(errorMessage);
+			toast.error("Guest Login Failed", {
+				description: errorMessage,
 			});
 			setIsGuestLoading(false);
 		}

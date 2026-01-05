@@ -1,3 +1,4 @@
+import { Logger } from "@/lib/logger";
 import { createClient } from "@/lib/supabase/server";
 import { Database } from "@/lib/database.types";
 import { sampleProfile } from "@/mock-data/profile";
@@ -43,7 +44,7 @@ export async function getUserProfile(): Promise<UserProfile | null> {
 
 		return profile;
 	} catch (error) {
-		console.error("Error fetching user profile:", error);
+		Logger.error("Error fetching user profile", { error });
 		return null;
 	}
 }

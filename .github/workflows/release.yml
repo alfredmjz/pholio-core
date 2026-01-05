@@ -4,22 +4,26 @@ on:
   push:
     branches:
       - main
-      # Trigger on pushed tags as well if needed, but semantic-release usually creates them
-      # - 'v*'
 
 permissions:
-  contents: write # to be able to publish a GitHub release
-  issues: write # to be able to comment on released issues
-  pull-requests: write # to be able to comment on released pull requests
+  contents: read
 
 jobs:
   release:
     runs-on: ubuntu-latest
     steps:
-      - name: Checkout
-        uses: actions/checkout@v3
+      - name: Generate GitHub App Token
+        id: app-token
+        uses: actions/create-github-app-token@v1
         with:
-          fetch-depth: 0 # required for semantic-release to check commit history
+          app-id: ${{ secrets.APP_ID }}
+          private-key: ${{ secrets.APP_PRIVATE_KEY }}
+
+      - name: Checkout
+        uses: actions/checkout@v4
+        with:
+          fetch-depth: 0
+          token: ${{ steps.app-token.outputs.token }}
 
       - name: Setup Bun
         uses: oven-sh/setup-bun@v1
@@ -27,7 +31,7 @@ jobs:
           bun-version: latest
 
       - name: Setup Node.js
-        uses: actions/setup-node@v3
+        uses: actions/setup-node@v4
         with:
           node-version: "22"
 
@@ -36,7 +40,11 @@ jobs:
 
       - name: Release
         env:
-          GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+          GITHUB_TOKEN: ${{ steps.app-token.outputs.token }}
         run: |
           bun add -d semantic-release @semantic-release/git @semantic-release/exec
           bunx semantic-release
+
+      - name: Trigger Vercel Production Deploy
+        if: success()
+        run: curl -X POST "${{ secrets.VERCEL_DEPLOY_HOOK }}"

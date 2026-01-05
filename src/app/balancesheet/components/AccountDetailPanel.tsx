@@ -7,6 +7,7 @@ import { Separator } from "@/components/ui/separator";
 import { TooltipProvider } from "@/components/ui/tooltip";
 import { toast } from "sonner";
 import { updateAccount } from "../actions";
+import { formatFullDate } from "@/lib/date-utils";
 
 import { EmptyAccountState, AccountHeader, AccountStats, AccountNotes, TransactionHistory } from "./account-detail";
 
@@ -63,14 +64,6 @@ export function AccountDetailPanel({
 		}).format(amount);
 	};
 
-	const formatDate = (dateString: string) => {
-		return new Date(dateString).toLocaleDateString("en-US", {
-			month: "short",
-			day: "numeric",
-			year: "numeric",
-		});
-	};
-
 	// Handle save action
 	const handleSave = async () => {
 		if (!account) return;
@@ -86,10 +79,15 @@ export function AccountDetailPanel({
 				toast.success("Account updated");
 				setIsEditing(false);
 			} else {
-				toast.error("Failed to update account");
+				toast.error("Update Failed", {
+					description: "Failed to update account details. Please try again.",
+				});
 			}
 		} catch (error) {
-			toast.error("An error occurred");
+			const errorMessage = error instanceof Error ? error.message : "An unexpected error occurred.";
+			toast.error("Update Error", {
+				description: errorMessage,
+			});
 		}
 	};
 
@@ -152,7 +150,7 @@ export function AccountDetailPanel({
 					onRecordTransaction={onRecordTransaction}
 					onAdjustBalance={onAdjustBalance}
 					formatCurrency={formatCurrency}
-					formatDate={formatDate}
+					formatDate={formatFullDate}
 				/>
 			</Card>
 		</TooltipProvider>

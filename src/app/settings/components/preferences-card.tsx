@@ -46,7 +46,9 @@ export default function PreferencesCard() {
 		const result = await updateAllocationSettings({ newMonthDefault: value });
 		if (!result.success) {
 			setNewMonthDefault(previousValue);
-			toast.error(result.error || "Failed to update setting");
+			toast.error("Update Failed", {
+				description: result.error || "Failed to update your preference. Please try again.",
+			});
 		} else {
 			toast.success("Setting updated");
 		}

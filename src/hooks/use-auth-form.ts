@@ -67,8 +67,10 @@ export function useAuthForm({ action, validate, onSuccess, successMessage }: Use
 				}
 			}
 		} catch (err) {
-			toast.error("Something went wrong", {
-				description: "Please try again later.",
+			const errorMessage = err instanceof Error ? err.message : "An unexpected error occurred";
+			setError(errorMessage);
+			toast.error("Request Failed", {
+				description: errorMessage,
 			});
 			setIsLoading(false);
 		}

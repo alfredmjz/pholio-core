@@ -8,6 +8,7 @@ import { StatusBadge } from "@/components/ui/status-badge";
 import { Calendar, CreditCard, ImageIcon } from "lucide-react";
 import { useState } from "react";
 import { toast } from "sonner";
+import { formatShortDate } from "@/lib/date-utils";
 
 interface SubscriptionCardProps {
 	subscription: RecurringExpense;
@@ -67,7 +68,7 @@ export function SubscriptionCard({ subscription }: SubscriptionCardProps) {
 				</div>
 				<div className="flex items-center text-xs text-primary gap-1">
 					<Calendar className="h-3 w-3" />
-					Due: {new Date(subscription.next_due_date).toLocaleDateString(undefined, { day: "numeric", month: "short" })}
+					Due: {formatShortDate(subscription.next_due_date)}
 				</div>
 			</CardContent>
 		</Card>

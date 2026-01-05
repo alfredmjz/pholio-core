@@ -1,10 +1,9 @@
 import { Suspense } from "react";
 import { requireAuth } from "@/lib/auth";
 import { BalanceSheetClient } from "./client";
-import { getBalanceSheetSummary, getAccounts } from "./actions";
+import { getBalanceSheetSummary, getAccounts, getRecentActivity } from "./actions";
 import { createClient } from "@/lib/supabase/server";
-import { sampleAccounts, sampleBalanceSheetSummary } from "@/mock-data/balancesheet";
-import { BalanceSheetLoadingSkeleton } from "./components/balance-sheet-loading-skeleton";
+import { sampleAccounts, sampleBalanceSheetSummary, sampleRecentActivity } from "@/mock-data/balancesheet";
 
 export default async function BalanceSheetPage() {
 	// Skip auth check if using sample data
@@ -15,16 +14,18 @@ export default async function BalanceSheetPage() {
 	let summary = null;
 	let accounts: any[] = [];
 	let categories: any[] = [];
+	let activity: any[] = [];
 
 	if (process.env.NEXT_PUBLIC_USE_SAMPLE_DATA === "true") {
 		summary = sampleBalanceSheetSummary;
 		accounts = sampleAccounts;
+		activity = sampleRecentActivity;
 		// Fetch categories for unified dialog even in sample mode
 		const { data: cats } = await (await createClient()).from("allocation_categories").select("*");
 		categories = cats || [];
 	} else {
 		// Fetch real data
-		[summary, accounts] = await Promise.all([getBalanceSheetSummary(), getAccounts()]);
+		[summary, accounts, activity] = await Promise.all([getBalanceSheetSummary(), getAccounts(), getRecentActivity()]);
 
 		const { data: cats } = await (await createClient()).from("allocation_categories").select("*");
 		categories = cats || [];
@@ -40,6 +41,7 @@ export default async function BalanceSheetPage() {
 			<BalanceSheetClient
 				initialAccounts={accounts}
 				initialCategories={categories}
+				initialActivity={activity}
 				initialSummary={{
 					...summary,
 					totalAssets: summary.totalAssets,

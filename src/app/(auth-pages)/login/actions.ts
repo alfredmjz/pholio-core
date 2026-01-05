@@ -82,7 +82,21 @@ export async function signup(formData: FormData) {
 	});
 
 	if (authError) {
-		return { error: authError.message };
+		// Map Supabase errors to user-friendly messages
+		// Production settings: 8 chars minimum, requires lowercase, uppercase, digits, and symbols
+		const errorMessages: Record<string, string> = {
+			"User already registered": "An account with this email already exists. Please log in instead.",
+			"Email rate limit exceeded": "Too many signup attempts. Please try again later.",
+			"Password should be at least 8 characters": "Password must be at least 8 characters long.",
+			"Password should contain at least one character of each: abcdefghijklmnopqrstuvwxyz, ABCDEFGHIJKLMNOPQRSTUVWXYZ, 0123456789, !@#$%^&*()_+-=[]{}|'":
+				"Password must include lowercase, uppercase, number, and symbol.",
+			"Signup requires a valid password": "Please enter a valid password.",
+			"Unable to validate email address: invalid format": "Please enter a valid email address.",
+			"Anonymous sign-ins are disabled": "Guest access is currently unavailable.",
+		};
+
+		const friendlyMessage = errorMessages[authError.message] || authError.message;
+		return { error: friendlyMessage };
 	}
 
 	if (!authData.user) {

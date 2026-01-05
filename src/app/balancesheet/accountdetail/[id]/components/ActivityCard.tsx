@@ -4,6 +4,7 @@ import { ArrowUpRight, ArrowDownLeft, DollarSign, RefreshCw, Plus } from "lucide
 import { Card } from "@/components/ui/card";
 import { Skeleton } from "@/components/ui/skeleton";
 import { cn } from "@/lib/utils";
+import { formatTime, formatFullDate } from "@/lib/date-utils";
 import type { AccountTransaction } from "../../../types";
 
 interface ActivityCardProps {
@@ -28,24 +29,6 @@ const getTransactionIcon = (type: string) => {
 		default:
 			return <DollarSign className="h-4 w-4 text-primary" />;
 	}
-};
-
-const formatTime = (dateString: string) => {
-	const date = new Date(dateString);
-	return date.toLocaleTimeString("en-US", {
-		hour: "numeric",
-		minute: "2-digit",
-		hour12: true,
-	});
-};
-
-const formatDate = (dateString: string) => {
-	const date = new Date(dateString);
-	return date.toLocaleDateString("en-US", {
-		month: "short",
-		day: "numeric",
-		year: "numeric",
-	});
 };
 
 const getTransactionTitle = (type: string) => {
@@ -135,7 +118,7 @@ export function ActivityCard({ transactions, isLoading, formatCurrency }: Activi
 									{txn.transaction_type === "withdrawal" || txn.transaction_type === "payment" ? "-" : "+"}
 									{formatCurrency(txn.amount)}
 								</span>
-								<span className="text-xs text-primary">{formatDate(txn.transaction_date)}</span>
+								<span className="text-xs text-primary">{formatFullDate(txn.transaction_date)}</span>
 							</div>
 						</div>
 					))

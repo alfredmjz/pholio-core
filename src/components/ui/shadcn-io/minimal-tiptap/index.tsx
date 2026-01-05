@@ -6,6 +6,7 @@ import StarterKit from "@tiptap/starter-kit";
 import { Button } from "@/components/ui/button";
 import { Separator } from "@/components/ui/separator";
 import { Toggle } from "@/components/ui/toggle";
+import { Tooltip, TooltipContent, TooltipTrigger } from "@/components/ui/tooltip";
 import {
 	Bold,
 	Italic,
@@ -31,6 +32,48 @@ interface MinimalTiptapProps {
 	className?: string;
 	editorContentClassName?: string;
 }
+
+interface ToolbarButtonProps extends React.ComponentPropsWithoutRef<typeof Button> {
+	icon: React.ElementType;
+	tooltip: string;
+}
+
+const ToolbarButton = React.forwardRef<HTMLButtonElement, ToolbarButtonProps>(
+	({ icon: Icon, tooltip, className, ...props }, ref) => (
+		<Tooltip>
+			<TooltipTrigger asChild>
+				<Button ref={ref} variant="ghost" size="sm" type="button" className={cn(className)} {...props}>
+					<Icon className="h-4 w-4" />
+				</Button>
+			</TooltipTrigger>
+			<TooltipContent>
+				<p>{tooltip}</p>
+			</TooltipContent>
+		</Tooltip>
+	)
+);
+ToolbarButton.displayName = "ToolbarButton";
+
+interface ToolbarToggleProps extends React.ComponentPropsWithoutRef<typeof Toggle> {
+	icon: React.ElementType;
+	tooltip: string;
+}
+
+const ToolbarToggle = React.forwardRef<HTMLButtonElement, ToolbarToggleProps>(
+	({ icon: Icon, tooltip, className, ...props }, ref) => (
+		<Tooltip>
+			<TooltipTrigger asChild>
+				<Toggle ref={ref} size="sm" type="button" className={cn(className)} {...props}>
+					<Icon className="h-4 w-4" />
+				</Toggle>
+			</TooltipTrigger>
+			<TooltipContent>
+				<p>{tooltip}</p>
+			</TooltipContent>
+		</Tooltip>
+	)
+);
+ToolbarToggle.displayName = "ToolbarToggle";
 
 function MinimalTiptap({
 	content = "",
@@ -94,119 +137,107 @@ function MinimalTiptap({
 	return (
 		<div className={cn("border border-border rounded-lg overflow-hidden", className)}>
 			<div className="border-b border-border p-2 flex flex-wrap items-center gap-1">
-				<Toggle
-					size="sm"
+				<ToolbarToggle
+					icon={Bold}
+					tooltip="Bold"
 					pressed={isMarkActive("bold")}
 					onPressedChange={() => editor.chain().focus().toggleBold().run()}
 					disabled={!editor.can().chain().focus().toggleBold().run()}
-				>
-					<Bold className="h-4 w-4" />
-				</Toggle>
+				/>
 
-				<Toggle
-					size="sm"
+				<ToolbarToggle
+					icon={Italic}
+					tooltip="Italic"
 					pressed={isMarkActive("italic")}
 					onPressedChange={() => editor.chain().focus().toggleItalic().run()}
 					disabled={!editor.can().chain().focus().toggleItalic().run()}
-				>
-					<Italic className="h-4 w-4" />
-				</Toggle>
+				/>
 
-				<Toggle
-					size="sm"
+				<ToolbarToggle
+					icon={Strikethrough}
+					tooltip="Strikethrough"
 					pressed={isMarkActive("strike")}
 					onPressedChange={() => editor.chain().focus().toggleStrike().run()}
 					disabled={!editor.can().chain().focus().toggleStrike().run()}
-				>
-					<Strikethrough className="h-4 w-4" />
-				</Toggle>
+				/>
 
-				<Toggle
-					size="sm"
+				<ToolbarToggle
+					icon={Code}
+					tooltip="Code"
 					pressed={isMarkActive("code")}
 					onPressedChange={() => editor.chain().focus().toggleCode().run()}
 					disabled={!editor.can().chain().focus().toggleCode().run()}
-				>
-					<Code className="h-4 w-4" />
-				</Toggle>
+				/>
 
 				<Separator orientation="vertical" className="h-6" />
 
-				<Toggle
-					size="sm"
+				<ToolbarToggle
+					icon={Heading1}
+					tooltip="Heading 1"
 					pressed={editor.isActive("heading", { level: 1 })}
 					onPressedChange={() => editor.chain().focus().toggleHeading({ level: 1 }).run()}
-				>
-					<Heading1 className="h-4 w-4" />
-				</Toggle>
+				/>
 
-				<Toggle
-					size="sm"
+				<ToolbarToggle
+					icon={Heading2}
+					tooltip="Heading 2"
 					pressed={editor.isActive("heading", { level: 2 })}
 					onPressedChange={() => editor.chain().focus().toggleHeading({ level: 2 }).run()}
-				>
-					<Heading2 className="h-4 w-4" />
-				</Toggle>
+				/>
 
-				<Toggle
-					size="sm"
+				<ToolbarToggle
+					icon={Heading3}
+					tooltip="Heading 3"
 					pressed={editor.isActive("heading", { level: 3 })}
 					onPressedChange={() => editor.chain().focus().toggleHeading({ level: 3 }).run()}
-				>
-					<Heading3 className="h-4 w-4" />
-				</Toggle>
+				/>
 
 				<Separator orientation="vertical" className="h-6" />
 
-				<Toggle
-					size="sm"
+				<ToolbarToggle
+					icon={List}
+					tooltip="Bullet List"
 					pressed={editor.isActive("bulletList")}
 					onPressedChange={() => editor.chain().focus().toggleBulletList().run()}
-				>
-					<List className="h-4 w-4" />
-				</Toggle>
+				/>
 
-				<Toggle
-					size="sm"
+				<ToolbarToggle
+					icon={ListOrdered}
+					tooltip="Ordered List"
 					pressed={editor.isActive("orderedList")}
 					onPressedChange={() => editor.chain().focus().toggleOrderedList().run()}
-				>
-					<ListOrdered className="h-4 w-4" />
-				</Toggle>
+				/>
 
-				<Toggle
-					size="sm"
+				<ToolbarToggle
+					icon={Quote}
+					tooltip="Blockquote"
 					pressed={editor.isActive("blockquote")}
 					onPressedChange={() => editor.chain().focus().toggleBlockquote().run()}
-				>
-					<Quote className="h-4 w-4" />
-				</Toggle>
+				/>
 
 				<Separator orientation="vertical" className="h-6" />
 
-				<Button variant="ghost" size="sm" onClick={() => editor.chain().focus().setHorizontalRule().run()}>
-					<Minus className="h-4 w-4" />
-				</Button>
+				<ToolbarButton
+					icon={Minus}
+					tooltip="Horizontal Rule"
+					onClick={() => editor.chain().focus().setHorizontalRule().run()}
+				/>
 
 				<Separator orientation="vertical" className="h-6" />
 
-				<Button
-					variant="ghost"
-					size="sm"
+				<ToolbarButton
+					icon={Undo}
+					tooltip="Undo"
 					onClick={() => editor.chain().focus().undo().run()}
 					disabled={!editor.can().chain().focus().undo().run()}
-				>
-					<Undo className="h-4 w-4" />
-				</Button>
+				/>
 
-				<Button
-					variant="ghost"
-					size="sm"
+				<ToolbarButton
+					icon={Redo}
+					tooltip="Redo"
 					onClick={() => editor.chain().focus().redo().run()}
 					disabled={!editor.can().chain().focus().redo().run()}
-				>
-					<Redo className="h-4 w-4" />
-				</Button>
+				/>
 			</div>
 
 			<EditorContent editor={editor} placeholder={placeholder} />

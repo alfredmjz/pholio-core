@@ -1,16 +1,15 @@
 "use client";
 
-import { useState, useEffect } from "react";
-
 import { Card } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
 import { ToggleGroup, ToggleGroupItem } from "@/components/ui/toggle-group";
 import { cn } from "@/lib/utils";
 import { formatCurrency, formatCompactCurrency } from "@/app/dashboard/utils";
 import { BarChart3, Plus } from "lucide-react";
-import { BarChart, Bar, XAxis, YAxis, CartesianGrid, Tooltip, ResponsiveContainer } from "recharts";
+import { BarChart, Bar, XAxis, YAxis, CartesianGrid, Tooltip } from "recharts";
 import type { Period, CashflowDataPoint } from "../types";
 import { Skeleton } from "@/components/ui/skeleton";
+import { ChartContainer } from "@/components/common/ChartContainer";
 
 interface CashflowWidgetProps {
 	data: CashflowDataPoint[];
@@ -88,11 +87,6 @@ export function CashflowWidget({
 	className,
 }: CashflowWidgetProps) {
 	const hasData = data && data.length > 0;
-	const [mounted, setMounted] = useState(false);
-
-	useEffect(() => {
-		setMounted(true);
-	}, []);
 
 	if (loading) {
 		return <CashflowWidgetSkeleton className={className} />;
@@ -156,34 +150,26 @@ export function CashflowWidget({
 			{/* Chart or Empty State */}
 			{hasData ? (
 				<>
-					<div className="h-72">
-						{mounted ? (
-							<ResponsiveContainer width="100%" height="100%">
-								<BarChart data={data} margin={{ top: 10, right: 10, left: -10, bottom: 0 }} barGap={4}>
-									<CartesianGrid strokeDasharray="3 3" stroke="hsl(var(--border))" vertical={false} />
-									<XAxis dataKey="label" stroke="hsl(var(--primary))" fontSize={12} tickLine={false} axisLine={false} />
-									<YAxis
-										stroke="hsl(var(--primary))"
-										fontSize={12}
-										tickLine={false}
-										axisLine={false}
-										tickFormatter={formatCompactCurrency}
-									/>
-									<Tooltip
-										isAnimationActive={false}
-										content={<CustomTooltip />}
-										cursor={{ fill: "hsl(var(--muted))", opacity: 0.3 }}
-									/>
-									<Bar dataKey="income" fill="hsl(var(--info))" radius={[4, 4, 0, 0]} maxBarSize={40} />
-									<Bar dataKey="expenses" fill="hsl(var(--error))" radius={[4, 4, 0, 0]} maxBarSize={40} />
-								</BarChart>
-							</ResponsiveContainer>
-						) : (
-							<div className="h-full w-full flex items-center justify-center">
-								<Skeleton className="h-full w-full" />
-							</div>
-						)}
-					</div>
+					<ChartContainer height={288} className="my-0">
+						<BarChart data={data} margin={{ top: 10, right: 10, left: -10, bottom: 0 }} barGap={4}>
+							<CartesianGrid strokeDasharray="3 3" stroke="hsl(var(--border))" vertical={false} />
+							<XAxis dataKey="label" stroke="hsl(var(--primary))" fontSize={12} tickLine={false} axisLine={false} />
+							<YAxis
+								stroke="hsl(var(--primary))"
+								fontSize={12}
+								tickLine={false}
+								axisLine={false}
+								tickFormatter={formatCompactCurrency}
+							/>
+							<Tooltip
+								isAnimationActive={false}
+								content={<CustomTooltip />}
+								cursor={{ fill: "hsl(var(--muted))", opacity: 0.3 }}
+							/>
+							<Bar dataKey="income" fill="hsl(var(--info))" radius={[4, 4, 0, 0]} maxBarSize={40} />
+							<Bar dataKey="expenses" fill="hsl(var(--error))" radius={[4, 4, 0, 0]} maxBarSize={40} />
+						</BarChart>
+					</ChartContainer>
 
 					{/* Legend */}
 					<div className="flex items-center justify-center gap-6 mt-4">

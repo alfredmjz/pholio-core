@@ -7,6 +7,7 @@ import LayoutWrapper from "@/components/layoutWrapper";
 import { SidebarWrapper } from "@/components/sidebarWrapper";
 import { Toaster } from "@/components/ui/sonner";
 import { ThemeProvider } from "@/components/theme-provider";
+import { TooltipProvider } from "@/components/ui/tooltip";
 
 export const metadata: Metadata = {
 	title: "Pholio",
@@ -22,8 +23,10 @@ export default async function RootLayout({ children }: { children: React.ReactNo
 		<html lang="en">
 			<body className="w-screen h-screen flex flex-row bg-background overflow-hidden">
 				<ThemeProvider attribute="class" defaultTheme="system" enableSystem disableTransitionOnChange>
-					<LayoutWrapper sidebar={sidebar}>{children}</LayoutWrapper>
-					<Toaster />
+					<TooltipProvider>
+						<LayoutWrapper sidebar={sidebar}>{children}</LayoutWrapper>
+						<Toaster />
+					</TooltipProvider>
 				</ThemeProvider>
 			</body>
 		</html>

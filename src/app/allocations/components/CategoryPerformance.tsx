@@ -196,18 +196,18 @@ function CategoryRow({ category }: CategoryRowProps) {
 
 	return (
 		<>
-			<div ref={setNodeRef} style={style} className={cn("group py-3 bg-card", isDragging && "opacity-50")}>
+			<div ref={setNodeRef} style={style} className={cn("group px-6 py-3 bg-card", isDragging && "opacity-50")}>
 				<div className="flex items-center gap-2 md:gap-6">
 					{/* Drag Handle - Visible on hover or when editing */}
 					<div
 						{...attributes}
 						{...listeners}
 						className={cn(
-							"opacity-0 group-hover:opacity-100 transition-opacity p-1 -ml-2 rounded touch-none",
-							isDragging ? "cursor-grabbing" : "cursor-grab"
+							"absolute -left-12 top-1/2 -translate-y-1/2 p-2 text-muted-foreground/40 hover:text-foreground opacity-0 group-hover:opacity-100 transition-all z-20 touch-none hover:bg-muted rounded cursor-grab",
+							isDragging ? "opacity-100 cursor-grabbing" : "cursor-grab"
 						)}
 					>
-						<GripVertical className="h-4 w-4 text-muted-foreground" />
+						<GripVertical className="h-4 w-4" />
 					</div>
 
 					<div className="flex-1 flex items-center justify-between">
@@ -393,8 +393,8 @@ export function CategoryPerformance({ categories, onAddCategory, className }: Ca
 	}
 
 	return (
-		<Card className={cn("h-full p-6 flex flex-col overflow-hidden", className)}>
-			<div className="flex items-center justify-between mb-4 flex-shrink-0">
+		<Card className={cn("h-full py-6 flex flex-col", className)}>
+			<div className="flex items-center justify-between px-6 mb-4 flex-shrink-0">
 				<h3 className="text-sm font-semibold text-primary uppercase tracking-wide">Category Performance</h3>
 				<Button variant="outline" size="sm" onClick={onAddCategory} className="gap-1.5">
 					<Plus className="h-4 w-4" />
@@ -402,12 +402,12 @@ export function CategoryPerformance({ categories, onAddCategory, className }: Ca
 				</Button>
 			</div>
 
-			<div className="flex-1 overflow-y-auto overflow-x-hidden divide-y-0">
+			<div className="flex-1 divide-y-0">
 				<DndContext
 					sensors={sensors}
 					collisionDetection={closestCenter}
 					onDragEnd={handleDragEnd}
-					modifiers={[restrictToVerticalAxis, restrictToParentElement]}
+					modifiers={[restrictToVerticalAxis]}
 				>
 					<SortableContext items={categories.map((c) => c.id)} strategy={verticalListSortingStrategy}>
 						{categories.map((category) => (

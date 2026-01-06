@@ -404,6 +404,11 @@ export async function deleteCategory(categoryId: string): Promise<boolean> {
  * Reorder categories
  */
 export async function reorderCategories(categoryOrders: { id: string; display_order: number }[]): Promise<boolean> {
+	// Handle sample data mode
+	if (process.env.NEXT_PUBLIC_USE_SAMPLE_DATA === "true") {
+		return true;
+	}
+
 	const supabase = await createClient();
 
 	// Update each category's display order

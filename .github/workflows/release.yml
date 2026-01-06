@@ -57,9 +57,11 @@ jobs:
           bun-version: latest
 
       - name: Install dependencies
+        working-directory: ./src
         run: bun install
 
       - name: Build
+        working-directory: ./src
         run: bun run build
 
   # Step 2: Semantic Release (only after successful build)

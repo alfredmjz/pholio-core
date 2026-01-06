@@ -17,9 +17,11 @@ jobs:
           bun-version: latest
 
       - name: Install dependencies
+        working-directory: ./src
         run: bun install
 
       - name: Build
+        working-directory: ./src
         run: bun run build
 
   # Preview deployment - only for PRs to main

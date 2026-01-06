@@ -10,13 +10,14 @@ import { SubscriptionRow } from "./subscription-row";
 import { BillRow } from "./bill-row";
 import { AddRecurringDialog } from "./add-recurring-dialog";
 import { PageShell, PageHeader, PageContent } from "@/components/layout/page-shell";
+import { useOptimisticRecurring } from "@/hooks/useOptimisticRecurring";
 
 interface RecurringClientProps {
 	initialExpenses: RecurringExpense[];
 }
 
 export function RecurringClient({ initialExpenses }: RecurringClientProps) {
-	const [expenses, setExpenses] = useState<RecurringExpense[]>(initialExpenses);
+	const { expenses, optimisticallyAdd } = useOptimisticRecurring(initialExpenses);
 	const [isAddOpen, setIsAddOpen] = useState(false);
 
 	// Derived state
@@ -106,7 +107,7 @@ export function RecurringClient({ initialExpenses }: RecurringClientProps) {
 				</Tabs>
 			</PageContent>
 
-			<AddRecurringDialog open={isAddOpen} onOpenChange={setIsAddOpen} />
+			<AddRecurringDialog open={isAddOpen} onOpenChange={setIsAddOpen} onSuccess={optimisticallyAdd} />
 		</PageShell>
 	);
 }

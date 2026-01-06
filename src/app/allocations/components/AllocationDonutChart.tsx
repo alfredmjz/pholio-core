@@ -30,17 +30,43 @@ export function AllocationDonutChart({ categories, className }: AllocationDonutC
 		"#f97316", // orange-500
 	];
 
+	const HEX_COLOR_MAP: Record<string, string> = {
+		blue: "#3b82f6",
+		green: "#10b981",
+		orange: "#f97316",
+		cyan: "#06b6d4",
+		purple: "#8b5cf6",
+		amber: "#f59e0b",
+		pink: "#ec4899",
+		red: "#ef4444",
+	};
+
 	const chartDataWithColors = useMemo(() => {
 		if (categories.length === 0) return [];
-		return categories
+		// Sort by display_order for stable ordering
+		return [...categories]
+			.sort((a, b) => a.display_order - b.display_order)
 			.filter((cat) => (cat.actual_spend || 0) > 0)
-			.map((cat, index) => {
-				// Find original index for color stability if needed, or just use current index
-				const colorIndex = categories.findIndex((c) => c.id === cat.id);
+			.map((cat) => {
+				let colorHex = "";
+
+				// 1. Try explicit color
+				if (cat.color && HEX_COLOR_MAP[cat.color.toLowerCase()]) {
+					colorHex = HEX_COLOR_MAP[cat.color.toLowerCase()];
+				} else {
+					// 2. Fallback to hash
+					let hash = 0;
+					for (let i = 0; i < cat.id.length; i++) {
+						hash = cat.id.charCodeAt(i) + ((hash << 5) - hash);
+					}
+					const colorIndex = Math.abs(hash) % CHART_COLORS.length;
+					colorHex = CHART_COLORS[colorIndex];
+				}
+
 				return {
 					name: cat.name,
 					value: cat.actual_spend || 0,
-					color: CHART_COLORS[colorIndex % CHART_COLORS.length],
+					color: colorHex,
 				};
 			});
 	}, [categories, CHART_COLORS]);
@@ -80,17 +106,19 @@ export function AllocationDonutChart({ categories, className }: AllocationDonutC
 					/>
 				</div>
 
-				{/* Legend */}
+				{/* Legend - sorted by display_order for stability */}
 				<div className="w-full grid grid-cols-2 gap-x-3 gap-y-1.5">
-					{categories.map((category, index) => {
-						const color = getCategoryColor(index);
-						return (
-							<div key={category.id} className="flex items-center gap-2">
-								<div className={cn("w-2 h-2 rounded-full flex-shrink-0", color.bg)} />
-								<span className="text-xs text-primary truncate">{category.name}</span>
-							</div>
-						);
-					})}
+					{[...categories]
+						.sort((a, b) => a.display_order - b.display_order)
+						.map((category) => {
+							const color = getCategoryColor(category.id, category.color);
+							return (
+								<div key={category.id} className="flex items-center gap-2">
+									<div className={cn("w-2 h-2 rounded-full flex-shrink-0", color.bg)} />
+									<span className="text-xs text-primary truncate">{category.name}</span>
+								</div>
+							);
+						})}
 				</div>
 			</div>
 		</Card>

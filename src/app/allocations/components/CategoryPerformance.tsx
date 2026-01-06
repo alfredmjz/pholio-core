@@ -4,13 +4,31 @@ import { useState } from "react";
 import { Card } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
-import { Plus, Pencil, Trash2, Check, X } from "lucide-react";
+import { Plus, Pencil, Trash2, Check, X, GripVertical } from "lucide-react";
 import { cn } from "@/lib/utils";
-import { updateCategoryBudget, updateCategoryName, deleteCategory } from "../actions";
+import { updateCategoryBudget, updateCategoryName, deleteCategory, reorderCategories } from "../actions";
 import { toast } from "sonner";
 import { useAllocationContext } from "../context/AllocationContext";
 import { DeleteCategoryDialog } from "./DeleteCategoryDialog";
 import type { AllocationCategory } from "../types";
+import {
+	DndContext,
+	closestCenter,
+	KeyboardSensor,
+	PointerSensor,
+	useSensor,
+	useSensors,
+	DragEndEvent,
+} from "@dnd-kit/core";
+import {
+	arrayMove,
+	SortableContext,
+	sortableKeyboardCoordinates,
+	verticalListSortingStrategy,
+	useSortable,
+} from "@dnd-kit/sortable";
+import { CSS } from "@dnd-kit/utilities";
+import { restrictToVerticalAxis, restrictToParentElement } from "@dnd-kit/modifiers";
 
 interface CategoryPerformanceProps {
 	categories: AllocationCategory[];
@@ -30,16 +48,46 @@ const CATEGORY_COLORS = [
 	{ bg: "bg-orange-500", text: "text-orange-500", light: "bg-orange-100" },
 ];
 
-function getCategoryColor(index: number) {
-	return CATEGORY_COLORS[index % CATEGORY_COLORS.length];
+const COLOR_MAP: Record<string, string> = {
+	blue: "bg-blue-500",
+	green: "bg-green-500",
+	orange: "bg-orange-500",
+	cyan: "bg-cyan-500",
+	purple: "bg-purple-500",
+	amber: "bg-amber-500",
+	pink: "bg-pink-500",
+	red: "bg-red-500",
+};
+
+function getCategoryColor(id: string, colorName?: string) {
+	// 1. Try to find explicit color by name if provided
+	if (colorName) {
+		const normalizeName = colorName.toLowerCase();
+
+		// Direct name match in our palette check
+		// Mapping for common names to our palette
+		if (COLOR_MAP[normalizeName]) {
+			// Find the full object
+			const match = CATEGORY_COLORS.find((c) => c.bg === COLOR_MAP[normalizeName]);
+			if (match) return match;
+		}
+	}
+
+	// 2. Fallback to hash
+	// Simple string hash to get a consistent index
+	let hash = 0;
+	for (let i = 0; i < id.length; i++) {
+		hash = id.charCodeAt(i) + ((hash << 5) - hash);
+	}
+	const index = Math.abs(hash) % CATEGORY_COLORS.length;
+	return CATEGORY_COLORS[index];
 }
 
 interface CategoryRowProps {
 	category: AllocationCategory;
-	colorIndex: number;
 }
 
-function CategoryRow({ category, colorIndex }: CategoryRowProps) {
+function CategoryRow({ category }: CategoryRowProps) {
 	const { optimisticallyUpdateBudget, optimisticallyUpdateName, optimisticallyDeleteCategory } = useAllocationContext();
 
 	const [isEditing, setIsEditing] = useState(false);
@@ -47,10 +95,26 @@ function CategoryRow({ category, colorIndex }: CategoryRowProps) {
 	const [budgetValue, setBudgetValue] = useState(category.budget_cap.toString());
 	const [nameValue, setNameValue] = useState(category.name);
 
+	// Dnd Sortable hook
+	const { attributes, listeners, setNodeRef, transform, transition, isDragging } = useSortable({ id: category.id });
+
+	const style = {
+		transform: CSS.Transform.toString(transform),
+		transition,
+		zIndex: isDragging ? 50 : undefined,
+		position: "relative" as const,
+	};
+
 	const actualSpend = category.actual_spend || 0;
 	const utilization = category.budget_cap > 0 ? (actualSpend / category.budget_cap) * 100 : 0;
 	const isOverBudget = utilization > 100;
-	const color = getCategoryColor(colorIndex);
+
+	// Deterministic color based on ID, unless overridden by category.color
+	// Note: We'd need to map hex codes to our tailwind classes if we supported custom hexes.
+	// For now, if category.color is a key or index we could use it, but our palette is fixed classes.
+	// If category.color matches one of our palette items we could use it.
+	// We'll stick to the hash which is stable.
+	const color = getCategoryColor(category.id, category.color);
 
 	const formatCurrency = (value: number) => {
 		return `$${value.toLocaleString("en-US", { minimumFractionDigits: 0, maximumFractionDigits: 0 })}`;
@@ -132,8 +196,20 @@ function CategoryRow({ category, colorIndex }: CategoryRowProps) {
 
 	return (
 		<>
-			<div className="group py-3">
-				<div className="flex items-center gap-6">
+			<div ref={setNodeRef} style={style} className={cn("group px-6 py-3 bg-card", isDragging && "opacity-50")}>
+				<div className="flex items-center gap-2 md:gap-6">
+					{/* Drag Handle - Visible on hover or when editing */}
+					<div
+						{...attributes}
+						{...listeners}
+						className={cn(
+							"absolute -left-12 top-1/2 -translate-y-1/2 p-2 text-muted-foreground/40 hover:text-foreground opacity-0 group-hover:opacity-100 transition-all z-20 touch-none hover:bg-muted rounded cursor-grab",
+							isDragging ? "opacity-100 cursor-grabbing" : "cursor-grab"
+						)}
+					>
+						<GripVertical className="h-4 w-4" />
+					</div>
+
 					<div className="flex-1 flex items-center justify-between">
 						{/* Group: Color + Name */}
 						<div className="flex items-center gap-3">
@@ -249,6 +325,50 @@ function CategoryRow({ category, colorIndex }: CategoryRowProps) {
 }
 
 export function CategoryPerformance({ categories, onAddCategory, className }: CategoryPerformanceProps) {
+	const { optimisticallyReorderCategories } = useAllocationContext();
+
+	const sensors = useSensors(
+		useSensor(PointerSensor, {
+			activationConstraint: {
+				distance: 8,
+			},
+		}),
+		useSensor(KeyboardSensor, {
+			coordinateGetter: sortableKeyboardCoordinates,
+		})
+	);
+
+	const handleDragEnd = async (event: DragEndEvent) => {
+		const { active, over } = event;
+
+		if (!over || active.id === over.id) {
+			return;
+		}
+
+		const oldIndex = categories.findIndex((c) => c.id === active.id);
+		const newIndex = categories.findIndex((c) => c.id === over.id);
+
+		if (oldIndex !== -1 && newIndex !== -1) {
+			const newOrder = arrayMove(categories, oldIndex, newIndex);
+
+			// Optimistically update
+			optimisticallyReorderCategories(newOrder);
+
+			// Persist to server
+			const updates = newOrder.map((cat, index) => ({
+				id: cat.id,
+				display_order: index,
+			}));
+
+			// Fire and forget, or handle error
+			reorderCategories(updates).then((success) => {
+				if (!success) {
+					toast.error("Failed to save order");
+				}
+			});
+		}
+	};
+
 	if (categories.length === 0) {
 		return (
 			<Card className={cn("h-full p-6 flex flex-col", className)}>
@@ -273,8 +393,8 @@ export function CategoryPerformance({ categories, onAddCategory, className }: Ca
 	}
 
 	return (
-		<Card className={cn("h-full p-6 flex flex-col", className)}>
-			<div className="flex items-center justify-between mb-4 flex-shrink-0">
+		<Card className={cn("h-full py-6 flex flex-col", className)}>
+			<div className="flex items-center justify-between px-6 mb-4 flex-shrink-0">
 				<h3 className="text-sm font-semibold text-primary uppercase tracking-wide">Category Performance</h3>
 				<Button variant="outline" size="sm" onClick={onAddCategory} className="gap-1.5">
 					<Plus className="h-4 w-4" />
@@ -282,10 +402,19 @@ export function CategoryPerformance({ categories, onAddCategory, className }: Ca
 				</Button>
 			</div>
 
-			<div className="flex-1 overflow-y-auto divide-y-0">
-				{categories.map((category, index) => (
-					<CategoryRow key={category.id} category={category} colorIndex={index} />
-				))}
+			<div className="flex-1 divide-y-0">
+				<DndContext
+					sensors={sensors}
+					collisionDetection={closestCenter}
+					onDragEnd={handleDragEnd}
+					modifiers={[restrictToVerticalAxis]}
+				>
+					<SortableContext items={categories.map((c) => c.id)} strategy={verticalListSortingStrategy}>
+						{categories.map((category) => (
+							<CategoryRow key={category.id} category={category} />
+						))}
+					</SortableContext>
+				</DndContext>
 			</div>
 		</Card>
 	);

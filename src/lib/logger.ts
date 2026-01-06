@@ -33,27 +33,13 @@ const isDevelopment = process.env.NODE_ENV === "development";
 
 /**
  * Base Pino logger instance
- * - In development: pretty-printed, colorized output
- * - In production: JSON format for log aggregators
+ * - Uses standard JSON output (pino-pretty cannot be imported due to node:stream incompatibility with Edge/webpack)
  */
 export const logger = pino({
 	level: process.env.LOG_LEVEL || (isDevelopment ? "debug" : "info"),
-	// Use pino-pretty transport in development for readable logs
-	...(isDevelopment && {
-		transport: {
-			target: "pino-pretty",
-			options: {
-				colorize: true,
-				translateTime: "SYS:standard",
-				ignore: "pid,hostname",
-			},
-		},
-	}),
-	// Base configuration for all environments
 	base: {
 		env: process.env.NODE_ENV,
 	},
-	// Custom timestamp format
 	timestamp: pino.stdTimeFunctions.isoTime,
 });
 

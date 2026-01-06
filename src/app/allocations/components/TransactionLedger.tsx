@@ -328,11 +328,9 @@ export function TransactionLedger({
 									const txType = inferTransactionType(transaction);
 
 									// Resolve category color based on index in the categories array
-									const categoryIndex = categories.findIndex((c) => c.id === transaction.category_id);
-									const categoryStyle =
-										categoryIndex !== -1
-											? getCategoryColor(categoryIndex)
-											: { bg: "bg-secondary", text: "text-primary", light: "bg-secondary/50" };
+									const categoryStyle = transaction.category_id
+										? getCategoryColor(transaction.category_id)
+										: { bg: "bg-secondary", text: "text-primary", light: "bg-secondary/50" };
 
 									return (
 										<tr
@@ -359,8 +357,8 @@ export function TransactionLedger({
 													<Badge
 														variant="secondary"
 														className={cn(
-															categoryIndex !== -1 ? categoryStyle.light : "bg-secondary",
-															categoryIndex !== -1 ? categoryStyle.text : "text-primary",
+															transaction.category_id ? categoryStyle.light : "bg-secondary",
+															transaction.category_id ? categoryStyle.text : "text-primary",
 															"font-medium border-0"
 														)}
 													>

@@ -7,6 +7,7 @@ interface AllocationContextValue {
 	optimisticallyUpdateBudget: (categoryId: string, newBudget: number) => void;
 	optimisticallyUpdateName: (categoryId: string, newName: string) => void;
 	optimisticallyDeleteCategory: (categoryId: string) => void;
+	optimisticallyReorderCategories: (newCategories: any[]) => void;
 	rollback: (previousSummary: AllocationSummary) => void;
 }
 

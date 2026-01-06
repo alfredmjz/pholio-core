@@ -2,7 +2,7 @@
 
 import { useEffect, useRef, useState } from "react";
 import { supabase } from "@/lib/supabase/client";
-import type { AllocationSummary, Transaction } from "@/app/allocations/types";
+import type { AllocationSummary, Transaction, AllocationCategory } from "@/app/allocations/types";
 import { getAllocationSummary, getTransactionsForMonth } from "@/app/allocations/actions";
 import { toast } from "sonner";
 import { useOptimisticAllocation } from "./useOptimisticAllocation";
@@ -16,6 +16,7 @@ interface UseAllocationSyncReturn {
 	optimisticallyUpdateBudget: (categoryId: string, newBudget: number) => void;
 	optimisticallyUpdateName: (categoryId: string, newName: string) => void;
 	optimisticallyDeleteCategory: (categoryId: string) => void;
+	optimisticallyReorderCategories: (newCategories: AllocationCategory[]) => void;
 	rollback: (previousSummary: AllocationSummary) => void;
 }
 
@@ -51,6 +52,7 @@ export function useAllocationSync(
 		optimisticallyUpdateBudget,
 		optimisticallyUpdateName,
 		optimisticallyDeleteCategory,
+		optimisticallyReorderCategories,
 		rollback,
 		syncWithServer,
 	} = useOptimisticAllocation(initialSummary);
@@ -175,6 +177,7 @@ export function useAllocationSync(
 		optimisticallyUpdateBudget,
 		optimisticallyUpdateName,
 		optimisticallyDeleteCategory,
+		optimisticallyReorderCategories,
 		rollback,
 	};
 }

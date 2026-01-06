@@ -4,7 +4,6 @@ import { cn } from "@/lib/utils";
 import type { Transaction, AllocationCategory } from "../types";
 import { inferTransactionType } from "./TransactionTypeIcon";
 import { TransactionTypeIcon } from "./TransactionTypeIcon";
-import { getCategoryColor } from "./CategoryPerformance";
 
 interface TransactionTableProps {
 	transactions: Transaction[];
@@ -37,9 +36,7 @@ export function TransactionTable({ transactions, categories, onClickTransaction 
 				</thead>
 				<tbody className="divide-y divide-border bg-card">
 					{transactions.map((transaction) => {
-						const categoryIndex = categories.findIndex((c) => c.id === transaction.category_id);
 						const txType = inferTransactionType(transaction);
-						const categoryStyle = categoryIndex !== -1 ? getCategoryColor(categoryIndex) : null;
 
 						return (
 							<tr

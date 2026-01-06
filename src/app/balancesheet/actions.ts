@@ -351,6 +351,40 @@ export async function deleteAccount(id: string): Promise<boolean> {
 	return true;
 }
 
+/**
+ * Reorder accounts
+ */
+export async function reorderAccounts(accountOrders: { id: string; display_order: number }[]): Promise<boolean> {
+	// Handle sample data mode
+	if (process.env.NEXT_PUBLIC_USE_SAMPLE_DATA === "true") {
+		return true;
+	}
+
+	const supabase = await createClient();
+	const {
+		data: { user },
+	} = await supabase.auth.getUser();
+
+	if (!user) {
+		throw new Error("Unauthorized");
+	}
+
+	// Update each account's display order
+	const promises = accountOrders.map(({ id, display_order }) =>
+		supabase.from("accounts").update({ display_order }).eq("id", id).eq("user_id", user.id)
+	);
+
+	const results = await Promise.all(promises);
+
+	if (results.some((result) => result.error)) {
+		Logger.error("Error reordering accounts");
+		return false;
+	}
+
+	revalidatePath("/balancesheet");
+	return true;
+}
+
 // ============================================================================
 // Transactions
 // ============================================================================

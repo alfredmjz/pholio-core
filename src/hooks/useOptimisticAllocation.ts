@@ -143,6 +143,21 @@ export function useOptimisticAllocation(initialSummary: AllocationSummary | null
 	);
 
 	/**
+	 * Optimistically reorder categories
+	 */
+	const optimisticallyReorderCategories = useCallback(
+		(newCategories: AllocationCategory[]) => {
+			if (!summary) return;
+
+			setSummary({
+				...summary,
+				categories: newCategories,
+			});
+		},
+		[summary]
+	);
+
+	/**
 	 * Rollback optimistic update (if server action fails)
 	 */
 	const rollback = useCallback((previousSummary: AllocationSummary) => {
@@ -163,6 +178,7 @@ export function useOptimisticAllocation(initialSummary: AllocationSummary | null
 		optimisticallyUpdateBudget,
 		optimisticallyUpdateName,
 		optimisticallyDeleteCategory,
+		optimisticallyReorderCategories,
 		rollback,
 		syncWithServer,
 	};

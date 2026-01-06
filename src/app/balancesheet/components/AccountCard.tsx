@@ -3,8 +3,10 @@
 import Link from "next/link";
 import { AccountWithType } from "../types";
 import { cn } from "@/lib/utils";
-import { Landmark, Wallet, CreditCard, Building, TrendingUp } from "lucide-react";
+import { Landmark, Wallet, CreditCard, Building, TrendingUp, GripVertical } from "lucide-react";
 import { Badge } from "@/components/ui/badge";
+import { useSortable } from "@dnd-kit/sortable";
+import { CSS } from "@dnd-kit/utilities";
 
 interface AccountCardProps {
 	account: AccountWithType;
@@ -14,6 +16,15 @@ interface AccountCardProps {
 }
 
 export function AccountCard({ account, onClick }: AccountCardProps) {
+	const { attributes, listeners, setNodeRef, transform, transition, isDragging } = useSortable({ id: account.id });
+
+	const style = {
+		transform: CSS.Transform.toString(transform),
+		transition,
+		zIndex: isDragging ? 50 : undefined,
+		position: "relative" as const,
+	};
+
 	const formatCurrency = (amount: number) => {
 		return new Intl.NumberFormat("en-CA", {
 			style: "currency",
@@ -51,52 +62,78 @@ export function AccountCard({ account, onClick }: AccountCardProps) {
 	};
 
 	const getProgressPercentage = () => {
-		if (!account.target_balance) return null;
 		if (accountClass === "asset") {
+			if (!account.target_balance) return null;
 			return (account.current_balance / account.target_balance) * 100;
 		} else {
-			if (!account.original_amount) return null;
-			return ((account.original_amount - account.current_balance) / account.original_amount) * 100;
+			// Liability handling
+			if (account.credit_limit) {
+				// Credit Card: Usage %
+				return (account.current_balance / account.credit_limit) * 100;
+			}
+			if (account.original_amount) {
+				// Loan: Payoff %
+				return ((account.original_amount - account.current_balance) / account.original_amount) * 100;
+			}
+			return null;
 		}
 	};
 
 	const progress = getProgressPercentage();
 
-	// Helper to get badge label from manual mapping based on screenshot examples
 	const getAccountTypeLabel = () => {
 		const typeName = account.account_type.name.toLowerCase();
 		if (typeName.includes("investment")) return "Investment";
-		if (typeName.includes("brokerage") || account.name === "Robinhood") return "Brokerage"; // Fallback for specific name
+		if (typeName.includes("brokerage")) return "Brokerage";
 		if (typeName.includes("savings")) return "Savings";
 		if (typeName.includes("credit card")) return "Credit Card";
 		if (typeName.includes("loan")) return "Loan";
-		// Default to category-based fallback
 		if (category === "retirement") return "Retirement";
 		return account.account_type.name;
 	};
 
-	// Helper to calculate progress breakdown for assets with positive growth
+	const getProgressLabel = () => {
+		if (accountClass === "asset") return "Goal Progress";
+		if (account.credit_limit) return "Credit Usage";
+		return "Paid Off";
+	};
+
 	const getProgressBreakdown = () => {
 		if (progress === null || !account.percent_change || accountClass !== "asset" || account.percent_change <= 0) {
 			return { base: progress, contribution: 0 };
 		}
-		// Calculate amount that represents the change
 		const current = account.current_balance;
 		const previous = current / (1 + account.percent_change / 100);
 		const changeAmount = current - previous;
-
-		// Calculate how much PERCENTAGE of the goal that change represents
 		const target = account.target_balance || 1;
 		const contribution = (changeAmount / target) * 100;
 		const base = (progress || 0) - contribution;
-
 		return { base: Math.max(0, base), contribution: Math.max(0, contribution) };
 	};
 
 	const { base: baseProgress, contribution: contributionProgress } = getProgressBreakdown();
 
+	const cardClasses = cn(
+		"block w-full text-left px-6 transition-all duration-200 bg-card hover:bg-accent relative hover:z-10 hover:shadow-[0_4px_24px_rgba(0,0,0,0.06)] dark:hover:shadow-[0_4px_24px_rgba(255,255,255,0.06)] min-h-[140px] flex flex-col justify-center group",
+		isDragging && "opacity-50 ring-2 ring-primary ring-offset-2 z-50 bg-accent shadow-xl scale-[1.02]"
+	);
+
 	const Content = (
-		<div className="flex items-start gap-4 h-full">
+		<div className="relative flex items-start gap-4 h-full">
+			{/* Drag Handle */}
+			<div
+				{...attributes}
+				{...listeners}
+				className={cn(
+					"absolute -left-16 top-5 -translate-y-1/2 p-2 text-muted-foreground/40 hover:text-foreground opacity-0 group-hover:opacity-100 transition-all z-20 touch-none hover:bg-muted rounded cursor-grab",
+					isDragging ? "opacity-100 cursor-grabbing" : "cursor-grab"
+				)}
+				onClick={(e) => e.stopPropagation()}
+				onMouseDown={(e) => e.stopPropagation()}
+			>
+				<GripVertical className="h-4 w-4" />
+			</div>
+
 			{/* Account Icon */}
 			<div className={cn("p-2.5 rounded-xl shrink-0 transition-colors", getIconColor())}>{getAccountIcon()}</div>
 
@@ -119,7 +156,7 @@ export function AccountCard({ account, onClick }: AccountCardProps) {
 						<div
 							className={cn(
 								"font-bold tracking-tight text-sm",
-								accountClass === "asset" ? "" : "text-red-600 dark:text-red-400" // Assets use default text color, liabilities use red
+								accountClass === "asset" ? "" : "text-red-600 dark:text-red-400"
 							)}
 						>
 							{accountClass === "liability" && "-"}
@@ -131,7 +168,7 @@ export function AccountCard({ account, onClick }: AccountCardProps) {
 				{progress !== null && (
 					<div className="mt-2 space-y-1.5">
 						<div className="flex items-center justify-between text-xs font-medium">
-							<span className="text-primary">{accountClass === "asset" ? "Goal Progress" : "Repayment"}</span>
+							<span className="text-primary">{getProgressLabel()}</span>
 							<div className="flex items-center gap-1">
 								{contributionProgress > 0 ? (
 									<>
@@ -144,7 +181,6 @@ export function AccountCard({ account, onClick }: AccountCardProps) {
 							</div>
 						</div>
 						<div className="h-2 bg-muted rounded-full overflow-hidden flex items-center">
-							{/* Base Bar */}
 							<div
 								className={cn(
 									"h-full transition-all duration-500",
@@ -152,7 +188,6 @@ export function AccountCard({ account, onClick }: AccountCardProps) {
 								)}
 								style={{ width: `${Math.min(baseProgress || progress || 0, 100)}%` }}
 							/>
-							{/* Contribution Segment (Assets only) */}
 							{contributionProgress > 0 && (
 								<div
 									className="h-full bg-green-500/30 border border-green-500 rounded-r-full box-border transition-all duration-500"
@@ -166,21 +201,26 @@ export function AccountCard({ account, onClick }: AccountCardProps) {
 		</div>
 	);
 
-	// Enforce consistent height with min-h
-	const cardClasses =
-		"block w-full text-left px-3 transition-all duration-200 bg-card hover:bg-accent relative hover:z-10 hover:shadow-[0_4px_24px_rgba(0,0,0,0.06)] dark:hover:shadow-[0_4px_24px_rgba(255,255,255,0.08)] min-h-[140px] flex flex-col justify-center";
-
-	if (onClick) {
+	// When dragging, don't wrap in Link - just show the content
+	if (isDragging) {
 		return (
-			<button onClick={onClick} className={cardClasses}>
-				{Content}
-			</button>
+			<div ref={setNodeRef} style={style} className="relative touch-none">
+				<div className={cardClasses}>{Content}</div>
+			</div>
 		);
 	}
 
 	return (
-		<Link href={`/balancesheet/accountdetail/${account.id}`} className={cardClasses}>
-			{Content}
-		</Link>
+		<div ref={setNodeRef} style={style} className="relative touch-none">
+			{onClick ? (
+				<button onClick={onClick} className={cardClasses}>
+					{Content}
+				</button>
+			) : (
+				<Link href={`/balancesheet/accountdetail/${account.id}`} className={cardClasses}>
+					{Content}
+				</Link>
+			)}
+		</div>
 	);
 }

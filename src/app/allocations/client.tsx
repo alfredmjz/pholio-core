@@ -81,6 +81,7 @@ export function AllocationClient({
 		optimisticallyUpdateBudget,
 		optimisticallyUpdateName,
 		optimisticallyDeleteCategory,
+		optimisticallyReorderCategories,
 		rollback,
 	} = useAllocationSync(
 		initialSummary?.allocation.id || "",
@@ -221,6 +222,7 @@ export function AllocationClient({
 					optimisticallyUpdateBudget,
 					optimisticallyUpdateName,
 					optimisticallyDeleteCategory,
+					optimisticallyReorderCategories,
 					rollback,
 				}}
 			>
@@ -260,6 +262,7 @@ export function AllocationClient({
 				optimisticallyUpdateBudget,
 				optimisticallyUpdateName,
 				optimisticallyDeleteCategory,
+				optimisticallyReorderCategories,
 				rollback,
 			}}
 		>

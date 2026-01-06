@@ -1,7 +1,7 @@
 "use client";
 
 import { useState } from "react";
-import { addRecurringExpense } from "../actions";
+import { addRecurringExpense, RecurringExpense } from "../actions";
 import { ControlBasedDialog } from "@/components/dialogWrapper";
 import { DialogFooter } from "@/components/ui/dialog";
 import { Button } from "@/components/ui/button";
@@ -20,6 +20,7 @@ import { ServiceAutocomplete } from "@/components/service-autocomplete";
 interface AddRecurringDialogProps {
 	open: boolean;
 	onOpenChange: (open: boolean) => void;
+	onSuccess?: (expense: RecurringExpense) => void;
 }
 
 const PRESET_PROVIDERS = [
@@ -49,7 +50,7 @@ const PRESET_PROVIDERS = [
 	},
 ];
 
-export function AddRecurringDialog({ open, onOpenChange }: AddRecurringDialogProps) {
+export function AddRecurringDialog({ open, onOpenChange, onSuccess }: AddRecurringDialogProps) {
 	const [step, setStep] = useState(1);
 	const [formData, setFormData] = useState({
 		name: "",
@@ -82,8 +83,36 @@ export function AddRecurringDialog({ open, onOpenChange }: AddRecurringDialogPro
 	};
 
 	const handleSubmit = async () => {
-		if (!formData.name || !formData.amount) {
-			toast.error("Please fill in all fields");
+		// Validate name
+		if (!formData.name.trim()) {
+			toast.error("Name is required", {
+				description: "Please enter a name for this recurring expense.",
+			});
+			return;
+		}
+
+		// Validate amount
+		if (!formData.amount) {
+			toast.error("Amount is required", {
+				description: "Please enter an amount for this recurring expense.",
+			});
+			return;
+		}
+
+		// Validate amount format (numbers only, max 2 decimal places)
+		const amountRegex = /^\d+(\.\d{1,2})?$/;
+		if (!amountRegex.test(formData.amount)) {
+			toast.error("Invalid amount", {
+				description: "Please enter a valid number with up to 2 decimal places (e.g., 9.99).",
+			});
+			return;
+		}
+
+		const amount = parseFloat(formData.amount);
+		if (amount <= 0) {
+			toast.error("Invalid amount", {
+				description: "Amount must be greater than zero.",
+			});
 			return;
 		}
 
@@ -110,7 +139,7 @@ export function AddRecurringDialog({ open, onOpenChange }: AddRecurringDialogPro
 
 			const result = await addRecurringExpense({
 				name: formData.name,
-				amount: parseFloat(formData.amount),
+				amount: amount,
 				billing_period: formData.billing_period,
 				next_due_date: format(formData.next_due_date, "yyyy-MM-dd"),
 				category: formData.category,
@@ -122,6 +151,7 @@ export function AddRecurringDialog({ open, onOpenChange }: AddRecurringDialogPro
 
 			if (result) {
 				toast.success("Recurring expense added");
+				onSuccess?.(result);
 				onOpenChange(false);
 				// Reset form
 				setStep(1);
@@ -195,7 +225,9 @@ export function AddRecurringDialog({ open, onOpenChange }: AddRecurringDialogPro
 			{step === 2 && (
 				<div className="space-y-4 py-4">
 					<div className="space-y-2">
-						<Label>Name</Label>
+						<Label>
+							Name <span className="text-error">*</span>
+						</Label>
 						{formData.isCustom ? (
 							<ServiceAutocomplete
 								value={formData.name}
@@ -217,13 +249,20 @@ export function AddRecurringDialog({ open, onOpenChange }: AddRecurringDialogPro
 					</div>
 					<div className="grid grid-cols-2 gap-4">
 						<div className="space-y-2">
-							<Label>Amount</Label>
+							<Label>
+								Amount <span className="text-error">*</span>
+							</Label>
 							<Input
-								type="number"
+								type="text"
 								inputMode="decimal"
 								startAdornment="$"
 								value={formData.amount}
-								onChange={(e) => setFormData({ ...formData, amount: e.target.value })}
+								onChange={(e) => {
+									const value = e.target.value;
+									if (value === "" || /^\d*\.?\d{0,2}$/.test(value)) {
+										setFormData({ ...formData, amount: value });
+									}
+								}}
 								placeholder="0.00"
 							/>
 						</div>

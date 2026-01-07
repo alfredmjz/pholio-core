@@ -114,7 +114,7 @@ async function syncRecurringExpenses(allocationId: string, userId: string, targe
 	// Fetch ALL recurring expenses (both active and inactive)
 	const { data: allRecurring } = await supabase.from("recurring_expenses").select("*").eq("user_id", userId);
 
-	if (!allRecurring || allRecurring.length === 0) return;
+	if (!allRecurring) return;
 
 	// Calculate date range for the target month
 	const startDate = `${targetYear}-${String(targetMonth).padStart(2, "0")}-01`;

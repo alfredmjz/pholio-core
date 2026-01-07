@@ -9,6 +9,7 @@ import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
 import { Calendar } from "@/components/ui/calendar";
+import { Switch } from "@/components/ui/switch";
 import { Popover, PopoverContent, PopoverTrigger } from "@/components/ui/popover";
 import { cn } from "@/lib/utils";
 import { format } from "date-fns";
@@ -60,10 +61,12 @@ export function AddRecurringDialog({ open, onOpenChange, onSuccess }: AddRecurri
 		category: "subscription",
 		service_provider: "",
 		isCustom: false,
+		is_automated: true,
 		meta_data: {} as Record<string, any>,
 	});
 	const [isSubmitting, setIsSubmitting] = useState(false);
 	const [selectedDomain, setSelectedDomain] = useState<string | null>(null);
+	const [isCalendarOpen, setIsCalendarOpen] = useState(false);
 
 	const handleProviderSelect = (provider: (typeof PRESET_PROVIDERS)[number]) => {
 		const isCustom = provider.isCustom === true;
@@ -146,7 +149,10 @@ export function AddRecurringDialog({ open, onOpenChange, onSuccess }: AddRecurri
 				service_provider: serviceProvider,
 				is_active: true,
 				currency: "USD",
-				meta_data: metaData,
+				meta_data: {
+					...metaData,
+					is_automated: formData.is_automated,
+				},
 			});
 
 			if (result) {
@@ -164,6 +170,7 @@ export function AddRecurringDialog({ open, onOpenChange, onSuccess }: AddRecurri
 					category: "subscription",
 					service_provider: "",
 					isCustom: false,
+					is_automated: true,
 					meta_data: {},
 				});
 			} else {
@@ -286,7 +293,7 @@ export function AddRecurringDialog({ open, onOpenChange, onSuccess }: AddRecurri
 					</div>
 					<div className="space-y-2">
 						<Label>First Due Date</Label>
-						<Popover>
+						<Popover open={isCalendarOpen} onOpenChange={setIsCalendarOpen}>
 							<PopoverTrigger asChild>
 								<Button
 									variant={"outline"}
@@ -303,12 +310,32 @@ export function AddRecurringDialog({ open, onOpenChange, onSuccess }: AddRecurri
 								<Calendar
 									mode="single"
 									selected={formData.next_due_date}
-									onSelect={(date) => date && setFormData({ ...formData, next_due_date: date })}
+									onSelect={(date) => {
+										if (date) {
+											setFormData({ ...formData, next_due_date: date });
+											setIsCalendarOpen(false);
+										}
+									}}
 									autoFocus
 								/>
 							</PopoverContent>
 						</Popover>
 					</div>
+					{formData.category === "bill" && (
+						<div className="flex items-center justify-between space-x-2 pt-2">
+							<div className="flex flex-col gap-1">
+								<Label htmlFor="auto-pay" className="leading-none">
+									Auto-pay
+								</Label>
+								<span className="text-xs text-muted-foreground">Automatically create transactions</span>
+							</div>
+							<Switch
+								id="auto-pay"
+								checked={formData.is_automated}
+								onCheckedChange={(checked) => setFormData({ ...formData, is_automated: checked })}
+							/>
+						</div>
+					)}
 				</div>
 			)}
 

@@ -8,11 +8,11 @@ import { Button } from "@/components/ui/button";
 import { Badge } from "@/components/ui/badge";
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
 import { cn } from "@/lib/utils";
+import { formatShortDate, parseLocalDate } from "@/lib/date-utils";
 import type { AllocationCategory, Transaction } from "../types";
 import type { TransactionType } from "./TransactionTypeIcon";
 import { inferTransactionType, TRANSACTION_TYPE_CONFIG, TransactionTypeIcon } from "./TransactionTypeIcon";
 import { getCategoryColor } from "./CategoryPerformance";
-import { AddTransactionButton } from "./AddTransactionButton";
 import { TransactionDialog } from "./TransactionDialog";
 
 interface TransactionLedgerProps {
@@ -26,8 +26,6 @@ interface TransactionLedgerProps {
 
 type SortField = "date" | "name" | "amount" | "category" | "type";
 type SortDirection = "asc" | "desc";
-
-// Helper removed, using getCategoryColor from CategoryPerformance
 
 export function TransactionLedger({
 	transactions,
@@ -170,10 +168,6 @@ export function TransactionLedger({
 					</p>
 				</div>
 			</div>
-
-			{/* ... Filters ... */}
-			{/* I will only replace the render part to avoid touching the whole file if possible, but the filters are in the middle. */}
-			{/* Let's do a larger replace to be safe with context. */}
 
 			{/* Filters Row */}
 			<div className="flex items-center gap-3 mb-4">
@@ -340,10 +334,9 @@ export function TransactionLedger({
 										>
 											<td className="px-4 py-3 whitespace-nowrap">
 												<span className="text-sm text-primary">
-													{new Date(transaction.transaction_date).toLocaleDateString("en-US", {
-														month: "short",
-														day: "numeric",
-													})}
+													{transaction.transaction_date
+														? formatShortDate(parseLocalDate(transaction.transaction_date))
+														: ""}
 												</span>
 											</td>
 											<td className="px-4 py-3">

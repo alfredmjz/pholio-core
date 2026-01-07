@@ -52,6 +52,8 @@ export interface Transaction {
 	updated_at: string;
 	// Joined data
 	category_name?: string;
+	// Recurring expense link
+	recurring_expense_id?: string | null;
 }
 
 export interface AllocationTemplate {

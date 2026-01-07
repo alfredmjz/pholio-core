@@ -5,9 +5,11 @@ import { revalidatePath } from "next/cache";
 import type { Allocation, AllocationCategory, AllocationSummary, AllocationTemplate, Transaction } from "./types";
 import { sampleAllocationSummary, sampleTransactions } from "@/mock-data/allocations";
 import { Logger } from "@/lib/logger";
+import { parseLocalDate } from "@/lib/date-utils";
 
 /**
  * Check if allocation exists for a specific month (without creating)
+ * Now also syncs recurring expenses if allocation exists.
  */
 export async function getAllocation(year: number, month: number): Promise<Allocation | null> {
 	// Handle sample data mode
@@ -33,6 +35,11 @@ export async function getAllocation(year: number, month: number): Promise<Alloca
 		.eq("year", year)
 		.eq("month", month)
 		.single();
+
+	// Sync recurring expenses if allocation exists
+	if (existing) {
+		await syncRecurringExpenses(existing.id, user.id, month, year);
+	}
 
 	return existing as Allocation | null;
 }
@@ -67,7 +74,7 @@ export async function getOrCreateAllocation(
 		.single();
 
 	if (existing) {
-		await syncRecurringExpenses(existing.id, user.id, month);
+		await syncRecurringExpenses(existing.id, user.id, month, year);
 		return existing as Allocation;
 	}
 
@@ -88,80 +95,326 @@ export async function getOrCreateAllocation(
 		return null;
 	}
 
-	// [NEW] Sync recurring expenses for the new allocation
-	await syncRecurringExpenses(newAllocation.id, user.id, month);
+	await syncRecurringExpenses(newAllocation.id, user.id, month, year);
 
 	return newAllocation as Allocation;
 }
 
 /**
- * Helper to sync recurring expenses to a specific allocation category
- * This ensures that if the user adds a subscription mid-month, it's reflected.
+ * Helper to sync recurring expenses to a specific allocation
+ * This ensures that if the user adds/removes a subscription mid-month, it's reflected.
+ * - Creates transactions for active recurring items
+ * - Removes transactions for deactivated recurring items
+ * - Updates category budgets accordingly
  */
-async function syncRecurringExpenses(allocationId: string, userId: string, targetMonth: number) {
+
+async function syncRecurringExpenses(allocationId: string, userId: string, targetMonth: number, targetYear: number) {
 	const supabase = await createClient();
 
-	// 1. Fetch active recurring expenses
-	const { data: recurring } = await supabase
-		.from("recurring_expenses")
-		.select("*")
+	// Fetch ALL recurring expenses (both active and inactive)
+	const { data: allRecurring } = await supabase.from("recurring_expenses").select("*").eq("user_id", userId);
+
+	if (!allRecurring || allRecurring.length === 0) return;
+
+	// Calculate date range for the target month
+	const startDate = `${targetYear}-${String(targetMonth).padStart(2, "0")}-01`;
+	const endOfMonth = new Date(targetYear, targetMonth, 0);
+	const endDate = `${targetYear}-${String(targetMonth).padStart(2, "0")}-${endOfMonth.getDate()}`;
+
+	// Fetch existing transactions linked to recurring expenses for this month
+	const { data: existingTransactions } = await supabase
+		.from("transactions")
+		.select("id, recurring_expense_id, transaction_date")
 		.eq("user_id", userId)
-		.eq("is_active", true);
+		.gte("transaction_date", startDate)
+		.lte("transaction_date", endDate)
+		.not("recurring_expense_id", "is", null);
 
-	if (!recurring || recurring.length === 0) return;
+	const existingRecurringIds = new Set((existingTransactions || []).map((t) => t.recurring_expense_id));
 
-	// 2. Calculate total
-	let totalRecurring = 0;
+	// If 0 bills/subscriptions exist, delete the category to prevent empty artifacts
+	const hasBills = allRecurring.some((r) => r.category === "bill");
+	const hasSubscriptions = allRecurring.some((r) => r.category === "subscription");
 
-	for (const expense of recurring) {
-		// Logic: active subscriptions hit the budget
-		// Check billing period vs target month?
-		// Spec: "Annual where we will track the one time expense for that month"
+	// Calculate totals and determine which expenses apply (only ACTIVE ones)
+	let totalBills = 0;
+	let totalSubscriptions = 0;
+	// Store { expense, occurrences }
+	const applicableExpenses: Array<{ expense: (typeof allRecurring)[0]; dates: Date[] }> = [];
 
-		let applies = false;
-		if (expense.billing_period === "monthly") {
-			applies = true;
-		} else if (expense.billing_period === "yearly") {
-			// Check if next_due_date month matches targetMonth
-			// Note: date format is YYYY-MM-DD.
-			const dueDate = new Date(expense.next_due_date);
-			// JS Month is 0-indexed, targetMonth is 1-indexed (based on usage in page.tsx: now.getMonth() + 1)
-			if (dueDate.getMonth() + 1 === targetMonth) {
-				applies = true;
+	for (const expense of allRecurring) {
+		const occurrences: Date[] = [];
+		const nextDue = parseLocalDate(expense.next_due_date);
+		const billingPeriod = expense.billing_period;
+
+		// Helper to check if date is in target month
+		const isInMonth = (d: Date) => d.getMonth() + 1 === targetMonth && d.getFullYear() === targetYear;
+
+		if (billingPeriod === "monthly") {
+			// Find occurrence in this month
+			// If next_due_date is in target month, that's the one
+			// If not, we need to project back or forward to find the day in target month
+			// Simplified: Use the day of month from next_due_date
+			const day = nextDue.getDate();
+			const projected = new Date(targetYear, targetMonth - 1, day);
+
+			// Handle month length (e.g. hitting Feb 30)
+			if (projected.getMonth() !== targetMonth - 1) {
+				// Falls into next month (e.g. Feb has no 30th), use last day of target month
+				projected.setDate(0);
 			}
-		} else {
-			applies = true;
+
+			if (isInMonth(projected)) occurrences.push(projected);
+		} else if (billingPeriod === "yearly") {
+			// Only happens if next_due_date matches month/year exactly?
+			// Or do we assume it recurs on the same day/month each year?
+			// User logic: "next_due_date" is the anchor.
+			// Ideally we project yearly.
+			if (nextDue.getMonth() + 1 === targetMonth) {
+				const projected = new Date(targetYear, nextDue.getMonth(), nextDue.getDate());
+				if (isInMonth(projected)) occurrences.push(projected);
+			}
+		} else if (billingPeriod === "weekly" || billingPeriod === "biweekly") {
+			// Logic: Start from next_due_date and go BACKWARDS to find first occurrence <= endOfMonth
+			// Then go FORWARDS from there
+			// Better: Find an anchor point (next_due_date)
+			// Calculate difference in milliseconds
+			const periodDays = billingPeriod === "weekly" ? 7 : 14;
+			const msPerDay = 1000 * 60 * 60 * 24;
+			const periodMs = periodDays * msPerDay;
+
+			// Find first possible occurrence before or inside the month
+			// We can just brute force scan a reasonable window since we only care about this month
+			// Start from next_due_date.
+			// If next_due_date is AFTER target month, walk back by period until we're inside or before.
+			// If next_due_date is BEFORE target month, walk forward.
+
+			let current = new Date(nextDue);
+
+			// Normalize to start of day for comparison
+			current.setHours(0, 0, 0, 0);
+			const startMs = parseLocalDate(startDate).getTime();
+			const endMs = parseLocalDate(endDate).getTime();
+
+			// If current is after end of month, walk back
+			while (current.getTime() > endMs) {
+				current.setDate(current.getDate() - periodDays);
+			}
+
+			// If current is before start of month, walk forward until we hit start or pass end
+			while (current.getTime() < startMs) {
+				current.setDate(current.getDate() + periodDays);
+			}
+
+			// Now collect all occurrences within [startMs, endMs]
+			while (current.getTime() <= endMs && current.getTime() >= startMs) {
+				occurrences.push(new Date(current));
+				current.setDate(current.getDate() + periodDays);
+			}
 		}
 
-		if (applies) {
-			totalRecurring += Number(expense.amount);
+		if (occurrences.length > 0) {
+			const totalAmount = Number(expense.amount) * occurrences.length;
+			applicableExpenses.push({ expense, dates: occurrences });
+
+			if (expense.category === "bill") {
+				totalBills += totalAmount;
+			} else {
+				totalSubscriptions += totalAmount;
+			}
 		}
 	}
 
-	if (totalRecurring === 0) return;
-
-	// 3. Find or Create "Fixed Expenses" category
-	const { data: categories } = await supabase
+	// Find or create/update appropriate categories
+	const { data: allCategories } = await supabase
 		.from("allocation_categories")
 		.select("*")
-		.eq("allocation_id", allocationId)
-		.eq("name", "Fixed Expenses")
-		.single();
+		.eq("allocation_id", allocationId);
 
-	if (categories) {
-		if (Number(categories.budget_cap) !== totalRecurring) {
-			await supabase.from("allocation_categories").update({ budget_cap: totalRecurring }).eq("id", categories.id);
+	const categoryMap = new Map((allCategories || []).map((c) => [c.name, c]));
+	const categoryIdMap: Record<string, string> = {};
+
+	// Handle Bills category
+	const billsCategory = categoryMap.get("Bills");
+
+	if (totalBills > 0) {
+		if (!billsCategory) {
+			const { data: newCat } = await supabase
+				.from("allocation_categories")
+				.insert({
+					allocation_id: allocationId,
+					user_id: userId,
+					name: "Bills",
+					budget_cap: totalBills,
+					is_recurring: true,
+					display_order: 0,
+					color: "orange",
+				})
+				.select()
+				.single();
+			if (newCat) {
+				categoryMap.set("Bills", newCat);
+				categoryIdMap["bill"] = newCat.id;
+			}
+		} else {
+			if (Number(billsCategory.budget_cap) !== totalBills) {
+				await supabase.from("allocation_categories").update({ budget_cap: totalBills }).eq("id", billsCategory.id);
+			}
+			categoryIdMap["bill"] = billsCategory.id;
 		}
-	} else {
-		// Create new
-		await supabase.from("allocation_categories").insert({
-			allocation_id: allocationId,
-			user_id: userId,
-			name: "Fixed Expenses",
-			budget_cap: totalRecurring,
-			is_recurring: true,
-			display_order: 0, // Put at top
-		});
+	} else if (billsCategory && billsCategory.is_recurring) {
+		// If no bills exist in recurring_expenses AT ALL, delete the category regardless of transactions.
+		// User wants it gone if the recurring list is empty.
+		if (!hasBills) {
+			// Unlink any transactions first to allow deletion
+			const { error: unlinkError } = await supabase
+				.from("transactions")
+				.update({ category_id: null })
+				.eq("category_id", billsCategory.id);
+			if (unlinkError)
+				Logger.warn("Failed to unlink transactions before deleting Bills category", { error: unlinkError });
+
+			const { error } = await supabase.from("allocation_categories").delete().eq("id", billsCategory.id);
+			if (error) {
+				// If delete fails, it's likely due to existing transactions (FK constraint).
+				Logger.warn("Failed to delete empty Bills category", { error, categoryId: billsCategory.id });
+
+				// Ensure budget cap is 0 at least
+				if (Number(billsCategory.budget_cap) !== 0) {
+					await supabase.from("allocation_categories").update({ budget_cap: 0 }).eq("id", billsCategory.id);
+				}
+			}
+		} else {
+			// No active bills, but we have inactive ones.
+			// Always ensure budget cap is 0
+			if (Number(billsCategory.budget_cap) !== 0) {
+				await supabase.from("allocation_categories").update({ budget_cap: 0 }).eq("id", billsCategory.id);
+			}
+		}
+	}
+
+	// Handle Subscriptions category
+	const subsCategory = categoryMap.get("Subscriptions");
+	if (totalSubscriptions > 0) {
+		if (!subsCategory) {
+			const { data: newCat } = await supabase
+				.from("allocation_categories")
+				.insert({
+					allocation_id: allocationId,
+					user_id: userId,
+					name: "Subscriptions",
+					budget_cap: totalSubscriptions,
+					is_recurring: true,
+					display_order: 1,
+					color: "purple",
+				})
+				.select()
+				.single();
+			if (newCat) {
+				categoryMap.set("Subscriptions", newCat);
+				categoryIdMap["subscription"] = newCat.id;
+			}
+		} else {
+			if (Number(subsCategory.budget_cap) !== totalSubscriptions) {
+				await supabase
+					.from("allocation_categories")
+					.update({ budget_cap: totalSubscriptions })
+					.eq("id", subsCategory.id);
+			}
+			categoryIdMap["subscription"] = subsCategory.id;
+		}
+	} else if (subsCategory && subsCategory.is_recurring) {
+		// If no subscriptions exist in recurring_expenses AT ALL, delete the category.
+		if (!hasSubscriptions) {
+			// Unlink any transactions first to allow deletion
+			await supabase.from("transactions").update({ category_id: null }).eq("category_id", subsCategory.id);
+
+			const { error } = await supabase.from("allocation_categories").delete().eq("id", subsCategory.id);
+			if (error) {
+				Logger.warn("Failed to delete empty Subscriptions category", { error, categoryId: subsCategory.id });
+
+				if (Number(subsCategory.budget_cap) !== 0) {
+					await supabase.from("allocation_categories").update({ budget_cap: 0 }).eq("id", subsCategory.id);
+				}
+			}
+		} else {
+			// No active subscriptions, but we have inactive ones.
+			if (Number(subsCategory.budget_cap) !== 0) {
+				await supabase.from("allocation_categories").update({ budget_cap: 0 }).eq("id", subsCategory.id);
+			}
+		}
+	}
+
+	// Create transactions for applicable recurring expenses that don't have one yet
+	const transactionsToCreate: Array<{
+		user_id: string;
+		name: string;
+		amount: number;
+		transaction_date: string;
+		category_id: string | null;
+		source: string;
+		recurring_expense_id: string;
+		notes: string;
+	}> = [];
+
+	// Create a map of existing transactions for precise duplicate checking
+	// Format: "recurring_id:YYYY-MM-DD"
+	const existingTransactionKeys = new Set(
+		(existingTransactions || []).map((t) => {
+			// Normalize date string to removing any time component if present
+			const dateStr = t.transaction_date ? t.transaction_date.split("T")[0] : "";
+			return `${t.recurring_expense_id}:${dateStr}`;
+		})
+	);
+
+	for (const item of applicableExpenses) {
+		const { expense, dates } = item;
+
+		for (const dateObj of dates) {
+			const dateStr = `${dateObj.getFullYear()}-${String(dateObj.getMonth() + 1).padStart(2, "0")}-${String(dateObj.getDate()).padStart(2, "0")}`;
+			const key = `${expense.id}:${dateStr}`;
+
+			// Skip if transaction already exists for this expense on this specific date
+			if (existingTransactionKeys.has(key)) continue;
+
+			// Skip creating new transactions if expense is inactive
+			if (!expense.is_active) continue;
+
+			// Skip creating new transactions if expense is manual (not automated)
+			// Default to true if meta_data or is_automated is missing
+			const meta = (expense.meta_data as any) || {};
+			if (meta.is_automated === false) continue;
+
+			// Skip if creation date is in the future
+			const today = new Date();
+			today.setHours(0, 0, 0, 0);
+			const targetDate = new Date(dateObj);
+			targetDate.setHours(0, 0, 0, 0);
+
+			if (targetDate > today) continue;
+
+			// Determine category
+			const categoryId = categoryIdMap[expense.category] || null;
+
+			transactionsToCreate.push({
+				user_id: userId,
+				name: expense.name,
+				amount: -Math.abs(Number(expense.amount)), // Expenses are negative
+				transaction_date: dateStr,
+				category_id: categoryId,
+				source: "recurring",
+				recurring_expense_id: expense.id,
+				notes: `Auto-created from recurring ${expense.category}`,
+			});
+		}
+	}
+
+	// Batch insert transactions
+	if (transactionsToCreate.length > 0) {
+		const { error } = await supabase.from("transactions").insert(transactionsToCreate);
+		if (error) {
+			Logger.error("Error creating recurring transactions", { error });
+		}
 	}
 }
 

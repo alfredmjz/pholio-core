@@ -1,6 +1,6 @@
 "use client";
 
-import { useState, useCallback } from "react";
+import { useState, useCallback, useEffect } from "react";
 import type { RecurringExpense } from "@/app/recurring/actions";
 
 /**
@@ -9,6 +9,11 @@ import type { RecurringExpense } from "@/app/recurring/actions";
  */
 export function useOptimisticRecurring(initialExpenses: RecurringExpense[]) {
 	const [expenses, setExpenses] = useState<RecurringExpense[]>(initialExpenses);
+
+	// Sync local state with server data when it changes (e.g. after router.refresh())
+	useEffect(() => {
+		setExpenses(initialExpenses);
+	}, [initialExpenses]);
 
 	/**
 	 * Optimistically add a new recurring expense

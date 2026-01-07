@@ -17,7 +17,8 @@ interface RecurringClientProps {
 }
 
 export function RecurringClient({ initialExpenses }: RecurringClientProps) {
-	const { expenses, optimisticallyAdd } = useOptimisticRecurring(initialExpenses);
+	const { expenses, optimisticallyAdd, optimisticallyDelete, optimisticallyUpdate } =
+		useOptimisticRecurring(initialExpenses);
 	const [isAddOpen, setIsAddOpen] = useState(false);
 
 	// Derived state
@@ -85,7 +86,12 @@ export function RecurringClient({ initialExpenses }: RecurringClientProps) {
 							<Card>
 								<div className="divide-y divide-border">
 									{subscriptions.map((sub) => (
-										<SubscriptionRow key={sub.id} subscription={sub} />
+										<SubscriptionRow
+											key={sub.id}
+											subscription={sub}
+											onDelete={optimisticallyDelete}
+											onUpdate={optimisticallyUpdate}
+										/>
 									))}
 								</div>
 							</Card>
@@ -98,7 +104,12 @@ export function RecurringClient({ initialExpenses }: RecurringClientProps) {
 							<Card>
 								<div className="divide-y divide-border">
 									{bills.map((bill) => (
-										<BillRow key={bill.id} bill={bill} />
+										<BillRow
+											key={bill.id}
+											bill={bill}
+											onDelete={optimisticallyDelete}
+											onUpdate={optimisticallyUpdate}
+										/>
 									))}
 								</div>
 							</Card>

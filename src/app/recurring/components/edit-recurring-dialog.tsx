@@ -247,19 +247,21 @@ export function EditRecurringDialog({
 						</Popover>
 					</div>
 				</div>
-				<div className="flex items-center justify-between space-x-2 pt-2">
-					<div className="flex flex-col gap-1">
-						<Label htmlFor="edit-auto-pay" className="leading-none">
-							Auto-pay
-						</Label>
-						<span className="text-xs text-muted-foreground">Automatically create transactions</span>
+				{formData.category === "bill" && (
+					<div className="flex items-center justify-between space-x-2 pt-2">
+						<div className="flex flex-col gap-1">
+							<Label htmlFor="edit-auto-pay" className="leading-none">
+								Auto-pay
+							</Label>
+							<span className="text-xs text-muted-foreground">Automatically create transactions</span>
+						</div>
+						<Switch
+							id="edit-auto-pay"
+							checked={formData.is_automated}
+							onCheckedChange={(checked) => setFormData({ ...formData, is_automated: checked })}
+						/>
 					</div>
-					<Switch
-						id="edit-auto-pay"
-						checked={formData.is_automated}
-						onCheckedChange={(checked) => setFormData({ ...formData, is_automated: checked })}
-					/>
-				</div>
+				)}
 			</div>
 
 			<DialogFooter>

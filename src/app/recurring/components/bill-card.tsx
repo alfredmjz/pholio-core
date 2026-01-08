@@ -26,7 +26,6 @@ export function BillCard({ bill, onDelete, onUpdate }: BillCardProps) {
 	const [isEditOpen, setIsEditOpen] = useState(false);
 	const [isPayFutureOpen, setIsPayFutureOpen] = useState(false);
 
-	// Parse strictly as local date to prevent timezone shift
 	const dueDate = parseLocalDate(bill.next_due_date);
 
 	const today = new Date();
@@ -58,7 +57,6 @@ export function BillCard({ bill, onDelete, onUpdate }: BillCardProps) {
 		try {
 			toast.info("Processing payment...");
 
-			// Optimistic Update
 			const nextDate = calculateNextDueDate(new Date(bill.next_due_date), bill.billing_period);
 			onUpdate?.(bill.id, {
 				next_due_date: nextDate.toISOString(),
@@ -83,7 +81,6 @@ export function BillCard({ bill, onDelete, onUpdate }: BillCardProps) {
 		onUpdate?.(updated.id, updated);
 	};
 
-	// Logic for display state
 	const isAutomated = (bill.meta_data as any)?.is_automated === true;
 	const isFullyPaid = (bill.paid_count || 0) >= (bill.occurrences_count || 1);
 	const canPay = !isAutomated && !isFullyPaid;
@@ -103,12 +100,10 @@ export function BillCard({ bill, onDelete, onUpdate }: BillCardProps) {
 				/>
 
 				<CardContent className="p-5 pt-4 pb-4">
-					{/* Amount */}
 					<div className="mb-4">
 						<span className="text-2xl font-bold tracking-tight">${Number(bill.amount).toFixed(2)}</span>
 					</div>
 
-					{/* Date & Status */}
 					<div className="flex items-center justify-between">
 						<div
 							className={cn(
@@ -124,7 +119,6 @@ export function BillCard({ bill, onDelete, onUpdate }: BillCardProps) {
 							<span>{format(dueDate, "MMM d")}</span>
 						</div>
 
-						{/* Small status indicator if needed, or rely on visual cues */}
 						{isAutomated && (
 							<div className="flex items-center gap-1 text-[10px] uppercase font-bold tracking-wider text-muted-foreground/70 bg-muted/50 px-2 py-1 rounded-full">
 								<Zap className="w-3 h-3 fill-current" /> Auto
@@ -134,12 +128,9 @@ export function BillCard({ bill, onDelete, onUpdate }: BillCardProps) {
 				</CardContent>
 
 				<CardFooter className="p-5 pt-0 flex flex-col gap-3">
-					{/* Divider */}
 					<div className="w-full h-px bg-border/40" />
 
-					{/* Tracker & Action Row */}
 					<div className="flex items-center justify-between w-full h-9">
-						{/* Progress Bar */}
 						<div className="flex flex-col justify-center gap-1.5">
 							<SegmentedProgress value={current} total={total} />
 							<span className="text-[10px] font-medium text-muted-foreground ml-0.5">
@@ -147,7 +138,6 @@ export function BillCard({ bill, onDelete, onUpdate }: BillCardProps) {
 							</span>
 						</div>
 
-						{/* Main Action */}
 						<div>
 							{canPay ? (
 								<Button

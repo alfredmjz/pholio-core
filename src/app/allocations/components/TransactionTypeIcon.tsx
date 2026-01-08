@@ -118,7 +118,6 @@ export function TransactionTypeIcon({ type, size = "md", showLabel = false, clas
 	);
 }
 
-// Helper to infer transaction type from transaction data (placeholder logic)
 export function inferTransactionType(transaction: {
 	name: string;
 	amount: number;
@@ -126,12 +125,10 @@ export function inferTransactionType(transaction: {
 	source?: string;
 	recurring_expense_id?: string | null;
 }): TransactionType {
-	// Priority 1: Explicit recurring link
 	if (transaction.recurring_expense_id) {
 		return "recurring";
 	}
 
-	// Priority 2: Source-based detection
 	if (transaction.source === "recurring") {
 		return "recurring";
 	}
@@ -139,7 +136,6 @@ export function inferTransactionType(transaction: {
 	const name = transaction.name.toLowerCase();
 	const notes = transaction.notes?.toLowerCase() || "";
 
-	// Simple heuristic rules - in real app, this would come from database
 	if (name.includes("subscription") || name.includes("netflix") || name.includes("spotify")) {
 		return "subscription";
 	}

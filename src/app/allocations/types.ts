@@ -1,5 +1,3 @@
-// Type definitions for the allocation feature
-
 export type CategoryType = "regular" | "savings_goal" | "debt_payment";
 
 export interface Allocation {
@@ -24,12 +22,12 @@ export interface AllocationCategory {
 	color?: string;
 	icon?: string;
 	notes?: string;
-	// Unified transaction system fields
+
 	category_type?: CategoryType;
 	linked_account_id?: string | null;
 	created_at: string;
 	updated_at: string;
-	// Computed fields from database function
+
 	actual_spend?: number;
 	remaining?: number;
 	utilization_percentage?: number;
@@ -46,13 +44,13 @@ export interface Transaction {
 	source: string;
 	external_id?: string;
 	notes?: string;
-	// Unified transaction system linking
+
 	linked_account_transaction_id?: string | null;
 	created_at: string;
 	updated_at: string;
-	// Joined data
+
 	category_name?: string;
-	// Recurring expense link
+
 	recurring_expense_id?: string | null;
 }
 

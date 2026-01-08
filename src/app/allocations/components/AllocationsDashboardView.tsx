@@ -83,7 +83,6 @@ export function AllocationsDashboardView({
 }: AllocationsDashboardViewProps) {
 	return (
 		<PageShell>
-			{/* Connection Status Indicators */}
 			{!isConnected && (
 				<Badge variant="destructive" className="absolute top-0 right-0 z-10 gap-1.5">
 					<WifiOff className="h-3 w-3" />
@@ -108,10 +107,8 @@ export function AllocationsDashboardView({
 				onTransactionSuccess={onTransactionSuccess}
 			/>
 
-			{/* Main Content */}
 			<PageContent>
 				<div className="flex flex-col lg:flex-row gap-6">
-					{/* Left Column */}
 					<div className="flex-1 lg:flex-[3] flex flex-col gap-6">
 						<BudgetSummaryCards
 							expectedIncome={summary.allocation.expected_income}
@@ -126,7 +123,6 @@ export function AllocationsDashboardView({
 						/>
 					</div>
 
-					{/* Right Column */}
 					<div className="lg:flex-[1] flex">
 						<AllocationDonutChart categories={categories} className="flex-1" />
 					</div>
@@ -142,7 +138,6 @@ export function AllocationsDashboardView({
 				/>
 			</PageContent>
 
-			{/* Dialogs */}
 			<AddCategoryDialog
 				open={addCategoryDialogOpen}
 				onOpenChange={setAddCategoryDialogOpen}

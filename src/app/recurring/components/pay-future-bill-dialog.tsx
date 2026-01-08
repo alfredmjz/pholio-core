@@ -27,7 +27,6 @@ export function PayFutureBillDialog({ open, onOpenChange, expense, onSuccess, on
 	const [selectedCount, setSelectedCount] = useState(0);
 	const [isSubmitting, setIsSubmitting] = useState(false);
 
-	// Generate potential bills for the remainder of the current month
 	const potentialBills = useMemo(() => {
 		const bills = [];
 		let currentDate = new Date(expense.next_due_date);
@@ -35,9 +34,7 @@ export function PayFutureBillDialog({ open, onOpenChange, expense, onSuccess, on
 		const currentMonth = today.getMonth();
 		const currentYear = today.getFullYear();
 
-		// Safety cap of 12, but rely on month check
 		for (let i = 0; i < 12; i++) {
-			// Stop if we've crossed into the next month relative to TODAY
 			if (currentDate.getMonth() !== currentMonth || currentDate.getFullYear() !== currentYear) {
 				break;
 			}
@@ -53,12 +50,9 @@ export function PayFutureBillDialog({ open, onOpenChange, expense, onSuccess, on
 	}, [expense]);
 
 	const handleRowClick = (index: number) => {
-		// Enforce contiguous selection from start
 		if (selectedCount === index + 1) {
-			// Deselect this one (and all after, effectively)
 			setSelectedCount(index);
 		} else {
-			// Select up to this one
 			setSelectedCount(index + 1);
 		}
 	};
@@ -76,7 +70,6 @@ export function PayFutureBillDialog({ open, onOpenChange, expense, onSuccess, on
 
 		setIsSubmitting(true);
 
-		// Optimistic Update
 		onUpdate?.(expense.id, {
 			next_due_date: nextDueDate.toISOString(),
 			paid_count: (expense.paid_count || 0) + selectedCount,

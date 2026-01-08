@@ -7,10 +7,6 @@ import { sampleAllocationSummary, sampleTransactions } from "@/mock-data/allocat
 import { Logger } from "@/lib/logger";
 import { parseLocalDate } from "@/lib/date-utils";
 
-/**
- * Check if allocation exists for a specific month (without creating)
- * Now also syncs recurring expenses if allocation exists.
- */
 export async function getAllocation(year: number, month: number): Promise<Allocation | null> {
 	// Handle sample data mode
 	if (process.env.NEXT_PUBLIC_USE_SAMPLE_DATA === "true") {
@@ -36,7 +32,6 @@ export async function getAllocation(year: number, month: number): Promise<Alloca
 		.eq("month", month)
 		.single();
 
-	// Sync recurring expenses if allocation exists
 	if (existing) {
 		await syncRecurringExpenses(existing.id, user.id, month, year);
 	}
@@ -44,9 +39,6 @@ export async function getAllocation(year: number, month: number): Promise<Alloca
 	return existing as Allocation | null;
 }
 
-/**
- * Get or create allocation for a specific month
- */
 export async function getOrCreateAllocation(
 	year: number,
 	month: number,
@@ -100,28 +92,17 @@ export async function getOrCreateAllocation(
 	return newAllocation as Allocation;
 }
 
-/**
- * Helper to sync recurring expenses to a specific allocation
- * This ensures that if the user adds/removes a subscription mid-month, it's reflected.
- * - Creates transactions for active recurring items
- * - Removes transactions for deactivated recurring items
- * - Updates category budgets accordingly
- */
-
 async function syncRecurringExpenses(allocationId: string, userId: string, targetMonth: number, targetYear: number) {
 	const supabase = await createClient();
 
-	// Fetch ALL recurring expenses (both active and inactive)
 	const { data: allRecurring } = await supabase.from("recurring_expenses").select("*").eq("user_id", userId);
 
 	if (!allRecurring) return;
 
-	// Calculate date range for the target month
 	const startDate = `${targetYear}-${String(targetMonth).padStart(2, "0")}-01`;
 	const endOfMonth = new Date(targetYear, targetMonth, 0);
 	const endDate = `${targetYear}-${String(targetMonth).padStart(2, "0")}-${endOfMonth.getDate()}`;
 
-	// Fetch existing transactions linked to recurring expenses for this month
 	const { data: existingTransactions } = await supabase
 		.from("transactions")
 		.select("id, recurring_expense_id, transaction_date")
@@ -132,14 +113,12 @@ async function syncRecurringExpenses(allocationId: string, userId: string, targe
 
 	const existingRecurringIds = new Set((existingTransactions || []).map((t) => t.recurring_expense_id));
 
-	// If 0 bills/subscriptions exist, delete the category to prevent empty artifacts
 	const hasBills = allRecurring.some((r) => r.category === "bill");
 	const hasSubscriptions = allRecurring.some((r) => r.category === "subscription");
 
-	// Calculate totals and determine which expenses apply (only ACTIVE ones)
 	let totalBills = 0;
 	let totalSubscriptions = 0;
-	// Store { expense, occurrences }
+
 	const applicableExpenses: Array<{ expense: (typeof allRecurring)[0]; dates: Date[] }> = [];
 
 	for (const expense of allRecurring) {
@@ -147,66 +126,42 @@ async function syncRecurringExpenses(allocationId: string, userId: string, targe
 		const nextDue = parseLocalDate(expense.next_due_date);
 		const billingPeriod = expense.billing_period;
 
-		// Helper to check if date is in target month
 		const isInMonth = (d: Date) => d.getMonth() + 1 === targetMonth && d.getFullYear() === targetYear;
 
 		if (billingPeriod === "monthly") {
-			// Find occurrence in this month
-			// If next_due_date is in target month, that's the one
-			// If not, we need to project back or forward to find the day in target month
-			// Simplified: Use the day of month from next_due_date
+			// Use the day of month from next_due_date
 			const day = nextDue.getDate();
 			const projected = new Date(targetYear, targetMonth - 1, day);
 
-			// Handle month length (e.g. hitting Feb 30)
 			if (projected.getMonth() !== targetMonth - 1) {
-				// Falls into next month (e.g. Feb has no 30th), use last day of target month
 				projected.setDate(0);
 			}
 
 			if (isInMonth(projected)) occurrences.push(projected);
 		} else if (billingPeriod === "yearly") {
-			// Only happens if next_due_date matches month/year exactly?
-			// Or do we assume it recurs on the same day/month each year?
-			// User logic: "next_due_date" is the anchor.
-			// Ideally we project yearly.
 			if (nextDue.getMonth() + 1 === targetMonth) {
 				const projected = new Date(targetYear, nextDue.getMonth(), nextDue.getDate());
 				if (isInMonth(projected)) occurrences.push(projected);
 			}
 		} else if (billingPeriod === "weekly" || billingPeriod === "biweekly") {
-			// Logic: Start from next_due_date and go BACKWARDS to find first occurrence <= endOfMonth
-			// Then go FORWARDS from there
-			// Better: Find an anchor point (next_due_date)
-			// Calculate difference in milliseconds
 			const periodDays = billingPeriod === "weekly" ? 7 : 14;
 			const msPerDay = 1000 * 60 * 60 * 24;
 			const periodMs = periodDays * msPerDay;
 
-			// Find first possible occurrence before or inside the month
-			// We can just brute force scan a reasonable window since we only care about this month
-			// Start from next_due_date.
-			// If next_due_date is AFTER target month, walk back by period until we're inside or before.
-			// If next_due_date is BEFORE target month, walk forward.
-
 			let current = new Date(nextDue);
 
-			// Normalize to start of day for comparison
 			current.setHours(0, 0, 0, 0);
 			const startMs = parseLocalDate(startDate).getTime();
 			const endMs = parseLocalDate(endDate).getTime();
 
-			// If current is after end of month, walk back
 			while (current.getTime() > endMs) {
 				current.setDate(current.getDate() - periodDays);
 			}
 
-			// If current is before start of month, walk forward until we hit start or pass end
 			while (current.getTime() < startMs) {
 				current.setDate(current.getDate() + periodDays);
 			}
 
-			// Now collect all occurrences within [startMs, endMs]
 			while (current.getTime() <= endMs && current.getTime() >= startMs) {
 				occurrences.push(new Date(current));
 				current.setDate(current.getDate() + periodDays);
@@ -225,7 +180,6 @@ async function syncRecurringExpenses(allocationId: string, userId: string, targe
 		}
 	}
 
-	// Find or create/update appropriate categories
 	const { data: allCategories } = await supabase
 		.from("allocation_categories")
 		.select("*")
@@ -234,7 +188,6 @@ async function syncRecurringExpenses(allocationId: string, userId: string, targe
 	const categoryMap = new Map((allCategories || []).map((c) => [c.name, c]));
 	const categoryIdMap: Record<string, string> = {};
 
-	// Handle Bills category
 	const billsCategory = categoryMap.get("Bills");
 
 	if (totalBills > 0) {
@@ -263,10 +216,7 @@ async function syncRecurringExpenses(allocationId: string, userId: string, targe
 			categoryIdMap["bill"] = billsCategory.id;
 		}
 	} else if (billsCategory && billsCategory.is_recurring) {
-		// If no bills exist in recurring_expenses AT ALL, delete the category regardless of transactions.
-		// User wants it gone if the recurring list is empty.
 		if (!hasBills) {
-			// Unlink any transactions first to allow deletion
 			const { error: unlinkError } = await supabase
 				.from("transactions")
 				.update({ category_id: null })
@@ -276,7 +226,6 @@ async function syncRecurringExpenses(allocationId: string, userId: string, targe
 
 			const { error } = await supabase.from("allocation_categories").delete().eq("id", billsCategory.id);
 			if (error) {
-				// If delete fails, it's likely due to existing transactions (FK constraint).
 				Logger.warn("Failed to delete empty Bills category", { error, categoryId: billsCategory.id });
 
 				// Ensure budget cap is 0 at least
@@ -285,15 +234,12 @@ async function syncRecurringExpenses(allocationId: string, userId: string, targe
 				}
 			}
 		} else {
-			// No active bills, but we have inactive ones.
-			// Always ensure budget cap is 0
 			if (Number(billsCategory.budget_cap) !== 0) {
 				await supabase.from("allocation_categories").update({ budget_cap: 0 }).eq("id", billsCategory.id);
 			}
 		}
 	}
 
-	// Handle Subscriptions category
 	const subsCategory = categoryMap.get("Subscriptions");
 	if (totalSubscriptions > 0) {
 		if (!subsCategory) {
@@ -324,9 +270,7 @@ async function syncRecurringExpenses(allocationId: string, userId: string, targe
 			categoryIdMap["subscription"] = subsCategory.id;
 		}
 	} else if (subsCategory && subsCategory.is_recurring) {
-		// If no subscriptions exist in recurring_expenses AT ALL, delete the category.
 		if (!hasSubscriptions) {
-			// Unlink any transactions first to allow deletion
 			await supabase.from("transactions").update({ category_id: null }).eq("category_id", subsCategory.id);
 
 			const { error } = await supabase.from("allocation_categories").delete().eq("id", subsCategory.id);
@@ -338,14 +282,12 @@ async function syncRecurringExpenses(allocationId: string, userId: string, targe
 				}
 			}
 		} else {
-			// No active subscriptions, but we have inactive ones.
 			if (Number(subsCategory.budget_cap) !== 0) {
 				await supabase.from("allocation_categories").update({ budget_cap: 0 }).eq("id", subsCategory.id);
 			}
 		}
 	}
 
-	// Create transactions for applicable recurring expenses that don't have one yet
 	const transactionsToCreate: Array<{
 		user_id: string;
 		name: string;
@@ -357,11 +299,8 @@ async function syncRecurringExpenses(allocationId: string, userId: string, targe
 		notes: string;
 	}> = [];
 
-	// Create a map of existing transactions for precise duplicate checking
-	// Format: "recurring_id:YYYY-MM-DD"
 	const existingTransactionKeys = new Set(
 		(existingTransactions || []).map((t) => {
-			// Normalize date string to removing any time component if present
 			const dateStr = t.transaction_date ? t.transaction_date.split("T")[0] : "";
 			return `${t.recurring_expense_id}:${dateStr}`;
 		})
@@ -374,18 +313,13 @@ async function syncRecurringExpenses(allocationId: string, userId: string, targe
 			const dateStr = `${dateObj.getFullYear()}-${String(dateObj.getMonth() + 1).padStart(2, "0")}-${String(dateObj.getDate()).padStart(2, "0")}`;
 			const key = `${expense.id}:${dateStr}`;
 
-			// Skip if transaction already exists for this expense on this specific date
 			if (existingTransactionKeys.has(key)) continue;
 
-			// Skip creating new transactions if expense is inactive
 			if (!expense.is_active) continue;
 
-			// Skip creating new transactions if expense is manual (not automated)
-			// Default to true if meta_data or is_automated is missing
 			const meta = (expense.meta_data as any) || {};
 			if (meta.is_automated === false) continue;
 
-			// Skip if creation date is in the future
 			const today = new Date();
 			today.setHours(0, 0, 0, 0);
 			const targetDate = new Date(dateObj);
@@ -393,7 +327,6 @@ async function syncRecurringExpenses(allocationId: string, userId: string, targe
 
 			if (targetDate > today) continue;
 
-			// Determine category
 			const categoryId = categoryIdMap[expense.category] || null;
 
 			transactionsToCreate.push({
@@ -409,7 +342,6 @@ async function syncRecurringExpenses(allocationId: string, userId: string, targe
 		}
 	}
 
-	// Batch insert transactions
 	if (transactionsToCreate.length > 0) {
 		const { error } = await supabase.from("transactions").insert(transactionsToCreate);
 		if (error) {
@@ -418,10 +350,6 @@ async function syncRecurringExpenses(allocationId: string, userId: string, targe
 	}
 }
 
-/**
- * Get allocation summary with categories and calculations
- * Uses the database RPC function for proper JSON serialization
- */
 export async function getAllocationSummary(allocationId: string): Promise<AllocationSummary | null> {
 	// Handle sample data mode
 	if (process.env.NEXT_PUBLIC_USE_SAMPLE_DATA === "true") {
@@ -442,9 +370,6 @@ export async function getAllocationSummary(allocationId: string): Promise<Alloca
 	return data as AllocationSummary;
 }
 
-/**
- * Get previous month's allocation summary for import preview
- */
 export async function getPreviousMonthSummary(
 	year: number,
 	month: number
@@ -464,10 +389,6 @@ export async function getPreviousMonthSummary(
 	return { summary, prevYear, prevMonth };
 }
 
-/**
- * Import previous month's categories to new month
- * Only copies categories and budget caps - NOT transactions
- */
 export async function importPreviousMonthCategories(
 	targetYear: number,
 	targetMonth: number,
@@ -524,16 +445,12 @@ export async function importPreviousMonthCategories(
 
 	if (insertError) {
 		Logger.error("Error copying categories", { error: insertError });
-		// Return the allocation anyway - categories just weren't copied
 	}
 
 	revalidatePath("/allocations");
 	return newAllocation;
 }
 
-/**
- * Update allocation expected income
- */
 export async function updateExpectedIncome(allocationId: string, expectedIncome: number): Promise<boolean> {
 	const supabase = await createClient();
 
@@ -551,9 +468,6 @@ export async function updateExpectedIncome(allocationId: string, expectedIncome:
 	return true;
 }
 
-/**
- * Create a new category
- */
 export async function createCategory(
 	allocationId: string,
 	name: string,
@@ -602,9 +516,6 @@ export async function createCategory(
 	return data as AllocationCategory;
 }
 
-/**
- * Update category budget cap
- */
 export async function updateCategoryBudget(categoryId: string, budgetCap: number): Promise<boolean> {
 	const supabase = await createClient();
 
@@ -619,9 +530,6 @@ export async function updateCategoryBudget(categoryId: string, budgetCap: number
 	return true;
 }
 
-/**
- * Update category name
- */
 export async function updateCategoryName(categoryId: string, name: string): Promise<boolean> {
 	const supabase = await createClient();
 
@@ -636,9 +544,6 @@ export async function updateCategoryName(categoryId: string, name: string): Prom
 	return true;
 }
 
-/**
- * Delete a category
- */
 export async function deleteCategory(categoryId: string): Promise<boolean> {
 	const supabase = await createClient();
 
@@ -653,9 +558,6 @@ export async function deleteCategory(categoryId: string): Promise<boolean> {
 	return true;
 }
 
-/**
- * Reorder categories
- */
 export async function reorderCategories(categoryOrders: { id: string; display_order: number }[]): Promise<boolean> {
 	// Handle sample data mode
 	if (process.env.NEXT_PUBLIC_USE_SAMPLE_DATA === "true") {
@@ -680,9 +582,6 @@ export async function reorderCategories(categoryOrders: { id: string; display_or
 	return true;
 }
 
-/**
- * Get transactions for a specific month
- */
 export async function getTransactionsForMonth(year: number, month: number): Promise<Transaction[]> {
 	// Handle sample data mode
 	if (process.env.NEXT_PUBLIC_USE_SAMPLE_DATA === "true") {
@@ -727,9 +626,6 @@ export async function getTransactionsForMonth(year: number, month: number): Prom
 	})) as Transaction[];
 }
 
-/**
- * Create a new transaction
- */
 export async function createTransaction(
 	name: string,
 	amount: number,
@@ -750,9 +646,7 @@ export async function createTransaction(
 		.insert({
 			user_id: user.id,
 			name,
-			// Store amount as positive for income, negative for expense (if UI sends positive)
-			// OR store absolute and rely on checks. Standard is signed values for easy math.
-			// Let's assume UI sends absolute and we sign it here based on type.
+
 			amount: type === "expense" ? -Math.abs(amount) : Math.abs(amount),
 			transaction_date: transactionDate,
 			category_id: categoryId || null,
@@ -771,9 +665,6 @@ export async function createTransaction(
 	return data as Transaction;
 }
 
-/**
- * Update transaction
- */
 export async function updateTransaction(
 	transactionId: string,
 	data: {
@@ -798,18 +689,10 @@ export async function updateTransaction(
 	if (data.categoryId !== undefined) updates.category_id = data.categoryId;
 	if (data.notes !== undefined) updates.notes = data.notes;
 
-	// Handle amount / type update
-	// If amount is provided, we need to know the type (either new or existing)
-	// For simplicity, we expect the UI to provide the raw signed amount or we handle it if type is passed
 	if (data.amount !== undefined) {
-		// If type is explicitly provided, enforce sign
 		if (data.type) {
 			updates.amount = data.type === "expense" ? -Math.abs(data.amount) : Math.abs(data.amount);
 		} else {
-			// If type is not changing, we update the amount directly.
-			// We assume the UI sends the correct signed value if type isn't changing,
-			// or that the existing sign is preserved if the UI sends absolute value.
-			// Ideally, the UI should always send type if it sends amount to ensure correctness.
 			updates.amount = data.amount;
 		}
 	}
@@ -826,16 +709,10 @@ export async function updateTransaction(
 	return true;
 }
 
-/**
- * Update transaction category (Simplified helper)
- */
 export async function updateTransactionCategory(transactionId: string, categoryId: string | null): Promise<boolean> {
 	return updateTransaction(transactionId, { categoryId });
 }
 
-/**
- * Delete a transaction
- */
 export async function deleteTransaction(transactionId: string): Promise<boolean> {
 	const supabase = await createClient();
 
@@ -850,9 +727,6 @@ export async function deleteTransaction(transactionId: string): Promise<boolean>
 	return true;
 }
 
-/**
- * Get all templates for the current user
- */
 export async function getUserTemplates(): Promise<AllocationTemplate[]> {
 	const supabase = await createClient();
 
@@ -871,9 +745,6 @@ export async function getUserTemplates(): Promise<AllocationTemplate[]> {
 	return data as AllocationTemplate[];
 }
 
-/**
- * Apply template to allocation
- */
 export async function applyTemplateToAllocation(templateId: string, allocationId: string): Promise<boolean> {
 	const supabase = await createClient();
 
@@ -891,9 +762,6 @@ export async function applyTemplateToAllocation(templateId: string, allocationId
 	return true;
 }
 
-/**
- * Create template from current allocation
- */
 export async function createTemplateFromAllocation(
 	allocationId: string,
 	templateName: string,

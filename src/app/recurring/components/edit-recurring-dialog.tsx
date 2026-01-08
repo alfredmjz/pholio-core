@@ -42,15 +42,13 @@ export function EditRecurringDialog({
 	const [isSubmitting, setIsSubmitting] = useState(false);
 	const [isCalendarOpen, setIsCalendarOpen] = useState(false);
 
-	// Populate form when expense changes
 	useEffect(() => {
 		if (expense) {
 			setFormData({
 				name: expense.name,
 				amount: String(expense.amount),
 				billing_period: expense.billing_period,
-				// If forcing active (reactivation), default to Today to suggest capturing the first payment now.
-				// Otherwise keep existing date (parsed locally to avoid timezone shift).
+
 				next_due_date: forceActiveOnSave
 					? new Date()
 					: new Date(
@@ -68,7 +66,6 @@ export function EditRecurringDialog({
 	const handleSubmit = async () => {
 		if (!expense) return;
 
-		// Validate name
 		if (!formData.name.trim()) {
 			toast.error("Name is required", {
 				description: "Please enter a name for this recurring expense.",
@@ -76,7 +73,6 @@ export function EditRecurringDialog({
 			return;
 		}
 
-		// Validate amount
 		if (!formData.amount) {
 			toast.error("Amount is required", {
 				description: "Please enter an amount for this recurring expense.",
@@ -84,7 +80,6 @@ export function EditRecurringDialog({
 			return;
 		}
 
-		// Validate amount format (numbers only, max 2 decimal places)
 		const amountRegex = /^\d+(\.\d{1,2})?$/;
 		if (!amountRegex.test(formData.amount)) {
 			toast.error("Invalid amount", {
@@ -126,7 +121,7 @@ export function EditRecurringDialog({
 				onSuccess?.({
 					...expense,
 					...payload,
-					// Ensure local optimistic update has correct types
+
 					amount: amount,
 				} as RecurringExpense);
 				onOpenChange(false);

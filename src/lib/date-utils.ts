@@ -1,15 +1,5 @@
-/**
- * Date and time utilities for formatting and manipulation
- *
- * This module provides date/time utilities built on date-fns.
- * For functions that exist in date-fns, we re-export them directly.
- * Custom functions are provided for app-specific formatting needs.
- */
-
 import {
 	format,
-	isToday as dateFnsIsToday,
-	isYesterday as dateFnsIsYesterday,
 	differenceInMinutes,
 	differenceInHours,
 	differenceInDays,
@@ -18,33 +8,6 @@ import {
 	addWeeks,
 } from "date-fns";
 
-// ============================================================================
-// Re-exported date-fns functions
-// ============================================================================
-
-/**
- * Check if a date is today (re-exported from date-fns)
- */
-export const isToday = (date: string | Date): boolean => {
-	const d = typeof date === "string" ? new Date(date) : date;
-	return dateFnsIsToday(d);
-};
-
-/**
- * Check if a date is yesterday (re-exported from date-fns)
- */
-export const isYesterday = (date: string | Date): boolean => {
-	const d = typeof date === "string" ? new Date(date) : date;
-	return dateFnsIsYesterday(d);
-};
-
-// ============================================================================
-// Formatting functions using date-fns format()
-// ============================================================================
-
-/**
- * Format a date as a short date string (e.g., "Jan 4")
- */
 export function formatShortDate(date: string | Date): string {
 	const d = typeof date === "string" ? new Date(date) : date;
 	return format(d, "MMM d");
@@ -82,11 +45,6 @@ export function formatMonthYear(date: string | Date): string {
 	return format(d, "MMMM yyyy");
 }
 
-/**
- * Get today's date as a YYYY-MM-DD string in local timezone.
- * Uses date-fns format which respects local timezone, avoiding the
- * UTC conversion issue with toISOString().
- */
 export function getTodayDateString(): string {
 	return format(new Date(), "yyyy-MM-dd");
 }
@@ -163,7 +121,7 @@ export function calculateNextDueDate(currentDue: Date, frequency: string): Date 
  */
 export function parseLocalDate(dateStr: string): Date {
 	if (!dateStr) return new Date();
-	// Handle ISO strings with time components by taking only the date part
+
 	const cleanDateStr = dateStr.split("T")[0];
 	const [y, m, d] = cleanDateStr.split("-").map(Number);
 	// Return local date at midnight

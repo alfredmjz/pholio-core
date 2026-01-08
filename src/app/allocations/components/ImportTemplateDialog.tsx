@@ -77,7 +77,6 @@ export function ImportTemplateDialog({
 				break;
 		}
 
-		// Reset state
 		setSelectedOption(null);
 		setSelectedTemplateId(null);
 		setExpectedIncome("");
@@ -121,7 +120,6 @@ export function ImportTemplateDialog({
 		>
 			{step === "choose" ? (
 				<div className="space-y-3 py-4">
-					{/* Import from Previous Month */}
 					{previousMonth && previousMonth.categoryCount > 0 && (
 						<button
 							onClick={() => handleOptionSelect("previous")}
@@ -149,7 +147,6 @@ export function ImportTemplateDialog({
 						</button>
 					)}
 
-					{/* Use a Template */}
 					<button
 						onClick={() => handleOptionSelect("template")}
 						className={cn(
@@ -176,7 +173,6 @@ export function ImportTemplateDialog({
 						</div>
 					</button>
 
-					{/* Template Selection (shown when template option selected) */}
 					{selectedOption === "template" && (
 						<div className="ml-8 space-y-2 animate-in fade-in slide-in-from-top-2">
 							{templates.length === 0 ? (
@@ -209,7 +205,6 @@ export function ImportTemplateDialog({
 						</div>
 					)}
 
-					{/* Start Fresh */}
 					<button
 						onClick={() => handleOptionSelect("fresh")}
 						className={cn(
@@ -234,7 +229,6 @@ export function ImportTemplateDialog({
 				</div>
 			) : (
 				<div className="py-4 space-y-4">
-					{/* Income Input */}
 					<div className="space-y-2">
 						<Label htmlFor="expectedIncome" className="text-sm font-medium">
 							Expected Income for {monthName}
@@ -255,7 +249,6 @@ export function ImportTemplateDialog({
 						<p className="text-xs text-primary">This helps track your budget against your income</p>
 					</div>
 
-					{/* Summary Card */}
 					<Card className="p-4 bg-muted/50">
 						<h5 className="text-sm font-medium text-primary mb-2">Summary</h5>
 						<div className="space-y-1 text-sm">
@@ -288,7 +281,6 @@ export function ImportTemplateDialog({
 						</div>
 					</Card>
 
-					{/* Actions */}
 					<div className="flex gap-3 pt-2">
 						<Button variant="outline" onClick={handleBack} className="flex-1">
 							Back

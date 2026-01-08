@@ -88,7 +88,6 @@ export function SubscriptionCard({ subscription, onDelete, onUpdate }: Subscript
 		<>
 			<Card className="group relative transition-all duration-200 hover:shadow-md hover:border-primary hover:ring-1 hover:ring-primary border-border/60">
 				<CardContent className="p-6 flex flex-col sm:flex-row sm:items-center justify-between gap-6">
-					{/* Left: Identity */}
 					<div className="flex items-center gap-5">
 						<div className="h-14 w-14 flex-shrink-0 shadow-sm rounded-xl overflow-hidden ">
 							<ServiceLogo
@@ -111,9 +110,7 @@ export function SubscriptionCard({ subscription, onDelete, onUpdate }: Subscript
 						</div>
 					</div>
 
-					{/* Right: Amount & Actions */}
 					<div className="flex items-center justify-between sm:justify-end gap-6 sm:gap-8 w-full sm:w-auto">
-						{/* Amount Block */}
 						<div className="flex flex-col items-end gap-0.5">
 							<span className="text-[10px] font-bold text-muted-foreground/60 uppercase tracking-wider">AMOUNT</span>
 							<span className="text-3xl font-bold tracking-tighter">${Number(subscription.amount).toFixed(2)}</span>

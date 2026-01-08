@@ -66,7 +66,6 @@ function SubscriptionCardSkeleton() {
 	return (
 		<Card className="border-border/60">
 			<CardContent className="p-6 flex flex-col sm:flex-row sm:items-center justify-between gap-6">
-				{/* Left: Identity */}
 				<div className="flex items-center gap-5">
 					<Skeleton className="h-14 w-14 rounded-xl flex-shrink-0" />
 					<div className="space-y-2">
@@ -75,7 +74,6 @@ function SubscriptionCardSkeleton() {
 					</div>
 				</div>
 
-				{/* Right: Amount & Actions */}
 				<div className="flex items-center justify-between sm:justify-end gap-6 sm:gap-8 w-full sm:w-auto">
 					<div className="flex flex-col items-end gap-1">
 						<Skeleton className="h-3 w-12" />

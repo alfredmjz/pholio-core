@@ -78,15 +78,12 @@ export function AddRecurringDialog({ open, onOpenChange, onSuccess }: AddRecurri
 			category: provider.category,
 			service_provider: isCustom || isGeneric ? "" : provider.id,
 			isCustom: isCustom,
-			// For custom subscriptions, we'll derive service_provider from the name later
-			// For generic bills, we don't need logo lookup
 			meta_data: isGeneric ? { no_logo_lookup: true } : {},
 		});
 		setStep(2);
 	};
 
 	const handleSubmit = async () => {
-		// Validate name
 		if (!formData.name.trim()) {
 			toast.error("Name is required", {
 				description: "Please enter a name for this recurring expense.",
@@ -94,7 +91,6 @@ export function AddRecurringDialog({ open, onOpenChange, onSuccess }: AddRecurri
 			return;
 		}
 
-		// Validate amount
 		if (!formData.amount) {
 			toast.error("Amount is required", {
 				description: "Please enter an amount for this recurring expense.",
@@ -102,7 +98,6 @@ export function AddRecurringDialog({ open, onOpenChange, onSuccess }: AddRecurri
 			return;
 		}
 
-		// Validate amount format (numbers only, max 2 decimal places)
 		const amountRegex = /^\d+(\.\d{1,2})?$/;
 		if (!amountRegex.test(formData.amount)) {
 			toast.error("Invalid amount", {
@@ -121,18 +116,14 @@ export function AddRecurringDialog({ open, onOpenChange, onSuccess }: AddRecurri
 
 		setIsSubmitting(true);
 		try {
-			// For custom subscriptions, use the selected domain from autocomplete if available
-			// Otherwise fall back to deriving from name
 			let serviceProvider = formData.service_provider;
 			let metaData = { ...formData.meta_data };
 
 			if (formData.isCustom) {
 				if (selectedDomain) {
-					// Use the domain from autocomplete (e.g., "atlassian.com" for Jira)
 					serviceProvider = selectedDomain.replace(/\.com$|\.io$|\.org$/, "");
-					metaData.domain = selectedDomain; // Store for accurate logo lookup
+					metaData.domain = selectedDomain;
 				} else {
-					// No autocomplete selection, derive from name
 					serviceProvider = formData.name
 						.toLowerCase()
 						.replace(/\s+/g, "")
@@ -159,7 +150,7 @@ export function AddRecurringDialog({ open, onOpenChange, onSuccess }: AddRecurri
 				toast.success("Recurring expense added");
 				onSuccess?.(result);
 				onOpenChange(false);
-				// Reset form
+
 				setStep(1);
 				setSelectedDomain(null);
 				setFormData({

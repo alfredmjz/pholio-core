@@ -20,7 +20,6 @@ export function AddCategoryDialog({ open, onOpenChange, onSubmit, unallocatedFun
 	const [nameError, setNameError] = useState("");
 	const [budgetError, setBudgetError] = useState("");
 
-	// Reset form when dialog opens/closes
 	useEffect(() => {
 		if (!open) {
 			setName("");
@@ -89,7 +88,6 @@ export function AddCategoryDialog({ open, onOpenChange, onSubmit, unallocatedFun
 		>
 			<form onSubmit={handleSubmit}>
 				<div className="grid gap-4 py-4">
-					{/* Category Name */}
 					<div className="grid gap-2">
 						<Label htmlFor="category-name">
 							Category Name <span className="text-error">*</span>
@@ -113,7 +111,6 @@ export function AddCategoryDialog({ open, onOpenChange, onSubmit, unallocatedFun
 						)}
 					</div>
 
-					{/* Budget Cap */}
 					<div className="grid gap-2">
 						<Label htmlFor="budget-cap">
 							Budget Cap <span className="text-error">*</span>

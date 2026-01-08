@@ -29,7 +29,6 @@ export function RecurringClient({ initialExpenses }: RecurringClientProps) {
 		.reduce((sum, e) => {
 			let amount = Number(e.amount);
 			if (e.billing_period === "yearly") amount /= 12;
-
 			if (e.billing_period === "weekly") amount *= 4;
 			if (e.billing_period === "biweekly") amount *= 2;
 			return sum + amount;

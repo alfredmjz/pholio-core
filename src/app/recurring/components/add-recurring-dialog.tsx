@@ -39,7 +39,7 @@ const PRESET_PROVIDERS = [
 		icon: CircleDollarSign,
 		color: "bg-amber-500",
 	},
-	{ id: "rent", name: "Rent", domain: null, category: "bill", isGeneric: true, icon: House, color: "bg-purple-500" },
+	{ id: "rent", name: "Rent", domain: null, category: "bill", isGeneric: true, icon: House, color: "bg-rose-500" },
 	{
 		id: "bill",
 		name: "Bill",
@@ -47,7 +47,7 @@ const PRESET_PROVIDERS = [
 		category: "bill",
 		isGeneric: true,
 		icon: CreditCard,
-		color: "bg-slate-500",
+		color: "bg-cyan-500",
 	},
 ];
 
@@ -206,7 +206,7 @@ export function AddRecurringDialog({ open, onOpenChange, onSuccess }: AddRecurri
 						>
 							<div
 								className={cn(
-									"h-10 w-10 rounded-full flex items-center justify-center overflow-hidden",
+									"h-10 w-10 rounded-full flex items-center justify-center overflow-hidden text-white",
 									provider.color || "bg-muted"
 								)}
 							>

@@ -92,7 +92,7 @@ export function BillCard({ bill, onDelete, onUpdate }: BillCardProps) {
 
 	return (
 		<>
-			<Card className="group relative overflow-hidden transition-all duration-300 hover:shadow-md border-border/60 hover:border-border/80 bg-card/50 hover:bg-card">
+			<Card className="group relative transition-all duration-200 hover:shadow-md hover:border-primary hover:ring-1 hover:ring-primary border-border/60">
 				<BillCardHeader
 					bill={bill}
 					isAutomated={isAutomated}
@@ -167,7 +167,6 @@ export function BillCard({ bill, onDelete, onUpdate }: BillCardProps) {
 					</div>
 				</CardFooter>
 			</Card>
-
 			<EditRecurringDialog
 				open={isEditOpen}
 				onOpenChange={setIsEditOpen}

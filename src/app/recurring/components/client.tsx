@@ -6,7 +6,7 @@ import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
 import { Plus } from "lucide-react";
-import { SubscriptionRow } from "./subscription-row";
+import { SubscriptionCard } from "./subscription-card";
 import { BillCard } from "./bill-card";
 import { AddRecurringDialog } from "./add-recurring-dialog";
 import { PageShell, PageHeader, PageContent } from "@/components/layout/page-shell";
@@ -81,18 +81,16 @@ export function RecurringClient({ initialExpenses }: RecurringClientProps) {
 						{subscriptions.length === 0 ? (
 							<div className="text-center py-12 text-primary">No subscriptions found. Add one to get started.</div>
 						) : (
-							<Card>
-								<div className="divide-y divide-border">
-									{subscriptions.map((sub) => (
-										<SubscriptionRow
-											key={sub.id}
-											subscription={sub}
-											onDelete={optimisticallyDelete}
-											onUpdate={optimisticallyUpdate}
-										/>
-									))}
-								</div>
-							</Card>
+							<div className="flex flex-col gap-4">
+								{subscriptions.map((sub) => (
+									<SubscriptionCard
+										key={sub.id}
+										subscription={sub}
+										onDelete={optimisticallyDelete}
+										onUpdate={optimisticallyUpdate}
+									/>
+								))}
+							</div>
 						)}
 					</TabsContent>
 					<TabsContent value="bills" className="space-y-4">

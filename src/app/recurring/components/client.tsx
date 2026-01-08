@@ -1,13 +1,13 @@
 "use client";
 
 import { useState } from "react";
-import { RecurringExpense, toggleSubscription } from "../actions";
+import { RecurringExpense } from "../actions";
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
-import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card";
+import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
 import { Plus } from "lucide-react";
 import { SubscriptionRow } from "./subscription-row";
-import { BillRow } from "./bill-row";
+import { BillCard } from "./bill-card";
 import { AddRecurringDialog } from "./add-recurring-dialog";
 import { PageShell, PageHeader, PageContent } from "@/components/layout/page-shell";
 import { useOptimisticRecurring } from "@/hooks/useOptimisticRecurring";
@@ -21,11 +21,9 @@ export function RecurringClient({ initialExpenses }: RecurringClientProps) {
 		useOptimisticRecurring(initialExpenses);
 	const [isAddOpen, setIsAddOpen] = useState(false);
 
-	// Derived state
 	const subscriptions = expenses.filter((e) => e.category === "subscription");
 	const bills = expenses.filter((e) => e.category === "bill");
 
-	// Summary stats
 	const totalMonthly = expenses
 		.filter((e) => e.is_active)
 		.reduce((sum, e) => {
@@ -101,18 +99,11 @@ export function RecurringClient({ initialExpenses }: RecurringClientProps) {
 						{bills.length === 0 ? (
 							<div className="text-center py-12 text-primary">No bills found.</div>
 						) : (
-							<Card>
-								<div className="divide-y divide-border">
-									{bills.map((bill) => (
-										<BillRow
-											key={bill.id}
-											bill={bill}
-											onDelete={optimisticallyDelete}
-											onUpdate={optimisticallyUpdate}
-										/>
-									))}
-								</div>
-							</Card>
+							<div className="grid gap-4 grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 xl:grid-cols-4">
+								{bills.map((bill) => (
+									<BillCard key={bill.id} bill={bill} onDelete={optimisticallyDelete} onUpdate={optimisticallyUpdate} />
+								))}
+							</div>
 						)}
 					</TabsContent>
 				</Tabs>

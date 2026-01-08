@@ -1,47 +1,13 @@
-/**
- * Date and time utilities for formatting and manipulation
- *
- * This module provides date/time utilities built on date-fns.
- * For functions that exist in date-fns, we re-export them directly.
- * Custom functions are provided for app-specific formatting needs.
- */
-
 import {
 	format,
-	isToday as dateFnsIsToday,
-	isYesterday as dateFnsIsYesterday,
 	differenceInMinutes,
 	differenceInHours,
 	differenceInDays,
+	addMonths,
+	addYears,
+	addWeeks,
 } from "date-fns";
 
-// ============================================================================
-// Re-exported date-fns functions
-// ============================================================================
-
-/**
- * Check if a date is today (re-exported from date-fns)
- */
-export const isToday = (date: string | Date): boolean => {
-	const d = typeof date === "string" ? new Date(date) : date;
-	return dateFnsIsToday(d);
-};
-
-/**
- * Check if a date is yesterday (re-exported from date-fns)
- */
-export const isYesterday = (date: string | Date): boolean => {
-	const d = typeof date === "string" ? new Date(date) : date;
-	return dateFnsIsYesterday(d);
-};
-
-// ============================================================================
-// Formatting functions using date-fns format()
-// ============================================================================
-
-/**
- * Format a date as a short date string (e.g., "Jan 4")
- */
 export function formatShortDate(date: string | Date): string {
 	const d = typeof date === "string" ? new Date(date) : date;
 	return format(d, "MMM d");
@@ -79,11 +45,6 @@ export function formatMonthYear(date: string | Date): string {
 	return format(d, "MMMM yyyy");
 }
 
-/**
- * Get today's date as a YYYY-MM-DD string in local timezone.
- * Uses date-fns format which respects local timezone, avoiding the
- * UTC conversion issue with toISOString().
- */
 export function getTodayDateString(): string {
 	return format(new Date(), "yyyy-MM-dd");
 }
@@ -121,4 +82,48 @@ export function formatRelativeTime(timestamp: string | Date): string {
 	if (diffDays === 1) return "Yesterday";
 	if (diffDays < 7) return `${diffDays}d ago`;
 	return format(date, "MMM d");
+}
+
+// ============================================================================
+// Recurring Date Calculation Helpers
+// ============================================================================
+
+/**
+ * Calculate the next due date based on frequency.
+ *
+ * @param currentDue - Date object representing current due date
+ * @param frequency - 'monthly', 'yearly', 'weekly', 'biweekly'
+ * @returns Next due Date object
+ */
+export function calculateNextDueDate(currentDue: Date, frequency: string): Date {
+	// Ensure we are working with a Date object
+	const date = new Date(currentDue);
+	switch (frequency) {
+		case "monthly":
+			return addMonths(date, 1);
+		case "yearly":
+			return addYears(date, 1);
+		case "weekly":
+			return addWeeks(date, 1);
+		case "biweekly":
+			return addWeeks(date, 2);
+		default:
+			return date;
+	}
+}
+
+/**
+ * Helper to parse a YYYY-MM-DD string into a Local Date object (midnight).
+ * This prevents timezone shifts that occur when parsing ISO strings (which default to UTC).
+ *
+ * @param dateStr - YYYY-MM-DD or ISO string
+ * @returns Date object in local time (00:00:00)
+ */
+export function parseLocalDate(dateStr: string): Date {
+	if (!dateStr) return new Date();
+
+	const cleanDateStr = dateStr.split("T")[0];
+	const [y, m, d] = cleanDateStr.split("-").map(Number);
+	// Return local date at midnight
+	return new Date(y, m - 1, d);
 }

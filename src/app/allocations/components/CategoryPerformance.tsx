@@ -60,21 +60,16 @@ const COLOR_MAP: Record<string, string> = {
 };
 
 function getCategoryColor(id: string, colorName?: string) {
-	// 1. Try to find explicit color by name if provided
 	if (colorName) {
 		const normalizeName = colorName.toLowerCase();
 
-		// Direct name match in our palette check
 		// Mapping for common names to our palette
 		if (COLOR_MAP[normalizeName]) {
-			// Find the full object
 			const match = CATEGORY_COLORS.find((c) => c.bg === COLOR_MAP[normalizeName]);
 			if (match) return match;
 		}
 	}
 
-	// 2. Fallback to hash
-	// Simple string hash to get a consistent index
 	let hash = 0;
 	for (let i = 0; i < id.length; i++) {
 		hash = id.charCodeAt(i) + ((hash << 5) - hash);
@@ -95,7 +90,6 @@ function CategoryRow({ category }: CategoryRowProps) {
 	const [budgetValue, setBudgetValue] = useState(category.budget_cap.toString());
 	const [nameValue, setNameValue] = useState(category.name);
 
-	// Dnd Sortable hook
 	const { attributes, listeners, setNodeRef, transform, transition, isDragging } = useSortable({ id: category.id });
 
 	const style = {
@@ -109,11 +103,6 @@ function CategoryRow({ category }: CategoryRowProps) {
 	const utilization = category.budget_cap > 0 ? (actualSpend / category.budget_cap) * 100 : 0;
 	const isOverBudget = utilization > 100;
 
-	// Deterministic color based on ID, unless overridden by category.color
-	// Note: We'd need to map hex codes to our tailwind classes if we supported custom hexes.
-	// For now, if category.color is a key or index we could use it, but our palette is fixed classes.
-	// If category.color matches one of our palette items we could use it.
-	// We'll stick to the hash which is stable.
 	const color = getCategoryColor(category.id, category.color);
 
 	const formatCurrency = (value: number) => {
@@ -138,12 +127,10 @@ function CategoryRow({ category }: CategoryRowProps) {
 
 		if (hasError) return;
 
-		// Optimistic updates
 		optimisticallyUpdateBudget(category.id, newBudget);
 		optimisticallyUpdateName(category.id, newName);
 		setIsEditing(false);
 
-		// Server updates
 		const [budgetSuccess, nameSuccess] = await Promise.all([
 			updateCategoryBudget(category.id, newBudget),
 			updateCategoryName(category.id, newName),
@@ -162,7 +149,6 @@ function CategoryRow({ category }: CategoryRowProps) {
 					description: "Failed to rename the category. Please try again.",
 				});
 			}
-			// Revert if failed (optional, simplified for now)
 		}
 	};
 
@@ -198,7 +184,6 @@ function CategoryRow({ category }: CategoryRowProps) {
 		<>
 			<div ref={setNodeRef} style={style} className={cn("group px-6 py-3 bg-card", isDragging && "opacity-50")}>
 				<div className="flex items-center gap-2 md:gap-6">
-					{/* Drag Handle - Visible on hover or when editing */}
 					<div
 						{...attributes}
 						{...listeners}
@@ -211,12 +196,9 @@ function CategoryRow({ category }: CategoryRowProps) {
 					</div>
 
 					<div className="flex-1 flex items-center justify-between">
-						{/* Group: Color + Name */}
 						<div className="flex items-center gap-3">
-							{/* Color indicator */}
 							<div className={cn("w-2 h-2 rounded-full flex-shrink-0", color.bg)} />
 
-							{/* Category name */}
 							<div className="min-w-[120px]">
 								{isEditing ? (
 									<Input
@@ -233,7 +215,6 @@ function CategoryRow({ category }: CategoryRowProps) {
 							</div>
 						</div>
 
-						{/* Amount display */}
 						<div className="text-right flex-shrink-0">
 							{isEditing ? (
 								<div className="flex items-center gap-1 justify-end">
@@ -260,7 +241,7 @@ function CategoryRow({ category }: CategoryRowProps) {
 							)}
 						</div>
 					</div>
-					{/* Action buttons */}
+
 					<div
 						className={cn(
 							"flex items-center gap-1 transition-opacity",
@@ -299,7 +280,6 @@ function CategoryRow({ category }: CategoryRowProps) {
 					</div>
 				</div>
 
-				{/* Progress bar */}
 				<div className="mt-2 ml-5">
 					<div className="h-2 bg-muted rounded-full overflow-hidden">
 						<div
@@ -351,16 +331,13 @@ export function CategoryPerformance({ categories, onAddCategory, className }: Ca
 		if (oldIndex !== -1 && newIndex !== -1) {
 			const newOrder = arrayMove(categories, oldIndex, newIndex);
 
-			// Optimistically update
 			optimisticallyReorderCategories(newOrder);
 
-			// Persist to server
 			const updates = newOrder.map((cat, index) => ({
 				id: cat.id,
 				display_order: index,
 			}));
 
-			// Fire and forget, or handle error
 			reorderCategories(updates).then((success) => {
 				if (!success) {
 					toast.error("Failed to save order");

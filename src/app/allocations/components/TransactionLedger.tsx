@@ -8,11 +8,11 @@ import { Button } from "@/components/ui/button";
 import { Badge } from "@/components/ui/badge";
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
 import { cn } from "@/lib/utils";
+import { formatShortDate, parseLocalDate } from "@/lib/date-utils";
 import type { AllocationCategory, Transaction } from "../types";
 import type { TransactionType } from "./TransactionTypeIcon";
 import { inferTransactionType, TRANSACTION_TYPE_CONFIG, TransactionTypeIcon } from "./TransactionTypeIcon";
 import { getCategoryColor } from "./CategoryPerformance";
-import { AddTransactionButton } from "./AddTransactionButton";
 import { TransactionDialog } from "./TransactionDialog";
 
 interface TransactionLedgerProps {
@@ -26,8 +26,6 @@ interface TransactionLedgerProps {
 
 type SortField = "date" | "name" | "amount" | "category" | "type";
 type SortDirection = "asc" | "desc";
-
-// Helper removed, using getCategoryColor from CategoryPerformance
 
 export function TransactionLedger({
 	transactions,
@@ -44,14 +42,11 @@ export function TransactionLedger({
 	const [sortDirection, setSortDirection] = useState<SortDirection>("desc");
 	const [showFilters, setShowFilters] = useState(false);
 
-	// Amount range filter (optional enhancement)
 	const [minAmount, setMinAmount] = useState<string>("");
 	const [maxAmount, setMaxAmount] = useState<string>("");
 
-	// Effective type filter (external takes precedence)
 	const effectiveTypeFilter = externalTypeFilter || (typeFilter !== "all" ? typeFilter : null);
 
-	// Dialog State
 	const [dialogOpen, setDialogOpen] = useState(false);
 	const [selectedTransaction, setSelectedTransaction] = useState<Transaction | null>(null);
 
@@ -60,11 +55,9 @@ export function TransactionLedger({
 		setDialogOpen(true);
 	};
 
-	// Filter and sort transactions
 	const filteredTransactions = useMemo(() => {
 		let filtered = transactions;
 
-		// Search filter
 		if (searchQuery) {
 			const query = searchQuery.toLowerCase();
 			filtered = filtered.filter(
@@ -75,17 +68,14 @@ export function TransactionLedger({
 			);
 		}
 
-		// Category filter
 		if (categoryFilter !== "all") {
 			filtered = filtered.filter((t) => t.category_id === categoryFilter);
 		}
 
-		// Type filter
 		if (effectiveTypeFilter) {
 			filtered = filtered.filter((t) => inferTransactionType(t) === effectiveTypeFilter);
 		}
 
-		// Amount range filter
 		const min = parseFloat(minAmount);
 		const max = parseFloat(maxAmount);
 		if (!isNaN(min)) {
@@ -95,7 +85,6 @@ export function TransactionLedger({
 			filtered = filtered.filter((t) => Math.abs(t.amount) <= max);
 		}
 
-		// Sort
 		filtered = [...filtered].sort((a, b) => {
 			let comparison = 0;
 
@@ -161,7 +150,6 @@ export function TransactionLedger({
 
 	return (
 		<Card className="p-6">
-			{/* Header */}
 			<div className="flex items-center justify-between mb-4">
 				<div>
 					<h3 className="text-sm font-semibold text-primary uppercase tracking-wide">Transaction Ledger</h3>
@@ -171,13 +159,7 @@ export function TransactionLedger({
 				</div>
 			</div>
 
-			{/* ... Filters ... */}
-			{/* I will only replace the render part to avoid touching the whole file if possible, but the filters are in the middle. */}
-			{/* Let's do a larger replace to be safe with context. */}
-
-			{/* Filters Row */}
 			<div className="flex items-center gap-3 mb-4">
-				{/* Search */}
 				<div className="relative flex-1 max-w-md">
 					<Search className="absolute left-3 top-1/2 -translate-y-1/2 h-4 w-4 text-primary" />
 					<Input
@@ -189,7 +171,6 @@ export function TransactionLedger({
 					/>
 				</div>
 
-				{/* Category Filter */}
 				<Select value={categoryFilter} onValueChange={setCategoryFilter}>
 					<SelectTrigger className="w-48 bg-background border-border">
 						<SelectValue placeholder="All Categories" />
@@ -204,7 +185,6 @@ export function TransactionLedger({
 					</SelectContent>
 				</Select>
 
-				{/* Type Filter */}
 				<Select
 					value={externalTypeFilter || typeFilter}
 					onValueChange={(v) => {
@@ -230,7 +210,6 @@ export function TransactionLedger({
 					</SelectContent>
 				</Select>
 
-				{/* Advanced Filters Toggle */}
 				<Button
 					variant="outline"
 					size="default"
@@ -240,7 +219,6 @@ export function TransactionLedger({
 					<Filter className="h-4 w-4" />
 				</Button>
 
-				{/* Clear Filters */}
 				{hasActiveFilters && (
 					<Button variant="ghost" size="sm" onClick={clearAllFilters} className="text-primary hover:text-primary">
 						<X className="h-4 w-4 mr-1" />
@@ -249,7 +227,6 @@ export function TransactionLedger({
 				)}
 			</div>
 
-			{/* Advanced Filters (Amount Range) */}
 			{showFilters && (
 				<div className="flex items-center gap-3 mb-4 p-3 bg-muted/50 rounded-lg">
 					<span className="text-sm text-primary">Amount:</span>
@@ -273,7 +250,6 @@ export function TransactionLedger({
 				</div>
 			)}
 
-			{/* External Filter Badge */}
 			{externalTypeFilter && (
 				<div className="flex items-center gap-2 mb-4">
 					<span className="text-sm text-primary">Filtered by:</span>
@@ -293,7 +269,6 @@ export function TransactionLedger({
 				</div>
 			)}
 
-			{/* Table */}
 			<div className="border border-border rounded-lg overflow-hidden shadow-sm">
 				<div className="overflow-x-auto">
 					<table className="w-full">
@@ -327,7 +302,6 @@ export function TransactionLedger({
 								filteredTransactions.map((transaction) => {
 									const txType = inferTransactionType(transaction);
 
-									// Resolve category color based on index in the categories array
 									const categoryStyle = transaction.category_id
 										? getCategoryColor(transaction.category_id)
 										: { bg: "bg-secondary", text: "text-primary", light: "bg-secondary/50" };
@@ -340,10 +314,9 @@ export function TransactionLedger({
 										>
 											<td className="px-4 py-3 whitespace-nowrap">
 												<span className="text-sm text-primary">
-													{new Date(transaction.transaction_date).toLocaleDateString("en-US", {
-														month: "short",
-														day: "numeric",
-													})}
+													{transaction.transaction_date
+														? formatShortDate(parseLocalDate(transaction.transaction_date))
+														: ""}
 												</span>
 											</td>
 											<td className="px-4 py-3">
@@ -390,7 +363,6 @@ export function TransactionLedger({
 				</div>
 			</div>
 
-			{/* Count */}
 			{filteredTransactions.length > 0 && (
 				<div className="mt-3 text-xs text-primary text-right">
 					Showing {filteredTransactions.length} of {transactions.length}{" "}

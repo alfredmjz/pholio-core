@@ -20,7 +20,6 @@ export function BudgetSummaryCards({
 	const leftToSpend = expectedIncome - totalSpent;
 	const spentPercentage = expectedIncome > 0 ? (totalSpent / expectedIncome) * 100 : 0;
 
-	// Determine status
 	const isOnTrack = spentPercentage <= 75;
 	const isWarning = spentPercentage > 75 && spentPercentage <= 100;
 	const isOverBudget = spentPercentage > 100;
@@ -36,9 +35,7 @@ export function BudgetSummaryCards({
 
 	return (
 		<div className={cn("grid grid-cols-1 md:grid-cols-3 gap-4", className)}>
-			{/* Total Budget Card */}
 			<Card className="p-5 bg-card border border-border relative overflow-hidden">
-				{/* Decorative gradient background */}
 				<div className="absolute top-0 right-0 w-32 h-32 opacity-10">
 					<svg viewBox="0 0 100 100" className="w-full h-full">
 						<path d="M0,50 Q25,30 50,50 T100,50 V100 H0 Z" fill="url(#gradient1)" />
@@ -62,7 +59,6 @@ export function BudgetSummaryCards({
 				</div>
 			</Card>
 
-			{/* Left to Spend Card */}
 			<Card className="p-5 bg-card border border-border">
 				<p className="text-sm text-primary font-medium mb-1">Left to Spend</p>
 				<p className={cn("text-3xl font-bold", isOverBudget ? "text-error" : "text-success")}>
@@ -84,11 +80,10 @@ export function BudgetSummaryCards({
 				</p>
 			</Card>
 
-			{/* Total Spent Card */}
 			<Card className="p-5 bg-card border border-border">
 				<p className="text-sm text-primary font-medium mb-1">Total Spent</p>
 				<p className="text-3xl font-bold text-primary">{formatCurrency(totalSpent)}</p>
-				{/* Progress bar */}
+
 				<div className="mt-3">
 					<div className="h-2 bg-muted rounded-full overflow-hidden">
 						<div

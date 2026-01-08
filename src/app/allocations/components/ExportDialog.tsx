@@ -42,13 +42,11 @@ export function ExportDialog({ open, onOpenChange, currentYear, currentMonth }: 
 	const [activeTab, setActiveTab] = useState("quick");
 	const router = useRouter();
 
-	// Custom range state
 	const [startDate, setStartDate] = useState<Date | undefined>(new Date(currentYear, currentMonth - 1, 1));
 	const [endDate, setEndDate] = useState<Date | undefined>(new Date(currentYear, currentMonth, 0)); // Last day of month
 
 	const [isGuest, setIsGuest] = useState(false);
 
-	// Check if user is guest on mount/open
 	useEffect(() => {
 		if (open) {
 			const checkGuestStatus = async () => {
@@ -61,8 +59,6 @@ export function ExportDialog({ open, onOpenChange, currentYear, currentMonth }: 
 					if (profile?.is_guest) {
 						setIsGuest(true);
 					} else {
-						// Check if we came back from registration for this purpose
-						// This logic runs if the user is registered (not guest)
 						const pending = localStorage.getItem("pendingGoogleExport");
 						if (pending === "true") {
 							localStorage.removeItem("pendingGoogleExport");
@@ -95,7 +91,7 @@ export function ExportDialog({ open, onOpenChange, currentYear, currentMonth }: 
 			if (endDate < startDate) {
 				throw new Error("End date cannot be before start date");
 			}
-			// Extract Year/Month from the Date objects (MonthPicker returns 1st of month)
+
 			return {
 				type: "custom" as const,
 				startYear: startDate.getFullYear(),
@@ -112,7 +108,6 @@ export function ExportDialog({ open, onOpenChange, currentYear, currentMonth }: 
 			const range = getRange();
 			let filename = "";
 
-			// Format filename nicely for months
 			const startStr = `${MONTHS[range.startMonth - 1].value < 10 ? "0" : ""}${MONTHS[range.startMonth - 1].value}_${range.startYear}`;
 			const endStr = `${MONTHS[range.endMonth - 1].value < 10 ? "0" : ""}${MONTHS[range.endMonth - 1].value}_${range.endYear}`;
 
@@ -138,7 +133,6 @@ export function ExportDialog({ open, onOpenChange, currentYear, currentMonth }: 
 	const handleGoogleExport = async () => {
 		setIsGoogleExporting(true);
 		try {
-			// GUEST CHECK: Gate feature for guests
 			if (isGuest) {
 				const confirmed = window.confirm(
 					"You need to be registered user with Google Account connected to export to Google Sheets. Proceed to register?"
@@ -157,16 +151,12 @@ export function ExportDialog({ open, onOpenChange, currentYear, currentMonth }: 
 
 			const range = getRange();
 
-			// Check for Google connection first
 			const {
 				data: { session },
 			} = await supabase.auth.getSession();
 
-			// Pass the provider token explicitly in the body if available
-			// This works around server-side cookie persistence issues for tokens
 			const providerToken = session?.provider_token;
 
-			// Send Year/Month params to API
 			const body: any = {
 				token: providerToken,
 				startYear: range.startYear,
@@ -184,18 +174,15 @@ export function ExportDialog({ open, onOpenChange, currentYear, currentMonth }: 
 			const data = await response.json();
 
 			if (!response.ok) {
-				// Relaxed check: any 401 triggers auth flow
 				if (response.status === 401) {
 					toast.info("Connecting to Google...", {
 						description: "You will be redirected to approve access.",
 						duration: 5000,
 					});
 
-					// Use signInWithOAuth due to manual linking restrictions
 					const { error: authError } = await supabase.auth.signInWithOAuth({
 						provider: "google",
 						options: {
-							redirectTo: window.location.href, // Return here
 							scopes: "https://www.googleapis.com/auth/spreadsheets",
 							queryParams: {
 								access_type: "offline",
@@ -208,7 +195,7 @@ export function ExportDialog({ open, onOpenChange, currentYear, currentMonth }: 
 						console.error("Link/Auth Error:", authError);
 						throw authError;
 					}
-					// The user will be redirected, so we can stop here.
+
 					return;
 				}
 				throw new Error(data.error || "Failed to create Google Sheet");
@@ -240,7 +227,6 @@ export function ExportDialog({ open, onOpenChange, currentYear, currentMonth }: 
 			description="Download your transaction history as an Excel file or open in Google Sheets."
 			className="sm:max-w-[625px]"
 		>
-			{/* Min height container to prevent jumping */}
 			<div className="min-h-[300px]">
 				<Tabs defaultValue="quick" value={activeTab} onValueChange={setActiveTab} className="w-full">
 					<TabsList className="grid w-full grid-cols-2">

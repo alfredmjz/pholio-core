@@ -17,8 +17,6 @@ export function AllocationDonutChart({ categories, className }: AllocationDonutC
 		return categories.reduce((sum, cat) => sum + (cat.actual_spend || 0), 0);
 	}, [categories]);
 
-	// Prepare data for shared DonutChart component
-	// eslint-disable-next-line react-hooks/exhaustive-deps
 	const CHART_COLORS = [
 		"#06b6d4", // cyan-500
 		"#10b981", // green-500
@@ -43,18 +41,16 @@ export function AllocationDonutChart({ categories, className }: AllocationDonutC
 
 	const chartDataWithColors = useMemo(() => {
 		if (categories.length === 0) return [];
-		// Sort by display_order for stable ordering
+
 		return [...categories]
 			.sort((a, b) => a.display_order - b.display_order)
 			.filter((cat) => (cat.actual_spend || 0) > 0)
 			.map((cat) => {
 				let colorHex = "";
 
-				// 1. Try explicit color
 				if (cat.color && HEX_COLOR_MAP[cat.color.toLowerCase()]) {
 					colorHex = HEX_COLOR_MAP[cat.color.toLowerCase()];
 				} else {
-					// 2. Fallback to hash
 					let hash = 0;
 					for (let i = 0; i < cat.id.length; i++) {
 						hash = cat.id.charCodeAt(i) + ((hash << 5) - hash);
@@ -95,18 +91,16 @@ export function AllocationDonutChart({ categories, className }: AllocationDonutC
 			</div>
 
 			<div className="flex flex-col items-center justify-center flex-1">
-				{/* Donut Chart */}
 				<div className="mb-6">
 					<DonutChart
 						data={chartDataWithColors}
 						size={40}
 						strokeWidth={12}
 						centerContent={CenterContent}
-						showTooltip={false} // Allocation page usually has legend
+						showTooltip={false}
 					/>
 				</div>
 
-				{/* Legend - sorted by display_order for stability */}
 				<div className="w-full grid grid-cols-2 gap-x-3 gap-y-1.5">
 					{[...categories]
 						.sort((a, b) => a.display_order - b.display_order)

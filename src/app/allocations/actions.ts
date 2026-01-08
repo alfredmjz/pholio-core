@@ -5,10 +5,8 @@ import { revalidatePath } from "next/cache";
 import type { Allocation, AllocationCategory, AllocationSummary, AllocationTemplate, Transaction } from "./types";
 import { sampleAllocationSummary, sampleTransactions } from "@/mock-data/allocations";
 import { Logger } from "@/lib/logger";
+import { parseLocalDate } from "@/lib/date-utils";
 
-/**
- * Check if allocation exists for a specific month (without creating)
- */
 export async function getAllocation(year: number, month: number): Promise<Allocation | null> {
 	// Handle sample data mode
 	if (process.env.NEXT_PUBLIC_USE_SAMPLE_DATA === "true") {
@@ -34,12 +32,13 @@ export async function getAllocation(year: number, month: number): Promise<Alloca
 		.eq("month", month)
 		.single();
 
+	if (existing) {
+		await syncRecurringExpenses(existing.id, user.id, month, year);
+	}
+
 	return existing as Allocation | null;
 }
 
-/**
- * Get or create allocation for a specific month
- */
 export async function getOrCreateAllocation(
 	year: number,
 	month: number,
@@ -67,7 +66,7 @@ export async function getOrCreateAllocation(
 		.single();
 
 	if (existing) {
-		await syncRecurringExpenses(existing.id, user.id, month);
+		await syncRecurringExpenses(existing.id, user.id, month, year);
 		return existing as Allocation;
 	}
 
@@ -88,87 +87,269 @@ export async function getOrCreateAllocation(
 		return null;
 	}
 
-	// [NEW] Sync recurring expenses for the new allocation
-	await syncRecurringExpenses(newAllocation.id, user.id, month);
+	await syncRecurringExpenses(newAllocation.id, user.id, month, year);
 
 	return newAllocation as Allocation;
 }
 
-/**
- * Helper to sync recurring expenses to a specific allocation category
- * This ensures that if the user adds a subscription mid-month, it's reflected.
- */
-async function syncRecurringExpenses(allocationId: string, userId: string, targetMonth: number) {
+async function syncRecurringExpenses(allocationId: string, userId: string, targetMonth: number, targetYear: number) {
 	const supabase = await createClient();
 
-	// 1. Fetch active recurring expenses
-	const { data: recurring } = await supabase
-		.from("recurring_expenses")
-		.select("*")
+	const { data: allRecurring } = await supabase.from("recurring_expenses").select("*").eq("user_id", userId);
+
+	if (!allRecurring) return;
+
+	const startDate = `${targetYear}-${String(targetMonth).padStart(2, "0")}-01`;
+	const endOfMonth = new Date(targetYear, targetMonth, 0);
+	const endDate = `${targetYear}-${String(targetMonth).padStart(2, "0")}-${endOfMonth.getDate()}`;
+
+	const { data: existingTransactions } = await supabase
+		.from("transactions")
+		.select("id, recurring_expense_id, transaction_date")
 		.eq("user_id", userId)
-		.eq("is_active", true);
+		.gte("transaction_date", startDate)
+		.lte("transaction_date", endDate)
+		.not("recurring_expense_id", "is", null);
 
-	if (!recurring || recurring.length === 0) return;
+	const existingRecurringIds = new Set((existingTransactions || []).map((t) => t.recurring_expense_id));
 
-	// 2. Calculate total
-	let totalRecurring = 0;
+	const hasBills = allRecurring.some((r) => r.category === "bill");
+	const hasSubscriptions = allRecurring.some((r) => r.category === "subscription");
 
-	for (const expense of recurring) {
-		// Logic: active subscriptions hit the budget
-		// Check billing period vs target month?
-		// Spec: "Annual where we will track the one time expense for that month"
+	let totalBills = 0;
+	let totalSubscriptions = 0;
 
-		let applies = false;
-		if (expense.billing_period === "monthly") {
-			applies = true;
-		} else if (expense.billing_period === "yearly") {
-			// Check if next_due_date month matches targetMonth
-			// Note: date format is YYYY-MM-DD.
-			const dueDate = new Date(expense.next_due_date);
-			// JS Month is 0-indexed, targetMonth is 1-indexed (based on usage in page.tsx: now.getMonth() + 1)
-			if (dueDate.getMonth() + 1 === targetMonth) {
-				applies = true;
+	const applicableExpenses: Array<{ expense: (typeof allRecurring)[0]; dates: Date[] }> = [];
+
+	for (const expense of allRecurring) {
+		const occurrences: Date[] = [];
+		const nextDue = parseLocalDate(expense.next_due_date);
+		const billingPeriod = expense.billing_period;
+
+		const isInMonth = (d: Date) => d.getMonth() + 1 === targetMonth && d.getFullYear() === targetYear;
+
+		if (billingPeriod === "monthly") {
+			// Use the day of month from next_due_date
+			const day = nextDue.getDate();
+			const projected = new Date(targetYear, targetMonth - 1, day);
+
+			if (projected.getMonth() !== targetMonth - 1) {
+				projected.setDate(0);
 			}
-		} else {
-			applies = true;
+
+			if (isInMonth(projected)) occurrences.push(projected);
+		} else if (billingPeriod === "yearly") {
+			if (nextDue.getMonth() + 1 === targetMonth) {
+				const projected = new Date(targetYear, nextDue.getMonth(), nextDue.getDate());
+				if (isInMonth(projected)) occurrences.push(projected);
+			}
+		} else if (billingPeriod === "weekly" || billingPeriod === "biweekly") {
+			const periodDays = billingPeriod === "weekly" ? 7 : 14;
+			const msPerDay = 1000 * 60 * 60 * 24;
+			const periodMs = periodDays * msPerDay;
+
+			let current = new Date(nextDue);
+
+			current.setHours(0, 0, 0, 0);
+			const startMs = parseLocalDate(startDate).getTime();
+			const endMs = parseLocalDate(endDate).getTime();
+
+			while (current.getTime() > endMs) {
+				current.setDate(current.getDate() - periodDays);
+			}
+
+			while (current.getTime() < startMs) {
+				current.setDate(current.getDate() + periodDays);
+			}
+
+			while (current.getTime() <= endMs && current.getTime() >= startMs) {
+				occurrences.push(new Date(current));
+				current.setDate(current.getDate() + periodDays);
+			}
 		}
 
-		if (applies) {
-			totalRecurring += Number(expense.amount);
+		if (occurrences.length > 0) {
+			const totalAmount = Number(expense.amount) * occurrences.length;
+			applicableExpenses.push({ expense, dates: occurrences });
+
+			if (expense.category === "bill") {
+				totalBills += totalAmount;
+			} else {
+				totalSubscriptions += totalAmount;
+			}
 		}
 	}
 
-	if (totalRecurring === 0) return;
-
-	// 3. Find or Create "Fixed Expenses" category
-	const { data: categories } = await supabase
+	const { data: allCategories } = await supabase
 		.from("allocation_categories")
 		.select("*")
-		.eq("allocation_id", allocationId)
-		.eq("name", "Fixed Expenses")
-		.single();
+		.eq("allocation_id", allocationId);
 
-	if (categories) {
-		if (Number(categories.budget_cap) !== totalRecurring) {
-			await supabase.from("allocation_categories").update({ budget_cap: totalRecurring }).eq("id", categories.id);
+	const categoryMap = new Map((allCategories || []).map((c) => [c.name, c]));
+	const categoryIdMap: Record<string, string> = {};
+
+	const billsCategory = categoryMap.get("Bills");
+
+	if (totalBills > 0) {
+		if (!billsCategory) {
+			const { data: newCat } = await supabase
+				.from("allocation_categories")
+				.insert({
+					allocation_id: allocationId,
+					user_id: userId,
+					name: "Bills",
+					budget_cap: totalBills,
+					is_recurring: true,
+					display_order: 0,
+					color: "orange",
+				})
+				.select()
+				.single();
+			if (newCat) {
+				categoryMap.set("Bills", newCat);
+				categoryIdMap["bill"] = newCat.id;
+			}
+		} else {
+			if (Number(billsCategory.budget_cap) !== totalBills) {
+				await supabase.from("allocation_categories").update({ budget_cap: totalBills }).eq("id", billsCategory.id);
+			}
+			categoryIdMap["bill"] = billsCategory.id;
 		}
-	} else {
-		// Create new
-		await supabase.from("allocation_categories").insert({
-			allocation_id: allocationId,
-			user_id: userId,
-			name: "Fixed Expenses",
-			budget_cap: totalRecurring,
-			is_recurring: true,
-			display_order: 0, // Put at top
-		});
+	} else if (billsCategory && billsCategory.is_recurring) {
+		if (!hasBills) {
+			const { error: unlinkError } = await supabase
+				.from("transactions")
+				.update({ category_id: null })
+				.eq("category_id", billsCategory.id);
+			if (unlinkError)
+				Logger.warn("Failed to unlink transactions before deleting Bills category", { error: unlinkError });
+
+			const { error } = await supabase.from("allocation_categories").delete().eq("id", billsCategory.id);
+			if (error) {
+				Logger.warn("Failed to delete empty Bills category", { error, categoryId: billsCategory.id });
+
+				// Ensure budget cap is 0 at least
+				if (Number(billsCategory.budget_cap) !== 0) {
+					await supabase.from("allocation_categories").update({ budget_cap: 0 }).eq("id", billsCategory.id);
+				}
+			}
+		} else {
+			if (Number(billsCategory.budget_cap) !== 0) {
+				await supabase.from("allocation_categories").update({ budget_cap: 0 }).eq("id", billsCategory.id);
+			}
+		}
+	}
+
+	const subsCategory = categoryMap.get("Subscriptions");
+	if (totalSubscriptions > 0) {
+		if (!subsCategory) {
+			const { data: newCat } = await supabase
+				.from("allocation_categories")
+				.insert({
+					allocation_id: allocationId,
+					user_id: userId,
+					name: "Subscriptions",
+					budget_cap: totalSubscriptions,
+					is_recurring: true,
+					display_order: 1,
+					color: "purple",
+				})
+				.select()
+				.single();
+			if (newCat) {
+				categoryMap.set("Subscriptions", newCat);
+				categoryIdMap["subscription"] = newCat.id;
+			}
+		} else {
+			if (Number(subsCategory.budget_cap) !== totalSubscriptions) {
+				await supabase
+					.from("allocation_categories")
+					.update({ budget_cap: totalSubscriptions })
+					.eq("id", subsCategory.id);
+			}
+			categoryIdMap["subscription"] = subsCategory.id;
+		}
+	} else if (subsCategory && subsCategory.is_recurring) {
+		if (!hasSubscriptions) {
+			await supabase.from("transactions").update({ category_id: null }).eq("category_id", subsCategory.id);
+
+			const { error } = await supabase.from("allocation_categories").delete().eq("id", subsCategory.id);
+			if (error) {
+				Logger.warn("Failed to delete empty Subscriptions category", { error, categoryId: subsCategory.id });
+
+				if (Number(subsCategory.budget_cap) !== 0) {
+					await supabase.from("allocation_categories").update({ budget_cap: 0 }).eq("id", subsCategory.id);
+				}
+			}
+		} else {
+			if (Number(subsCategory.budget_cap) !== 0) {
+				await supabase.from("allocation_categories").update({ budget_cap: 0 }).eq("id", subsCategory.id);
+			}
+		}
+	}
+
+	const transactionsToCreate: Array<{
+		user_id: string;
+		name: string;
+		amount: number;
+		transaction_date: string;
+		category_id: string | null;
+		source: string;
+		recurring_expense_id: string;
+		notes: string;
+	}> = [];
+
+	const existingTransactionKeys = new Set(
+		(existingTransactions || []).map((t) => {
+			const dateStr = t.transaction_date ? t.transaction_date.split("T")[0] : "";
+			return `${t.recurring_expense_id}:${dateStr}`;
+		})
+	);
+
+	for (const item of applicableExpenses) {
+		const { expense, dates } = item;
+
+		for (const dateObj of dates) {
+			const dateStr = `${dateObj.getFullYear()}-${String(dateObj.getMonth() + 1).padStart(2, "0")}-${String(dateObj.getDate()).padStart(2, "0")}`;
+			const key = `${expense.id}:${dateStr}`;
+
+			if (existingTransactionKeys.has(key)) continue;
+
+			if (!expense.is_active) continue;
+
+			const meta = (expense.meta_data as any) || {};
+			if (meta.is_automated === false) continue;
+
+			const today = new Date();
+			today.setHours(0, 0, 0, 0);
+			const targetDate = new Date(dateObj);
+			targetDate.setHours(0, 0, 0, 0);
+
+			if (targetDate > today) continue;
+
+			const categoryId = categoryIdMap[expense.category] || null;
+
+			transactionsToCreate.push({
+				user_id: userId,
+				name: expense.name,
+				amount: -Math.abs(Number(expense.amount)), // Expenses are negative
+				transaction_date: dateStr,
+				category_id: categoryId,
+				source: "recurring",
+				recurring_expense_id: expense.id,
+				notes: `Auto-created from recurring ${expense.category}`,
+			});
+		}
+	}
+
+	if (transactionsToCreate.length > 0) {
+		const { error } = await supabase.from("transactions").insert(transactionsToCreate);
+		if (error) {
+			Logger.error("Error creating recurring transactions", { error });
+		}
 	}
 }
 
-/**
- * Get allocation summary with categories and calculations
- * Uses the database RPC function for proper JSON serialization
- */
 export async function getAllocationSummary(allocationId: string): Promise<AllocationSummary | null> {
 	// Handle sample data mode
 	if (process.env.NEXT_PUBLIC_USE_SAMPLE_DATA === "true") {
@@ -189,9 +370,6 @@ export async function getAllocationSummary(allocationId: string): Promise<Alloca
 	return data as AllocationSummary;
 }
 
-/**
- * Get previous month's allocation summary for import preview
- */
 export async function getPreviousMonthSummary(
 	year: number,
 	month: number
@@ -211,10 +389,6 @@ export async function getPreviousMonthSummary(
 	return { summary, prevYear, prevMonth };
 }
 
-/**
- * Import previous month's categories to new month
- * Only copies categories and budget caps - NOT transactions
- */
 export async function importPreviousMonthCategories(
 	targetYear: number,
 	targetMonth: number,
@@ -271,16 +445,12 @@ export async function importPreviousMonthCategories(
 
 	if (insertError) {
 		Logger.error("Error copying categories", { error: insertError });
-		// Return the allocation anyway - categories just weren't copied
 	}
 
 	revalidatePath("/allocations");
 	return newAllocation;
 }
 
-/**
- * Update allocation expected income
- */
 export async function updateExpectedIncome(allocationId: string, expectedIncome: number): Promise<boolean> {
 	const supabase = await createClient();
 
@@ -298,9 +468,6 @@ export async function updateExpectedIncome(allocationId: string, expectedIncome:
 	return true;
 }
 
-/**
- * Create a new category
- */
 export async function createCategory(
 	allocationId: string,
 	name: string,
@@ -349,9 +516,6 @@ export async function createCategory(
 	return data as AllocationCategory;
 }
 
-/**
- * Update category budget cap
- */
 export async function updateCategoryBudget(categoryId: string, budgetCap: number): Promise<boolean> {
 	const supabase = await createClient();
 
@@ -366,9 +530,6 @@ export async function updateCategoryBudget(categoryId: string, budgetCap: number
 	return true;
 }
 
-/**
- * Update category name
- */
 export async function updateCategoryName(categoryId: string, name: string): Promise<boolean> {
 	const supabase = await createClient();
 
@@ -383,9 +544,6 @@ export async function updateCategoryName(categoryId: string, name: string): Prom
 	return true;
 }
 
-/**
- * Delete a category
- */
 export async function deleteCategory(categoryId: string): Promise<boolean> {
 	const supabase = await createClient();
 
@@ -400,9 +558,6 @@ export async function deleteCategory(categoryId: string): Promise<boolean> {
 	return true;
 }
 
-/**
- * Reorder categories
- */
 export async function reorderCategories(categoryOrders: { id: string; display_order: number }[]): Promise<boolean> {
 	// Handle sample data mode
 	if (process.env.NEXT_PUBLIC_USE_SAMPLE_DATA === "true") {
@@ -427,9 +582,6 @@ export async function reorderCategories(categoryOrders: { id: string; display_or
 	return true;
 }
 
-/**
- * Get transactions for a specific month
- */
 export async function getTransactionsForMonth(year: number, month: number): Promise<Transaction[]> {
 	// Handle sample data mode
 	if (process.env.NEXT_PUBLIC_USE_SAMPLE_DATA === "true") {
@@ -474,9 +626,6 @@ export async function getTransactionsForMonth(year: number, month: number): Prom
 	})) as Transaction[];
 }
 
-/**
- * Create a new transaction
- */
 export async function createTransaction(
 	name: string,
 	amount: number,
@@ -497,9 +646,7 @@ export async function createTransaction(
 		.insert({
 			user_id: user.id,
 			name,
-			// Store amount as positive for income, negative for expense (if UI sends positive)
-			// OR store absolute and rely on checks. Standard is signed values for easy math.
-			// Let's assume UI sends absolute and we sign it here based on type.
+
 			amount: type === "expense" ? -Math.abs(amount) : Math.abs(amount),
 			transaction_date: transactionDate,
 			category_id: categoryId || null,
@@ -518,9 +665,6 @@ export async function createTransaction(
 	return data as Transaction;
 }
 
-/**
- * Update transaction
- */
 export async function updateTransaction(
 	transactionId: string,
 	data: {
@@ -545,18 +689,10 @@ export async function updateTransaction(
 	if (data.categoryId !== undefined) updates.category_id = data.categoryId;
 	if (data.notes !== undefined) updates.notes = data.notes;
 
-	// Handle amount / type update
-	// If amount is provided, we need to know the type (either new or existing)
-	// For simplicity, we expect the UI to provide the raw signed amount or we handle it if type is passed
 	if (data.amount !== undefined) {
-		// If type is explicitly provided, enforce sign
 		if (data.type) {
 			updates.amount = data.type === "expense" ? -Math.abs(data.amount) : Math.abs(data.amount);
 		} else {
-			// If type is not changing, we update the amount directly.
-			// We assume the UI sends the correct signed value if type isn't changing,
-			// or that the existing sign is preserved if the UI sends absolute value.
-			// Ideally, the UI should always send type if it sends amount to ensure correctness.
 			updates.amount = data.amount;
 		}
 	}
@@ -573,16 +709,10 @@ export async function updateTransaction(
 	return true;
 }
 
-/**
- * Update transaction category (Simplified helper)
- */
 export async function updateTransactionCategory(transactionId: string, categoryId: string | null): Promise<boolean> {
 	return updateTransaction(transactionId, { categoryId });
 }
 
-/**
- * Delete a transaction
- */
 export async function deleteTransaction(transactionId: string): Promise<boolean> {
 	const supabase = await createClient();
 
@@ -597,9 +727,6 @@ export async function deleteTransaction(transactionId: string): Promise<boolean>
 	return true;
 }
 
-/**
- * Get all templates for the current user
- */
 export async function getUserTemplates(): Promise<AllocationTemplate[]> {
 	const supabase = await createClient();
 
@@ -618,9 +745,6 @@ export async function getUserTemplates(): Promise<AllocationTemplate[]> {
 	return data as AllocationTemplate[];
 }
 
-/**
- * Apply template to allocation
- */
 export async function applyTemplateToAllocation(templateId: string, allocationId: string): Promise<boolean> {
 	const supabase = await createClient();
 
@@ -638,9 +762,6 @@ export async function applyTemplateToAllocation(templateId: string, allocationId
 	return true;
 }
 
-/**
- * Create template from current allocation
- */
 export async function createTemplateFromAllocation(
 	allocationId: string,
 	templateName: string,

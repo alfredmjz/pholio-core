@@ -71,7 +71,6 @@ export function AllocationClient({
 	const [exportDialogOpen, setExportDialogOpen] = useState(false);
 	const [typeFilter, setTypeFilter] = useState<TransactionType | null>(null);
 
-	// Use Realtime sync hook with optimistic updates
 	const {
 		summary,
 		transactions,
@@ -91,7 +90,6 @@ export function AllocationClient({
 		initialTransactions
 	);
 
-	// Handle new/empty months - apply user settings
 	useEffect(() => {
 		// Only act if we have no summary (truly empty month)
 		if (!summary && !templateDialogOpen) {
@@ -120,7 +118,6 @@ export function AllocationClient({
 		}
 	}, [summary, currentMonth, userSettings?.newMonthDefault]);
 
-	// Handle month changes by navigating to new URL
 	const handleMonthChange = (newMonth: MonthYear) => {
 		setCurrentMonth(newMonth);
 		setTypeFilter(null); // Reset filters on month change
@@ -149,7 +146,6 @@ export function AllocationClient({
 		}
 	};
 
-	// Template dialog handlers
 	const handleImportPrevious = async (expectedIncome: number) => {
 		const allocation = await importPreviousMonthCategories(currentMonth.year, currentMonth.month, expectedIncome);
 		if (allocation) {
@@ -164,7 +160,6 @@ export function AllocationClient({
 	};
 
 	const handleUseTemplate = async (templateId: string, expectedIncome: number) => {
-		// First create the allocation
 		const allocation = await getOrCreateAllocation(currentMonth.year, currentMonth.month, expectedIncome);
 		if (!allocation) {
 			toast.error("Setup Failed", {
@@ -174,7 +169,6 @@ export function AllocationClient({
 			return;
 		}
 
-		// Then apply the template
 		const success = await applyTemplateToAllocation(templateId, allocation.id);
 		if (success) {
 			toast.success("Template applied!");
@@ -200,7 +194,6 @@ export function AllocationClient({
 		setTemplateDialogOpen(false);
 	};
 
-	// Get previous month info for template dialog
 	const getPreviousMonth = () => {
 		const prevMonth = currentMonth.month === 1 ? 12 : currentMonth.month - 1;
 		const prevYear = currentMonth.month === 1 ? currentMonth.year - 1 : currentMonth.year;
@@ -214,7 +207,6 @@ export function AllocationClient({
 
 	const monthName = MONTH_NAMES[currentMonth.month - 1];
 
-	// Error/Empty state
 	if (!summary) {
 		return (
 			<AllocationProvider

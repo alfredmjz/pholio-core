@@ -2,7 +2,7 @@ import { Badge } from "@/components/ui/badge";
 import { Check, AlertTriangle } from "lucide-react";
 import { cn } from "@/lib/utils";
 
-export type PaymentStatus = "paid" | "partial" | "unpaid" | "overpaid" | "upcoming" | "overdue";
+export type PaymentStatus = "paid" | "partial" | "unpaid" | "overpaid" | "upcoming" | "overdue" | "due_today";
 
 interface StatusBadgeProps {
 	status: PaymentStatus;
@@ -14,8 +14,8 @@ export function StatusBadge({ status, className, showLabel = true }: StatusBadge
 	if (status === "paid" || status === "overpaid") {
 		return (
 			<Badge
-				variant="outline" // Using default primary color but could be custom green
-				className={cn("bg-success-muted text-success border-success gap-1", className)}
+				variant="outline"
+				className={cn("bg-success-muted text-success border-success gap-1 whitespace-nowrap", className)}
 			>
 				<Check className="h-3 w-3" />
 				{showLabel && <span>Paid</span>}
@@ -25,7 +25,10 @@ export function StatusBadge({ status, className, showLabel = true }: StatusBadge
 
 	if (status === "partial") {
 		return (
-			<Badge variant="outline" className={cn("bg-warning-muted text-warning border-warning gap-1", className)}>
+			<Badge
+				variant="outline"
+				className={cn("bg-warning-muted text-warning border-warning gap-1 whitespace-nowrap", className)}
+			>
 				<AlertTriangle className="h-3 w-3" />
 				{showLabel && <span>Partial</span>}
 			</Badge>
@@ -34,9 +37,24 @@ export function StatusBadge({ status, className, showLabel = true }: StatusBadge
 
 	if (status === "overdue") {
 		return (
-			<Badge variant="outline" className={cn(" bg-error-muted text-error border-error gap-1", className)}>
+			<Badge
+				variant="outline"
+				className={cn(" bg-error-muted text-error border-error gap-1 whitespace-nowrap", className)}
+			>
 				<AlertTriangle className="h-3 w-3" />
 				{showLabel && <span>Past Due</span>}
+			</Badge>
+		);
+	}
+
+	if (status === "due_today") {
+		return (
+			<Badge
+				variant="outline"
+				className={cn("bg-warning-muted text-warning border-warning gap-1 whitespace-nowrap", className)}
+			>
+				<AlertTriangle className="h-3 w-3" />
+				{showLabel && <span>Due Today</span>}
 			</Badge>
 		);
 	}

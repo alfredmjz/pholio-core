@@ -4,7 +4,7 @@ import { ArrowUpRight, ArrowDownLeft, DollarSign, RefreshCw, Plus } from "lucide
 import { Card } from "@/components/ui/card";
 import { Skeleton } from "@/components/ui/skeleton";
 import { cn } from "@/lib/utils";
-import { formatTime, formatFullDate } from "@/lib/date-utils";
+import { formatFullDate } from "@/lib/date-utils";
 import type { AccountTransaction } from "../../../types";
 
 interface ActivityCardProps {

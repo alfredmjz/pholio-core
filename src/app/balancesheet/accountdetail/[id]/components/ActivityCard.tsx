@@ -11,6 +11,7 @@ interface ActivityCardProps {
 	transactions: AccountTransaction[];
 	isLoading: boolean;
 	formatCurrency: (amount: number) => string;
+	onTransactionClick?: (transaction: AccountTransaction) => void;
 }
 
 const getTransactionIcon = (type: string) => {
@@ -52,7 +53,7 @@ const getTransactionTitle = (type: string) => {
 	}
 };
 
-export function ActivityCard({ transactions, isLoading, formatCurrency }: ActivityCardProps) {
+export function ActivityCard({ transactions, isLoading, formatCurrency, onTransactionClick }: ActivityCardProps) {
 	return (
 		<Card className="p-6">
 			<div className="flex items-center justify-between mb-4">
@@ -90,10 +91,11 @@ export function ActivityCard({ transactions, isLoading, formatCurrency }: Activi
 					</div>
 				) : (
 					transactions.slice(0, 5).map((txn) => (
-						<div key={txn.id} className="flex items-center gap-4 py-4 border-b border-border last:border-0">
-							{/* Time */}
-							<span className="text-xs text-primary w-16 shrink-0">{formatTime(txn.transaction_date)}</span>
-
+						<div
+							key={txn.id}
+							className="flex items-center gap-4 py-4 border-b border-border last:border-0 cursor-pointer hover:bg-muted/50 rounded-lg transition-colors -mx-2 px-2"
+							onClick={() => onTransactionClick?.(txn)}
+						>
 							{/* Icon */}
 							<div className="w-8 h-8 rounded-full bg-muted flex items-center justify-center shrink-0">
 								{getTransactionIcon(txn.transaction_type)}

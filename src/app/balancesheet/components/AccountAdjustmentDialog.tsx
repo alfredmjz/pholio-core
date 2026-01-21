@@ -10,6 +10,7 @@ import { toast } from "sonner";
 import { Loader2 } from "lucide-react";
 import { recordTransaction } from "../actions";
 import { AccountWithType, TransactionType } from "../types";
+import { ProminentAmountInput } from "@/components/ProminentAmountInput";
 
 interface AccountAdjustmentDialogProps {
 	open: boolean;
@@ -92,7 +93,7 @@ export function AccountAdjustmentDialog({ open, onOpenChange, account, onSuccess
 				<div className="space-y-2">
 					<Label htmlFor="type">Adjustment Type</Label>
 					<Select value={type} onValueChange={(val) => setType(val as TransactionType)}>
-						<SelectTrigger>
+						<SelectTrigger className="h-10">
 							<SelectValue placeholder="Select type" />
 						</SelectTrigger>
 						<SelectContent>
@@ -108,20 +109,7 @@ export function AccountAdjustmentDialog({ open, onOpenChange, account, onSuccess
 				{/* Amount */}
 				<div className="space-y-2">
 					<Label htmlFor="amount">Amount</Label>
-					<div className="relative">
-						<span className="absolute left-3 top-1/2 -translate-y-1/2 text-primary">$</span>
-						<Input
-							id="amount"
-							type="number"
-							inputMode="decimal"
-							step="0.01"
-							placeholder="0.00"
-							value={amount}
-							onChange={(e) => setAmount(e.target.value)}
-							className="pl-7"
-							required
-						/>
-					</div>
+					<ProminentAmountInput id="amount" value={amount} onChange={setAmount} hasError={false} />
 				</div>
 
 				{/* Description */}
@@ -133,6 +121,7 @@ export function AccountAdjustmentDialog({ open, onOpenChange, account, onSuccess
 						value={description}
 						onChange={(e) => setDescription(e.target.value)}
 						required
+						className="h-10"
 					/>
 				</div>
 

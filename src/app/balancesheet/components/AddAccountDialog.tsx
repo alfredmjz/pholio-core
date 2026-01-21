@@ -22,6 +22,7 @@ import type { CreateAccountInput, AccountType, AccountClass, AccountWithType } f
 import { cn } from "@/lib/utils";
 import { FormSection } from "@/components/FormSection";
 import { CardSelector } from "@/components/CardSelector";
+import { ProminentAmountInput } from "@/components/ProminentAmountInput";
 
 interface AddAccountDialogProps {
 	open: boolean;
@@ -304,19 +305,15 @@ export function AddAccountDialog({ open, onOpenChange, onSuccess }: AddAccountDi
 								<Label htmlFor="balance">
 									Current Balance <span className="text-error">*</span>
 								</Label>
-								<Input
+								<ProminentAmountInput
 									id="balance"
-									type="number"
-									inputMode="decimal"
-									step="0.01"
-									placeholder="0.00"
-									value={formData.current_balance ?? ""}
-									onChange={(e) => {
-										const val = e.target.value === "" ? undefined : parseFloat(e.target.value);
-										setFormData({ ...formData, current_balance: val });
+									value={formData.current_balance?.toString() ?? ""}
+									onChange={(val) => {
+										const numVal = val === "" ? undefined : parseFloat(val);
+										setFormData({ ...formData, current_balance: numVal });
 										if (errors.current_balance) setErrors({ ...errors, current_balance: undefined });
 									}}
-									className={cn("h-10", errors.current_balance && "border-error")}
+									hasError={!!errors.current_balance}
 								/>
 								{errors.current_balance && <p className="text-sm text-error">{errors.current_balance}</p>}
 							</div>
@@ -326,19 +323,15 @@ export function AddAccountDialog({ open, onOpenChange, onSuccess }: AddAccountDi
 									{accountType === "asset" ? "Target Goal" : "Original Amount"}{" "}
 									{accountType === "asset" && <span className="text-error">*</span>}
 								</Label>
-								<Input
+								<ProminentAmountInput
 									id="target"
-									type="number"
-									inputMode="decimal"
-									step="0.01"
-									placeholder="0.00"
-									value={formData.target_balance ?? ""}
-									onChange={(e) => {
-										const val = e.target.value === "" ? undefined : parseFloat(e.target.value);
-										setFormData({ ...formData, target_balance: val });
+									value={formData.target_balance?.toString() ?? ""}
+									onChange={(val) => {
+										const numVal = val === "" ? undefined : parseFloat(val);
+										setFormData({ ...formData, target_balance: numVal });
 										if (errors.target_balance) setErrors({ ...errors, target_balance: undefined });
 									}}
-									className={cn("h-10", errors.target_balance && "border-error")}
+									hasError={!!errors.target_balance}
 								/>
 								{errors.target_balance && <p className="text-sm text-error">{errors.target_balance}</p>}
 							</div>

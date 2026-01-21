@@ -375,6 +375,7 @@ export function TransactionLedger({
 				onOpenChange={setDialogOpen}
 				transaction={selectedTransaction}
 				categories={categories}
+				accounts={accounts}
 			/>
 		</Card>
 	);

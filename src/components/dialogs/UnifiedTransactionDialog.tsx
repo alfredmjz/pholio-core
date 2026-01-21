@@ -230,6 +230,22 @@ export function UnifiedTransactionDialog({
 					</FormSection>
 
 					<FormSection icon={<Info />} title="Transaction Details" variant="subtle">
+						<div className="space-y-2">
+							<Label htmlFor="amount">
+								Amount <span className="text-error">*</span>
+							</Label>
+							<ProminentAmountInput
+								value={amount}
+								onChange={(val) => {
+									setAmount(val);
+									if (errors.amount) setErrors({ ...errors, amount: undefined });
+								}}
+								id="amount"
+								hasError={!!errors.amount}
+							/>
+							{errors.amount && <p className="text-sm text-error">{errors.amount}</p>}
+						</div>
+
 						<div className="flex flex-row justify-between gap-4">
 							<div className="flex-1 space-y-2">
 								<Label htmlFor="date">
@@ -257,22 +273,6 @@ export function UnifiedTransactionDialog({
 								{errors.description && <p className="text-sm text-error">{errors.description}</p>}
 							</div>
 						</div>
-
-						<div className="space-y-2">
-							<Label htmlFor="amount">
-								Amount <span className="text-error">*</span>
-							</Label>
-							<ProminentAmountInput
-								value={amount}
-								onChange={(val) => {
-									setAmount(val);
-									if (errors.amount) setErrors({ ...errors, amount: undefined });
-								}}
-								id="amount"
-								hasError={!!errors.amount}
-							/>
-							{errors.amount && <p className="text-sm text-error">{errors.amount}</p>}
-						</div>
 					</FormSection>
 
 					<div className="space-y-2">
@@ -294,7 +294,7 @@ export function UnifiedTransactionDialog({
 							onValueChange={setCategoryId}
 							disabled={categoryDisabled}
 						>
-							<SelectTrigger>
+							<SelectTrigger className="h-10">
 								<SelectValue placeholder="Select a category" />
 							</SelectTrigger>
 							<SelectContent>
@@ -322,7 +322,7 @@ export function UnifiedTransactionDialog({
 								if (errors.accountId) setErrors({ ...errors, accountId: undefined });
 							}}
 						>
-							<SelectTrigger className={cn(errors.accountId && "border-error")}>
+							<SelectTrigger className={cn("h-10", errors.accountId && "border-error")}>
 								<SelectValue placeholder={accountRequired ? "Select an account" : "No account selected"} />
 							</SelectTrigger>
 							<SelectContent>

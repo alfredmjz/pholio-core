@@ -10,19 +10,37 @@ import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@
 import { Textarea } from "@/components/ui/textarea";
 import { DatePicker } from "@/components/ui/date-picker";
 
-import { Loader2, Info, TrendingDown } from "lucide-react";
+import { Loader2, Info, TrendingDown, Trash2 } from "lucide-react";
 import { toast } from "sonner";
-import { createTransaction, updateTransaction } from "../actions";
+import {
+	updateUnifiedTransaction,
+	deleteUnifiedTransaction,
+	createUnifiedTransaction,
+} from "@/lib/actions/unified-transaction-actions";
 import type { Transaction, AllocationCategory } from "../types";
+import type { AccountWithType } from "@/app/balancesheet/types";
 import { FormSection } from "@/components/FormSection";
 import { CardSelector } from "@/components/CardSelector";
+import { ProminentAmountInput } from "@/components/ProminentAmountInput";
 import { getTodayDateString } from "@/lib/date-utils";
+import {
+	AlertDialog,
+	AlertDialogAction,
+	AlertDialogCancel,
+	AlertDialogContent,
+	AlertDialogDescription,
+	AlertDialogFooter,
+	AlertDialogHeader,
+	AlertDialogTitle,
+	AlertDialogTrigger,
+} from "@/components/ui/alert-dialog";
 
 interface TransactionDialogProps {
 	open: boolean;
 	onOpenChange: (open: boolean) => void;
 	transaction?: Transaction | null;
 	categories: AllocationCategory[];
+	accounts?: AccountWithType[];
 	defaultDate?: string;
 }
 
@@ -31,6 +49,7 @@ export function TransactionDialog({
 	onOpenChange,
 	transaction,
 	categories = [],
+	accounts = [],
 	defaultDate,
 }: TransactionDialogProps) {
 	const [isLoading, setIsLoading] = useState(false);
@@ -38,8 +57,10 @@ export function TransactionDialog({
 	const [amount, setAmount] = useState("");
 	const [date, setDate] = useState(defaultDate || getTodayDateString());
 	const [categoryId, setCategoryId] = useState<string>("uncategorized");
+	const [accountId, setAccountId] = useState<string>("none");
 	const [type, setType] = useState<"income" | "expense">("expense");
 	const [notes, setNotes] = useState("");
+	const [isDeleting, setIsDeleting] = useState(false);
 
 	useEffect(() => {
 		if (open) {
@@ -48,6 +69,8 @@ export function TransactionDialog({
 				setAmount(Math.abs(transaction.amount).toString());
 				setDate(transaction.transaction_date.split("T")[0]);
 				setCategoryId(transaction.category_id || "uncategorized");
+				// Prefer direct account_id if available (from actions), else try linked transaction logic if data structure allows
+				setAccountId(transaction.account_id || transaction.linked_account_transaction?.account_id || "none");
 				setType(transaction.amount >= 0 ? "income" : "expense");
 				setNotes(transaction.notes || "");
 			} else {
@@ -55,6 +78,7 @@ export function TransactionDialog({
 				setAmount("");
 				setDate(defaultDate || getTodayDateString());
 				setCategoryId("uncategorized");
+				setAccountId("none");
 				setType("expense");
 				setNotes("");
 			}
@@ -73,13 +97,15 @@ export function TransactionDialog({
 		try {
 			const numAmount = parseFloat(amount);
 			const finalCategoryId = categoryId === "uncategorized" ? undefined : categoryId;
+			const finalAccountId = accountId === "none" ? undefined : accountId;
 
 			if (transaction) {
-				const success = await updateTransaction(transaction.id, {
-					name,
+				const success = await updateUnifiedTransaction(transaction.id, {
+					description: name,
 					amount: numAmount,
-					transactionDate: date,
+					date,
 					categoryId: finalCategoryId,
+					accountId: finalAccountId,
 					type,
 					notes,
 				});
@@ -93,14 +119,23 @@ export function TransactionDialog({
 					});
 				}
 			} else {
-				const newTx = await createTransaction(name, numAmount, date, finalCategoryId, type, notes);
+				// Fallback or use unified for creation too if we want
+				const result = await createUnifiedTransaction({
+					description: name,
+					amount: numAmount,
+					date,
+					categoryId: finalCategoryId,
+					accountId: finalAccountId,
+					type,
+					notes,
+				});
 
-				if (newTx) {
+				if (result.success) {
 					toast.success("Transaction created");
 					onOpenChange(false);
 				} else {
 					toast.error("Creation Failed", {
-						description: "Failed to create the transaction. Please try again.",
+						description: result.error || "Failed to create the transaction.",
 					});
 				}
 			}
@@ -114,13 +149,31 @@ export function TransactionDialog({
 		}
 	};
 
+	const handleDelete = async () => {
+		if (!transaction) return;
+		setIsDeleting(true);
+		try {
+			const success = await deleteUnifiedTransaction(transaction.id);
+			if (success) {
+				toast.success("Transaction deleted");
+				onOpenChange(false);
+			} else {
+				toast.error("Delete Failed", { description: "Values couldn't be cleaned up properly." });
+			}
+		} catch (err) {
+			toast.error("Error deleting transaction");
+		} finally {
+			setIsDeleting(false);
+		}
+	};
+
 	return (
 		<ControlBasedDialog
 			open={open}
 			onOpenChange={onOpenChange}
 			title={transaction ? "Edit Transaction" : "Add Transaction"}
 			description={transaction ? "Modify transaction details below." : "Enter details for new transaction."}
-			className="sm:max-w-[425px]"
+			className="sm:max-w-[500px]"
 			showCloseButton={false}
 		>
 			<form onSubmit={handleSubmit} className="flex flex-col gap-6">
@@ -147,6 +200,10 @@ export function TransactionDialog({
 				</FormSection>
 
 				<FormSection icon={<Info />} title="Transaction Details" variant="subtle">
+					<div className="space-y-2">
+						<Label htmlFor="amount">Amount</Label>
+						<ProminentAmountInput id="amount" value={amount} onChange={setAmount} hasError={false} />
+					</div>
 					<div className="flex flex-row gap-4">
 						<div className="flex-1 space-y-2">
 							<Label htmlFor="date">Date</Label>
@@ -169,6 +226,25 @@ export function TransactionDialog({
 								</SelectContent>
 							</Select>
 						</div>
+					</div>
+
+					<div className="space-y-2">
+						<Label htmlFor="account">
+							Account <span className="text-muted-foreground font-normal">(Optional)</span>
+						</Label>
+						<Select value={accountId} onValueChange={setAccountId}>
+							<SelectTrigger>
+								<SelectValue placeholder="Select an account" />
+							</SelectTrigger>
+							<SelectContent>
+								<SelectItem value="none">No Account</SelectItem>
+								{accounts.map((acc) => (
+									<SelectItem key={acc.id} value={acc.id}>
+										{acc.name}
+									</SelectItem>
+								))}
+							</SelectContent>
+						</Select>
 					</div>
 
 					<div className="space-y-2">
@@ -200,14 +276,43 @@ export function TransactionDialog({
 					</FormSection>
 				)}
 
-				<DialogFooter>
-					<Button type="button" variant="outline" onClick={() => onOpenChange(false)} disabled={isLoading}>
-						Cancel
-					</Button>
-					<Button type="submit" disabled={isLoading}>
-						{isLoading && <Loader2 className="mr-2 h-4 w-4 animate-spin" />}
-						{transaction ? "Save Changes" : "Create Transaction"}
-					</Button>
+				<DialogFooter className="flex items-center justify-between sm:justify-between w-full">
+					{transaction ? (
+						<AlertDialog>
+							<AlertDialogTrigger asChild>
+								<Button type="button" variant="destructive" size="icon" disabled={isLoading || isDeleting}>
+									<Trash2 className="h-4 w-4" />
+								</Button>
+							</AlertDialogTrigger>
+							<AlertDialogContent>
+								<AlertDialogHeader>
+									<AlertDialogTitle>Delete Transaction?</AlertDialogTitle>
+									<AlertDialogDescription>
+										This will permanently delete this transaction from your budget history.
+										{accountId !== "none" && " It will also be removed from the linked account balance."}
+									</AlertDialogDescription>
+								</AlertDialogHeader>
+								<AlertDialogFooter>
+									<AlertDialogCancel>Cancel</AlertDialogCancel>
+									<AlertDialogAction onClick={handleDelete} variant="destructive">
+										Delete
+									</AlertDialogAction>
+								</AlertDialogFooter>
+							</AlertDialogContent>
+						</AlertDialog>
+					) : (
+						<div />
+					)}
+
+					<div className="flex gap-2">
+						<Button type="button" variant="outline" onClick={() => onOpenChange(false)} disabled={isLoading}>
+							Cancel
+						</Button>
+						<Button type="submit" disabled={isLoading}>
+							{isLoading && <Loader2 className="mr-2 h-4 w-4 animate-spin" />}
+							{transaction ? "Save Changes" : "Create Transaction"}
+						</Button>
+					</div>
 				</DialogFooter>
 			</form>
 		</ControlBasedDialog>

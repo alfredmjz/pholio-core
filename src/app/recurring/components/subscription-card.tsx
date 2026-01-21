@@ -89,7 +89,7 @@ export function SubscriptionCard({ subscription, onDelete, onUpdate }: Subscript
 			<Card className="group relative transition-all duration-200 hover:shadow-md hover:border-primary hover:ring-1 hover:ring-primary border-border/60">
 				<CardContent className="p-6 flex flex-col sm:flex-row sm:items-center justify-between gap-6">
 					<div className="flex items-center gap-5">
-						<div className="h-14 w-14 flex-shrink-0 shadow-sm rounded-xl overflow-hidden ">
+						<div className="h-14 w-14 flex-shrink-0 shadow-md rounded-full overflow-hidden ">
 							<ServiceLogo
 								name={subscription.name}
 								serviceProvider={subscription.service_provider}

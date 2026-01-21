@@ -46,6 +46,12 @@ export interface Transaction {
 	notes?: string;
 
 	linked_account_transaction_id?: string | null;
+	linked_account_transaction?: {
+		id: string;
+		account_id: string;
+		amount: number;
+	} | null;
+	account_id?: string; // Derived for easier UI consumption
 	created_at: string;
 	updated_at: string;
 

@@ -34,8 +34,8 @@ export function ProminentAmountInput({
 			<div className="relative group">
 				<span
 					className={cn(
-						"absolute left-4 top-1/2 -translate-y-1/2 text-3xl font-bold transition-colors",
-						value ? "text-green-500" : "text-primary"
+						"absolute left-4 top-1/2 -translate-y-1/2 text-lg transition-colors",
+						value ? "text-green-500 font-semibold" : "text-primary"
 					)}
 				>
 					{currency}
@@ -55,7 +55,7 @@ export function ProminentAmountInput({
 							onChange(inputValue);
 						}
 					}}
-					className={cn("pl-16 py-4 text-2xl font-bold tracking-tight border-2 h-auto", hasError ? "border-error" : "")}
+					className={cn("pl-10 h-10 text-lg tracking-tight", hasError ? "border-error" : "")}
 				/>
 			</div>
 		</div>

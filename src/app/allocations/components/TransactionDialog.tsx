@@ -21,6 +21,7 @@ import type { Transaction, AllocationCategory } from "../types";
 import type { AccountWithType } from "@/app/balancesheet/types";
 import { FormSection } from "@/components/FormSection";
 import { CardSelector } from "@/components/CardSelector";
+import { ProminentAmountInput } from "@/components/ProminentAmountInput";
 import { getTodayDateString } from "@/lib/date-utils";
 import {
 	AlertDialog,
@@ -201,18 +202,8 @@ export function TransactionDialog({
 				<FormSection icon={<Info />} title="Transaction Details" variant="subtle">
 					<div className="space-y-2">
 						<Label htmlFor="amount">Amount</Label>
-						<Input
-							id="amount"
-							type="number"
-							step="0.01"
-							placeholder="0.00"
-							value={amount}
-							onChange={(e) => setAmount(e.target.value)}
-							required
-							className="text-lg font-semibold"
-						/>
+						<ProminentAmountInput id="amount" value={amount} onChange={setAmount} hasError={false} />
 					</div>
-
 					<div className="flex flex-row gap-4">
 						<div className="flex-1 space-y-2">
 							<Label htmlFor="date">Date</Label>

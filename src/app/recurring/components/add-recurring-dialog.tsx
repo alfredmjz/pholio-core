@@ -17,6 +17,7 @@ import { CalendarIcon, CircleDollarSign, CreditCard, House } from "lucide-react"
 import { toast } from "sonner";
 import { ServiceLogo } from "@/components/service-logo";
 import { ServiceAutocomplete } from "@/components/service-autocomplete";
+import { ProminentAmountInput } from "@/components/ProminentAmountInput";
 
 interface AddRecurringDialogProps {
 	open: boolean;
@@ -242,6 +243,7 @@ export function AddRecurringDialog({ open, onOpenChange, onSuccess }: AddRecurri
 								value={formData.name}
 								onChange={(e) => setFormData({ ...formData, name: e.target.value })}
 								placeholder="Netflix, Rent, etc."
+								className="h-10"
 							/>
 						)}
 					</div>
@@ -250,18 +252,14 @@ export function AddRecurringDialog({ open, onOpenChange, onSuccess }: AddRecurri
 							<Label>
 								Amount <span className="text-error">*</span>
 							</Label>
-							<Input
-								type="text"
-								inputMode="decimal"
-								startAdornment="$"
+							<ProminentAmountInput
 								value={formData.amount}
-								onChange={(e) => {
-									const value = e.target.value;
-									if (value === "" || /^\d*\.?\d{0,2}$/.test(value)) {
-										setFormData({ ...formData, amount: value });
+								onChange={(val) => {
+									if (val === "" || /^\d*\.?\d{0,2}$/.test(val)) {
+										setFormData({ ...formData, amount: val });
 									}
 								}}
-								placeholder="0.00"
+								hasError={false}
 							/>
 						</div>
 						<div className="space-y-2">
@@ -270,7 +268,7 @@ export function AddRecurringDialog({ open, onOpenChange, onSuccess }: AddRecurri
 								value={formData.billing_period}
 								onValueChange={(v) => setFormData({ ...formData, billing_period: v })}
 							>
-								<SelectTrigger>
+								<SelectTrigger className="h-10">
 									<SelectValue />
 								</SelectTrigger>
 								<SelectContent>
@@ -289,7 +287,7 @@ export function AddRecurringDialog({ open, onOpenChange, onSuccess }: AddRecurri
 								<Button
 									variant={"outline"}
 									className={cn(
-										"w-full justify-start text-left font-normal",
+										"w-full justify-start text-left font-normal h-10",
 										!formData.next_due_date && "text-primary"
 									)}
 								>

@@ -19,6 +19,7 @@ import { NotesCard } from "./components/NotesCard";
 import { ActivityCard } from "./components/ActivityCard";
 import { OtherAccountsCard } from "./components/OtherAccountsCard";
 import { EditAccountDialog } from "./components/EditAccountDialog";
+import { AccountTransactionDialog } from "./components/AccountTransactionDialog";
 
 import { deleteAccount, getAccountTransactions } from "../../actions";
 import type { AccountWithType, AccountTransaction } from "../../types";
@@ -44,6 +45,8 @@ export function AccountDetailClient({
 	const [deleteDialogOpen, setDeleteDialogOpen] = useState(false);
 	const [transactionDialogOpen, setTransactionDialogOpen] = useState(false);
 	const [transactionType, setTransactionType] = useState<"deposit" | "withdrawal">("deposit");
+	const [editTransactionDialogOpen, setEditTransactionDialogOpen] = useState(false);
+	const [editingTransaction, setEditingTransaction] = useState<AccountTransaction | null>(null);
 
 	const accountClass = account.account_type?.class;
 
@@ -86,6 +89,11 @@ export function AccountDetailClient({
 		}
 	};
 
+	const handleTransactionClick = (transaction: AccountTransaction) => {
+		setEditingTransaction(transaction);
+		setEditTransactionDialogOpen(true);
+	};
+
 	const formatCurrency = (amount: number) => {
 		return new Intl.NumberFormat("en-CA", {
 			style: "currency",
@@ -108,7 +116,8 @@ export function AccountDetailClient({
 					<div>
 						<h1 className="text-2xl font-bold tracking-tight">{account.name}</h1>
 						<p className="text-sm text-primary">
-							{account.institution} • {account.account_type?.name}
+							{account.institution && `${account.institution} • `}
+							{account.account_type?.name}
 						</p>
 					</div>
 				</div>
@@ -145,6 +154,7 @@ export function AccountDetailClient({
 							transactions={transactions}
 							isLoading={isLoadingTransactions}
 							formatCurrency={formatCurrency}
+							onTransactionClick={handleTransactionClick}
 						/>
 					</div>
 
@@ -194,6 +204,13 @@ export function AccountDetailClient({
 				defaultType={transactionType === "deposit" ? "income" : "expense"}
 				onSuccess={handleTransactionSuccess}
 				context="balancesheet"
+			/>
+
+			<AccountTransactionDialog
+				open={editTransactionDialogOpen}
+				onOpenChange={setEditTransactionDialogOpen}
+				transaction={editingTransaction}
+				onSuccess={handleTransactionSuccess}
 			/>
 		</PageShell>
 	);

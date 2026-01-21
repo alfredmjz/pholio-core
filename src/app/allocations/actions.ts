@@ -605,7 +605,12 @@ export async function getTransactionsForMonth(year: number, month: number): Prom
 		.select(
 			`
 			*,
-			category:allocation_categories(name)
+			category:allocation_categories(name),
+			linked_account_transaction:account_transactions!linked_account_transaction_id(
+				id,
+				account_id,
+				amount
+			)
 		`
 		)
 		.eq("user_id", user.id)
@@ -623,6 +628,7 @@ export async function getTransactionsForMonth(year: number, month: number): Prom
 		...t,
 		category_name: t.category?.name,
 		category: undefined,
+		account_id: t.linked_account_transaction?.account_id,
 	})) as Transaction[];
 }
 

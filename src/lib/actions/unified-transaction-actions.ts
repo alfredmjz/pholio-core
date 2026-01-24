@@ -34,22 +34,31 @@ export async function createUnifiedTransaction(input: UnifiedTransactionInput): 
 			return { success: false, error: "Unauthorized" };
 		}
 
+		// Defensive check for Next.js serialization quirk
+		const categoryId = input.categoryId === "$undefined" ? null : (input.categoryId ?? null);
+		const accountId = input.accountId === "$undefined" ? null : (input.accountId ?? null);
+
+		const normalizedInput = {
+			...input,
+			categoryId,
+			accountId,
+		};
+
 		let allocationTxId: string | undefined;
 		let accountTxId: string | undefined;
 
-		// Step 1: Create allocation transaction (always create for allocations context)
-		// For uncategorized, category_id will be null
-		const allocAmount = input.type === "income" ? input.amount : -Math.abs(input.amount);
+		// Step 1: Create allocation transaction
+		const allocAmount = normalizedInput.type === "income" ? normalizedInput.amount : -Math.abs(normalizedInput.amount);
 
 		const { data: allocTx, error: allocError } = await supabase
 			.from("transactions")
 			.insert({
 				user_id: user.id,
-				category_id: input.categoryId || null,
-				name: input.description,
+				category_id: normalizedInput.categoryId,
+				name: normalizedInput.description,
 				amount: allocAmount,
-				transaction_date: input.date,
-				notes: input.notes || null,
+				transaction_date: normalizedInput.date,
+				notes: normalizedInput.notes || null,
 				source: "manual",
 			})
 			.select("id")
@@ -63,30 +72,30 @@ export async function createUnifiedTransaction(input: UnifiedTransactionInput): 
 		allocationTxId = allocTx.id;
 
 		// Step 2: Create account transaction (if account selected)
-		if (input.accountId) {
+		if (normalizedInput.accountId) {
 			// Get account to determine transaction type
 			const { data: account, error: accountError } = await supabase
 				.from("accounts")
 				.select("*, account_type:account_types(*)")
-				.eq("id", input.accountId)
+				.eq("id", normalizedInput.accountId)
 				.single();
 
 			if (accountError || !account) {
 				return { success: false, error: "Account not found" };
 			}
 
-			const { txType, accountAmount } = calculateTransactionDetails(account, input);
+			const { txType, accountAmount } = calculateTransactionDetails(account, normalizedInput);
 
 			// Insert account transaction
 			const { data: acctTx, error: acctError } = await supabase
 				.from("account_transactions")
 				.insert({
 					user_id: user.id,
-					account_id: input.accountId,
+					account_id: normalizedInput.accountId,
 					amount: accountAmount,
 					transaction_type: txType,
-					description: input.description,
-					transaction_date: input.date,
+					description: normalizedInput.description,
+					transaction_date: normalizedInput.date,
 					linked_allocation_transaction_id: allocationTxId || null,
 				})
 				.select("id")
@@ -104,7 +113,7 @@ export async function createUnifiedTransaction(input: UnifiedTransactionInput): 
 			accountTxId = acctTx.id;
 
 			// Step 3: Update account balance
-			const { error: balanceError } = await adjustAccountBalance(supabase, input.accountId, accountAmount);
+			const { error: balanceError } = await adjustAccountBalance(supabase, normalizedInput.accountId, accountAmount);
 
 			if (balanceError) {
 				Logger.error("Balance update error", { error: balanceError });
@@ -163,6 +172,16 @@ export async function updateUnifiedTransaction(
 
 		if (!user) return false;
 
+		// Defensive check for Next.js serialization quirk where undefined becomes "$undefined"
+		const categoryId = input.categoryId === "$undefined" ? null : (input.categoryId ?? null);
+		const accountId = input.accountId === "$undefined" ? null : (input.accountId ?? null);
+
+		const normalizedInput = {
+			...input,
+			categoryId,
+			accountId,
+		};
+
 		// 1. Get existing transaction with linked account transaction
 		const { data: existingTx, error: fetchError } = await supabase
 			.from("transactions")
@@ -179,16 +198,16 @@ export async function updateUnifiedTransaction(
 		const existingAccountId = existingLinkedTx?.account_id;
 
 		// 2. Update Allocation Transaction
-		const allocAmount = input.type === "income" ? input.amount : -Math.abs(input.amount);
+		const allocAmount = normalizedInput.type === "income" ? normalizedInput.amount : -Math.abs(normalizedInput.amount);
 
 		const { error: updateError } = await supabase
 			.from("transactions")
 			.update({
-				name: input.description,
+				name: normalizedInput.description,
 				amount: allocAmount,
-				transaction_date: input.date,
-				category_id: input.categoryId || null,
-				notes: input.notes || null,
+				transaction_date: normalizedInput.date,
+				category_id: normalizedInput.categoryId,
+				notes: normalizedInput.notes || null,
 			})
 			.eq("id", transactionId);
 
@@ -198,7 +217,7 @@ export async function updateUnifiedTransaction(
 		}
 
 		// 3. Handle Account Transaction Logic
-		const newAccountId = input.accountId;
+		const newAccountId = normalizedInput.accountId;
 
 		// Case A: Removing Account (Existing -> None)
 		if (existingAccountId && !newAccountId) {
@@ -243,7 +262,7 @@ export async function updateUnifiedTransaction(
 				return false;
 			}
 
-			const { txType, accountAmount } = calculateTransactionDetails(account, input);
+			const { txType, accountAmount } = calculateTransactionDetails(account, normalizedInput);
 
 			const { data: acctTx, error: createError } = await supabase
 				.from("account_transactions")
@@ -252,8 +271,8 @@ export async function updateUnifiedTransaction(
 					account_id: newAccountId,
 					amount: accountAmount,
 					transaction_type: txType,
-					description: input.description,
-					transaction_date: input.date,
+					description: normalizedInput.description,
+					transaction_date: normalizedInput.date,
 					linked_allocation_transaction_id: transactionId,
 				})
 				.select("id")
@@ -318,7 +337,7 @@ export async function updateUnifiedTransaction(
 				return false;
 			}
 
-			const { txType, accountAmount } = calculateTransactionDetails(account, input);
+			const { txType, accountAmount } = calculateTransactionDetails(account, normalizedInput);
 
 			const { data: acctTx, error: createError } = await supabase
 				.from("account_transactions")
@@ -327,8 +346,8 @@ export async function updateUnifiedTransaction(
 					account_id: newAccountId,
 					amount: accountAmount,
 					transaction_type: txType,
-					description: input.description,
-					transaction_date: input.date,
+					description: normalizedInput.description,
+					transaction_date: normalizedInput.date,
 					linked_allocation_transaction_id: transactionId,
 				})
 				.select("id")
@@ -368,13 +387,13 @@ export async function updateUnifiedTransaction(
 				return false;
 			}
 
-			const { accountAmount } = calculateTransactionDetails(account, input);
+			const { accountAmount } = calculateTransactionDetails(account, normalizedInput);
 
 			// Only update if amount changed or other details
 			if (
 				accountAmount !== existingLinkedTx.amount ||
-				input.description !== existingLinkedTx.description ||
-				input.date !== existingLinkedTx.transaction_date
+				normalizedInput.description !== existingLinkedTx.description ||
+				normalizedInput.date !== existingLinkedTx.transaction_date
 			) {
 				const diff = accountAmount - existingLinkedTx.amount;
 
@@ -382,8 +401,8 @@ export async function updateUnifiedTransaction(
 					.from("account_transactions")
 					.update({
 						amount: accountAmount,
-						description: input.description,
-						transaction_date: input.date,
+						description: normalizedInput.description,
+						transaction_date: normalizedInput.date,
 					})
 					.eq("id", existingLinkedTx.id);
 

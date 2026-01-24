@@ -96,8 +96,8 @@ export function TransactionDialog({
 
 		try {
 			const numAmount = parseFloat(amount);
-			const finalCategoryId = categoryId === "uncategorized" ? undefined : categoryId;
-			const finalAccountId = accountId === "none" ? undefined : accountId;
+			const finalCategoryId = categoryId === "uncategorized" ? null : categoryId;
+			const finalAccountId = accountId === "none" ? null : accountId;
 
 			if (transaction) {
 				const success = await updateUnifiedTransaction(transaction.id, {

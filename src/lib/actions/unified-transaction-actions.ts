@@ -34,22 +34,31 @@ export async function createUnifiedTransaction(input: UnifiedTransactionInput): 
 			return { success: false, error: "Unauthorized" };
 		}
 
+		// Defensive check for Next.js serialization quirk
+		const categoryId = input.categoryId === "$undefined" ? null : (input.categoryId ?? null);
+		const accountId = input.accountId === "$undefined" ? null : (input.accountId ?? null);
+
+		const normalizedInput = {
+			...input,
+			categoryId,
+			accountId,
+		};
+
 		let allocationTxId: string | undefined;
 		let accountTxId: string | undefined;
 
-		// Step 1: Create allocation transaction (always create for allocations context)
-		// For uncategorized, category_id will be null
-		const allocAmount = input.type === "income" ? input.amount : -Math.abs(input.amount);
+		// Step 1: Create allocation transaction
+		const allocAmount = normalizedInput.type === "income" ? normalizedInput.amount : -Math.abs(normalizedInput.amount);
 
 		const { data: allocTx, error: allocError } = await supabase
 			.from("transactions")
 			.insert({
 				user_id: user.id,
-				category_id: input.categoryId || null,
-				name: input.description,
+				category_id: normalizedInput.categoryId,
+				name: normalizedInput.description,
 				amount: allocAmount,
-				transaction_date: input.date,
-				notes: input.notes || null,
+				transaction_date: normalizedInput.date,
+				notes: normalizedInput.notes || null,
 				source: "manual",
 			})
 			.select("id")
@@ -63,50 +72,30 @@ export async function createUnifiedTransaction(input: UnifiedTransactionInput): 
 		allocationTxId = allocTx.id;
 
 		// Step 2: Create account transaction (if account selected)
-		if (input.accountId) {
+		if (normalizedInput.accountId) {
 			// Get account to determine transaction type
 			const { data: account, error: accountError } = await supabase
 				.from("accounts")
 				.select("*, account_type:account_types(*)")
-				.eq("id", input.accountId)
+				.eq("id", normalizedInput.accountId)
 				.single();
 
 			if (accountError || !account) {
 				return { success: false, error: "Account not found" };
 			}
 
-			// Determine transaction type and amount based on account class
-			const isAsset = (account.account_type as any)?.class === "asset";
-			const isLiability = (account.account_type as any)?.class === "liability";
-
-			let txType: string;
-			let accountAmount: number;
-
-			if (input.type === "income") {
-				// Income increases assets, decreases liabilities (rare)
-				txType = isAsset ? "deposit" : "payment";
-				accountAmount = input.amount;
-			} else {
-				// Expense decreases assets, increases liabilities
-				if (isAsset) {
-					txType = input.transactionType || "withdrawal";
-					accountAmount = -Math.abs(input.amount);
-				} else {
-					txType = input.transactionType || "adjustment";
-					accountAmount = Math.abs(input.amount); // Liability increases
-				}
-			}
+			const { txType, accountAmount } = calculateTransactionDetails(account, normalizedInput);
 
 			// Insert account transaction
 			const { data: acctTx, error: acctError } = await supabase
 				.from("account_transactions")
 				.insert({
 					user_id: user.id,
-					account_id: input.accountId,
+					account_id: normalizedInput.accountId,
 					amount: accountAmount,
 					transaction_type: txType,
-					description: input.description,
-					transaction_date: input.date,
+					description: normalizedInput.description,
+					transaction_date: normalizedInput.date,
 					linked_allocation_transaction_id: allocationTxId || null,
 				})
 				.select("id")
@@ -124,12 +113,7 @@ export async function createUnifiedTransaction(input: UnifiedTransactionInput): 
 			accountTxId = acctTx.id;
 
 			// Step 3: Update account balance
-			const { error: balanceError } = await supabase
-				.from("accounts")
-				.update({
-					current_balance: account.current_balance + accountAmount,
-				})
-				.eq("id", input.accountId);
+			const { error: balanceError } = await adjustAccountBalance(supabase, normalizedInput.accountId, accountAmount);
 
 			if (balanceError) {
 				Logger.error("Balance update error", { error: balanceError });
@@ -188,217 +172,30 @@ export async function updateUnifiedTransaction(
 
 		if (!user) return false;
 
-		// 1. Get existing transaction with linked account transaction
-		const { data: existingTx, error: fetchError } = await supabase
-			.from("transactions")
-			.select("*, linked_account_transaction:account_transactions(*)")
-			.eq("id", transactionId)
-			.single();
+		// Defensive check for Next.js serialization quirk
+		const categoryId = input.categoryId === "$undefined" ? null : (input.categoryId ?? null);
+		const accountId = input.accountId === "$undefined" ? null : (input.accountId ?? null);
 
-		if (fetchError || !existingTx) {
-			Logger.error("Transaction not found", { error: fetchError, transactionId });
-			return false;
-		}
-
-		const existingLinkedTx = existingTx.linked_account_transaction;
-		const existingAccountId = existingLinkedTx?.account_id;
-
-		// 2. Update Allocation Transaction
-		const allocAmount = input.type === "income" ? input.amount : -Math.abs(input.amount);
-
-		const { error: updateError } = await supabase
-			.from("transactions")
-			.update({
-				name: input.description,
-				amount: allocAmount,
-				transaction_date: input.date,
-				category_id: input.categoryId || null,
-				notes: input.notes || null,
-			})
-			.eq("id", transactionId);
-
-		if (updateError) {
-			Logger.error("Failed to update allocation transaction", { error: updateError });
-			return false;
-		}
-
-		// 3. Handle Account Transaction Logic
-		const newAccountId = input.accountId;
-
-		// Helper to adjust account balance safely
-		const adjustAccountBalance = async (accId: string, delta: number) => {
-			// Fetch current first to ensure atomic-like correctness
-			const { data: acc } = await supabase.from("accounts").select("current_balance").eq("id", accId).single();
-			if (!acc) return;
-			await supabase
-				.from("accounts")
-				.update({ current_balance: acc.current_balance + delta })
-				.eq("id", accId);
+		const normalizedInput = {
+			...input,
+			categoryId,
+			accountId,
 		};
 
-		// Case A: Removing Account (Existing -> None)
-		if (existingAccountId && !newAccountId) {
-			// Revert balance on old account
-			await adjustAccountBalance(existingAccountId, -existingLinkedTx.amount);
-			// Delete linked transaction
-			await supabase.from("account_transactions").delete().eq("id", existingLinkedTx.id);
-			// specific unlink on local tx not strictly needed if we assume linked_account_transaction_id is FK'd or we trust the delete cascade
-			// but good practice:
-			await supabase.from("transactions").update({ linked_account_transaction_id: null }).eq("id", transactionId);
-		}
+		const { data, error } = await supabase.rpc("update_unified_transaction", {
+			p_transaction_id: transactionId,
+			p_input: normalizedInput,
+		});
 
-		// Case B: Adding Account (None -> New)
-		else if (!existingAccountId && newAccountId) {
-			// Create new account transaction logic (reuse from createUnifiedTransaction logic essentially but inline)
-			const { data: account } = await supabase
-				.from("accounts")
-				.select("*, account_type:account_types(*)")
-				.eq("id", newAccountId)
-				.single();
-			if (account) {
-				const isAsset = (account.account_type as any)?.class === "asset";
-				let txType: string;
-				let accountAmount: number;
-
-				if (input.type === "income") {
-					txType = isAsset ? "deposit" : "payment";
-					accountAmount = input.amount;
-				} else {
-					if (isAsset) {
-						txType = input.transactionType || "withdrawal";
-						accountAmount = -Math.abs(input.amount);
-					} else {
-						txType = input.transactionType || "adjustment";
-						accountAmount = Math.abs(input.amount);
-					}
-				}
-
-				const { data: acctTx } = await supabase
-					.from("account_transactions")
-					.insert({
-						user_id: user.id,
-						account_id: newAccountId,
-						amount: accountAmount,
-						transaction_type: txType,
-						description: input.description,
-						transaction_date: input.date,
-						linked_allocation_transaction_id: transactionId,
-					})
-					.select("id")
-					.single();
-
-				if (acctTx) {
-					await adjustAccountBalance(newAccountId, accountAmount);
-					await supabase
-						.from("transactions")
-						.update({ linked_account_transaction_id: acctTx.id })
-						.eq("id", transactionId);
-				}
-			}
-		}
-
-		// Case C: Switching Account (Account A -> Account B)
-		else if (existingAccountId && newAccountId && existingAccountId !== newAccountId) {
-			// 1. Revert Old
-			await adjustAccountBalance(existingAccountId, -existingLinkedTx.amount);
-			await supabase.from("account_transactions").delete().eq("id", existingLinkedTx.id);
-
-			// 2. Add New
-			const { data: account } = await supabase
-				.from("accounts")
-				.select("*, account_type:account_types(*)")
-				.eq("id", newAccountId)
-				.single();
-			if (account) {
-				const isAsset = (account.account_type as any)?.class === "asset";
-				let txType: string;
-				let accountAmount: number;
-
-				if (input.type === "income") {
-					txType = isAsset ? "deposit" : "payment";
-					accountAmount = input.amount;
-				} else {
-					if (isAsset) {
-						txType = input.transactionType || "withdrawal";
-						accountAmount = -Math.abs(input.amount);
-					} else {
-						txType = input.transactionType || "adjustment";
-						accountAmount = Math.abs(input.amount);
-					}
-				}
-
-				const { data: acctTx } = await supabase
-					.from("account_transactions")
-					.insert({
-						user_id: user.id,
-						account_id: newAccountId,
-						amount: accountAmount,
-						transaction_type: txType,
-						description: input.description,
-						transaction_date: input.date,
-						linked_allocation_transaction_id: transactionId,
-					})
-					.select("id")
-					.single();
-
-				if (acctTx) {
-					await adjustAccountBalance(newAccountId, accountAmount);
-					await supabase
-						.from("transactions")
-						.update({ linked_account_transaction_id: acctTx.id })
-						.eq("id", transactionId);
-				}
-			}
-		}
-
-		// Case D: Same Account, potentially different amount/details
-		else if (existingAccountId && newAccountId && existingAccountId === newAccountId) {
-			const { data: account } = await supabase
-				.from("accounts")
-				.select("*, account_type:account_types(*)")
-				.eq("id", newAccountId)
-				.single();
-			if (account) {
-				const isAsset = (account.account_type as any)?.class === "asset";
-				let accountAmount: number;
-				if (input.type === "income") {
-					accountAmount = input.amount;
-				} else {
-					if (isAsset) {
-						accountAmount = -Math.abs(input.amount);
-					} else {
-						accountAmount = Math.abs(input.amount);
-					}
-				}
-
-				// Only update if amount changed or other details
-				if (
-					accountAmount !== existingLinkedTx.amount ||
-					input.description !== existingLinkedTx.description ||
-					input.date !== existingLinkedTx.transaction_date
-				) {
-					const diff = accountAmount - existingLinkedTx.amount;
-
-					await supabase
-						.from("account_transactions")
-						.update({
-							amount: accountAmount,
-							description: input.description,
-							transaction_date: input.date,
-						})
-						.eq("id", existingLinkedTx.id);
-
-					if (diff !== 0) {
-						await adjustAccountBalance(newAccountId, diff);
-					}
-				}
-			}
+		if (error) {
+			Logger.error("Update unified transaction RPC error", { error });
+			return false;
 		}
 
 		revalidatePath("/allocations");
 		revalidatePath("/balancesheet");
 		revalidatePath("/dashboard");
-		return true;
+		return data as boolean;
 	} catch (error) {
 		Logger.error("Update unified transaction error", { error });
 		return false;
@@ -414,44 +211,19 @@ export async function deleteUnifiedTransaction(transactionId: string): Promise<b
 	try {
 		const supabase = await createClient();
 
-		// 1. Get transaction to check for links
-		const { data: existingTx, error } = await supabase
-			.from("transactions")
-			.select("*, linked_account_transaction:account_transactions(*)")
-			.eq("id", transactionId)
-			.single();
+		const { data, error } = await supabase.rpc("delete_unified_transaction", {
+			p_transaction_id: transactionId,
+		});
 
-		if (error || !existingTx) return false;
-
-		// 2. If linked, revert balance and delete account transaction
-		if (existingTx.linked_account_transaction) {
-			const linkedTx = existingTx.linked_account_transaction;
-
-			// Revert balance
-			// We subtract the amount: if it was -50 (spending), we do -(-50) = +50 back to balance
-			const { data: acc } = await supabase
-				.from("accounts")
-				.select("current_balance")
-				.eq("id", linkedTx.account_id)
-				.single();
-			if (acc) {
-				await supabase
-					.from("accounts")
-					.update({ current_balance: acc.current_balance - linkedTx.amount })
-					.eq("id", linkedTx.account_id);
-			}
-
-			// Delete linked tx
-			await supabase.from("account_transactions").delete().eq("id", linkedTx.id);
+		if (error) {
+			Logger.error("Delete unified transaction RPC error", { error });
+			return false;
 		}
-
-		// 3. Delete allocation transaction
-		await supabase.from("transactions").delete().eq("id", transactionId);
 
 		revalidatePath("/allocations");
 		revalidatePath("/balancesheet");
 		revalidatePath("/dashboard");
-		return true;
+		return data as boolean;
 	} catch (error) {
 		Logger.error("Delete unified transaction error", { error });
 		return false;
@@ -531,4 +303,55 @@ export async function getAccountsForSelector(): Promise<AccountWithType[]> {
 		Logger.error("Error fetching accounts", { error });
 		return [];
 	}
+}
+
+// =============================================================================
+// HELPER FUNCTIONS
+// =============================================================================
+
+/**
+ * Calculate transaction type and signed amount based on account and input
+ */
+function calculateTransactionDetails(
+	account: any,
+	input: Pick<UnifiedTransactionInput, "type" | "amount" | "transactionType">
+) {
+	const isAsset = (account.account_type as any)?.class === "asset";
+	let txType: string;
+	let accountAmount: number;
+
+	if (input.type === "income") {
+		// Income increases assets, decreases liabilities (rare)
+		txType = isAsset ? "deposit" : "payment";
+		accountAmount = input.amount;
+	} else {
+		// Expense decreases assets, increases liabilities
+		if (isAsset) {
+			txType = input.transactionType || "withdrawal";
+			accountAmount = -Math.abs(input.amount);
+		} else {
+			txType = input.transactionType || "adjustment";
+			accountAmount = Math.abs(input.amount); // Liability increases
+		}
+	}
+	return { txType, accountAmount };
+}
+
+/**
+ * Adjust account balance safely
+ */
+async function adjustAccountBalance(supabase: any, accountId: string, delta: number): Promise<{ error?: any }> {
+	const { data: acc, error: fetchError } = await supabase
+		.from("accounts")
+		.select("current_balance")
+		.eq("id", accountId)
+		.single();
+	if (fetchError || !acc) return { error: fetchError || "Account not found" };
+
+	const { error: updateError } = await supabase
+		.from("accounts")
+		.update({ current_balance: acc.current_balance + delta })
+		.eq("id", accountId);
+
+	return { error: updateError };
 }

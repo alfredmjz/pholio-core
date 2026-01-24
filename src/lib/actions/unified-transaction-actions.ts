@@ -172,7 +172,7 @@ export async function updateUnifiedTransaction(
 
 		if (!user) return false;
 
-		// Defensive check for Next.js serialization quirk where undefined becomes "$undefined"
+		// Defensive check for Next.js serialization quirk
 		const categoryId = input.categoryId === "$undefined" ? null : (input.categoryId ?? null);
 		const accountId = input.accountId === "$undefined" ? null : (input.accountId ?? null);
 
@@ -182,249 +182,20 @@ export async function updateUnifiedTransaction(
 			accountId,
 		};
 
-		// 1. Get existing transaction with linked account transaction
-		const { data: existingTx, error: fetchError } = await supabase
-			.from("transactions")
-			.select("*, linked_account_transaction:account_transactions(*)")
-			.eq("id", transactionId)
-			.single();
+		const { data, error } = await supabase.rpc("update_unified_transaction", {
+			p_transaction_id: transactionId,
+			p_input: normalizedInput,
+		});
 
-		if (fetchError || !existingTx) {
-			Logger.error("Transaction not found", { error: fetchError, transactionId });
+		if (error) {
+			Logger.error("Update unified transaction RPC error", { error });
 			return false;
-		}
-
-		const existingLinkedTx = existingTx.linked_account_transaction;
-		const existingAccountId = existingLinkedTx?.account_id;
-
-		// 2. Update Allocation Transaction
-		const allocAmount = normalizedInput.type === "income" ? normalizedInput.amount : -Math.abs(normalizedInput.amount);
-
-		const { error: updateError } = await supabase
-			.from("transactions")
-			.update({
-				name: normalizedInput.description,
-				amount: allocAmount,
-				transaction_date: normalizedInput.date,
-				category_id: normalizedInput.categoryId,
-				notes: normalizedInput.notes || null,
-			})
-			.eq("id", transactionId);
-
-		if (updateError) {
-			Logger.error("Failed to update allocation transaction", { error: updateError });
-			return false;
-		}
-
-		// 3. Handle Account Transaction Logic
-		const newAccountId = normalizedInput.accountId;
-
-		// Case A: Removing Account (Existing -> None)
-		if (existingAccountId && !newAccountId) {
-			// Revert balance on old account
-			const { error: revertError } = await adjustAccountBalance(supabase, existingAccountId, -existingLinkedTx.amount);
-			if (revertError) {
-				Logger.error("Failed to revert balance", { error: revertError });
-				return false;
-			}
-
-			// Unlink before delete (circular dependency fix)
-			const { error: unlinkError } = await supabase
-				.from("transactions")
-				.update({ linked_account_transaction_id: null })
-				.eq("id", transactionId);
-
-			if (unlinkError) {
-				Logger.error("Failed to unlink transaction", { error: unlinkError });
-				return false;
-			}
-
-			// Delete linked transaction
-			const { error: deleteError } = await supabase.from("account_transactions").delete().eq("id", existingLinkedTx.id);
-
-			if (deleteError) {
-				Logger.error("Failed to delete linked transaction", { error: deleteError });
-				// Note: State might be partially inconsistent here if we don't rollback, but better to fail than crash
-				return false;
-			}
-		}
-
-		// Case B: Adding Account (None -> New)
-		else if (!existingAccountId && newAccountId) {
-			const { data: account, error: accError } = await supabase
-				.from("accounts")
-				.select("*, account_type:account_types(*)")
-				.eq("id", newAccountId)
-				.single();
-
-			if (accError || !account) {
-				Logger.error("New account not found", { error: accError });
-				return false;
-			}
-
-			const { txType, accountAmount } = calculateTransactionDetails(account, normalizedInput);
-
-			const { data: acctTx, error: createError } = await supabase
-				.from("account_transactions")
-				.insert({
-					user_id: user.id,
-					account_id: newAccountId,
-					amount: accountAmount,
-					transaction_type: txType,
-					description: normalizedInput.description,
-					transaction_date: normalizedInput.date,
-					linked_allocation_transaction_id: transactionId,
-				})
-				.select("id")
-				.single();
-
-			if (createError || !acctTx) {
-				Logger.error("Failed to create account transaction", { error: createError });
-				return false;
-			}
-
-			const { error: balError } = await adjustAccountBalance(supabase, newAccountId, accountAmount);
-			if (balError) {
-				Logger.error("Failed to update new account balance", { error: balError });
-				return false;
-			}
-
-			const { error: linkError } = await supabase
-				.from("transactions")
-				.update({ linked_account_transaction_id: acctTx.id })
-				.eq("id", transactionId);
-
-			if (linkError) {
-				Logger.error("Failed to link new transaction", { error: linkError });
-				return false;
-			}
-		}
-
-		// Case C: Switching Account (Account A -> Account B)
-		else if (existingAccountId && newAccountId && existingAccountId !== newAccountId) {
-			// 1. Revert Old
-			const { error: revertError } = await adjustAccountBalance(supabase, existingAccountId, -existingLinkedTx.amount);
-			if (revertError) {
-				Logger.error("Failed to revert old balance", { error: revertError });
-				return false;
-			}
-
-			// Unlink before delete
-			const { error: unlinkError } = await supabase
-				.from("transactions")
-				.update({ linked_account_transaction_id: null })
-				.eq("id", transactionId);
-			if (unlinkError) {
-				Logger.error("Failed to unlink old transaction", { error: unlinkError });
-				return false;
-			}
-
-			const { error: deleteError } = await supabase.from("account_transactions").delete().eq("id", existingLinkedTx.id);
-			if (deleteError) {
-				Logger.error("Failed to delete old account transaction", { error: deleteError });
-				return false;
-			}
-
-			// 2. Add New
-			const { data: account, error: accError } = await supabase
-				.from("accounts")
-				.select("*, account_type:account_types(*)")
-				.eq("id", newAccountId)
-				.single();
-
-			if (accError || !account) {
-				Logger.error("New account not found during switch", { error: accError });
-				return false;
-			}
-
-			const { txType, accountAmount } = calculateTransactionDetails(account, normalizedInput);
-
-			const { data: acctTx, error: createError } = await supabase
-				.from("account_transactions")
-				.insert({
-					user_id: user.id,
-					account_id: newAccountId,
-					amount: accountAmount,
-					transaction_type: txType,
-					description: normalizedInput.description,
-					transaction_date: normalizedInput.date,
-					linked_allocation_transaction_id: transactionId,
-				})
-				.select("id")
-				.single();
-
-			if (createError || !acctTx) {
-				Logger.error("Failed to create new account transaction during switch", { error: createError });
-				return false;
-			}
-
-			const { error: balError } = await adjustAccountBalance(supabase, newAccountId, accountAmount);
-			if (balError) {
-				Logger.error("Failed to update new account balance during switch", { error: balError });
-				return false;
-			}
-
-			const { error: linkError } = await supabase
-				.from("transactions")
-				.update({ linked_account_transaction_id: acctTx.id })
-				.eq("id", transactionId);
-			if (linkError) {
-				Logger.error("Failed to link new transaction during switch", { error: linkError });
-				return false;
-			}
-		}
-
-		// Case D: Same Account, potentially different amount/details
-		else if (existingAccountId && newAccountId && existingAccountId === newAccountId) {
-			const { data: account, error: accError } = await supabase
-				.from("accounts")
-				.select("*, account_type:account_types(*)")
-				.eq("id", newAccountId)
-				.single();
-
-			if (accError || !account) {
-				Logger.error("Account not found for same account update", { error: accError });
-				return false;
-			}
-
-			const { accountAmount } = calculateTransactionDetails(account, normalizedInput);
-
-			// Only update if amount changed or other details
-			if (
-				accountAmount !== existingLinkedTx.amount ||
-				normalizedInput.description !== existingLinkedTx.description ||
-				normalizedInput.date !== existingLinkedTx.transaction_date
-			) {
-				const diff = accountAmount - existingLinkedTx.amount;
-
-				const { error: txUpdateError } = await supabase
-					.from("account_transactions")
-					.update({
-						amount: accountAmount,
-						description: normalizedInput.description,
-						transaction_date: normalizedInput.date,
-					})
-					.eq("id", existingLinkedTx.id);
-
-				if (txUpdateError) {
-					Logger.error("Failed to update account transaction", { error: txUpdateError });
-					return false;
-				}
-
-				if (diff !== 0) {
-					const { error: balError } = await adjustAccountBalance(supabase, newAccountId, diff);
-					if (balError) {
-						Logger.error("Failed to adjust balance for same account update", { error: balError });
-						return false;
-					}
-				}
-			}
 		}
 
 		revalidatePath("/allocations");
 		revalidatePath("/balancesheet");
 		revalidatePath("/dashboard");
-		return true;
+		return data as boolean;
 	} catch (error) {
 		Logger.error("Update unified transaction error", { error });
 		return false;

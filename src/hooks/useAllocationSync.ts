@@ -12,10 +12,6 @@ interface UseAllocationSyncReturn {
 	transactions: Transaction[];
 	isConnected: boolean;
 	isRefetching: boolean;
-	optimisticallyAddCategory: (name: string, budgetCap: number) => string | null;
-	optimisticallyUpdateBudget: (categoryId: string, newBudget: number) => void;
-	optimisticallyUpdateName: (categoryId: string, newName: string) => void;
-	optimisticallyDeleteCategory: (categoryId: string) => void;
 	optimisticallyReorderCategories: (newCategories: AllocationCategory[]) => void;
 	rollback: (previousSummary: AllocationSummary) => void;
 }
@@ -45,17 +41,8 @@ export function useAllocationSync(
 	const [isRefetching, setIsRefetching] = useState(false);
 
 	// Use optimistic updates hook
-	const {
-		summary,
-		setSummary,
-		optimisticallyAddCategory,
-		optimisticallyUpdateBudget,
-		optimisticallyUpdateName,
-		optimisticallyDeleteCategory,
-		optimisticallyReorderCategories,
-		rollback,
-		syncWithServer,
-	} = useOptimisticAllocation(initialSummary);
+	const { summary, setSummary, optimisticallyReorderCategories, rollback, syncWithServer } =
+		useOptimisticAllocation(initialSummary);
 
 	const refetchTimeoutRef = useRef<NodeJS.Timeout | null>(null);
 	const hasShownDisconnectToast = useRef(false);
@@ -173,10 +160,6 @@ export function useAllocationSync(
 		transactions,
 		isConnected,
 		isRefetching,
-		optimisticallyAddCategory,
-		optimisticallyUpdateBudget,
-		optimisticallyUpdateName,
-		optimisticallyDeleteCategory,
 		optimisticallyReorderCategories,
 		rollback,
 	};

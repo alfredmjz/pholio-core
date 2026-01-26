@@ -473,7 +473,8 @@ export async function createCategory(
 	name: string,
 	budgetCap: number,
 	isRecurring: boolean = false,
-	displayOrder?: number
+	displayOrder?: number,
+	color?: string
 ): Promise<AllocationCategory | null> {
 	const supabase = await createClient();
 
@@ -503,6 +504,7 @@ export async function createCategory(
 			budget_cap: budgetCap,
 			is_recurring: isRecurring,
 			display_order: displayOrder,
+			color,
 		})
 		.select()
 		.single();
@@ -537,6 +539,20 @@ export async function updateCategoryName(categoryId: string, name: string): Prom
 
 	if (error) {
 		Logger.error("Error updating category name", { error });
+		return false;
+	}
+
+	revalidatePath("/allocations");
+	return true;
+}
+
+export async function updateCategoryColor(categoryId: string, color: string): Promise<boolean> {
+	const supabase = await createClient();
+
+	const { error } = await supabase.from("allocation_categories").update({ color }).eq("id", categoryId);
+
+	if (error) {
+		Logger.error("Error updating category color", { error });
 		return false;
 	}
 

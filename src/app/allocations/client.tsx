@@ -71,24 +71,14 @@ export function AllocationClient({
 	const [exportDialogOpen, setExportDialogOpen] = useState(false);
 	const [typeFilter, setTypeFilter] = useState<TransactionType | null>(null);
 
-	const {
-		summary,
-		transactions,
-		isConnected,
-		isRefetching,
-		optimisticallyAddCategory,
-		optimisticallyUpdateBudget,
-		optimisticallyUpdateName,
-		optimisticallyDeleteCategory,
-		optimisticallyReorderCategories,
-		rollback,
-	} = useAllocationSync(
-		initialSummary?.allocation.id || "",
-		currentMonth.year,
-		currentMonth.month,
-		initialSummary,
-		initialTransactions
-	);
+	const { summary, transactions, isConnected, isRefetching, optimisticallyReorderCategories, rollback } =
+		useAllocationSync(
+			initialSummary?.allocation.id || "",
+			currentMonth.year,
+			currentMonth.month,
+			initialSummary,
+			initialTransactions
+		);
 
 	useEffect(() => {
 		// Only act if we have no summary (truly empty month)
@@ -128,13 +118,11 @@ export function AllocationClient({
 		setAddCategoryDialogOpen(true);
 	};
 
-	const handleAddCategorySubmit = async (name: string, budgetCap: number) => {
+	const handleAddCategorySubmit = async (name: string, budgetCap: number, color?: string) => {
 		if (!summary) return;
 
 		const previousSummary = summary;
-		const tempId = optimisticallyAddCategory(name, budgetCap);
-
-		const newCategory = await createCategory(summary.allocation.id, name, budgetCap);
+		const newCategory = await createCategory(summary.allocation.id, name, budgetCap, false, undefined, color);
 
 		if (newCategory) {
 			toast.success("Category created");
@@ -211,9 +199,6 @@ export function AllocationClient({
 		return (
 			<AllocationProvider
 				value={{
-					optimisticallyUpdateBudget,
-					optimisticallyUpdateName,
-					optimisticallyDeleteCategory,
 					optimisticallyReorderCategories,
 					rollback,
 				}}
@@ -251,9 +236,6 @@ export function AllocationClient({
 	return (
 		<AllocationProvider
 			value={{
-				optimisticallyUpdateBudget,
-				optimisticallyUpdateName,
-				optimisticallyDeleteCategory,
 				optimisticallyReorderCategories,
 				rollback,
 			}}

@@ -67,7 +67,7 @@ export async function requireAuth(): Promise<AuthResult> {
 	const { data: profile, error: profileError } = await supabase.from("users").select("*").eq("id", user.id).single();
 
 	if (profileError || !profile) {
-		Logger.error("[requireAuth] Profile not found for authenticated user", { profileError });
+		Logger.error("[requireAuth] Profile not found for authenticated user", { profileError, userId: user.id });
 		// User is authenticated but has no profile - should never happen due to DB trigger
 		// Sign them out and redirect to login
 		await supabase.auth.signOut();

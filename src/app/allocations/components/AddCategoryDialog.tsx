@@ -7,16 +7,30 @@ import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
 
+import { CATEGORY_PALETTE, COLOR_NAME_MAP, getNextAvailableColor } from "../utils/colors";
+import { cn } from "@/lib/utils";
+import { AlertCircle } from "lucide-react";
+
 interface AddCategoryDialogProps {
 	open: boolean;
 	onOpenChange: (open: boolean) => void;
-	onSubmit: (name: string, budgetCap: number) => void;
+	onSubmit: (name: string, budgetCap: number, color?: string) => void;
 	unallocatedFunds: number;
+	usedColors?: string[];
+	usedNames?: string[];
 }
 
-export function AddCategoryDialog({ open, onOpenChange, onSubmit, unallocatedFunds }: AddCategoryDialogProps) {
+export function AddCategoryDialog({
+	open,
+	onOpenChange,
+	onSubmit,
+	unallocatedFunds,
+	usedColors = [],
+	usedNames = [],
+}: AddCategoryDialogProps) {
 	const [name, setName] = useState("");
 	const [budgetCap, setBudgetCap] = useState("");
+	const [selectedColor, setSelectedColor] = useState<string | null>(null);
 	const [nameError, setNameError] = useState("");
 	const [budgetError, setBudgetError] = useState("");
 
@@ -24,6 +38,7 @@ export function AddCategoryDialog({ open, onOpenChange, onSubmit, unallocatedFun
 		if (!open) {
 			setName("");
 			setBudgetCap("");
+			setSelectedColor(null);
 			setNameError("");
 			setBudgetError("");
 		}
@@ -38,6 +53,13 @@ export function AddCategoryDialog({ open, onOpenChange, onSubmit, unallocatedFun
 			setNameError("Category name must be 100 characters or less");
 			return false;
 		}
+
+		const isDuplicate = usedNames.some((n) => n.toLowerCase() === value.trim().toLowerCase());
+		if (isDuplicate) {
+			setNameError("A category with this name already exists");
+			return false;
+		}
+
 		setNameError("");
 		return true;
 	};
@@ -63,7 +85,8 @@ export function AddCategoryDialog({ open, onOpenChange, onSubmit, unallocatedFun
 		const isBudgetValid = validateBudget(budgetCap);
 
 		if (isNameValid && isBudgetValid) {
-			onSubmit(name.trim(), parseFloat(budgetCap));
+			const finalColor = selectedColor || getNextAvailableColor(usedColors);
+			onSubmit(name.trim(), parseFloat(budgetCap), finalColor);
 			onOpenChange(false);
 		}
 	};
@@ -73,7 +96,9 @@ export function AddCategoryDialog({ open, onOpenChange, onSubmit, unallocatedFun
 		name.trim().length <= 100 &&
 		budgetCap.length > 0 &&
 		!isNaN(parseFloat(budgetCap)) &&
-		parseFloat(budgetCap) >= 0;
+		parseFloat(budgetCap) >= 0 &&
+		(!selectedColor || !usedColors.includes(selectedColor)) &&
+		!usedNames.some((n) => n.toLowerCase() === name.trim().toLowerCase());
 
 	const budgetNum = parseFloat(budgetCap) || 0;
 	const isOverAllocated = budgetNum > unallocatedFunds;
@@ -141,12 +166,60 @@ export function AddCategoryDialog({ open, onOpenChange, onSubmit, unallocatedFun
 						{!budgetError && isOverAllocated && (
 							<p className="text-xs text-warning flex items-center gap-1" role="alert">
 								<span>⚠</span>
-								<span>This exceeds your unallocated funds by ${(budgetNum - unallocatedFunds).toFixed(2)}</span>
+								<span>This exceeds your unallocated funds by {(budgetNum - unallocatedFunds).toFixed(2)}</span>
 							</p>
 						)}
 						{!budgetError && !isOverAllocated && budgetNum > 0 && (
 							<p className="text-xs text-primary" aria-describedby="budget-cap">
 								You have ${unallocatedFunds.toFixed(2)} unallocated
+							</p>
+						)}
+					</div>
+
+					<div className="grid gap-2">
+						<Label>Category Color</Label>
+						<div className="flex flex-wrap gap-2 pt-1">
+							{CATEGORY_PALETTE.map((color) => {
+								const colorName = Object.keys(COLOR_NAME_MAP).find(
+									(key) => COLOR_NAME_MAP[key] === CATEGORY_PALETTE.indexOf(color)
+								);
+								if (!colorName) return null;
+
+								const isSelected = selectedColor === colorName;
+								const isUsed = usedColors.includes(colorName);
+
+								return (
+									<button
+										key={colorName}
+										type="button"
+										onClick={() => setSelectedColor(colorName)}
+										disabled={isUsed}
+										className={cn(
+											"w-8 h-8 rounded-full transition-all border-2 relative",
+											color.bg,
+											isSelected ? "border-primary scale-110 shadow-sm" : "border-transparent",
+											isUsed ? "opacity-30 cursor-not-allowed" : "hover:scale-105"
+										)}
+										title={isUsed ? `${colorName} (Already in use)` : colorName}
+									>
+										{isSelected && (
+											<div className="w-full h-full flex items-center justify-center">
+												<div className="w-2 h-2 rounded-full bg-white shadow-sm" />
+											</div>
+										)}
+										{isUsed && (
+											<div className="absolute inset-0 flex items-center justify-center">
+												<div className="w-[1px] h-[80%] bg-white/50 rotate-45" />
+											</div>
+										)}
+									</button>
+								);
+							})}
+						</div>
+						{selectedColor && usedColors.includes(selectedColor) && (
+							<p className="text-xs text-error mt-1 flex items-center gap-1">
+								<AlertCircle className="h-3 w-3" />
+								This color is already in use by another category.
 							</p>
 						)}
 					</div>

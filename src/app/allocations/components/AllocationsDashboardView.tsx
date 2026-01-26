@@ -40,7 +40,7 @@ interface AllocationsDashboardViewProps {
 	// Dialog Handlers & State
 	addCategoryDialogOpen: boolean;
 	setAddCategoryDialogOpen: (open: boolean) => void;
-	handleAddCategorySubmit: (name: string, budgetCap: number) => Promise<void>;
+	handleAddCategorySubmit: (name: string, budgetCap: number, color?: string) => Promise<void>;
 
 	templateDialogOpen: boolean;
 	setTemplateDialogOpen: (open: boolean) => void;
@@ -81,6 +81,9 @@ export function AllocationsDashboardView({
 	exportDialogOpen,
 	setExportDialogOpen,
 }: AllocationsDashboardViewProps) {
+	const usedColors = categories.map((c) => c.color).filter(Boolean) as string[];
+	const usedNames = categories.map((c) => c.name);
+
 	return (
 		<PageShell>
 			{!isConnected && (
@@ -120,6 +123,8 @@ export function AllocationsDashboardView({
 							categories={categories}
 							onAddCategory={() => setAddCategoryDialogOpen(true)}
 							className="flex-1"
+							usedColors={usedColors}
+							usedNames={usedNames}
 						/>
 					</div>
 
@@ -143,6 +148,8 @@ export function AllocationsDashboardView({
 				onOpenChange={setAddCategoryDialogOpen}
 				onSubmit={handleAddCategorySubmit}
 				unallocatedFunds={summary.summary.unallocated_funds}
+				usedColors={usedColors}
+				usedNames={usedNames}
 			/>
 
 			<ImportTemplateDialog

@@ -3,7 +3,7 @@
 import { useMemo } from "react";
 import { Card } from "@/components/ui/card";
 import { cn } from "@/lib/utils";
-import { getCategoryColor } from "./CategoryPerformance";
+import { getCategoryColor, getCategoryHex } from "../utils/colors";
 import type { AllocationCategory } from "../types";
 import { DonutChart } from "@/components/common/DonutChart";
 
@@ -17,55 +17,18 @@ export function AllocationDonutChart({ categories, className }: AllocationDonutC
 		return categories.reduce((sum, cat) => sum + (cat.actual_spend || 0), 0);
 	}, [categories]);
 
-	const CHART_COLORS = [
-		"#06b6d4", // cyan-500
-		"#10b981", // green-500
-		"#f59e0b", // amber-500
-		"#ec4899", // pink-500
-		"#3b82f6", // blue-500
-		"#ef4444", // red-500
-		"#8b5cf6", // purple-500
-		"#f97316", // orange-500
-	];
-
-	const HEX_COLOR_MAP: Record<string, string> = {
-		blue: "#3b82f6",
-		green: "#10b981",
-		orange: "#f97316",
-		cyan: "#06b6d4",
-		purple: "#8b5cf6",
-		amber: "#f59e0b",
-		pink: "#ec4899",
-		red: "#ef4444",
-	};
-
 	const chartDataWithColors = useMemo(() => {
 		if (categories.length === 0) return [];
 
 		return [...categories]
-			.sort((a, b) => a.display_order - b.display_order)
 			.filter((cat) => (cat.actual_spend || 0) > 0)
-			.map((cat) => {
-				let colorHex = "";
-
-				if (cat.color && HEX_COLOR_MAP[cat.color.toLowerCase()]) {
-					colorHex = HEX_COLOR_MAP[cat.color.toLowerCase()];
-				} else {
-					let hash = 0;
-					for (let i = 0; i < cat.id.length; i++) {
-						hash = cat.id.charCodeAt(i) + ((hash << 5) - hash);
-					}
-					const colorIndex = Math.abs(hash) % CHART_COLORS.length;
-					colorHex = CHART_COLORS[colorIndex];
-				}
-
-				return {
-					name: cat.name,
-					value: cat.actual_spend || 0,
-					color: colorHex,
-				};
-			});
-	}, [categories, CHART_COLORS]);
+			.sort((a, b) => a.name.localeCompare(b.name))
+			.map((cat) => ({
+				name: cat.name,
+				value: cat.actual_spend || 0,
+				color: getCategoryHex(cat.id, cat.color, cat.display_order),
+			}));
+	}, [categories]);
 
 	const formatCurrency = (value: number) => {
 		return new Intl.NumberFormat("en-US", {
@@ -103,9 +66,9 @@ export function AllocationDonutChart({ categories, className }: AllocationDonutC
 
 				<div className="w-full grid grid-cols-2 gap-x-3 gap-y-1.5">
 					{[...categories]
-						.sort((a, b) => a.display_order - b.display_order)
+						.sort((a, b) => a.name.localeCompare(b.name))
 						.map((category) => {
-							const color = getCategoryColor(category.id, category.color);
+							const color = getCategoryColor(category.id, category.color, category.display_order);
 							return (
 								<div key={category.id} className="flex items-center gap-2">
 									<div className={cn("w-2 h-2 rounded-full flex-shrink-0", color.bg)} />

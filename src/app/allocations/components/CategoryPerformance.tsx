@@ -4,11 +4,18 @@ import { useState } from "react";
 import { Card } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
-import { Plus, Pencil, Trash2, Check, X, GripVertical } from "lucide-react";
+import { Plus, Pencil, Trash2, Check, X, GripVertical, AlertCircle } from "lucide-react";
 import { cn } from "@/lib/utils";
-import { updateCategoryBudget, updateCategoryName, deleteCategory, reorderCategories } from "../actions";
+import {
+	updateCategoryBudget,
+	updateCategoryName,
+	deleteCategory,
+	reorderCategories,
+	updateCategoryColor,
+} from "../actions";
 import { toast } from "sonner";
 import { useAllocationContext } from "../context/AllocationContext";
+import { getCategoryColor, CATEGORY_PALETTE, COLOR_NAME_MAP } from "../utils/colors";
 import { DeleteCategoryDialog } from "./DeleteCategoryDialog";
 import type { AllocationCategory } from "../types";
 import {
@@ -34,61 +41,22 @@ interface CategoryPerformanceProps {
 	categories: AllocationCategory[];
 	onAddCategory: () => void;
 	className?: string;
-}
-
-// Color palette for categories (matching the screenshot)
-const CATEGORY_COLORS = [
-	{ bg: "bg-cyan-500", text: "text-cyan-500", light: "bg-cyan-100" },
-	{ bg: "bg-green-500", text: "text-green-500", light: "bg-green-100" },
-	{ bg: "bg-amber-500", text: "text-amber-500", light: "bg-amber-100" },
-	{ bg: "bg-pink-500", text: "text-pink-500", light: "bg-pink-100" },
-	{ bg: "bg-blue-500", text: "text-blue-500", light: "bg-blue-100" },
-	{ bg: "bg-red-500", text: "text-red-500", light: "bg-red-100" },
-	{ bg: "bg-purple-500", text: "text-purple-500", light: "bg-purple-100" },
-	{ bg: "bg-orange-500", text: "text-orange-500", light: "bg-orange-100" },
-];
-
-const COLOR_MAP: Record<string, string> = {
-	blue: "bg-blue-500",
-	green: "bg-green-500",
-	orange: "bg-orange-500",
-	cyan: "bg-cyan-500",
-	purple: "bg-purple-500",
-	amber: "bg-amber-500",
-	pink: "bg-pink-500",
-	red: "bg-red-500",
-};
-
-function getCategoryColor(id: string, colorName?: string) {
-	if (colorName) {
-		const normalizeName = colorName.toLowerCase();
-
-		// Mapping for common names to our palette
-		if (COLOR_MAP[normalizeName]) {
-			const match = CATEGORY_COLORS.find((c) => c.bg === COLOR_MAP[normalizeName]);
-			if (match) return match;
-		}
-	}
-
-	let hash = 0;
-	for (let i = 0; i < id.length; i++) {
-		hash = id.charCodeAt(i) + ((hash << 5) - hash);
-	}
-	const index = Math.abs(hash) % CATEGORY_COLORS.length;
-	return CATEGORY_COLORS[index];
+	usedColors?: string[];
+	usedNames?: string[];
 }
 
 interface CategoryRowProps {
 	category: AllocationCategory;
+	usedColors: string[];
+	usedNames: string[];
 }
 
-function CategoryRow({ category }: CategoryRowProps) {
-	const { optimisticallyUpdateBudget, optimisticallyUpdateName, optimisticallyDeleteCategory } = useAllocationContext();
-
+function CategoryRow({ category, usedColors, usedNames }: CategoryRowProps) {
 	const [isEditing, setIsEditing] = useState(false);
 	const [deleteDialogOpen, setDeleteDialogOpen] = useState(false);
 	const [budgetValue, setBudgetValue] = useState(category.budget_cap.toString());
 	const [nameValue, setNameValue] = useState(category.name);
+	const [selectedColor, setSelectedColor] = useState<string | null>(category.color || null);
 
 	const { attributes, listeners, setNodeRef, transform, transition, isDragging } = useSortable({ id: category.id });
 
@@ -103,7 +71,7 @@ function CategoryRow({ category }: CategoryRowProps) {
 	const utilization = category.budget_cap > 0 ? (actualSpend / category.budget_cap) * 100 : 0;
 	const isOverBudget = utilization > 100;
 
-	const color = getCategoryColor(category.id, category.color);
+	const color = getCategoryColor(category.id, category.color, category.display_order);
 
 	const formatCurrency = (value: number) => {
 		return `$${value.toLocaleString("en-US", { minimumFractionDigits: 0, maximumFractionDigits: 0 })}`;
@@ -127,17 +95,37 @@ function CategoryRow({ category }: CategoryRowProps) {
 
 		if (hasError) return;
 
-		optimisticallyUpdateBudget(category.id, newBudget);
-		optimisticallyUpdateName(category.id, newName);
-		setIsEditing(false);
+		// Uniqueness check for name
+		if (
+			newName.toLowerCase() !== category.name.toLowerCase() &&
+			usedNames.some((n) => n.toLowerCase() === newName.toLowerCase())
+		) {
+			toast.error("Name unavailable", {
+				description: "A category with this name already exists.",
+			});
+			return;
+		}
 
-		const [budgetSuccess, nameSuccess] = await Promise.all([
+		// Uniqueness check for editing color
+		if (selectedColor && selectedColor !== category.color && usedColors.includes(selectedColor)) {
+			toast.error("Color unavailable", {
+				description: "This color is already in use by another category.",
+			});
+			return;
+		}
+
+		// All uniqueness checks passed
+		const [budgetSuccess, nameSuccess, colorSuccess] = await Promise.all([
 			updateCategoryBudget(category.id, newBudget),
 			updateCategoryName(category.id, newName),
+			selectedColor !== category.color && selectedColor
+				? updateCategoryColor(category.id, selectedColor)
+				: Promise.resolve(true),
 		]);
 
-		if (budgetSuccess && nameSuccess) {
+		if (budgetSuccess && nameSuccess && colorSuccess) {
 			toast.success("Category updated");
+			setIsEditing(false);
 		} else {
 			if (!budgetSuccess) {
 				toast.error("Update Failed", {
@@ -149,17 +137,22 @@ function CategoryRow({ category }: CategoryRowProps) {
 					description: "Failed to rename the category. Please try again.",
 				});
 			}
+			if (!colorSuccess) {
+				toast.error("Color Update Failed", {
+					description: "Failed to update the category color. Please try again.",
+				});
+			}
 		}
 	};
 
 	const handleCancel = () => {
 		setBudgetValue(category.budget_cap.toString());
 		setNameValue(category.name);
+		setSelectedColor(category.color || null);
 		setIsEditing(false);
 	};
 
 	const handleConfirmDelete = async () => {
-		optimisticallyDeleteCategory(category.id);
 		setDeleteDialogOpen(false);
 
 		const success = await deleteCategory(category.id);
@@ -201,14 +194,61 @@ function CategoryRow({ category }: CategoryRowProps) {
 
 							<div className="min-w-[120px]">
 								{isEditing ? (
-									<Input
-										value={nameValue}
-										onChange={(e) => setNameValue(e.target.value)}
-										onKeyDown={handleKeyDown}
-										className="h-7 text-sm font-medium w-48"
-										maxLength={100}
-										autoFocus
-									/>
+									<div className="flex flex-col gap-2">
+										<Input
+											value={nameValue}
+											onChange={(e) => setNameValue(e.target.value)}
+											onKeyDown={handleKeyDown}
+											className="h-7 text-sm font-medium w-48"
+											maxLength={100}
+											autoFocus
+										/>
+										<div className="flex flex-wrap gap-1.5 py-1">
+											{CATEGORY_PALETTE.map((c) => {
+												const colorName = Object.keys(COLOR_NAME_MAP).find(
+													(key) => COLOR_NAME_MAP[key] === CATEGORY_PALETTE.indexOf(c)
+												);
+												if (!colorName) return null;
+
+												const isSelected = selectedColor === colorName;
+												// A color is "used" if it exists in the usedColors list AND it's not the category's current color
+												const isUsed = usedColors.includes(colorName) && colorName !== category.color;
+
+												return (
+													<button
+														key={colorName}
+														type="button"
+														onClick={() => setSelectedColor(colorName)}
+														disabled={isUsed}
+														className={cn(
+															"w-5 h-5 rounded-full transition-all border relative",
+															c.bg,
+															isSelected ? "border-primary scale-110 shadow-sm" : "border-transparent",
+															isUsed ? "opacity-30 cursor-not-allowed" : "hover:scale-105"
+														)}
+														title={isUsed ? `${colorName} (Already in use)` : colorName}
+													>
+														{isSelected && (
+															<div className="w-full h-full flex items-center justify-center">
+																<div className="w-1 h-1 rounded-full bg-white shadow-sm" />
+															</div>
+														)}
+														{isUsed && (
+															<div className="absolute inset-0 flex items-center justify-center">
+																<div className="w-[1px] h-[60%] bg-white/50 rotate-45" />
+															</div>
+														)}
+													</button>
+												);
+											})}
+										</div>
+										{selectedColor && selectedColor !== category.color && usedColors.includes(selectedColor) && (
+											<p className="text-[10px] text-error flex items-center gap-1">
+												<AlertCircle className="h-2 w-2" />
+												Taken
+											</p>
+										)}
+									</div>
 								) : (
 									<span className="text-sm font-medium text-primary text-left">{category.name}</span>
 								)}
@@ -304,8 +344,17 @@ function CategoryRow({ category }: CategoryRowProps) {
 	);
 }
 
-export function CategoryPerformance({ categories, onAddCategory, className }: CategoryPerformanceProps) {
+export function CategoryPerformance({
+	categories,
+	onAddCategory,
+	className,
+	usedColors: propUsedColors,
+	usedNames: propUsedNames,
+}: CategoryPerformanceProps) {
 	const { optimisticallyReorderCategories } = useAllocationContext();
+
+	const usedColors = propUsedColors || (categories.map((c) => c.color).filter(Boolean) as string[]);
+	const usedNames = propUsedNames || categories.map((c) => c.name);
 
 	const sensors = useSensors(
 		useSensor(PointerSensor, {
@@ -388,7 +437,7 @@ export function CategoryPerformance({ categories, onAddCategory, className }: Ca
 				>
 					<SortableContext items={categories.map((c) => c.id)} strategy={verticalListSortingStrategy}>
 						{categories.map((category) => (
-							<CategoryRow key={category.id} category={category} />
+							<CategoryRow key={category.id} category={category} usedColors={usedColors} usedNames={usedNames} />
 						))}
 					</SortableContext>
 				</DndContext>
@@ -397,4 +446,4 @@ export function CategoryPerformance({ categories, onAddCategory, className }: Ca
 	);
 }
 
-export { getCategoryColor, CATEGORY_COLORS };
+export { getCategoryColor };

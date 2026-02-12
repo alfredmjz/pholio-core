@@ -16,6 +16,7 @@ import { Label } from "@/components/ui/label";
 import { MinimalTiptap } from "@/components/ui/shadcn-io/minimal-tiptap";
 import { updateAccount } from "../../../actions";
 import type { AccountWithType } from "../../../types";
+import { validateDecimalInput } from "@/lib/input-utils";
 
 interface EditAccountDialogProps {
 	open: boolean;
@@ -28,6 +29,7 @@ interface ValidationErrors {
 	name?: string;
 	current_balance?: string;
 	target_balance?: string;
+	interest_rate?: string;
 }
 
 export function EditAccountDialog({ open, onOpenChange, account, onSuccess }: EditAccountDialogProps) {
@@ -60,13 +62,14 @@ export function EditAccountDialog({ open, onOpenChange, account, onSuccess }: Ed
 			newErrors.current_balance = "Please enter a valid number";
 		}
 
-		// Validate Target Goal (only required for non-debt accounts)
-		if (!isDebtAccount) {
-			if (!formData.target_balance.trim()) {
-				newErrors.target_balance = "Target goal is required";
-			} else if (isNaN(parseFloat(formData.target_balance))) {
-				newErrors.target_balance = "Please enter a valid number";
-			}
+		// Validate Target Goal (optional, but must be a valid number if provided)
+		if (!isDebtAccount && formData.target_balance.trim() && isNaN(parseFloat(formData.target_balance))) {
+			newErrors.target_balance = "Please enter a valid number";
+		}
+
+		// Validate Interest Rate (optional, but must be a valid number if provided)
+		if (formData.interest_rate.trim() && isNaN(parseFloat(formData.interest_rate))) {
+			newErrors.interest_rate = "Please enter a valid number";
 		}
 
 		setErrors(newErrors);
@@ -94,7 +97,7 @@ export function EditAccountDialog({ open, onOpenChange, account, onSuccess }: Ed
 				name: formData.name,
 				institution: formData.institution || null,
 				current_balance: parseFloat(formData.current_balance) || 0,
-				target_balance: isDebtAccount ? 0 : parseFloat(formData.target_balance),
+				target_balance: isDebtAccount ? 0 : parseFloat(formData.target_balance) || null,
 				interest_rate: formData.interest_rate ? parseFloat(formData.interest_rate) / 100 : null,
 				notes: formData.notes || null,
 			});
@@ -175,13 +178,16 @@ export function EditAccountDialog({ open, onOpenChange, account, onSuccess }: Ed
 							</Label>
 							<Input
 								id="current_balance"
-								type="number"
+								type="text"
 								inputMode="decimal"
-								step="0.01"
+								placeholder="0.00"
 								value={formData.current_balance}
 								onChange={(e) => {
-									setFormData({ ...formData, current_balance: e.target.value });
-									if (errors.current_balance) setErrors({ ...errors, current_balance: undefined });
+									const val = e.target.value;
+									if (validateDecimalInput(val)) {
+										setFormData({ ...formData, current_balance: val });
+										if (errors.current_balance) setErrors({ ...errors, current_balance: undefined });
+									}
 								}}
 								className={errors.current_balance ? "border-error" : ""}
 							/>
@@ -191,31 +197,39 @@ export function EditAccountDialog({ open, onOpenChange, account, onSuccess }: Ed
 							<Label htmlFor="interest_rate">{isDebtAccount ? "APR (%)" : "APY (%)"}</Label>
 							<Input
 								id="interest_rate"
-								type="number"
+								type="text"
 								inputMode="decimal"
-								step="0.01"
-								value={formData.interest_rate}
-								onChange={(e) => setFormData({ ...formData, interest_rate: e.target.value })}
 								placeholder="e.g., 4.5"
+								value={formData.interest_rate}
+								onChange={(e) => {
+									const val = e.target.value;
+									if (validateDecimalInput(val)) {
+										setFormData({ ...formData, interest_rate: val });
+										if (errors.interest_rate) setErrors({ ...errors, interest_rate: undefined });
+									}
+								}}
+								className={errors.interest_rate ? "border-error" : ""}
 							/>
+							{errors.interest_rate && <p className="text-sm text-error">{errors.interest_rate}</p>}
 						</div>
 					</div>
 
 					{/* Target Goal (only for non-debt accounts) */}
 					{!isDebtAccount && (
 						<div className="space-y-2">
-							<Label htmlFor="target_balance">
-								Target Goal <span className="text-error">*</span>
-							</Label>
+							<Label htmlFor="target_balance">Target Goal</Label>
 							<Input
 								id="target_balance"
-								type="number"
+								type="text"
 								inputMode="decimal"
-								step="0.01"
+								placeholder="0.00"
 								value={formData.target_balance}
 								onChange={(e) => {
-									setFormData({ ...formData, target_balance: e.target.value });
-									if (errors.target_balance) setErrors({ ...errors, target_balance: undefined });
+									const val = e.target.value;
+									if (validateDecimalInput(val)) {
+										setFormData({ ...formData, target_balance: val });
+										if (errors.target_balance) setErrors({ ...errors, target_balance: undefined });
+									}
 								}}
 								className={errors.target_balance ? "border-error" : ""}
 							/>

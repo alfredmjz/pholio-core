@@ -20,6 +20,7 @@ import { Check, ChevronsUpDown, Plus, Wallet, Info } from "lucide-react";
 import { createAccount, getAccountTypes, createAccountType } from "../actions";
 import type { CreateAccountInput, AccountType, AccountClass, AccountWithType } from "../types";
 import { cn } from "@/lib/utils";
+import { validateDecimalInput } from "@/lib/input-utils";
 import { FormSection } from "@/components/FormSection";
 import { CardSelector } from "@/components/CardSelector";
 import { ProminentAmountInput } from "@/components/ProminentAmountInput";
@@ -38,10 +39,28 @@ interface ValidationErrors {
 }
 
 export function AddAccountDialog({ open, onOpenChange, onSuccess }: AddAccountDialogProps) {
+	interface FormState {
+		name: string;
+		account_type_id: string;
+		current_balance: string;
+		target_balance: string;
+		interest_rate: string;
+		institution: string;
+		notes: string;
+	}
+
 	const [loading, setLoading] = useState(false);
 	const [accountType, setAccountType] = useState<AccountClass>("asset");
 	const [allAccountTypes, setAllAccountTypes] = useState<AccountType[]>([]);
-	const [formData, setFormData] = useState<Partial<CreateAccountInput>>({});
+	const [formData, setFormData] = useState<FormState>({
+		name: "",
+		account_type_id: "",
+		current_balance: "",
+		target_balance: "",
+		interest_rate: "",
+		institution: "",
+		notes: "",
+	});
 	const [errors, setErrors] = useState<ValidationErrors>({});
 	const [openCombobox, setOpenCombobox] = useState(false);
 	const [searchValue, setSearchValue] = useState("");
@@ -101,17 +120,9 @@ export function AddAccountDialog({ open, onOpenChange, onSuccess }: AddAccountDi
 			isValid = false;
 		}
 
-		if (formData.current_balance === undefined || formData.current_balance === null) {
+		if (!formData.current_balance.trim()) {
 			newErrors.current_balance = "Current balance is required";
 			isValid = false;
-		}
-
-		// Target balance is required for assets, but optional (or 0) for liabilities
-		if (accountType === "asset") {
-			if (formData.target_balance === undefined || formData.target_balance === null) {
-				newErrors.target_balance = "Target goal is required";
-				isValid = false;
-			}
 		}
 
 		setErrors(newErrors);
@@ -136,12 +147,12 @@ export function AddAccountDialog({ open, onOpenChange, onSuccess }: AddAccountDi
 
 		try {
 			const input: CreateAccountInput = {
-				name: formData.name!,
-				account_type_id: formData.account_type_id!,
-				current_balance: formData.current_balance!,
-				interest_rate: formData.interest_rate || null,
+				name: formData.name,
+				account_type_id: formData.account_type_id,
+				current_balance: parseFloat(formData.current_balance),
+				interest_rate: formData.interest_rate ? parseFloat(formData.interest_rate) / 100 : null,
 				interest_type: formData.interest_rate ? "compound" : null,
-				target_balance: formData.target_balance || null,
+				target_balance: formData.target_balance ? parseFloat(formData.target_balance) : null,
 				institution: formData.institution || null,
 				notes: formData.notes || null,
 			};
@@ -153,7 +164,15 @@ export function AddAccountDialog({ open, onOpenChange, onSuccess }: AddAccountDi
 				onOpenChange(false);
 				onSuccess(result);
 				// Reset form
-				setFormData({});
+				setFormData({
+					name: "",
+					account_type_id: "",
+					current_balance: "",
+					target_balance: "",
+					interest_rate: "",
+					institution: "",
+					notes: "",
+				});
 				setErrors({});
 				setSearchValue("");
 			} else {
@@ -207,8 +226,8 @@ export function AddAccountDialog({ open, onOpenChange, onSuccess }: AddAccountDi
 								setAccountType(val);
 								setFormData({
 									...formData,
-									account_type_id: undefined,
-									current_balance: undefined,
+									account_type_id: "",
+									current_balance: "",
 								});
 								setErrors({});
 							}}
@@ -225,7 +244,7 @@ export function AddAccountDialog({ open, onOpenChange, onSuccess }: AddAccountDi
 								<Input
 									id="name"
 									placeholder="Emergency Fund"
-									value={formData.name || ""}
+									value={formData.name}
 									onChange={(e) => {
 										setFormData({ ...formData, name: e.target.value });
 										if (errors.name) setErrors({ ...errors, name: undefined });
@@ -312,10 +331,9 @@ export function AddAccountDialog({ open, onOpenChange, onSuccess }: AddAccountDi
 								</Label>
 								<ProminentAmountInput
 									id="balance"
-									value={formData.current_balance?.toString() ?? ""}
+									value={formData.current_balance}
 									onChange={(val) => {
-										const numVal = val === "" ? undefined : parseFloat(val);
-										setFormData({ ...formData, current_balance: numVal });
+										setFormData({ ...formData, current_balance: val });
 										if (errors.current_balance) setErrors({ ...errors, current_balance: undefined });
 									}}
 									hasError={!!errors.current_balance}
@@ -324,16 +342,12 @@ export function AddAccountDialog({ open, onOpenChange, onSuccess }: AddAccountDi
 							</div>
 
 							<div className="space-y-2">
-								<Label htmlFor="target">
-									{accountType === "asset" ? "Target Goal" : "Original Amount"}{" "}
-									{accountType === "asset" && <span className="text-error">*</span>}
-								</Label>
+								<Label htmlFor="target">{accountType === "asset" ? "Target Goal" : "Original Amount"}</Label>
 								<ProminentAmountInput
 									id="target"
-									value={formData.target_balance?.toString() ?? ""}
+									value={formData.target_balance}
 									onChange={(val) => {
-										const numVal = val === "" ? undefined : parseFloat(val);
-										setFormData({ ...formData, target_balance: numVal });
+										setFormData({ ...formData, target_balance: val });
 										if (errors.target_balance) setErrors({ ...errors, target_balance: undefined });
 									}}
 									hasError={!!errors.target_balance}
@@ -347,14 +361,16 @@ export function AddAccountDialog({ open, onOpenChange, onSuccess }: AddAccountDi
 								<Label htmlFor="interest">Interest Rate ({accountType === "asset" ? "APY" : "APR"} %)</Label>
 								<Input
 									id="interest"
-									type="number"
+									type="text"
 									inputMode="decimal"
-									step="0.01"
 									placeholder="5.50"
-									value={formData.interest_rate ? formData.interest_rate * 100 : ""}
-									onChange={(e) =>
-										setFormData({ ...formData, interest_rate: parseFloat(e.target.value) / 100 || null })
-									}
+									value={formData.interest_rate}
+									onChange={(e) => {
+										const val = e.target.value;
+										if (validateDecimalInput(val)) {
+											setFormData({ ...formData, interest_rate: val });
+										}
+									}}
 									className="h-10"
 								/>
 							</div>
@@ -364,7 +380,7 @@ export function AddAccountDialog({ open, onOpenChange, onSuccess }: AddAccountDi
 								<Input
 									id="institution"
 									placeholder="Chase, Ally Bank, etc."
-									value={formData.institution || ""}
+									value={formData.institution}
 									onChange={(e) => setFormData({ ...formData, institution: e.target.value })}
 									className="h-10"
 								/>
@@ -377,7 +393,7 @@ export function AddAccountDialog({ open, onOpenChange, onSuccess }: AddAccountDi
 						<div className="space-y-2">
 							<Label>Notes</Label>
 							<MinimalTiptap
-								content={formData.notes || ""}
+								content={formData.notes}
 								onChange={(content) => setFormData({ ...formData, notes: content })}
 								placeholder="Additional information about this account..."
 							/>

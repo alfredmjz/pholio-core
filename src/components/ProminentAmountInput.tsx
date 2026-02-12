@@ -4,6 +4,7 @@ import * as React from "react";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
 import { cn } from "@/lib/utils";
+import { validateDecimalInput } from "@/lib/input-utils";
 
 interface ProminentAmountInputProps {
 	value: string;
@@ -44,14 +45,11 @@ export function ProminentAmountInput({
 					id={id}
 					type="text"
 					inputMode="decimal"
-					step="0.01"
-					min="0"
 					placeholder="0.00"
 					value={value}
 					onChange={(e) => {
 						const inputValue = e.target.value;
-						const regex = /^[0-9]*(\.[0-9]{0,2})?$/;
-						if (inputValue === "" || regex.test(inputValue)) {
+						if (validateDecimalInput(inputValue)) {
 							onChange(inputValue);
 						}
 					}}

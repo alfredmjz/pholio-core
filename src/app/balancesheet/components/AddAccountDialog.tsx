@@ -171,7 +171,9 @@ export function AddAccountDialog({ open, onOpenChange, onSuccess }: AddAccountDi
 		}
 	};
 
-	const availableTypes = (allAccountTypes || []).filter((t) => t.class === accountType);
+	const availableTypes = (allAccountTypes || []).filter(
+		(t) => t.class === accountType && t.name.toLowerCase().includes(searchValue.toLowerCase())
+	);
 	const selectedType = (allAccountTypes || []).find((t) => t.id === formData.account_type_id);
 
 	return (
@@ -253,7 +255,10 @@ export function AddAccountDialog({ open, onOpenChange, onSuccess }: AddAccountDi
 											<ChevronsUpDown className="ml-2 h-4 w-4 opacity-50" />
 										</Button>
 									</PopoverTrigger>
-									<PopoverContent className="w-[var(--radix-popover-trigger-width)] p-0">
+									<PopoverContent
+										className="w-[var(--radix-popover-trigger-width)] p-0"
+										onWheel={(e) => e.stopPropagation()}
+									>
 										<Command shouldFilter={false}>
 											<CommandInput
 												placeholder="Search or create category..."

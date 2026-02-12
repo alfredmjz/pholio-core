@@ -154,7 +154,7 @@ export function ServiceAutocomplete({
 							key={suggestion.domain}
 							className={cn(
 								"flex items-center gap-3 px-3 py-2 cursor-pointer transition-colors",
-								index === highlightedIndex ? "bg-accent text-accent" : "hover:bg-muted"
+								index === highlightedIndex ? "bg-accent text-accent-foreground" : "hover:bg-muted"
 							)}
 							onClick={() => selectSuggestion(suggestion)}
 							onMouseEnter={() => setHighlightedIndex(index)}

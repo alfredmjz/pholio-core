@@ -6,6 +6,8 @@ import { AllocationsHeader } from "./AllocationsHeader";
 import { BudgetSummaryCards } from "./BudgetSummaryCards";
 import { CategoryPerformance } from "./CategoryPerformance";
 import { AllocationDonutChart } from "./AllocationDonutChart";
+import { SpendingPace } from "./SpendingPace";
+import { SpendingAllocation } from "./SpendingAllocation";
 import { TransactionLedger } from "./TransactionLedger";
 import { AddCategoryDialog } from "./AddCategoryDialog";
 import { ImportTemplateDialog } from "./ImportTemplateDialog";
@@ -112,13 +114,14 @@ export function AllocationsDashboardView({
 
 			<PageContent>
 				<div className="flex flex-col lg:flex-row gap-6">
-					<div className="flex-1 lg:flex-[3] flex flex-col gap-6">
+					<div className="w-full lg:w-[60%] flex flex-col gap-6">
 						<BudgetSummaryCards
 							expectedIncome={summary.allocation.expected_income}
 							totalBudgetAllocated={summary.summary.total_budget_caps}
 							totalSpent={summary.summary.total_actual_spend}
 						/>
 
+						<SpendingAllocation categories={categories} />
 						<CategoryPerformance
 							categories={categories}
 							onAddCategory={() => setAddCategoryDialogOpen(true)}
@@ -128,8 +131,13 @@ export function AllocationsDashboardView({
 						/>
 					</div>
 
-					<div className="lg:flex-[1] flex">
-						<AllocationDonutChart categories={categories} className="flex-1" />
+					<div className="w-full lg:w-[40%] flex flex-col">
+						<SpendingPace
+							currentMonth={currentMonth}
+							transactions={transactions}
+							totalBudget={summary.summary.total_budget_caps}
+							className="flex-1"
+						/>
 					</div>
 				</div>
 

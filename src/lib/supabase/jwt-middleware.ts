@@ -209,6 +209,14 @@ export function getAccessTokenFromRequest(request: NextRequest): { token: string
  * Check if route is public (doesn't require auth)
  */
 export function isPublicRoute(pathname: string): boolean {
-	const publicRoutes = ["/login", "/signup", "/forgot-password", "/reset-password", "/auth/callback", "/api/auth"];
+	const publicRoutes = [
+		"/login",
+		"/signup",
+		"/forgot-password",
+		"/reset-password",
+		"/auth/callback",
+		"/api/auth",
+		"/api/cron",
+	];
 	return publicRoutes.some((route) => pathname.startsWith(route));
 }

@@ -28,6 +28,9 @@ export function BalanceCard({ account, accountClass, formatCurrency }: BalanceCa
 			: null
 		: null;
 
+	const estimatedAnnualInterest =
+		account.interest_rate && account.current_balance ? account.current_balance * account.interest_rate : null;
+
 	return (
 		<Card className="p-6">
 			<div className="flex flex-col gap-6">
@@ -51,20 +54,14 @@ export function BalanceCard({ account, accountClass, formatCurrency }: BalanceCa
 						)}
 					</div>
 
-					{/* Percentage Change Badge */}
-					{account.percent_change !== undefined && account.percent_change !== null && (
+					{/* Estimated Annual Interest Badge */}
+					{estimatedAnnualInterest !== null && estimatedAnnualInterest > 0 && (
 						<Badge
 							variant="secondary"
-							className={cn(
-								"flex items-center gap-1 px-2 py-1",
-								account.percent_change >= 0
-									? "bg-green-100 text-green-700 dark:bg-green-900/30 dark:text-green-400"
-									: "bg-red-100 text-red-700 dark:bg-red-900/30 dark:text-red-400"
-							)}
+							className="flex items-center gap-1 px-2 py-1 bg-green-100 text-green-700 dark:bg-green-900/30 dark:text-green-400"
 						>
-							<TrendingUp className={cn("h-3 w-3", account.percent_change < 0 && "rotate-180")} />
-							{account.percent_change >= 0 ? "+" : ""}
-							{account.percent_change.toFixed(1)}% this month
+							<TrendingUp className="h-3 w-3" />
+							+{formatCurrency(estimatedAnnualInterest)}/yr
 						</Badge>
 					)}
 				</div>

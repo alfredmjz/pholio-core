@@ -33,3 +33,21 @@ export async function createClient() {
 		},
 	});
 }
+
+import { createClient as createSupabaseClient } from "@supabase/supabase-js";
+
+/**
+ * Creates a Supabase Admin client using the Service Role Key.
+ * Bypasses Row Level Security (RLS). Use ONLY in secure server contexts (e.g., Cron jobs, Webhooks).
+ */
+export function createAdminClient() {
+	if (!process.env.SUPABASE_SECRET_KEY) {
+		throw new Error("Missing SUPABASE_SECRET_KEY environment variable");
+	}
+	return createSupabaseClient(process.env.NEXT_PUBLIC_SUPABASE_URL!, process.env.SUPABASE_SECRET_KEY, {
+		auth: {
+			autoRefreshToken: false,
+			persistSession: false,
+		},
+	});
+}

@@ -3,6 +3,7 @@
 import { useMemo } from "react";
 import { Card } from "@/components/ui/card";
 import { cn } from "@/lib/utils";
+import { parseLocalDate } from "@/lib/date-utils";
 import type { AccountWithType, AccountTransaction } from "../../../types";
 
 interface InsightsCardProps {
@@ -60,7 +61,7 @@ export function InsightsCard({ account, transactions, accountClass, formatCurren
 		// Calculate this month's change
 		const now = new Date();
 		const thisMonthTransactions = transactions.filter((t) => {
-			const txDate = new Date(t.transaction_date);
+			const txDate = parseLocalDate(t.transaction_date);
 			return txDate.getMonth() === now.getMonth() && txDate.getFullYear() === now.getFullYear();
 		});
 		const thisMonthChange = thisMonthTransactions.reduce((sum, t) => {
@@ -142,7 +143,7 @@ export function InsightsCard({ account, transactions, accountClass, formatCurren
 						</div>
 					)}
 
-					{account.interest_rate && (
+					{account.interest_rate !== null && (
 						<div className="flex flex-col gap-1">
 							<div className="text-2xl font-bold">{(account.interest_rate * 100).toFixed(1)}%</div>
 							<div className="text-sm text-primary">Current APY</div>

@@ -8,8 +8,24 @@ import {
 	addWeeks,
 } from "date-fns";
 
+/**
+ * Helper to parse a YYYY-MM-DD string into a Local Date object (midnight).
+ * This prevents timezone shifts that occur when parsing ISO strings (which default to UTC).
+ *
+ * @param dateStr - YYYY-MM-DD or ISO string
+ * @returns Date object in local time (00:00:00)
+ */
+export function parseLocalDate(dateStr: string): Date {
+	if (!dateStr) return new Date();
+
+	const cleanDateStr = dateStr.split("T")[0];
+	const [y, m, d] = cleanDateStr.split("-").map(Number);
+	// Return local date at midnight
+	return new Date(y, m - 1, d);
+}
+
 export function formatShortDate(date: string | Date): string {
-	const d = typeof date === "string" ? new Date(date) : date;
+	const d = typeof date === "string" ? parseLocalDate(date) : date;
 	return format(d, "MMM d");
 }
 
@@ -17,7 +33,7 @@ export function formatShortDate(date: string | Date): string {
  * Format a date with time (e.g., "Jan 4, 3:45 PM")
  */
 export function formatDateTime(date: string | Date): string {
-	const d = typeof date === "string" ? new Date(date) : date;
+	const d = typeof date === "string" ? parseLocalDate(date) : date;
 	return format(d, "MMM d, h:mm a");
 }
 
@@ -25,7 +41,7 @@ export function formatDateTime(date: string | Date): string {
  * Format a full date with year (e.g., "Jan 4, 2025")
  */
 export function formatFullDate(date: string | Date): string {
-	const d = typeof date === "string" ? new Date(date) : date;
+	const d = typeof date === "string" ? parseLocalDate(date) : date;
 	return format(d, "MMM d, yyyy");
 }
 
@@ -33,7 +49,7 @@ export function formatFullDate(date: string | Date): string {
  * Format time only (e.g., "3:45 PM")
  */
 export function formatTime(date: string | Date): string {
-	const d = typeof date === "string" ? new Date(date) : date;
+	const d = typeof date === "string" ? parseLocalDate(date) : date;
 	return format(d, "h:mm a");
 }
 
@@ -41,7 +57,7 @@ export function formatTime(date: string | Date): string {
  * Format month and year (e.g., "January 2025")
  */
 export function formatMonthYear(date: string | Date): string {
-	const d = typeof date === "string" ? new Date(date) : date;
+	const d = typeof date === "string" ? parseLocalDate(date) : date;
 	return format(d, "MMMM yyyy");
 }
 
@@ -110,20 +126,4 @@ export function calculateNextDueDate(currentDue: Date, frequency: string): Date 
 		default:
 			return date;
 	}
-}
-
-/**
- * Helper to parse a YYYY-MM-DD string into a Local Date object (midnight).
- * This prevents timezone shifts that occur when parsing ISO strings (which default to UTC).
- *
- * @param dateStr - YYYY-MM-DD or ISO string
- * @returns Date object in local time (00:00:00)
- */
-export function parseLocalDate(dateStr: string): Date {
-	if (!dateStr) return new Date();
-
-	const cleanDateStr = dateStr.split("T")[0];
-	const [y, m, d] = cleanDateStr.split("-").map(Number);
-	// Return local date at midnight
-	return new Date(y, m - 1, d);
 }

@@ -13,22 +13,17 @@ interface BankPerformanceProps {
 
 export function BankPerformance({ account, transactions, formatCurrency }: BankPerformanceProps) {
 	const stats = useMemo(() => {
-		// Deposits - Sum of deposits
 		const totalDeposits = transactions
 			.filter((t) => t.transaction_type === "deposit")
 			.reduce((sum, t) => sum + t.amount, 0);
 
-		// Withdrawals - Sum of withdrawals
 		const withdrawalTransactions = transactions.filter((t) => t.transaction_type === "withdrawal");
 		const totalWithdrawals = withdrawalTransactions.reduce((sum, t) => sum + Math.abs(t.amount), 0);
 
-		// Monthly Fees - Sum of withdrawals with 'fee' in description
 		const monthlyFees = withdrawalTransactions
 			.filter((t) => t.description?.toLowerCase().includes("fee"))
 			.reduce((sum, t) => sum + Math.abs(t.amount), 0);
 
-		// Net Cash Flow = Deposits - Withdrawals (assuming pure inflow/outflow)
-		// Or simplified: Just sum based on sign if stored signed, but 'withdrawal' implies negative direction.
 		const netCashFlow = totalDeposits - totalWithdrawals;
 
 		return {

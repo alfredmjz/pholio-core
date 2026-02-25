@@ -29,7 +29,6 @@ export function AssetPerformance({ account, transactions, formatCurrency }: Asse
 		const monthlyInterestEstimate =
 			account.interest_rate && account.current_balance ? account.current_balance * (account.interest_rate / 12) : 0;
 
-		// Calculate actual growth rate based on interest recorded this month
 		const now = new Date();
 		const thisMonthInterest = transactions
 			.filter((t) => {
@@ -42,7 +41,6 @@ export function AssetPerformance({ account, transactions, formatCurrency }: Asse
 
 		const annualGrowthRate = account.current_balance > 0 ? (thisMonthInterest * 12) / account.current_balance : 0;
 
-		// Calculate Contributions for warnings
 		const thisYearContributions = transactions
 			.filter((t) => {
 				const d = parseLocalDate(t.transaction_date);
@@ -56,7 +54,7 @@ export function AssetPerformance({ account, transactions, formatCurrency }: Asse
 		const isInvestment =
 			account.account_type?.category === "investment" || account.account_type?.category === "retirement";
 
-		// Warning Logic
+		/** Contribution limit warnings for investment/retirement accounts. */
 		let annualLimitWarning: "approaching" | "exceeded" | null = null;
 		let totalRoomWarning: "approaching" | "exceeded" | null = null;
 
@@ -69,9 +67,7 @@ export function AssetPerformance({ account, transactions, formatCurrency }: Asse
 				}
 			}
 
-			// For total room, we check if current balance (or total deposits) exceeds the total room.
-			// Usually, "Contribution Room" is a hard limit on total *contributions* across all time, not balance.
-			// Since we only have 'totalDeposits' tracked in the app's history, we'll use that.
+			/** Total room is checked against all-time deposits since we only track those in-app. */
 			if (account.contribution_room) {
 				if (totalDeposits > account.contribution_room) {
 					totalRoomWarning = "exceeded";

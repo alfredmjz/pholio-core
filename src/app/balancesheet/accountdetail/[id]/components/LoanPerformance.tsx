@@ -13,25 +13,20 @@ interface LoanPerformanceProps {
 
 export function LoanPerformance({ account, transactions, formatCurrency }: LoanPerformanceProps) {
 	const stats = useMemo(() => {
-		// Interest Paid
 		const interestPaid = transactions
 			.filter((t) => t.transaction_type === "interest")
 			.reduce((sum, t) => sum + Math.abs(t.amount), 0);
 
-		// Principal Paid
-		// Estimate: Original Amount - Current Balance
-		// Borrowing 'target_balance' to store original loan amount in our schema
+		/** Uses `target_balance` as the original loan amount. */
 		const originalAmount = account.target_balance ?? 0;
 		const currentBalance = account.current_balance;
 		const principalPaid = Math.max(0, originalAmount - currentBalance);
 
-		// Payment Due Date
 		const now = new Date();
 		const dueDay = account.payment_due_date || 15;
 		const paymentDueDate = new Date(now.getFullYear(), now.getMonth(), dueDay);
 		const dueDateStr = paymentDueDate.toLocaleDateString(undefined, { month: "short", day: "numeric" });
 
-		// Remaining Term
 		let remainingTermMsg = "N/A";
 		if (account.loan_term_months && account.loan_start_date) {
 			const startDate = parseISO(account.loan_start_date);

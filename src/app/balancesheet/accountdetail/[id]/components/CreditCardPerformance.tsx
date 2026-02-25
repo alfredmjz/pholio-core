@@ -14,24 +14,15 @@ interface CreditCardPerformanceProps {
 
 export function CreditCardPerformance({ account, transactions, formatCurrency }: CreditCardPerformanceProps) {
 	const stats = useMemo(() => {
-		// Interest charged is usually negative or positive depending on how it's logged.
-		// If it's a liability, adding to the balance (debt) might be positive or negative depending on convention.
-		// Usually schema stores absolute amounts or consistent signs.
-		// Given 'interest' type, I will assume sum magnitude is what matters, or just display the sum.
-		// If the user said "Interest Charged", they expect a value representing cost.
 		const interestCharged = transactions
 			.filter((t) => t.transaction_type === "interest")
 			.reduce((sum, t) => sum + Math.abs(t.amount), 0);
 
-		// Use actual due date from account or fallback to 21st if not yet set
 		const now = new Date();
 		const dueDay = account.payment_due_date || 21;
 		const paymentDueDate = new Date(now.getFullYear(), now.getMonth(), dueDay);
 
-		// Calculate Statement Amount based on user formula:
-		// "payment due date as the first day until the following month"
-		// Start: Payment Due Date
-		// End: Start of next month
+		/** Statement window: from payment due date to the start of next month. */
 		const statementStart = paymentDueDate;
 		const statementEnd = new Date(now.getFullYear(), now.getMonth() + 1, 1);
 
@@ -42,7 +33,6 @@ export function CreditCardPerformance({ account, transactions, formatCurrency }:
 			})
 			.reduce((sum, t) => sum + t.amount, 0);
 
-		// For display
 		const dueDateStr = paymentDueDate.toLocaleDateString(undefined, { month: "short", day: "numeric" });
 
 		return {

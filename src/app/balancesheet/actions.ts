@@ -24,10 +24,6 @@ import type {
 	CreateAccountTypeInput,
 } from "./types";
 
-// ============================================================================
-// Account Types
-// ============================================================================
-
 /**
  * Get all available account types (system + user-created)
  */
@@ -86,10 +82,6 @@ export async function createAccountType(input: CreateAccountTypeInput): Promise<
 	revalidatePath("/balancesheet");
 	return data;
 }
-
-// ============================================================================
-// Accounts
-// ============================================================================
 
 /**
  * Get all active accounts with their types
@@ -385,10 +377,6 @@ export async function reorderAccounts(accountOrders: { id: string; display_order
 	return true;
 }
 
-// ============================================================================
-// Transactions
-// ============================================================================
-
 /**
  * Record a transaction and update account balance
  */
@@ -402,7 +390,6 @@ export async function recordTransaction(input: RecordTransactionInput): Promise<
 		throw new Error("Unauthorized");
 	}
 
-	// Get current account with type info
 	const { data: account, error: accountError } = await supabase
 		.from("accounts")
 		.select(
@@ -424,7 +411,6 @@ export async function recordTransaction(input: RecordTransactionInput): Promise<
 
 	const accountClass = (account.account_type as any)?.class;
 
-	// Calculate new balance
 	let newBalance = account.current_balance;
 	if (accountClass === "asset") {
 		newBalance +=
@@ -433,7 +419,6 @@ export async function recordTransaction(input: RecordTransactionInput): Promise<
 		newBalance += input.transaction_type === "payment" ? -input.amount : input.amount;
 	}
 
-	// Update contribution room if tracking
 	let updateData: any = { current_balance: newBalance };
 	if (
 		account.track_contribution_room &&
@@ -443,7 +428,6 @@ export async function recordTransaction(input: RecordTransactionInput): Promise<
 		updateData.contribution_room = account.contribution_room - input.amount;
 	}
 
-	// Insert transaction
 	const { data: transaction, error: transactionError } = await supabase
 		.from("account_transactions")
 		.insert({
@@ -458,7 +442,6 @@ export async function recordTransaction(input: RecordTransactionInput): Promise<
 		return null;
 	}
 
-	// Update account balance (and contribution room if applicable)
 	const { error: updateError } = await supabase
 		.from("accounts")
 		.update(updateData)
@@ -508,10 +491,6 @@ export async function getAccountTransactions(accountId: string, limit: number = 
 	return data || [];
 }
 
-// ============================================================================
-// History
-// ============================================================================
-
 /**
  * Get account history for charting
  */
@@ -543,10 +522,6 @@ export async function getAccountHistory(accountId: string, limit: number = 30): 
 
 	return data || [];
 }
-
-// ============================================================================
-// Interest Calculation (For scheduled jobs or manual triggers)
-// ============================================================================
 
 /**
  * Apply monthly interest to an account
@@ -598,9 +573,8 @@ import { createAdminClient } from "@/lib/supabase/server";
  */
 export async function processGlobalMonthlyInterest(): Promise<{ success: boolean; processed: number; error?: string }> {
 	try {
-		const supabase = createAdminClient(); // Service role client bypasses RLS
+		const supabase = createAdminClient();
 
-		// Find all accounts that earn interest
 		const { data: accounts, error } = await supabase
 			.from("accounts")
 			.select("id, current_balance, interest_rate, interest_type, user_id")
@@ -625,14 +599,6 @@ export async function processGlobalMonthlyInterest(): Promise<{ success: boolean
 				const interestAmount = account.current_balance * (account.interest_rate / 12);
 				if (interestAmount <= 0) continue;
 
-				// Use an RPC or service role client here ideally, but since recordTransaction relies on auth.getUser(),
-				// we need to use a direct insert to bypass RLS for a background job, OR ensure recordTransaction
-				// can accept a user_id or uses a service role client.
-				// For now, let's insert directly using the service role client context assuming this acts as admin.
-				// Wait, createClient in Next.js uses cookies, which requires a user session.
-				// If called from an API route with a secret, we should ideally use supabase admin client.
-				// Let's implement it with standard insert assuming RLS allows service role or we rely on a dedicated cron client later.
-
 				const { error: txError } = await supabase.from("account_transactions").insert({
 					account_id: account.id,
 					user_id: account.user_id,
@@ -644,7 +610,6 @@ export async function processGlobalMonthlyInterest(): Promise<{ success: boolean
 
 				if (txError) throw txError;
 
-				// Update balance
 				const { error: updateError } = await supabase
 					.from("accounts")
 					.update({ current_balance: account.current_balance + interestAmount })
@@ -655,7 +620,6 @@ export async function processGlobalMonthlyInterest(): Promise<{ success: boolean
 				processedCount++;
 			} catch (err) {
 				Logger.error(`Failed to process interest for account ${account.id}`, { error: err });
-				// Continue with other accounts
 			}
 		}
 
@@ -665,10 +629,6 @@ export async function processGlobalMonthlyInterest(): Promise<{ success: boolean
 		return { success: false, processed: 0, error: "Internal processing error" };
 	}
 }
-
-// ============================================================================
-// Recent Activity
-// ============================================================================
 
 export interface RecentActivityItem {
 	id: string;

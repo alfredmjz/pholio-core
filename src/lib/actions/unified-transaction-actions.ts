@@ -322,7 +322,7 @@ function calculateTransactionDetails(
 
 	if (input.type === "income") {
 		// Income increases assets, decreases liabilities (rare)
-		txType = isAsset ? "deposit" : "payment";
+		txType = input.transactionType || (isAsset ? "deposit" : "payment");
 		accountAmount = input.amount;
 	} else {
 		// Expense decreases assets, increases liabilities

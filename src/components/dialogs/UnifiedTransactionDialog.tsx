@@ -72,6 +72,7 @@ export function UnifiedTransactionDialog({
 	const [date, setDate] = useState(defaultDate || getTodayDateString());
 	const [categoryId, setCategoryId] = useState<string>(defaultCategoryId || "uncategorized");
 	const [accountId, setAccountId] = useState<string>(defaultAccountId || "none");
+	const [transactionType, setTransactionType] = useState<string>("deposit");
 	const [notes, setNotes] = useState("");
 	const [suggestedAccountInfo, setSuggestedAccountInfo] = useState<string | null>(null);
 	const [errors, setErrors] = useState<ValidationErrors>({});
@@ -84,11 +85,21 @@ export function UnifiedTransactionDialog({
 			setDate(defaultDate || getTodayDateString());
 			setCategoryId(defaultCategoryId || "uncategorized");
 			setAccountId(defaultAccountId || "none");
+			setTransactionType(defaultType === "income" ? "deposit" : "expense");
 			setNotes("");
 			setSuggestedAccountInfo(null);
 			setErrors({});
 		}
 	}, [open, defaultDate, defaultCategoryId, defaultAccountId, defaultType]);
+
+	// Reset transactionType when switching between income and expense
+	useEffect(() => {
+		if (type === "income" && transactionType === "expense") {
+			setTransactionType("deposit");
+		} else if (type === "expense") {
+			setTransactionType("expense");
+		}
+	}, [type]);
 
 	useEffect(() => {
 		if (!categoryId || categoryId === "uncategorized") {
@@ -167,6 +178,7 @@ export function UnifiedTransactionDialog({
 				type,
 				categoryId: categoryId === "uncategorized" ? null : categoryId,
 				accountId: accountId === "none" ? null : accountId,
+				transactionType: type === "income" ? (transactionType as any) : undefined,
 				notes: notes || undefined,
 			};
 
@@ -228,6 +240,22 @@ export function UnifiedTransactionDialog({
 							selectedBorderColor="border-blue-200"
 						/>
 					</FormSection>
+
+					{type === "income" && (
+						<div className="space-y-2">
+							<Label htmlFor="transactionType">Income Type</Label>
+							<Select value={transactionType} onValueChange={setTransactionType}>
+								<SelectTrigger className="h-10">
+									<SelectValue placeholder="Select type" />
+								</SelectTrigger>
+								<SelectContent>
+									<SelectItem value="deposit">💰 Deposit</SelectItem>
+									<SelectItem value="contribution">➕ Contribution</SelectItem>
+									<SelectItem value="refund">🔄 Refund</SelectItem>
+								</SelectContent>
+							</Select>
+						</div>
+					)}
 
 					<FormSection icon={<Info />} title="Transaction Details" variant="subtle">
 						<div className="space-y-2">

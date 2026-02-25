@@ -41,10 +41,10 @@ import { createClient as createSupabaseClient } from "@supabase/supabase-js";
  * Bypasses Row Level Security (RLS). Use ONLY in secure server contexts (e.g., Cron jobs, Webhooks).
  */
 export function createAdminClient() {
-	if (!process.env.SUPABASE_SERVICE_ROLE_KEY) {
-		throw new Error("Missing SUPABASE_SERVICE_ROLE_KEY environment variable");
+	if (!process.env.SUPABASE_SECRET_KEY) {
+		throw new Error("Missing SUPABASE_SECRET_KEY environment variable");
 	}
-	return createSupabaseClient(process.env.NEXT_PUBLIC_SUPABASE_URL!, process.env.SUPABASE_SERVICE_ROLE_KEY, {
+	return createSupabaseClient(process.env.NEXT_PUBLIC_SUPABASE_URL!, process.env.SUPABASE_SECRET_KEY, {
 		auth: {
 			autoRefreshToken: false,
 			persistSession: false,

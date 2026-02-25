@@ -1,6 +1,6 @@
 "use client";
 
-import { useState } from "react";
+import { useState, useEffect } from "react";
 import { Card } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
@@ -58,13 +58,27 @@ function CategoryRow({ category, usedColors, usedNames }: CategoryRowProps) {
 	const [nameValue, setNameValue] = useState(category.name);
 	const [selectedColor, setSelectedColor] = useState<string | null>(category.color || null);
 
-	const { attributes, listeners, setNodeRef, transform, transition, isDragging } = useSortable({ id: category.id });
+	const [isPressed, setIsPressed] = useState(false);
+	const [isMobile, setIsMobile] = useState(false);
+
+	useEffect(() => {
+		const checkMobile = () => setIsMobile(window.innerWidth < 768);
+		checkMobile();
+		window.addEventListener("resize", checkMobile);
+		return () => window.removeEventListener("resize", checkMobile);
+	}, []);
+
+	const isUncategorized = category.id === "00000000-0000-0000-0000-000000000000";
+	const { attributes, listeners, setNodeRef, transform, transition, isDragging } = useSortable({
+		id: category.id,
+	});
 
 	const style = {
 		transform: CSS.Transform.toString(transform),
 		transition,
 		zIndex: isDragging ? 50 : undefined,
 		position: "relative" as const,
+		cursor: isMobile ? (isDragging || isPressed ? "grabbing" : "grab") : "default",
 	};
 
 	const actualSpend = category.actual_spend || 0;
@@ -175,171 +189,195 @@ function CategoryRow({ category, usedColors, usedNames }: CategoryRowProps) {
 
 	return (
 		<>
-			<div ref={setNodeRef} style={style} className={cn("group px-6 py-3 bg-card", isDragging && "opacity-50")}>
-				<div className="flex items-center gap-2 md:gap-6">
-					<div
-						{...attributes}
-						{...listeners}
-						className={cn(
-							"absolute -left-12 top-1/2 -translate-y-1/2 p-2 text-muted-foreground/40 hover:text-foreground opacity-0 group-hover:opacity-100 transition-all z-20 touch-none hover:bg-muted rounded cursor-grab",
-							isDragging ? "opacity-100 cursor-grabbing" : "cursor-grab"
-						)}
-					>
-						<GripVertical className="h-4 w-4" />
-					</div>
+			<div
+				ref={setNodeRef}
+				style={style}
+				className={cn("group px-6 py-3 bg-card", isDragging && "opacity-50")}
+				{...(isMobile ? attributes : {})}
+				onPointerDown={() => setIsPressed(true)}
+				onPointerUp={() => setIsPressed(false)}
+				onPointerLeave={() => setIsPressed(false)}
+			>
+				{/* Mobile: make the entire content area the drag handle */}
+				<div {...(isMobile ? listeners : {})}>
+					<div className="flex items-center gap-2 md:gap-6">
+						{/* Desktop: show grip handle for all categories */}
+						<div
+							{...(!isMobile ? { ...attributes, ...listeners } : {})}
+							className={cn(
+								"hidden md:block absolute -left-12 top-1/2 -translate-y-1/2 p-2 text-muted-foreground/40 hover:text-foreground opacity-0 group-hover:opacity-100 transition-all z-20 touch-none hover:bg-muted rounded",
+								isDragging ? "cursor-grabbing" : "cursor-grab"
+							)}
+							style={{ cursor: isDragging || isPressed ? "grabbing" : "grab" }}
+						>
+							<GripVertical className="h-4 w-4" />
+						</div>
 
-					<div className="flex-1 flex items-center justify-between">
-						<div className="flex items-center gap-3">
-							<div className={cn("w-2 h-2 rounded-full flex-shrink-0", color.bg)} />
+						<div className="flex-1 flex items-center justify-between">
+							<div className="flex items-center gap-3">
+								<div className={cn("w-2 h-2 rounded-full flex-shrink-0", color.bg)} />
 
-							<div className="min-w-[120px]">
-								{isEditing ? (
-									<div className="flex flex-col gap-2">
-										<Input
-											value={nameValue}
-											onChange={(e) => setNameValue(e.target.value)}
-											onKeyDown={handleKeyDown}
-											className="h-7 text-sm font-medium w-48"
-											maxLength={100}
-											autoFocus
-										/>
-										<div className="flex flex-wrap gap-1.5 py-1">
-											{CATEGORY_PALETTE.map((c) => {
-												const colorName = Object.keys(COLOR_NAME_MAP).find(
-													(key) => COLOR_NAME_MAP[key] === CATEGORY_PALETTE.indexOf(c)
-												);
-												if (!colorName) return null;
+								<div className="min-w-[120px]">
+									{isEditing ? (
+										<div className="flex flex-col gap-2">
+											<Input
+												value={nameValue}
+												onChange={(e) => setNameValue(e.target.value)}
+												onKeyDown={handleKeyDown}
+												className="h-7 text-sm font-medium w-48"
+												maxLength={100}
+												autoFocus
+											/>
+											<div className="flex flex-wrap gap-1.5 py-1">
+												{CATEGORY_PALETTE.map((c) => {
+													const colorName = Object.keys(COLOR_NAME_MAP).find(
+														(key) => COLOR_NAME_MAP[key] === CATEGORY_PALETTE.indexOf(c)
+													);
+													if (!colorName) return null;
 
-												const isSelected = selectedColor === colorName;
-												// A color is "used" if it exists in the usedColors list AND it's not the category's current color
-												const isUsed = usedColors.includes(colorName) && colorName !== category.color;
+													const isSelected = selectedColor === colorName;
+													// A color is "used" if it exists in the usedColors list AND it's not the category's current color
+													const isUsed = usedColors.includes(colorName) && colorName !== category.color;
 
-												return (
-													<button
-														key={colorName}
-														type="button"
-														onClick={() => setSelectedColor(colorName)}
-														disabled={isUsed}
-														className={cn(
-															"w-5 h-5 rounded-full transition-all border relative",
-															c.bg,
-															isSelected ? "border-primary scale-110 shadow-sm" : "border-transparent",
-															isUsed ? "opacity-30 cursor-not-allowed" : "hover:scale-105"
-														)}
-														title={isUsed ? `${colorName} (Already in use)` : colorName}
-													>
-														{isSelected && (
-															<div className="w-full h-full flex items-center justify-center">
-																<div className="w-1 h-1 rounded-full bg-white shadow-sm" />
-															</div>
-														)}
-														{isUsed && (
-															<div className="absolute inset-0 flex items-center justify-center">
-																<div className="w-[1px] h-[60%] bg-white/50 rotate-45" />
-															</div>
-														)}
-													</button>
-												);
-											})}
+													return (
+														<button
+															key={colorName}
+															type="button"
+															onClick={() => setSelectedColor(colorName)}
+															disabled={isUsed}
+															className={cn(
+																"w-5 h-5 rounded-full transition-all border relative",
+																c.bg,
+																isSelected ? "border-primary scale-110 shadow-sm" : "border-transparent",
+																isUsed ? "opacity-30 cursor-not-allowed" : "hover:scale-105"
+															)}
+															title={isUsed ? `${colorName} (Already in use)` : colorName}
+														>
+															{isSelected && (
+																<div className="w-full h-full flex items-center justify-center">
+																	<div className="w-1 h-1 rounded-full bg-white shadow-sm" />
+																</div>
+															)}
+															{isUsed && (
+																<div className="absolute inset-0 flex items-center justify-center">
+																	<div className="w-[1px] h-[60%] bg-white/50 rotate-45" />
+																</div>
+															)}
+														</button>
+													);
+												})}
+											</div>
+											{selectedColor && selectedColor !== category.color && usedColors.includes(selectedColor) && (
+												<p className="text-[10px] text-error flex items-center gap-1">
+													<AlertCircle className="h-2 w-2" />
+													Taken
+												</p>
+											)}
 										</div>
-										{selectedColor && selectedColor !== category.color && usedColors.includes(selectedColor) && (
-											<p className="text-[10px] text-error flex items-center gap-1">
-												<AlertCircle className="h-2 w-2" />
-												Taken
-											</p>
-										)}
+									) : (
+										<div className="flex flex-col">
+											<span className="text-sm font-medium text-primary text-left">{category.name}</span>
+											{isUncategorized && (
+												<span className="text-[10px] text-muted-foreground">Transactions without a category</span>
+											)}
+										</div>
+									)}
+								</div>
+							</div>
+
+							<div className="text-right flex-shrink-0">
+								{isEditing ? (
+									<div className="flex items-center gap-1 justify-end">
+										<span className={cn("text-sm font-semibold", isOverBudget ? "text-error" : "text-primary")}>
+											{formatCurrency(actualSpend)}
+										</span>
+										<span className="text-sm text-primary">/</span>
+										<Input
+											type="number"
+											inputMode="decimal"
+											value={budgetValue}
+											onChange={(e) => setBudgetValue(e.target.value)}
+											onKeyDown={handleKeyDown}
+											className="h-6 w-20 text-sm"
+										/>
 									</div>
 								) : (
-									<span className="text-sm font-medium text-primary text-left">{category.name}</span>
+									<span className="text-sm">
+										<span className={cn("font-semibold", isOverBudget ? "text-error" : "text-primary")}>
+											{formatCurrency(actualSpend)}
+										</span>
+										{!isUncategorized && <span className="text-primary"> / {formatCurrency(category.budget_cap)}</span>}
+									</span>
 								)}
 							</div>
 						</div>
 
-						<div className="text-right flex-shrink-0">
-							{isEditing ? (
-								<div className="flex items-center gap-1 justify-end">
-									<span className={cn("text-sm font-semibold", isOverBudget ? "text-error" : "text-primary")}>
-										{formatCurrency(actualSpend)}
-									</span>
-									<span className="text-sm text-primary">/</span>
-									<Input
-										type="number"
-										inputMode="decimal"
-										value={budgetValue}
-										onChange={(e) => setBudgetValue(e.target.value)}
-										onKeyDown={handleKeyDown}
-										className="h-6 w-20 text-sm"
-									/>
-								</div>
-							) : (
-								<span className="text-sm">
-									<span className={cn("font-semibold", isOverBudget ? "text-error" : "text-primary")}>
-										{formatCurrency(actualSpend)}
-									</span>
-									<span className="text-primary"> / {formatCurrency(category.budget_cap)}</span>
-								</span>
-							)}
-						</div>
-					</div>
-
-					<div
-						className={cn(
-							"flex items-center gap-1 transition-opacity",
-							isEditing ? "opacity-100" : "opacity-0 group-hover:opacity-100"
-						)}
-					>
-						{isEditing ? (
-							<>
-								<Button size="sm" variant="ghost" className="h-6 w-6 p-0" onClick={handleSave}>
-									<Check className="h-3 w-3 text-success" />
-								</Button>
-								<Button size="sm" variant="ghost" className="h-6 w-6 p-0" onClick={handleCancel}>
-									<X className="h-3 w-3 text-primary" />
-								</Button>
-							</>
+						{isUncategorized ? (
+							/* Invisible spacer to align amount with other categories */
+							<div className="flex items-center gap-1 w-[52px] flex-shrink-0" />
 						) : (
-							<>
-								<Button
-									size="sm"
-									variant="ghost"
-									className="h-6 w-6 p-0 text-primary hover:text-primary"
-									onClick={() => setIsEditing(true)}
-								>
-									<Pencil className="h-3 w-3" />
-								</Button>
-								<Button
-									size="sm"
-									variant="ghost"
-									className="h-6 w-6 p-0 text-primary hover:text-primary"
-									onClick={() => setDeleteDialogOpen(true)}
-								>
-									<Trash2 className="h-3 w-3" />
-								</Button>
-							</>
+							<div
+								className={cn(
+									"flex items-center gap-1 transition-opacity",
+									isEditing ? "opacity-100" : "opacity-0 group-hover:opacity-100"
+								)}
+							>
+								{isEditing ? (
+									<>
+										<Button size="sm" variant="ghost" className="h-6 w-6 p-0" onClick={handleSave}>
+											<Check className="h-3 w-3 text-success" />
+										</Button>
+										<Button size="sm" variant="ghost" className="h-6 w-6 p-0" onClick={handleCancel}>
+											<X className="h-3 w-3 text-primary" />
+										</Button>
+									</>
+								) : (
+									<>
+										<Button
+											size="sm"
+											variant="ghost"
+											className="h-6 w-6 p-0 text-primary hover:text-primary"
+											onClick={() => setIsEditing(true)}
+										>
+											<Pencil className="h-3 w-3" />
+										</Button>
+										<Button
+											size="sm"
+											variant="ghost"
+											className="h-6 w-6 p-0 text-primary hover:text-primary"
+											onClick={() => setDeleteDialogOpen(true)}
+										>
+											<Trash2 className="h-3 w-3" />
+										</Button>
+									</>
+								)}
+							</div>
 						)}
 					</div>
-				</div>
 
-				<div className="mt-2 ml-5">
-					<div className="h-2 bg-muted rounded-full overflow-hidden">
-						<div
-							className={cn(
-								"h-full rounded-full transition-all duration-500",
-								utilization > 100 ? "bg-error" : color.bg
-							)}
-							style={{ width: `${Math.min(utilization, 100)}%` }}
-						/>
+					<div className="mt-2 ml-5">
+						<div className="h-2 bg-muted rounded-full overflow-hidden">
+							<div
+								className={cn(
+									"h-full rounded-full transition-all duration-500",
+									!isUncategorized && utilization > 100 ? "bg-error" : color.bg
+								)}
+								style={{ width: `${isUncategorized ? 100 : Math.min(utilization, 100)}%` }}
+							/>
+						</div>
 					</div>
 				</div>
 			</div>
 
-			<DeleteCategoryDialog
-				open={deleteDialogOpen}
-				onOpenChange={setDeleteDialogOpen}
-				onConfirm={handleConfirmDelete}
-				categoryName={category.name}
-				transactionCount={category.transaction_count}
-			/>
+			{!isUncategorized && (
+				<DeleteCategoryDialog
+					open={deleteDialogOpen}
+					onOpenChange={setDeleteDialogOpen}
+					onConfirm={handleConfirmDelete}
+					categoryName={category.name}
+					transactionCount={category.transaction_count}
+				/>
+			)}
 		</>
 	);
 }

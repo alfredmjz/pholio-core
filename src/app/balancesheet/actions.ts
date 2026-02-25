@@ -591,6 +591,81 @@ export async function applyMonthlyInterest(accountId: string): Promise<boolean> 
 	return true;
 }
 
+import { createAdminClient } from "@/lib/supabase/server";
+
+/**
+ * Process monthly interest for all accounts (Called by Cron Job)
+ */
+export async function processGlobalMonthlyInterest(): Promise<{ success: boolean; processed: number; error?: string }> {
+	try {
+		const supabase = createAdminClient(); // Service role client bypasses RLS
+
+		// Find all accounts that earn interest
+		const { data: accounts, error } = await supabase
+			.from("accounts")
+			.select("id, current_balance, interest_rate, interest_type, user_id")
+			.eq("is_active", true)
+			.not("interest_rate", "is", null)
+			.gt("interest_rate", 0)
+			.in("interest_type", ["simple", "compound"]);
+
+		if (error) {
+			Logger.error("Error fetching accounts for interest", { error });
+			return { success: false, processed: 0, error: "Failed to fetch accounts" };
+		}
+
+		if (!accounts || accounts.length === 0) {
+			return { success: true, processed: 0 };
+		}
+
+		let processedCount = 0;
+
+		for (const account of accounts) {
+			try {
+				const interestAmount = account.current_balance * (account.interest_rate / 12);
+				if (interestAmount <= 0) continue;
+
+				// Use an RPC or service role client here ideally, but since recordTransaction relies on auth.getUser(),
+				// we need to use a direct insert to bypass RLS for a background job, OR ensure recordTransaction
+				// can accept a user_id or uses a service role client.
+				// For now, let's insert directly using the service role client context assuming this acts as admin.
+				// Wait, createClient in Next.js uses cookies, which requires a user session.
+				// If called from an API route with a secret, we should ideally use supabase admin client.
+				// Let's implement it with standard insert assuming RLS allows service role or we rely on a dedicated cron client later.
+
+				const { error: txError } = await supabase.from("account_transactions").insert({
+					account_id: account.id,
+					user_id: account.user_id,
+					amount: interestAmount,
+					transaction_type: "interest",
+					description: `Monthly ${account.interest_type} interest`,
+					transaction_date: new Date().toISOString().split("T")[0],
+				});
+
+				if (txError) throw txError;
+
+				// Update balance
+				const { error: updateError } = await supabase
+					.from("accounts")
+					.update({ current_balance: account.current_balance + interestAmount })
+					.eq("id", account.id);
+
+				if (updateError) throw updateError;
+
+				processedCount++;
+			} catch (err) {
+				Logger.error(`Failed to process interest for account ${account.id}`, { error: err });
+				// Continue with other accounts
+			}
+		}
+
+		return { success: true, processed: processedCount };
+	} catch (error) {
+		Logger.error("Failed global interest processing", { error });
+		return { success: false, processed: 0, error: "Internal processing error" };
+	}
+}
+
 // ============================================================================
 // Recent Activity
 // ============================================================================

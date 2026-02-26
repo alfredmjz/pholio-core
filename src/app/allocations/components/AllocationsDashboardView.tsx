@@ -5,7 +5,6 @@ import { WifiOff, Loader2 } from "lucide-react";
 import { AllocationsHeader } from "./AllocationsHeader";
 import { BudgetSummaryCards } from "./BudgetSummaryCards";
 import { CategoryPerformance } from "./CategoryPerformance";
-import { AllocationDonutChart } from "./AllocationDonutChart";
 import { SpendingPace } from "./SpendingPace";
 import { SpendingAllocation } from "./SpendingAllocation";
 import { TransactionLedger } from "./TransactionLedger";

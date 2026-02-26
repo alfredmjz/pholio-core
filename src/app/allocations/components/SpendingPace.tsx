@@ -1,6 +1,6 @@
 import { useMemo } from "react";
-import { format, getDaysInMonth, isSameMonth, isAfter, isToday } from "date-fns";
-import { ComposedChart, Area, Line, XAxis, YAxis, Tooltip, ResponsiveContainer } from "recharts";
+import { format, getDaysInMonth, isSameMonth } from "date-fns";
+import { ComposedChart, Area, Line, XAxis, Tooltip, ResponsiveContainer } from "recharts";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { parseLocalDate } from "@/lib/date-utils";
 import type { MonthYear, Transaction } from "@/app/allocations/types";

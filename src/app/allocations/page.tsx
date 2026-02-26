@@ -12,8 +12,6 @@ import { getAccountsForSelector } from "@/lib/actions/unified-transaction-action
 import { getAllocationSettings } from "@/app/settings/actions";
 import { AllocationsLoadingSkeleton } from "./components/allocations-loading-skeleton";
 
-import { sampleAllocationSummary, sampleTransactions } from "@/mock-data/allocations";
-
 export default async function AllocationsPage({
 	searchParams,
 }: {

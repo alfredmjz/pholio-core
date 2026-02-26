@@ -845,3 +845,137 @@ export async function createTemplateFromAllocation(
 	revalidatePath("/allocations");
 	return template as AllocationTemplate;
 }
+
+export async function getHistoricalPace(
+	currentYear: number,
+	currentMonth: number
+): Promise<{ hasEnoughData: boolean; dailyPercentages: number[] }> {
+	if (process.env.NEXT_PUBLIC_USE_SAMPLE_DATA === "true") {
+		// Create a realistic-looking fake curve for mock data mode
+		const fakeCurve = Array.from({ length: 31 }, (_, i) => {
+			const dayNum = i + 1;
+			// A logarithmic-ish curve that spends faster early then slows down
+			return Math.min(100, Math.round(100 * Math.pow(dayNum / 31, 0.7)));
+		});
+		return { hasEnoughData: true, dailyPercentages: fakeCurve };
+	}
+
+	const supabase = await createClient();
+
+	const {
+		data: { user },
+	} = await supabase.auth.getUser();
+
+	if (!user) return { hasEnoughData: false, dailyPercentages: [] };
+
+	// 1. Fetch up to 6 most recent past allocations
+	const { data: pastAllocations, error: allocError } = await supabase
+		.from("allocations")
+		.select("id, year, month")
+		.eq("user_id", user.id)
+		.or(`year.lt.${currentYear},and(year.eq.${currentYear},month.lt.${currentMonth})`)
+		.order("year", { ascending: false })
+		.order("month", { ascending: false })
+		.limit(6);
+
+	if (allocError || !pastAllocations || pastAllocations.length === 0) {
+		return { hasEnoughData: false, dailyPercentages: [] };
+	}
+
+	const allocIds = pastAllocations.map((a) => a.id);
+
+	// 2. Fetch categories to compute total budget for these past months
+	const { data: categories } = await supabase
+		.from("allocation_categories")
+		.select("allocation_id, budget_cap")
+		.in("allocation_id", allocIds);
+
+	const budgetMap = new Map<string, number>();
+	categories?.forEach((c) => {
+		budgetMap.set(c.allocation_id, (budgetMap.get(c.allocation_id) || 0) + Number(c.budget_cap));
+	});
+
+	// Filter allocations to only those with > 0 budget
+	const validAllocations = pastAllocations.filter((a) => (budgetMap.get(a.id) || 0) > 0);
+
+	if (validAllocations.length === 0) {
+		return { hasEnoughData: false, dailyPercentages: [] };
+	}
+
+	// 3. Fetch expenses for these past months
+	const monthConditions = validAllocations
+		.map((a) => {
+			const start = `${a.year}-${String(a.month).padStart(2, "0")}-01`;
+			const end = new Date(a.year, a.month, 0);
+			const endStr = `${a.year}-${String(a.month).padStart(2, "0")}-${end.getDate()}`;
+			return `and(transaction_date.gte.${start},transaction_date.lte.${endStr})`;
+		})
+		.join(",");
+
+	const { data: transactions } = await supabase
+		.from("transactions")
+		.select("amount, transaction_date")
+		.eq("user_id", user.id)
+		.lt("amount", 0) // Only expenses
+		.or(monthConditions);
+
+	// 4. Calculate daily spend percentages per month
+	interface PastMonthStats {
+		totalBudget: number;
+		daysInMonth: number;
+		dailySpend: number[];
+	}
+
+	const monthStats = new Map<string, PastMonthStats>();
+	validAllocations.forEach((a) => {
+		const days = new Date(a.year, a.month, 0).getDate();
+		monthStats.set(`${a.year}-${a.month}`, {
+			totalBudget: budgetMap.get(a.id) || 0,
+			daysInMonth: days,
+			dailySpend: new Array(days).fill(0),
+		});
+	});
+
+	transactions?.forEach((t) => {
+		// Use parseLocalDate to avoid timezone shifts throwing dates off
+		const date = parseLocalDate(t.transaction_date);
+		const y = date.getFullYear();
+		const m = date.getMonth() + 1;
+		const d = date.getDate();
+		const key = `${y}-${m}`;
+		const stats = monthStats.get(key);
+		if (stats && d >= 1 && d <= stats.daysInMonth) {
+			stats.dailySpend[d - 1] += Math.abs(t.amount);
+		}
+	});
+
+	const dailyPercentageSums = new Array(31).fill(0);
+	const dailyPercentageCounts = new Array(31).fill(0);
+
+	monthStats.forEach((stats) => {
+		let cumulativeSpend = 0;
+		for (let i = 0; i < stats.daysInMonth; i++) {
+			cumulativeSpend += stats.dailySpend[i];
+			const pct = (cumulativeSpend / stats.totalBudget) * 100;
+			dailyPercentageSums[i] += pct;
+			dailyPercentageCounts[i] += 1;
+		}
+	});
+
+	const averageDailyPercentages = dailyPercentageSums.map((sum, i) => {
+		if (dailyPercentageCounts[i] === 0) return 0;
+		return sum / dailyPercentageCounts[i];
+	});
+
+	// Make sure days 29-31 don't drop to 0 if no months have those lengths by carrying over last known percentage
+	let lastValidPct = 0;
+	for (let i = 0; i < averageDailyPercentages.length; i++) {
+		if (dailyPercentageCounts[i] > 0) {
+			lastValidPct = averageDailyPercentages[i];
+		} else {
+			averageDailyPercentages[i] = lastValidPct;
+		}
+	}
+
+	return { hasEnoughData: true, dailyPercentages: averageDailyPercentages };
+}

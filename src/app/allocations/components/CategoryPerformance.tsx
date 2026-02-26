@@ -22,7 +22,8 @@ import {
 	DndContext,
 	closestCenter,
 	KeyboardSensor,
-	PointerSensor,
+	MouseSensor,
+	TouchSensor,
 	useSensor,
 	useSensors,
 	DragEndEvent,
@@ -31,11 +32,11 @@ import {
 	arrayMove,
 	SortableContext,
 	sortableKeyboardCoordinates,
-	verticalListSortingStrategy,
+	rectSortingStrategy,
 	useSortable,
 } from "@dnd-kit/sortable";
 import { CSS } from "@dnd-kit/utilities";
-import { restrictToVerticalAxis, restrictToParentElement } from "@dnd-kit/modifiers";
+import { restrictToParentElement } from "@dnd-kit/modifiers";
 
 interface CategoryPerformanceProps {
 	categories: AllocationCategory[];
@@ -45,13 +46,13 @@ interface CategoryPerformanceProps {
 	usedNames?: string[];
 }
 
-interface CategoryRowProps {
+interface CategoryCardProps {
 	category: AllocationCategory;
 	usedColors: string[];
 	usedNames: string[];
 }
 
-function CategoryRow({ category, usedColors, usedNames }: CategoryRowProps) {
+function CategoryCard({ category, usedColors, usedNames }: CategoryCardProps) {
 	const [isEditing, setIsEditing] = useState(false);
 	const [deleteDialogOpen, setDeleteDialogOpen] = useState(false);
 	const [budgetValue, setBudgetValue] = useState(category.budget_cap.toString());
@@ -69,21 +70,20 @@ function CategoryRow({ category, usedColors, usedNames }: CategoryRowProps) {
 	}, []);
 
 	const isUncategorized = category.id === "00000000-0000-0000-0000-000000000000";
-	const { attributes, listeners, setNodeRef, transform, transition, isDragging } = useSortable({
+	const { attributes, listeners, setNodeRef, transform, isDragging } = useSortable({
 		id: category.id,
 	});
 
 	const style = {
 		transform: CSS.Transform.toString(transform),
-		transition,
 		zIndex: isDragging ? 50 : undefined,
 		position: "relative" as const,
-		cursor: isMobile ? (isDragging || isPressed ? "grabbing" : "grab") : "default",
 	};
 
 	const actualSpend = category.actual_spend || 0;
 	const utilization = category.budget_cap > 0 ? (actualSpend / category.budget_cap) * 100 : 0;
 	const isOverBudget = utilization > 100;
+	const amountRemainingOrOver = Math.abs(category.budget_cap - actualSpend);
 
 	const color = getCategoryColor(category.id, category.color, category.display_order);
 
@@ -109,7 +109,6 @@ function CategoryRow({ category, usedColors, usedNames }: CategoryRowProps) {
 
 		if (hasError) return;
 
-		// Uniqueness check for name
 		if (
 			newName.toLowerCase() !== category.name.toLowerCase() &&
 			usedNames.some((n) => n.toLowerCase() === newName.toLowerCase())
@@ -120,7 +119,6 @@ function CategoryRow({ category, usedColors, usedNames }: CategoryRowProps) {
 			return;
 		}
 
-		// Uniqueness check for editing color
 		if (selectedColor && selectedColor !== category.color && usedColors.includes(selectedColor)) {
 			toast.error("Color unavailable", {
 				description: "This color is already in use by another category.",
@@ -128,7 +126,6 @@ function CategoryRow({ category, usedColors, usedNames }: CategoryRowProps) {
 			return;
 		}
 
-		// All uniqueness checks passed
 		const [budgetSuccess, nameSuccess, colorSuccess] = await Promise.all([
 			updateCategoryBudget(category.id, newBudget),
 			updateCategoryName(category.id, newName),
@@ -189,185 +186,326 @@ function CategoryRow({ category, usedColors, usedNames }: CategoryRowProps) {
 
 	return (
 		<>
-			<div
+			<Card
 				ref={setNodeRef}
 				style={style}
-				className={cn("group px-6 py-3 bg-card", isDragging && "opacity-50")}
-				{...(isMobile ? attributes : {})}
+				{...attributes}
+				{...(isEditing ? {} : listeners)}
+				className={cn(
+					"group relative hover:shadow-md hover:border-primary border-border bg-card overflow-hidden w-full outline-none",
+					isDragging && "opacity-50 ring-2 ring-primary",
+					!isDragging && !isEditing && "cursor-grab active:cursor-grabbing",
+					// Mobile vs Desktop Layout
+					"flex flex-col md:justify-between", // base flex layout
+					// Row style on mobile
+					"p-3 md:p-0 rounded-lg md:rounded-xl md:ring-1 md:ring-border/50 md:hover:ring-primary h-auto border md:border-border/60"
+				)}
 				onPointerDown={() => setIsPressed(true)}
 				onPointerUp={() => setIsPressed(false)}
 				onPointerLeave={() => setIsPressed(false)}
 			>
-				{/* Mobile: make the entire content area the drag handle */}
-				<div {...(isMobile ? listeners : {})}>
-					<div className="flex items-center gap-2 md:gap-6">
-						{/* Desktop: show grip handle for all categories */}
-						<div
-							{...(!isMobile ? { ...attributes, ...listeners } : {})}
-							className={cn(
-								"hidden md:block absolute -left-12 top-1/2 -translate-y-1/2 p-2 text-muted-foreground/40 hover:text-foreground opacity-0 group-hover:opacity-100 transition-all z-20 touch-none hover:bg-muted rounded",
-								isDragging ? "cursor-grabbing" : "cursor-grab"
+				{/* ---------------- MOBILE ROW LAYOUT (< 768px) ---------------- */}
+				<div className="md:hidden relative z-10 flex items-center justify-between gap-3">
+					{/* Left side: color indicator, name, progress */}
+					<div className="flex items-center gap-3 flex-1 min-w-0">
+						<div className={cn("w-2 h-2 rounded-full flex-shrink-0", color.bg)} />
+
+						<div className="flex flex-col flex-1 min-w-0">
+							{isEditing ? (
+								<div className="flex flex-col gap-1 w-full max-w-[200px]">
+									<Input
+										value={nameValue}
+										onChange={(e) => setNameValue(e.target.value)}
+										onKeyDown={handleKeyDown}
+										className="h-6 text-sm font-medium w-full px-2"
+										maxLength={100}
+										autoFocus
+									/>
+									<div className="flex flex-wrap gap-1 py-0.5 max-w-[150px]">
+										{CATEGORY_PALETTE.map((c) => {
+											const colorName = Object.keys(COLOR_NAME_MAP).find(
+												(key) => COLOR_NAME_MAP[key] === CATEGORY_PALETTE.indexOf(c)
+											);
+											if (!colorName) return null;
+											const isSelected = selectedColor === colorName;
+											const isUsed = usedColors.includes(colorName) && colorName !== category.color;
+
+											return (
+												<button
+													key={colorName}
+													type="button"
+													onClick={() => setSelectedColor(colorName)}
+													disabled={isUsed}
+													className={cn(
+														"w-4 h-4 rounded-full border relative",
+														c.bg,
+														isSelected ? "border-primary scale-110 shadow-sm" : "border-transparent",
+														isUsed ? "opacity-30 cursor-not-allowed" : ""
+													)}
+												>
+													{isSelected && <div className="w-1 h-1 absolute inset-0 m-auto rounded-full bg-white" />}
+												</button>
+											);
+										})}
+									</div>
+								</div>
+							) : (
+								<span className="text-sm font-semibold text-foreground truncate">{category.name}</span>
 							)}
-							style={{ cursor: isDragging || isPressed ? "grabbing" : "grab" }}
-						>
-							<GripVertical className="h-4 w-4" />
+
+							{/* Progress Bar under name on mobile */}
+							<div className="flex items-center gap-2 mt-1">
+								<div className="h-1 flex-1 bg-muted rounded-full overflow-hidden">
+									<div
+										className={cn(
+											"h-full rounded-full transition-all duration-500",
+											!isUncategorized && isOverBudget
+												? "bg-error"
+												: isUncategorized
+													? "bg-muted-foreground/30"
+													: color.bg
+										)}
+										style={{ width: `${isUncategorized ? 100 : Math.min(utilization, 100)}%` }}
+									/>
+								</div>
+								<span className="text-[10px] text-muted-foreground whitespace-nowrap">
+									{isUncategorized ? "Unbudgeted" : `${Math.min(100, Math.round(utilization))}% used`}
+								</span>
+							</div>
 						</div>
+					</div>
 
-						<div className="flex-1 flex items-center justify-between">
+					{/* Right side: Numbers and Actions */}
+					<div className="flex flex-col flex-shrink-0 items-end gap-1">
+						{isEditing ? (
+							<div className="flex flex-col gap-1 items-end">
+								<div className="flex items-center gap-1">
+									<span className="text-xs font-semibold">{formatCurrency(actualSpend)}</span>
+									<span className="text-xs text-muted-foreground">/</span>
+									<Input
+										type="number"
+										inputMode="decimal"
+										value={budgetValue}
+										onChange={(e) => setBudgetValue(e.target.value)}
+										onKeyDown={handleKeyDown}
+										className="h-6 w-16 text-xs text-right px-1"
+									/>
+								</div>
+								<div className="flex items-center gap-1">
+									<Button size="icon" variant="ghost" className="h-6 w-6 text-success" onClick={handleSave}>
+										<Check className="h-3.5 w-3.5" />
+									</Button>
+									<Button size="icon" variant="ghost" className="h-6 w-6 text-muted-foreground" onClick={handleCancel}>
+										<X className="h-3.5 w-3.5" />
+									</Button>
+								</div>
+							</div>
+						) : (
 							<div className="flex items-center gap-3">
-								<div className={cn("w-2 h-2 rounded-full flex-shrink-0", color.bg)} />
+								<div className="flex flex-col items-end">
+									<span className={cn("text-sm font-bold", isOverBudget ? "text-error" : "text-foreground")}>
+										{formatCurrency(actualSpend)}
+									</span>
+									{!isUncategorized && (
+										<span className="text-[10px] text-muted-foreground">/ {formatCurrency(category.budget_cap)}</span>
+									)}
+								</div>
 
-								<div className="min-w-[120px]">
+								{!isUncategorized && (
+									<div className="flex flex-col gap-0.5">
+										<Button
+											size="icon"
+											variant="ghost"
+											className="h-6 w-6 text-muted-foreground hover:bg-primary/10 hover:text-primary"
+											onClick={() => setIsEditing(true)}
+										>
+											<Pencil className="h-3 w-3" />
+										</Button>
+										<Button
+											size="icon"
+											variant="ghost"
+											className="h-6 w-6 text-muted-foreground hover:bg-error/10 hover:text-error"
+											onClick={() => setDeleteDialogOpen(true)}
+										>
+											<Trash2 className="h-3 w-3" />
+										</Button>
+									</div>
+								)}
+							</div>
+						)}
+					</div>
+				</div>
+
+				{/* ---------------- DESKTOP CARD LAYOUT (>= 768px) ---------------- */}
+				<div className="hidden md:flex flex-col h-full">
+					<div className="p-4 flex flex-col gap-4">
+						{/* Header: Name and Budget */}
+						<div className="flex justify-between items-start">
+							<div className="flex items-center gap-2 max-w-[60%]">
+								<div className={cn("w-1.5 h-6 rounded-full flex-shrink-0", color.bg)} />
+								<div className="flex flex-col">
 									{isEditing ? (
 										<div className="flex flex-col gap-2">
 											<Input
 												value={nameValue}
 												onChange={(e) => setNameValue(e.target.value)}
 												onKeyDown={handleKeyDown}
-												className="h-7 text-sm font-medium w-48"
+												className="h-7 text-sm font-medium w-full"
 												maxLength={100}
 												autoFocus
 											/>
-											<div className="flex flex-wrap gap-1.5 py-1">
-												{CATEGORY_PALETTE.map((c) => {
-													const colorName = Object.keys(COLOR_NAME_MAP).find(
-														(key) => COLOR_NAME_MAP[key] === CATEGORY_PALETTE.indexOf(c)
-													);
-													if (!colorName) return null;
-
-													const isSelected = selectedColor === colorName;
-													// A color is "used" if it exists in the usedColors list AND it's not the category's current color
-													const isUsed = usedColors.includes(colorName) && colorName !== category.color;
-
-													return (
-														<button
-															key={colorName}
-															type="button"
-															onClick={() => setSelectedColor(colorName)}
-															disabled={isUsed}
-															className={cn(
-																"w-5 h-5 rounded-full transition-all border relative",
-																c.bg,
-																isSelected ? "border-primary scale-110 shadow-sm" : "border-transparent",
-																isUsed ? "opacity-30 cursor-not-allowed" : "hover:scale-105"
-															)}
-															title={isUsed ? `${colorName} (Already in use)` : colorName}
-														>
-															{isSelected && (
-																<div className="w-full h-full flex items-center justify-center">
-																	<div className="w-1 h-1 rounded-full bg-white shadow-sm" />
-																</div>
-															)}
-															{isUsed && (
-																<div className="absolute inset-0 flex items-center justify-center">
-																	<div className="w-[1px] h-[60%] bg-white/50 rotate-45" />
-																</div>
-															)}
-														</button>
-													);
-												})}
-											</div>
-											{selectedColor && selectedColor !== category.color && usedColors.includes(selectedColor) && (
-												<p className="text-[10px] text-error flex items-center gap-1">
-													<AlertCircle className="h-2 w-2" />
-													Taken
-												</p>
-											)}
 										</div>
 									) : (
-										<div className="flex flex-col">
-											<span className="text-sm font-medium text-primary text-left">{category.name}</span>
-											{isUncategorized && (
-												<span className="text-[10px] text-muted-foreground">Transactions without a category</span>
-											)}
-										</div>
+										<span className="text-sm font-bold text-foreground truncate">{category.name}</span>
 									)}
+									<span className="text-xs text-muted-foreground mt-0.5">
+										{isUncategorized ? "No budget set" : `${Math.min(100, Math.round(utilization))}% used`}
+									</span>
 								</div>
 							</div>
 
-							<div className="text-right flex-shrink-0">
+							<div className="flex flex-col items-end flex-shrink-0">
 								{isEditing ? (
 									<div className="flex items-center gap-1 justify-end">
-										<span className={cn("text-sm font-semibold", isOverBudget ? "text-error" : "text-primary")}>
-											{formatCurrency(actualSpend)}
-										</span>
-										<span className="text-sm text-primary">/</span>
 										<Input
 											type="number"
 											inputMode="decimal"
 											value={budgetValue}
 											onChange={(e) => setBudgetValue(e.target.value)}
 											onKeyDown={handleKeyDown}
-											className="h-6 w-20 text-sm"
+											className="h-7 w-20 text-sm font-bold"
 										/>
 									</div>
 								) : (
-									<span className="text-sm">
-										<span className={cn("font-semibold", isOverBudget ? "text-error" : "text-primary")}>
-											{formatCurrency(actualSpend)}
-										</span>
-										{!isUncategorized && <span className="text-primary"> / {formatCurrency(category.budget_cap)}</span>}
-									</span>
+									<>
+										<span className="text-sm font-bold text-foreground">{formatCurrency(actualSpend)}</span>
+										{!isUncategorized && (
+											<span className="text-[10px] text-muted-foreground mt-0.5">
+												of {formatCurrency(category.budget_cap)}
+											</span>
+										)}
+									</>
 								)}
 							</div>
 						</div>
 
-						{isUncategorized ? (
-							/* Invisible spacer to align amount with other categories */
-							<div className="flex items-center gap-1 w-[52px] flex-shrink-0" />
-						) : (
-							<div
-								className={cn(
-									"flex items-center gap-1 transition-opacity",
-									isEditing ? "opacity-100" : "opacity-0 group-hover:opacity-100"
-								)}
-							>
-								{isEditing ? (
-									<>
-										<Button size="sm" variant="ghost" className="h-6 w-6 p-0" onClick={handleSave}>
-											<Check className="h-3 w-3 text-success" />
-										</Button>
-										<Button size="sm" variant="ghost" className="h-6 w-6 p-0" onClick={handleCancel}>
-											<X className="h-3 w-3 text-primary" />
-										</Button>
-									</>
-								) : (
-									<>
-										<Button
-											size="sm"
-											variant="ghost"
-											className="h-6 w-6 p-0 text-primary hover:text-primary"
-											onClick={() => setIsEditing(true)}
+						{isEditing && (
+							<div className="flex flex-wrap gap-1.5 py-1">
+								{CATEGORY_PALETTE.map((c) => {
+									const colorName = Object.keys(COLOR_NAME_MAP).find(
+										(key) => COLOR_NAME_MAP[key] === CATEGORY_PALETTE.indexOf(c)
+									);
+									if (!colorName) return null;
+
+									const isSelected = selectedColor === colorName;
+									const isUsed = usedColors.includes(colorName) && colorName !== category.color;
+
+									return (
+										<button
+											key={colorName}
+											type="button"
+											onClick={() => setSelectedColor(colorName)}
+											disabled={isUsed}
+											className={cn(
+												"w-5 h-5 rounded-full transition-all border relative",
+												c.bg,
+												isSelected ? "border-primary scale-110 shadow-sm" : "border-transparent",
+												isUsed ? "opacity-30 cursor-not-allowed" : "hover:scale-105"
+											)}
+											title={isUsed ? `${colorName} (Already in use)` : colorName}
 										>
-											<Pencil className="h-3 w-3" />
-										</Button>
-										<Button
-											size="sm"
-											variant="ghost"
-											className="h-6 w-6 p-0 text-primary hover:text-primary"
-											onClick={() => setDeleteDialogOpen(true)}
-										>
-											<Trash2 className="h-3 w-3" />
-										</Button>
-									</>
+											{isSelected && (
+												<div className="w-full h-full flex items-center justify-center">
+													<div className="w-1 h-1 rounded-full bg-white shadow-sm" />
+												</div>
+											)}
+											{isUsed && (
+												<div className="absolute inset-0 flex items-center justify-center">
+													<div className="w-[1px] h-[60%] bg-white/50 rotate-45" />
+												</div>
+											)}
+										</button>
+									);
+								})}
+								{selectedColor && selectedColor !== category.color && usedColors.includes(selectedColor) && (
+									<p className="text-[10px] text-error flex items-center gap-1 ml-auto">
+										<AlertCircle className="h-2 w-2" />
+										Taken
+									</p>
 								)}
 							</div>
 						)}
-					</div>
 
-					<div className="mt-2 ml-5">
-						<div className="h-2 bg-muted rounded-full overflow-hidden">
+						{/* Progress Bar */}
+						<div className="h-1.5 w-full bg-muted rounded-full overflow-hidden mt-1">
 							<div
 								className={cn(
 									"h-full rounded-full transition-all duration-500",
-									!isUncategorized && utilization > 100 ? "bg-error" : color.bg
+									!isUncategorized && isOverBudget ? "bg-error" : isUncategorized ? "bg-muted-foreground/30" : color.bg
 								)}
 								style={{ width: `${isUncategorized ? 100 : Math.min(utilization, 100)}%` }}
 							/>
 						</div>
 					</div>
+
+					{/* Footer: Status and Actions */}
+					<div className="p-4 pt-1 flex justify-between items-center relative z-10">
+						<div className="flex items-center text-xs font-medium">
+							{isUncategorized ? (
+								<span className="text-muted-foreground">Unbudgeted</span>
+							) : isOverBudget ? (
+								<span className="text-error flex items-center gap-1">{formatCurrency(amountRemainingOrOver)} over</span>
+							) : (
+								<span className="text-success">{formatCurrency(amountRemainingOrOver)} left</span>
+							)}
+						</div>
+
+						<div
+							className={cn(
+								"flex items-center gap-1 transition-opacity",
+								isEditing ? "opacity-100" : "opacity-0 group-hover:opacity-100"
+							)}
+						>
+							{isEditing ? (
+								<>
+									<Button size="sm" variant="ghost" className="h-6 w-6 p-0 hover:bg-success/20" onClick={handleSave}>
+										<Check className="h-3.5 w-3.5 text-success" />
+									</Button>
+									<Button size="sm" variant="ghost" className="h-6 w-6 p-0 hover:bg-muted" onClick={handleCancel}>
+										<X className="h-3.5 w-3.5 text-muted-foreground" />
+									</Button>
+								</>
+							) : !isUncategorized ? (
+								<>
+									<Button
+										size="sm"
+										variant="ghost"
+										className="h-6 w-6 p-0 text-muted-foreground hover:text-primary hover:bg-primary/10"
+										onClick={() => setIsEditing(true)}
+									>
+										<Pencil className="h-3 w-3" />
+									</Button>
+									<Button
+										size="sm"
+										variant="ghost"
+										className="h-6 w-6 p-0 text-muted-foreground hover:text-error hover:bg-error/10"
+										onClick={() => setDeleteDialogOpen(true)}
+									>
+										<Trash2 className="h-3 w-3" />
+									</Button>
+								</>
+							) : null}
+						</div>
+
+						{/* Warning icon if over budget - static visual marker */}
+						{!isEditing && !isUncategorized && isOverBudget && (
+							<div className="absolute right-4 bottom-4 pointer-events-none text-error opacity-80 group-hover:opacity-0 transition-opacity">
+								<AlertCircle className="h-3.5 w-3.5" />
+							</div>
+						)}
+					</div>
 				</div>
-			</div>
+			</Card>
 
 			{!isUncategorized && (
 				<DeleteCategoryDialog
@@ -389,15 +527,22 @@ export function CategoryPerformance({
 	usedColors: propUsedColors,
 	usedNames: propUsedNames,
 }: CategoryPerformanceProps) {
+	const [activeId, setActiveId] = useState<string | null>(null);
 	const { optimisticallyReorderCategories } = useAllocationContext();
 
 	const usedColors = propUsedColors || (categories.map((c) => c.color).filter(Boolean) as string[]);
 	const usedNames = propUsedNames || categories.map((c) => c.name);
 
 	const sensors = useSensors(
-		useSensor(PointerSensor, {
+		useSensor(MouseSensor, {
 			activationConstraint: {
-				distance: 8,
+				distance: 1,
+			},
+		}),
+		useSensor(TouchSensor, {
+			activationConstraint: {
+				delay: 200,
+				tolerance: 5,
 			},
 		}),
 		useSensor(KeyboardSensor, {
@@ -405,7 +550,12 @@ export function CategoryPerformance({
 		})
 	);
 
+	const handleDragStart = (event: any) => {
+		setActiveId(event.active.id);
+	};
+
 	const handleDragEnd = async (event: DragEndEvent) => {
+		setActiveId(null);
 		const { active, over } = event;
 
 		if (!over || active.id === over.id) {
@@ -435,52 +585,63 @@ export function CategoryPerformance({
 
 	if (categories.length === 0) {
 		return (
-			<Card className={cn("h-full p-6 flex flex-col", className)}>
-				<div className="flex items-center justify-between mb-4 flex-shrink-0">
+			<div className={cn("w-full flex flex-col gap-4", className)}>
+				<div className="flex items-center justify-between px-2 md:px-0">
 					<h3 className="text-sm font-semibold text-primary uppercase tracking-wide">Category Performance</h3>
 					<Button size="sm" onClick={onAddCategory} className="gap-1.5 bg-green-600 hover:bg-green-700 text-white">
 						<Plus className="h-4 w-4" />
 						Add
 					</Button>
 				</div>
-				<div className="flex-1 flex items-center justify-center">
+				<Card className="p-12 flex items-center justify-center border-dashed">
 					<div className="text-center">
-						<p className="text-sm text-primary mb-4">No categories yet. Add your first category to start tracking.</p>
+						<p className="text-sm text-muted-foreground mb-4">
+							No categories yet. Add your first category to start tracking.
+						</p>
 						<Button onClick={onAddCategory} className="gap-2 bg-green-600 hover:bg-green-700 text-white">
 							<Plus className="h-4 w-4" />
 							Add Category
 						</Button>
 					</div>
-				</div>
-			</Card>
+				</Card>
+			</div>
 		);
 	}
 
 	return (
-		<Card className={cn("h-full py-6 flex flex-col", className)}>
-			<div className="flex items-center justify-between px-6 mb-4 flex-shrink-0">
-				<h3 className="text-sm font-semibold text-primary uppercase tracking-wide">Category Performance</h3>
+		<div className={cn("w-full flex flex-col gap-4", className)}>
+			{/* Global style injection while dragging to force the cursor to be a grabbing hand everywhere */}
+			{activeId && (
+				<style>{`
+					body * {
+						cursor: grabbing !important;
+					}
+				`}</style>
+			)}
+			<div className="flex items-center justify-between px-2 md:px-0">
+				<h3 className="text-sm font-semibold text-foreground tracking-tight">Category Performance</h3>
 				<Button variant="outline" size="sm" onClick={onAddCategory} className="gap-1.5">
 					<Plus className="h-4 w-4" />
-					Add
+					Add Category
 				</Button>
 			</div>
 
-			<div className="flex-1 divide-y-0">
-				<DndContext
-					sensors={sensors}
-					collisionDetection={closestCenter}
-					onDragEnd={handleDragEnd}
-					modifiers={[restrictToVerticalAxis]}
-				>
-					<SortableContext items={categories.map((c) => c.id)} strategy={verticalListSortingStrategy}>
+			<DndContext
+				sensors={sensors}
+				collisionDetection={closestCenter}
+				onDragStart={handleDragStart}
+				onDragEnd={handleDragEnd}
+				modifiers={[restrictToParentElement]}
+			>
+				<div className="flex flex-col gap-3 md:grid md:grid-cols-2 lg:grid-cols-3 xl:grid-cols-4 md:gap-4">
+					<SortableContext items={categories.map((c) => c.id)} strategy={rectSortingStrategy}>
 						{categories.map((category) => (
-							<CategoryRow key={category.id} category={category} usedColors={usedColors} usedNames={usedNames} />
+							<CategoryCard key={category.id} category={category} usedColors={usedColors} usedNames={usedNames} />
 						))}
 					</SortableContext>
-				</DndContext>
-			</div>
-		</Card>
+				</div>
+			</DndContext>
+		</div>
 	);
 }
 

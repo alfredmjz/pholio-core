@@ -9,10 +9,17 @@ interface SpendingPaceProps {
 	currentMonth: MonthYear;
 	transactions: Transaction[];
 	totalBudget: number;
+	historicalPace?: { hasEnoughData: boolean; dailyPercentages: number[] };
 	className?: string;
 }
 
-export function SpendingPace({ currentMonth, transactions, totalBudget, className }: SpendingPaceProps) {
+export function SpendingPace({
+	currentMonth,
+	transactions,
+	totalBudget,
+	historicalPace,
+	className,
+}: SpendingPaceProps) {
 	const { data, pacePercentage, isFaster } = useMemo(() => {
 		const targetMonthDate = new Date(currentMonth.year, currentMonth.month - 1, 1);
 		const daysInMonth = getDaysInMonth(targetMonthDate);
@@ -23,12 +30,7 @@ export function SpendingPace({ currentMonth, transactions, totalBudget, classNam
 		const spendByDay = new Array(daysInMonth).fill(0);
 
 		transactions.forEach((t) => {
-			if (t.amount > 0) return; // Skip income/positive adjustments if any, assuming expenses are negative in raw data, or wait:
-			// In allocations, typical transactions are usually positive representations of spend or negative?
-			// Let's assume absolute amounts for actual spend as it's common.
-			// Let's check: Actual spend is usually positive in UI. Let's just sum Math.abs(t.amount) or if expenses are positive, t.amount.
-			// Let's just use t.amount but we might want to check if it's income. Let's assume t.amount is positive for expenses.
-			// If there's negative, it might be a refund. Let's just add it as is (t.amount).
+			if (t.amount > 0) return; // Skip income
 
 			const tDate = parseLocalDate(t.transaction_date);
 			// only include transactions in the current target month
@@ -50,7 +52,14 @@ export function SpendingPace({ currentMonth, transactions, totalBudget, classNam
 			const isFuture = isCurrentMonth && dayNum > today.getDate();
 
 			cumulativeSpend += spendByDay[i];
-			const idealSpend = (totalBudget / daysInMonth) * dayNum;
+
+			let idealSpend = 0;
+			if (historicalPace?.hasEnoughData && historicalPace.dailyPercentages) {
+				const pct = historicalPace.dailyPercentages[dayNum - 1] || 0;
+				idealSpend = totalBudget * (pct / 100);
+			} else {
+				idealSpend = (totalBudget / daysInMonth) * dayNum;
+			}
 
 			chartData.push({
 				day: `Day ${dayNum}`,
@@ -108,9 +117,14 @@ export function SpendingPace({ currentMonth, transactions, totalBudget, classNam
 					<p className="text-muted-foreground text-sm mt-1">
 						{isFaster ? "You're spending faster than usual." : "You're spending slower than usual."}
 					</p>
+					{!historicalPace?.hasEnoughData && (
+						<p className="text-muted-foreground text-xs mt-2 bg-secondary/50 p-2 rounded-md">
+							More data needed for a personalized spending curve. Showing a linear estimate.
+						</p>
+					)}
 				</div>
 
-				<div className="flex-1 mt-auto min-h-[150px]">
+				<div className="h-[300px] lg:h-auto lg:flex-1 mt-auto">
 					<ResponsiveContainer width="100%" height="100%">
 						<ComposedChart data={data} margin={{ top: 20, right: 5, left: 5, bottom: 5 }}>
 							<defs>

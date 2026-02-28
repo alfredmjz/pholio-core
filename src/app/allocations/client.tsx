@@ -103,10 +103,6 @@ export function AllocationClient({
 		router.push(`/allocations?year=${newMonth.year}&month=${newMonth.month}`);
 	};
 
-	const handleAddCategory = () => {
-		setAddCategoryDialogOpen(true);
-	};
-
 	const handleAddCategorySubmit = async (name: string, budgetCap: number, color?: string) => {
 		if (!summary) return;
 

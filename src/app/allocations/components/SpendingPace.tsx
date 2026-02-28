@@ -124,7 +124,7 @@ export function SpendingPace({
 					)}
 				</div>
 
-				<div className="h-[300px] lg:h-auto lg:flex-1 mt-auto">
+				<div className="h-[300px] lg:h-[200px] xl:h-auto xl:flex-1 mt-auto min-h-[150px] w-full">
 					<ResponsiveContainer width="100%" height="100%">
 						<ComposedChart data={data} margin={{ top: 20, right: 5, left: 5, bottom: 5 }}>
 							<defs>

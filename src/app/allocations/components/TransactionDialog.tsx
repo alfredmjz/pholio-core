@@ -173,7 +173,7 @@ export function TransactionDialog({
 			onOpenChange={onOpenChange}
 			title={transaction ? "Edit Transaction" : "Add Transaction"}
 			description={transaction ? "Modify transaction details below." : "Enter details for new transaction."}
-			className="sm:max-w-[500px]"
+			className="sm:max-w-[600px]"
 			showCloseButton={false}
 		>
 			<form onSubmit={handleSubmit} className="flex flex-col gap-6">

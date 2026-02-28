@@ -31,6 +31,10 @@ interface AllocationClientProps {
 		totalBudget: number;
 		hasData: boolean;
 	} | null;
+	historicalPace: {
+		hasEnoughData: boolean;
+		dailyPercentages: number[];
+	};
 	userSettings?: {
 		newMonthDefault: AllocationNewMonthDefault;
 	};
@@ -58,6 +62,7 @@ export function AllocationClient({
 	initialTransactions,
 	initialAccounts,
 	previousMonthData,
+	historicalPace,
 	userSettings,
 }: AllocationClientProps) {
 	const router = useRouter();
@@ -85,24 +90,8 @@ export function AllocationClient({
 		if (!summary && !templateDialogOpen) {
 			// Delay to avoid flash on initial load
 			const timer = setTimeout(() => {
-				const defaultBehavior = userSettings?.newMonthDefault || "dialog";
-
-				switch (defaultBehavior) {
-					case "dialog":
-						setTemplateDialogOpen(true);
-						break;
-					case "import_previous":
-						setTemplateDialogOpen(true);
-						break;
-					case "template":
-						setTemplateDialogOpen(true);
-						break;
-					case "fresh":
-						setTemplateDialogOpen(true);
-						break;
-					default:
-						setTemplateDialogOpen(true);
-				}
+				// All default behaviors currently open the template dialog
+				setTemplateDialogOpen(true);
 			}, 500);
 			return () => clearTimeout(timer);
 		}
@@ -112,10 +101,6 @@ export function AllocationClient({
 		setCurrentMonth(newMonth);
 		setTypeFilter(null); // Reset filters on month change
 		router.push(`/allocations?year=${newMonth.year}&month=${newMonth.month}`);
-	};
-
-	const handleAddCategory = () => {
-		setAddCategoryDialogOpen(true);
 	};
 
 	const handleAddCategorySubmit = async (name: string, budgetCap: number, color?: string) => {
@@ -260,6 +245,7 @@ export function AllocationClient({
 				setTemplateDialogOpen={setTemplateDialogOpen}
 				monthName={monthName}
 				previousMonthData={getPreviousMonth()}
+				historicalPace={historicalPace}
 				onImportPrevious={handleImportPrevious}
 				onUseTemplate={handleUseTemplate}
 				onStartFresh={handleStartFresh}

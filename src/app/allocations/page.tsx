@@ -1,12 +1,16 @@
 import { SuspenseOnSearchParams } from "@/components/layout/suspense-on-search-params";
 import { requireAuth } from "@/lib/auth";
 import { AllocationClient } from "./client";
-import { getAllocation, getAllocationSummary, getTransactionsForMonth, getPreviousMonthSummary } from "./actions";
+import {
+	getAllocation,
+	getAllocationSummary,
+	getTransactionsForMonth,
+	getPreviousMonthSummary,
+	getHistoricalPace,
+} from "./actions";
 import { getAccountsForSelector } from "@/lib/actions/unified-transaction-actions";
 import { getAllocationSettings } from "@/app/settings/actions";
 import { AllocationsLoadingSkeleton } from "./components/allocations-loading-skeleton";
-
-import { sampleAllocationSummary, sampleTransactions } from "@/mock-data/allocations";
 
 export default async function AllocationsPage({
 	searchParams,
@@ -30,8 +34,6 @@ export default async function AllocationsPage({
 }
 
 async function AllocationsLoader({ year, month }: { year: number; month: number }) {
-	// Require authentication - automatically redirects to /login if not authenticated
-	// Skip auth check if using sample data to allow easy dev
 	if (process.env.NEXT_PUBLIC_USE_SAMPLE_DATA !== "true") {
 		await requireAuth();
 	}
@@ -43,18 +45,15 @@ async function AllocationsLoader({ year, month }: { year: number; month: number 
 	let accounts: any[] = [];
 	let previousMonthData: { categoryCount: number; totalBudget: number; hasData: boolean } | null = null;
 
-	// Fetch user settings
-	const userSettings = await getAllocationSettings();
+	const [userSettings, historicalPace] = await Promise.all([getAllocationSettings(), getHistoricalPace(year, month)]);
 
 	if (process.env.NEXT_PUBLIC_USE_SAMPLE_DATA === "true") {
-		// Simulate network delay to show loading skeleton
 		await new Promise((resolve) => setTimeout(resolve, 2000));
 
 		const mockData = require("@/mock-data/allocations").getSmartMockData(year, month);
 		summary = mockData.summary;
 		transactions = mockData.transactions;
 
-		// Initialize accounts with sample data if needed, or just let it fetch
 		accounts = await getAccountsForSelector();
 	} else {
 		// Check if allocation exists (don't create yet - let dialog handle it)
@@ -68,7 +67,6 @@ async function AllocationsLoader({ year, month }: { year: number; month: number 
 				getAccountsForSelector(),
 			]);
 		} else {
-			// No allocation yet - fetch previous month data for dialog preview
 			const [prevMonthResult, accountsResult] = await Promise.all([
 				getPreviousMonthSummary(year, month),
 				getAccountsForSelector(),
@@ -100,6 +98,7 @@ async function AllocationsLoader({ year, month }: { year: number; month: number 
 			initialTransactions={transactions}
 			initialAccounts={accounts}
 			previousMonthData={previousMonthData}
+			historicalPace={historicalPace}
 			userSettings={userSettings}
 		/>
 	);

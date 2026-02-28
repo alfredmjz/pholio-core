@@ -27,6 +27,7 @@ export const CATEGORY_PALETTE: CategoryColor[] = [
 	{ bg: "bg-emerald-500", text: "text-emerald-500", light: "bg-emerald-100", hex: "#10b981" },
 	{ bg: "bg-sky-500", text: "text-sky-500", light: "bg-sky-100", hex: "#0ea5e9" },
 	{ bg: "bg-rose-500", text: "text-rose-500", light: "bg-rose-100", hex: "#f43f5e" },
+	{ bg: "bg-gray-500", text: "text-gray-500", light: "bg-gray-100", hex: "#6b7280" },
 ];
 
 export const COLOR_NAME_MAP: Record<string, number> = {
@@ -46,6 +47,7 @@ export const COLOR_NAME_MAP: Record<string, number> = {
 	emerald: 13,
 	sky: 14,
 	rose: 15,
+	gray: 16,
 };
 
 export function getCategoryColor(id: string, colorName?: string, index?: number): CategoryColor {

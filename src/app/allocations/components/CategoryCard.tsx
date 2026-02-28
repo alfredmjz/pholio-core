@@ -173,14 +173,14 @@ export function CategoryCard({ category, usedColors, usedNames }: CategoryCardPr
 				onPointerLeave={() => setIsPressed(false)}
 			>
 				{/* ---------------- MOBILE ROW LAYOUT (< 768px) ---------------- */}
-				<div className="md:hidden relative z-10 flex items-center justify-between gap-3">
-					{/* Left side: color indicator, name, progress */}
-					<div className="flex items-center gap-3 flex-1 min-w-0">
-						<div className={cn("w-2 h-2 rounded-full flex-shrink-0", color.bg)} />
+				<div className="md:hidden relative z-10 flex items-center justify-between gap-3 w-full">
+					{/* Left side: color indicator, content, progress */}
+					<div className="flex items-start gap-3 flex-1 min-w-0 pt-0.5">
+						<div className={cn("w-2 h-2 rounded-full flex-shrink-0 mt-1.5", color.bg)} />
 
 						<div className="flex flex-col flex-1 min-w-0">
 							{isEditing ? (
-								<div className="flex flex-col gap-1 w-full max-w-[200px]">
+								<div className="flex flex-col gap-1 w-full">
 									<Input
 										value={nameValue}
 										onChange={(e) => setNameValue(e.target.value)}
@@ -189,46 +189,74 @@ export function CategoryCard({ category, usedColors, usedNames }: CategoryCardPr
 										maxLength={100}
 										autoFocus
 									/>
-									<div className="flex flex-wrap gap-1 py-0.5 max-w-[150px]">
-										{CATEGORY_PALETTE.map((c) => {
-											const colorName = Object.keys(COLOR_NAME_MAP).find(
-												(key) => COLOR_NAME_MAP[key] === CATEGORY_PALETTE.indexOf(c)
-											);
-											if (!colorName) return null;
-											const isSelected = selectedColor === colorName;
-											const isUsed = usedColors.includes(colorName) && colorName !== category.color;
+									<div className="flex flex-col gap-1 mt-1">
+										<div className="flex items-center gap-1">
+											<span className="text-xs font-semibold">{formatCurrency(actualSpend)}</span>
+											<span className="text-xs text-muted-foreground">/</span>
+											<Input
+												type="number"
+												inputMode="decimal"
+												value={budgetValue}
+												onChange={(e) => setBudgetValue(e.target.value)}
+												onKeyDown={handleKeyDown}
+												className="h-6 w-16 text-xs text-right px-1"
+											/>
+										</div>
+										<div className="flex flex-wrap gap-1 py-0.5">
+											{CATEGORY_PALETTE.map((c) => {
+												const colorName = Object.keys(COLOR_NAME_MAP).find(
+													(key) => COLOR_NAME_MAP[key] === CATEGORY_PALETTE.indexOf(c)
+												);
+												if (!colorName) return null;
+												const isSelected = selectedColor === colorName;
+												const isUsed = usedColors.includes(colorName) && colorName !== category.color;
 
-											return (
-												<button
-													key={colorName}
-													type="button"
-													onClick={() => setSelectedColor(colorName)}
-													disabled={isUsed}
-													className={cn(
-														"w-4 h-4 rounded-full border relative",
-														c.bg,
-														isSelected ? "border-primary scale-110 shadow-sm" : "border-transparent",
-														isUsed ? "opacity-30 cursor-not-allowed" : ""
-													)}
-												>
-													{isSelected && <div className="w-1 h-1 absolute inset-0 m-auto rounded-full bg-white" />}
-												</button>
-											);
-										})}
+												return (
+													<button
+														key={colorName}
+														type="button"
+														onClick={() => setSelectedColor(colorName)}
+														disabled={isUsed}
+														className={cn(
+															"w-4 h-4 rounded-full border relative",
+															c.bg,
+															isSelected ? "border-primary scale-110 shadow-sm" : "border-transparent",
+															isUsed ? "opacity-30 cursor-not-allowed" : ""
+														)}
+													>
+														{isSelected && <div className="w-1 h-1 absolute inset-0 m-auto rounded-full bg-white" />}
+													</button>
+												);
+											})}
+										</div>
 									</div>
 								</div>
 							) : (
-								<div className="flex flex-col">
-									<span className="text-sm font-semibold text-foreground truncate">{category.name}</span>
-									<span className="text-[10px] text-muted-foreground whitespace-nowrap pt-0.5">
-										{isUncategorized ? "Unbudgeted" : `${Math.min(100, Math.round(utilization))}% used`}
-									</span>
+								<div className="flex justify-between items-end w-full">
+									<div className="flex flex-col">
+										<span className="text-sm font-semibold text-foreground truncate">{category.name}</span>
+										<span className="text-[10px] text-muted-foreground whitespace-nowrap pt-0.5">
+											{isUncategorized ? "Unbudgeted" : `${Math.min(100, Math.round(utilization))}% used`}
+										</span>
+									</div>
+									<div className="flex items-baseline gap-1 flex-shrink-0 pl-2">
+										<span
+											className={cn("text-sm font-bold leading-none", isOverBudget ? "text-error" : "text-foreground")}
+										>
+											{formatCurrency(actualSpend)}
+										</span>
+										{!isUncategorized && (
+											<span className="text-[10px] text-muted-foreground leading-none">
+												/ {formatCurrency(category.budget_cap)}
+											</span>
+										)}
+									</div>
 								</div>
 							)}
 
 							{/* Progress Bar under name on mobile */}
 							{!isEditing && (
-								<div className="flex items-center gap-2 mt-1">
+								<div className="flex items-center gap-2 mt-2 w-full">
 									<div className="h-1 flex-1 bg-muted rounded-full overflow-hidden">
 										<div
 											className={cn(
@@ -242,28 +270,15 @@ export function CategoryCard({ category, usedColors, usedNames }: CategoryCardPr
 											style={{ width: `${isUncategorized ? 100 : Math.min(utilization, 100)}%` }}
 										/>
 									</div>
-									<span className="text-[10px] text-muted-foreground whitespace-nowrap">
-										{isUncategorized ? "Unbudgeted" : `${Math.min(100, Math.round(utilization))}% used`}
-									</span>
 								</div>
 							)}
 						</div>
 					</div>
-					<div className="flex flex-col flex-shrink-0 items-end gap-1">
+
+					{/* Right side: Actions */}
+					<div className="flex flex-col flex-shrink-0 items-end gap-1 translate-y-[-2px]">
 						{isEditing ? (
-							<div className="flex flex-col gap-1 items-end">
-								<div className="flex items-center gap-1">
-									<span className="text-xs font-semibold">{formatCurrency(actualSpend)}</span>
-									<span className="text-xs text-muted-foreground">/</span>
-									<Input
-										type="number"
-										inputMode="decimal"
-										value={budgetValue}
-										onChange={(e) => setBudgetValue(e.target.value)}
-										onKeyDown={handleKeyDown}
-										className="h-6 w-16 text-xs text-right px-1"
-									/>
-								</div>
+							<div className="flex flex-col gap-1 items-end pt-1">
 								<div className="flex items-center gap-1">
 									<Button size="icon" variant="ghost" className="h-6 w-6 text-success" onClick={handleSave}>
 										<Check className="h-3.5 w-3.5" />
@@ -274,37 +289,26 @@ export function CategoryCard({ category, usedColors, usedNames }: CategoryCardPr
 								</div>
 							</div>
 						) : (
-							<div className="flex items-center gap-3">
-								<div className="flex flex-col items-end">
-									<span className={cn("text-sm font-bold", isOverBudget ? "text-error" : "text-foreground")}>
-										{formatCurrency(actualSpend)}
-									</span>
-									{!isUncategorized && (
-										<span className="text-[10px] text-muted-foreground">/ {formatCurrency(category.budget_cap)}</span>
-									)}
+							!isUncategorized && (
+								<div className="flex flex-col gap-0.5 w-[24px]">
+									<Button
+										size="icon"
+										variant="ghost"
+										className="h-6 w-6 text-muted-foreground hover:bg-primary/10 hover:text-primary"
+										onClick={() => setIsEditing(true)}
+									>
+										<Pencil className="h-3 w-3" />
+									</Button>
+									<Button
+										size="icon"
+										variant="ghost"
+										className="h-6 w-6 text-muted-foreground hover:bg-error/10 hover:text-error"
+										onClick={() => setDeleteDialogOpen(true)}
+									>
+										<Trash2 className="h-3 w-3" />
+									</Button>
 								</div>
-
-								{!isUncategorized && (
-									<div className="flex flex-col gap-0.5">
-										<Button
-											size="icon"
-											variant="ghost"
-											className="h-6 w-6 text-muted-foreground hover:bg-primary/10 hover:text-primary"
-											onClick={() => setIsEditing(true)}
-										>
-											<Pencil className="h-3 w-3" />
-										</Button>
-										<Button
-											size="icon"
-											variant="ghost"
-											className="h-6 w-6 text-muted-foreground hover:bg-error/10 hover:text-error"
-											onClick={() => setDeleteDialogOpen(true)}
-										>
-											<Trash2 className="h-3 w-3" />
-										</Button>
-									</div>
-								)}
-							</div>
+							)
 						)}
 					</div>
 				</div>

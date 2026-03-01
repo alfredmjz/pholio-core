@@ -62,17 +62,17 @@ export function SpendingAllocation({ categories, className }: SpendingAllocation
 					<div className="h-8 w-full flex rounded-md bg-secondary overflow-hidden"></div>
 				)}
 
-				{/* The Legend */}
-				<div className="flex flex-wrap justify-between gap-y-6">
+				{/* Legends */}
+				<div className="grid grid-cols-2 md:grid-cols-3 lg:grid-cols-4 gap-y-6 gap-x-4">
 					{sortedCategories.map((c, idx) => {
 						const value = c.actual_spend || 0;
 						const categoryColor = getCategoryColor(c.id, c.color, idx);
 						return (
-							<div key={c.id} className="w-1/4 flex items-start gap-2 pr-4">
+							<div key={c.id} className="flex items-start gap-2">
 								<div className={`mt-1 h-2 w-2 rounded-full shrink-0 ${categoryColor.bg}`} />
-								<div className="flex flex-col">
-									<span className="text-sm font-medium leading-none">{c.name}</span>
-									<span className="text-sm text-muted-foreground mt-1">{formatCurrency(value)}</span>
+								<div className="flex flex-col min-w-0">
+									<span className="text-sm font-medium leading-none truncate">{c.name}</span>
+									<span className="text-sm text-muted-foreground mt-1 truncate">{formatCurrency(value)}</span>
 								</div>
 							</div>
 						);

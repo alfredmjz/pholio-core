@@ -58,7 +58,12 @@ export function AllocationsHeader({
 						</DropdownMenuContent>
 					</DropdownMenu>
 
-					<AddTransactionButton categories={categories} accounts={accounts} onSuccess={onTransactionSuccess} />
+					<AddTransactionButton
+						categories={categories}
+						accounts={accounts}
+						onSuccess={onTransactionSuccess}
+						boundaryMonth={currentMonth}
+					/>
 				</div>
 			</div>
 		</PageHeader>

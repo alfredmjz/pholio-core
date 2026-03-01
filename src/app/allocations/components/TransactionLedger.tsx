@@ -22,6 +22,7 @@ interface TransactionLedgerProps {
 	externalTypeFilter?: TransactionType | null;
 	onClearExternalFilter?: () => void;
 	onTransactionSuccess?: () => void;
+	currentMonth?: { year: number; month: number };
 }
 
 type SortField = "date" | "name" | "amount" | "category" | "type";
@@ -34,6 +35,7 @@ export function TransactionLedger({
 	externalTypeFilter,
 	onClearExternalFilter,
 	onTransactionSuccess,
+	currentMonth,
 }: TransactionLedgerProps) {
 	const [searchQuery, setSearchQuery] = useState("");
 	const [categoryFilter, setCategoryFilter] = useState<string>("all");
@@ -376,6 +378,7 @@ export function TransactionLedger({
 				transaction={selectedTransaction}
 				categories={categories}
 				accounts={accounts}
+				boundaryMonth={currentMonth}
 			/>
 		</Card>
 	);

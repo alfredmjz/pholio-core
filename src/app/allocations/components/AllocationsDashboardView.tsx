@@ -157,6 +157,7 @@ export function AllocationsDashboardView({
 					externalTypeFilter={typeFilter}
 					onClearExternalFilter={() => onSetTypeFilter(null)}
 					onTransactionSuccess={onTransactionSuccess}
+					currentMonth={currentMonth}
 				/>
 			</PageContent>
 

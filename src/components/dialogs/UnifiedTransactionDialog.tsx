@@ -38,6 +38,7 @@ interface UnifiedTransactionDialogProps {
 	defaultType?: "income" | "expense";
 	onSuccess?: () => void;
 	context?: "balancesheet" | "allocations";
+	boundaryMonth?: { year: number; month: number };
 }
 
 interface ValidationErrors {
@@ -58,6 +59,7 @@ export function UnifiedTransactionDialog({
 	defaultType,
 	onSuccess,
 	context,
+	boundaryMonth,
 }: UnifiedTransactionDialogProps) {
 	const isBalanceSheetContext = context === "balancesheet";
 	const isAllocationsContext = context === "allocations";
@@ -82,7 +84,19 @@ export function UnifiedTransactionDialog({
 			setType(defaultType || "expense");
 			setDescription("");
 			setAmount("");
-			setDate(defaultDate || getTodayDateString());
+
+			// Default date: use defaultDate, or today, but clamp to boundaryMonth if provided
+			let initialDate = defaultDate || getTodayDateString();
+			if (boundaryMonth) {
+				const monthStart = `${boundaryMonth.year}-${String(boundaryMonth.month).padStart(2, "0")}-01`;
+				const lastDay = new Date(boundaryMonth.year, boundaryMonth.month, 0).getDate();
+				const monthEnd = `${boundaryMonth.year}-${String(boundaryMonth.month).padStart(2, "0")}-${lastDay}`;
+				if (initialDate < monthStart || initialDate > monthEnd) {
+					initialDate = monthStart;
+				}
+			}
+			setDate(initialDate);
+
 			setCategoryId(defaultCategoryId || "uncategorized");
 			setAccountId(defaultAccountId || "none");
 			setTransactionType(defaultType === "income" ? "deposit" : "expense");
@@ -90,7 +104,7 @@ export function UnifiedTransactionDialog({
 			setSuggestedAccountInfo(null);
 			setErrors({});
 		}
-	}, [open, defaultDate, defaultCategoryId, defaultAccountId, defaultType]);
+	}, [open, defaultDate, defaultCategoryId, defaultAccountId, defaultType, boundaryMonth]);
 
 	// Reset transactionType when switching between income and expense
 	useEffect(() => {
@@ -279,7 +293,22 @@ export function UnifiedTransactionDialog({
 								<Label htmlFor="date">
 									Date <span className="text-error">*</span>
 								</Label>
-								<DatePicker id="date" value={date} onChange={setDate} placeholder="Select transaction date" />
+								<DatePicker
+									id="date"
+									value={date}
+									onChange={setDate}
+									placeholder="Select transaction date"
+									minDate={
+										boundaryMonth
+											? `${boundaryMonth.year}-${String(boundaryMonth.month).padStart(2, "0")}-01`
+											: undefined
+									}
+									maxDate={
+										boundaryMonth
+											? `${boundaryMonth.year}-${String(boundaryMonth.month).padStart(2, "0")}-${new Date(boundaryMonth.year, boundaryMonth.month, 0).getDate()}`
+											: undefined
+									}
+								/>
 								{errors.date && <p className="text-sm text-error">{errors.date}</p>}
 							</div>
 

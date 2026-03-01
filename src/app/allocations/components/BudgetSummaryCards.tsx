@@ -17,12 +17,8 @@ export function BudgetSummaryCards({
 	totalSpent,
 	className,
 }: BudgetSummaryCardsProps) {
-	const leftToAllocate = expectedIncome - totalBudgetAllocated;
-	const spentPercentage = totalBudgetAllocated > 0 ? (totalSpent / totalBudgetAllocated) * 100 : 0;
-
-	const isOnTrack = spentPercentage <= 75;
-	const isWarning = spentPercentage > 75 && spentPercentage <= 100;
-	const isOverBudget = spentPercentage > 100;
+	const isOverAllocated = totalBudgetAllocated > expectedIncome;
+	const savingsEstimate = expectedIncome - totalSpent;
 
 	const formatCurrency = (value: number) => {
 		return new Intl.NumberFormat("en-US", {
@@ -60,29 +56,31 @@ export function BudgetSummaryCards({
 			</Card>
 
 			<Card className="p-5 bg-card border border-border">
-				<p className="text-sm text-primary font-medium mb-1">Left to Allocate</p>
-				<p className={cn("text-3xl font-bold", leftToAllocate < 0 ? "text-error" : "text-success")}>
-					{formatCurrency(Math.abs(leftToAllocate))}
+				<p className="text-sm text-primary font-medium mb-1">Total Budgeted</p>
+				<p className={cn("text-3xl font-bold", isOverAllocated ? "text-error" : "text-success")}>
+					{formatCurrency(totalBudgetAllocated)}
 				</p>
-				<p className={cn("text-xs font-medium mt-2", leftToAllocate >= 0 ? "text-success" : "text-error")}>
-					{leftToAllocate >= 0 ? "On track" : "Over allocated"}
+				<p className={cn("text-xs font-medium mt-2", isOverAllocated ? "text-error" : "text-success")}>
+					{isOverAllocated ? "Over allocated" : "On track"}
 				</p>
 			</Card>
 
 			<Card className="p-5 bg-card border border-border">
-				<p className="text-sm text-primary font-medium mb-1">Total Spent</p>
-				<p className="text-3xl font-bold text-primary">{formatCurrency(totalSpent)}</p>
-
+				<p className="text-sm text-primary font-medium mb-1">Savings Estimate</p>
+				<p className={cn("text-3xl font-bold", savingsEstimate < 0 ? "text-error" : "text-success")}>
+					{savingsEstimate < 0 ? "-" : ""}
+					{formatCurrency(Math.abs(savingsEstimate))}
+				</p>
 				<div className="mt-3">
 					<div className="h-2 bg-muted rounded-full overflow-hidden">
 						<div
 							className={cn(
 								"h-full rounded-full transition-all duration-500",
-								isOnTrack && "bg-info",
-								isWarning && "bg-warning",
-								isOverBudget && "bg-error"
+								savingsEstimate >= 0 ? "bg-success" : "bg-error"
 							)}
-							style={{ width: `${Math.min(spentPercentage, 100)}%` }}
+							style={{
+								width: `${Math.min(expectedIncome > 0 ? (totalSpent / expectedIncome) * 100 : 0, 100)}%`,
+							}}
 						/>
 					</div>
 				</div>

@@ -441,7 +441,9 @@ export async function importPreviousMonthCategories(
 		notes: cat.notes,
 	}));
 
-	const { error: insertError } = await supabase.from("allocation_categories").insert(newCategories);
+	const { error: insertError } = await supabase
+		.from("allocation_categories")
+		.upsert(newCategories, { onConflict: "allocation_id, name", ignoreDuplicates: true });
 
 	if (insertError) {
 		Logger.error("Error copying categories", { error: insertError });

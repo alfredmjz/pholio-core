@@ -127,3 +127,14 @@ export function calculateNextDueDate(currentDue: Date, frequency: string): Date 
 			return date;
 	}
 }
+
+/**
+ * Format a Date object as a YYYY-MM-DD string using LOCAL time components.
+ * This avoids timezone drift from toISOString() which uses UTC.
+ *
+ * @param date - Date object in local time
+ * @returns YYYY-MM-DD string
+ */
+export function formatDateString(date: Date): string {
+	return `${date.getFullYear()}-${String(date.getMonth() + 1).padStart(2, "0")}-${String(date.getDate()).padStart(2, "0")}`;
+}

@@ -47,13 +47,16 @@ interface AllocationsDashboardViewProps {
 	setTemplateDialogOpen: (open: boolean) => void;
 	monthName: string;
 	previousMonthData: { name: string; year: number; categoryCount: number; totalBudget: number } | null;
-	historicalPace: { hasEnoughData: boolean; dailyPercentages: number[] };
+	historicalPace: { hasEnoughData: boolean; dailyAmounts: number[] };
 	onImportPrevious: (income: number) => Promise<void>;
 	onUseTemplate: (id: string, income: number) => Promise<void>;
 	onStartFresh: (income: number) => Promise<void>;
 
 	exportDialogOpen: boolean;
 	setExportDialogOpen: (open: boolean) => void;
+
+	saveTemplateDialogOpen: boolean;
+	setSaveTemplateDialogOpen: (open: boolean) => void;
 }
 
 export function AllocationsDashboardView({
@@ -82,6 +85,8 @@ export function AllocationsDashboardView({
 	onStartFresh,
 	exportDialogOpen,
 	setExportDialogOpen,
+	saveTemplateDialogOpen,
+	setSaveTemplateDialogOpen,
 }: AllocationsDashboardViewProps) {
 	const usedColors = categories.map((c) => c.color).filter(Boolean) as string[];
 	const usedNames = categories.map((c) => c.name);
@@ -110,6 +115,7 @@ export function AllocationsDashboardView({
 				categories={categories}
 				accounts={accounts}
 				onTransactionSuccess={onTransactionSuccess}
+				onSaveTemplate={() => setSaveTemplateDialogOpen(true)}
 			/>
 
 			<PageContent>
@@ -151,6 +157,7 @@ export function AllocationsDashboardView({
 					externalTypeFilter={typeFilter}
 					onClearExternalFilter={() => onSetTypeFilter(null)}
 					onTransactionSuccess={onTransactionSuccess}
+					currentMonth={currentMonth}
 				/>
 			</PageContent>
 

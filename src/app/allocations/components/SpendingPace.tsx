@@ -9,7 +9,7 @@ interface SpendingPaceProps {
 	currentMonth: MonthYear;
 	transactions: Transaction[];
 	totalBudget: number;
-	historicalPace?: { hasEnoughData: boolean; dailyPercentages: number[] };
+	historicalPace?: { hasEnoughData: boolean; dailyAmounts: number[] };
 	className?: string;
 }
 
@@ -54,9 +54,8 @@ export function SpendingPace({
 			cumulativeSpend += spendByDay[i];
 
 			let idealSpend = 0;
-			if (historicalPace?.hasEnoughData && historicalPace.dailyPercentages) {
-				const pct = historicalPace.dailyPercentages[dayNum - 1] || 0;
-				idealSpend = totalBudget * (pct / 100);
+			if (historicalPace?.hasEnoughData && historicalPace.dailyAmounts) {
+				idealSpend = historicalPace.dailyAmounts[dayNum - 1] || 0;
 			} else {
 				idealSpend = (totalBudget / daysInMonth) * dayNum;
 			}

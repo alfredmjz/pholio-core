@@ -100,22 +100,14 @@ export function CategoryPerformance({
 		return (
 			<div className={cn("w-full flex flex-col gap-4", className)}>
 				<div className="flex items-center justify-between px-2 md:px-0">
-					<h3 className="text-sm font-semibold text-primary uppercase tracking-wide">Category Performance</h3>
-					<Button size="sm" onClick={onAddCategory} className="gap-1.5 bg-green-600 hover:bg-green-700 text-white">
+					<h3 className="text-sm font-semibold text-foreground tracking-tight">Category Performance</h3>
+					<Button variant="outline" size="sm" onClick={onAddCategory} className="gap-1.5">
 						<Plus className="h-4 w-4" />
-						Add
+						Add Category
 					</Button>
 				</div>
 				<Card className="p-12 flex items-center justify-center border-dashed">
-					<div className="text-center">
-						<p className="text-sm text-muted-foreground mb-4">
-							No categories yet. Add your first category to start tracking.
-						</p>
-						<Button onClick={onAddCategory} className="gap-2 bg-green-600 hover:bg-green-700 text-white">
-							<Plus className="h-4 w-4" />
-							Add Category
-						</Button>
-					</div>
+					<p className="text-sm text-muted-foreground">No categories yet. Add your first category to start tracking.</p>
 				</Card>
 			</div>
 		);

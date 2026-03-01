@@ -42,6 +42,7 @@ interface TransactionDialogProps {
 	categories: AllocationCategory[];
 	accounts?: AccountWithType[];
 	defaultDate?: string;
+	boundaryMonth?: { year: number; month: number };
 }
 
 export function TransactionDialog({
@@ -51,6 +52,7 @@ export function TransactionDialog({
 	categories = [],
 	accounts = [],
 	defaultDate,
+	boundaryMonth,
 }: TransactionDialogProps) {
 	const [isLoading, setIsLoading] = useState(false);
 	const [name, setName] = useState("");
@@ -207,7 +209,20 @@ export function TransactionDialog({
 					<div className="flex flex-row gap-4">
 						<div className="flex-1 space-y-2">
 							<Label htmlFor="date">Date</Label>
-							<DatePicker id="date" value={date} onChange={setDate} placeholder="Select transaction date" />
+							<DatePicker
+								id="date"
+								value={date}
+								onChange={setDate}
+								placeholder="Select transaction date"
+								minDate={
+									boundaryMonth ? `${boundaryMonth.year}-${String(boundaryMonth.month).padStart(2, "0")}-01` : undefined
+								}
+								maxDate={
+									boundaryMonth
+										? `${boundaryMonth.year}-${String(boundaryMonth.month).padStart(2, "0")}-${new Date(boundaryMonth.year, boundaryMonth.month, 0).getDate()}`
+										: undefined
+								}
+							/>
 						</div>
 
 						<div className="flex-1 space-y-2">

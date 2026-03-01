@@ -9,11 +9,13 @@ import {
 	getOrCreateAllocation,
 	importPreviousMonthCategories,
 	applyTemplateToAllocation,
+	createTemplateFromAllocation,
 } from "./actions";
 import { AllocationProvider } from "./context/AllocationContext";
 import { AllocationsEmptyView } from "./components/AllocationsEmptyView";
 import { AllocationsDashboardView } from "./components/AllocationsDashboardView";
 import { ImportTemplateDialog } from "./components/ImportTemplateDialog";
+import { SaveTemplateDialog } from "./components/SaveTemplateDialog";
 
 import type { TransactionType } from "./components/TransactionTypeIcon";
 import type { MonthYear, AllocationSummary, Transaction } from "./types";
@@ -33,11 +35,18 @@ interface AllocationClientProps {
 	} | null;
 	historicalPace: {
 		hasEnoughData: boolean;
-		dailyPercentages: number[];
+		dailyAmounts: number[];
 	};
 	userSettings?: {
 		newMonthDefault: AllocationNewMonthDefault;
 	};
+	templates: Array<{
+		id: string;
+		name: string;
+		description?: string;
+		categoryCount: number;
+		totalBudget: number;
+	}>;
 }
 
 const MONTH_NAMES = [
@@ -64,6 +73,7 @@ export function AllocationClient({
 	previousMonthData,
 	historicalPace,
 	userSettings,
+	templates,
 }: AllocationClientProps) {
 	const router = useRouter();
 
@@ -73,6 +83,8 @@ export function AllocationClient({
 	});
 	const [addCategoryDialogOpen, setAddCategoryDialogOpen] = useState(false);
 	const [templateDialogOpen, setTemplateDialogOpen] = useState(false);
+	const [saveTemplateDialogOpen, setSaveTemplateDialogOpen] = useState(false);
+	const [isSavingTemplate, setIsSavingTemplate] = useState(false);
 	const [exportDialogOpen, setExportDialogOpen] = useState(false);
 	const [typeFilter, setTypeFilter] = useState<TransactionType | null>(null);
 
@@ -167,6 +179,26 @@ export function AllocationClient({
 		setTemplateDialogOpen(false);
 	};
 
+	const handleSaveTemplate = async (name: string, description: string) => {
+		if (!summary) return;
+
+		setIsSavingTemplate(true);
+		try {
+			const template = await createTemplateFromAllocation(summary.allocation.id, name, description);
+			if (template) {
+				toast.success("Template saved!");
+				setSaveTemplateDialogOpen(false);
+				router.refresh();
+			} else {
+				toast.error("Save Failed", {
+					description: "Failed to save the template.",
+				});
+			}
+		} finally {
+			setIsSavingTemplate(false);
+		}
+	};
+
 	const getPreviousMonth = () => {
 		const prevMonth = currentMonth.month === 1 ? 12 : currentMonth.month - 1;
 		const prevYear = currentMonth.month === 1 ? currentMonth.year - 1 : currentMonth.year;
@@ -207,7 +239,7 @@ export function AllocationClient({
 					monthName={monthName}
 					year={currentMonth.year}
 					previousMonth={getPreviousMonth()}
-					templates={[]}
+					templates={templates}
 					onImportPrevious={handleImportPrevious}
 					onUseTemplate={handleUseTemplate}
 					onStartFresh={handleStartFresh}
@@ -251,7 +283,18 @@ export function AllocationClient({
 				onStartFresh={handleStartFresh}
 				exportDialogOpen={exportDialogOpen}
 				setExportDialogOpen={setExportDialogOpen}
+				saveTemplateDialogOpen={saveTemplateDialogOpen}
+				setSaveTemplateDialogOpen={setSaveTemplateDialogOpen}
 			/>
+
+			{summary && (
+				<SaveTemplateDialog
+					open={saveTemplateDialogOpen}
+					onOpenChange={setSaveTemplateDialogOpen}
+					onSave={handleSaveTemplate}
+					isSaving={isSavingTemplate}
+				/>
+			)}
 		</AllocationProvider>
 	);
 }

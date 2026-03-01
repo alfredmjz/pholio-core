@@ -5,7 +5,7 @@ import { revalidatePath } from "next/cache";
 import type { Allocation, AllocationCategory, AllocationSummary, AllocationTemplate, Transaction } from "./types";
 import { sampleAllocationSummary, sampleTransactions } from "@/mock-data/allocations";
 import { Logger } from "@/lib/logger";
-import { parseLocalDate } from "@/lib/date-utils";
+import { parseLocalDate, calculateNextDueDate, getTodayDateString, formatDateString } from "@/lib/date-utils";
 
 export async function getAllocation(year: number, month: number): Promise<Allocation | null> {
 	// Handle sample data mode
@@ -100,8 +100,7 @@ async function syncRecurringExpenses(allocationId: string, userId: string, targe
 	if (!allRecurring) return;
 
 	const startDate = `${targetYear}-${String(targetMonth).padStart(2, "0")}-01`;
-	const endOfMonth = new Date(targetYear, targetMonth, 0);
-	const endDate = `${targetYear}-${String(targetMonth).padStart(2, "0")}-${endOfMonth.getDate()}`;
+	const endDate = formatDateString(new Date(targetYear, targetMonth, 0));
 
 	const { data: existingTransactions } = await supabase
 		.from("transactions")
@@ -306,11 +305,12 @@ async function syncRecurringExpenses(allocationId: string, userId: string, targe
 		})
 	);
 
+	// --- Target month transactions (existing logic) ---
 	for (const item of applicableExpenses) {
 		const { expense, dates } = item;
 
 		for (const dateObj of dates) {
-			const dateStr = `${dateObj.getFullYear()}-${String(dateObj.getMonth() + 1).padStart(2, "0")}-${String(dateObj.getDate()).padStart(2, "0")}`;
+			const dateStr = formatDateString(dateObj);
 			const key = `${expense.id}:${dateStr}`;
 
 			if (existingTransactionKeys.has(key)) continue;
@@ -320,19 +320,18 @@ async function syncRecurringExpenses(allocationId: string, userId: string, targe
 			const meta = (expense.meta_data as any) || {};
 			if (meta.is_automated === false) continue;
 
-			const today = new Date();
-			today.setHours(0, 0, 0, 0);
+			const todayLocal = parseLocalDate(getTodayDateString());
 			const targetDate = new Date(dateObj);
 			targetDate.setHours(0, 0, 0, 0);
 
-			if (targetDate > today) continue;
+			if (targetDate > todayLocal) continue;
 
 			const categoryId = categoryIdMap[expense.category] || null;
 
 			transactionsToCreate.push({
 				user_id: userId,
 				name: expense.name,
-				amount: -Math.abs(Number(expense.amount)), // Expenses are negative
+				amount: -Math.abs(Number(expense.amount)),
 				transaction_date: dateStr,
 				category_id: categoryId,
 				source: "recurring",
@@ -346,6 +345,171 @@ async function syncRecurringExpenses(allocationId: string, userId: string, targe
 		const { error } = await supabase.from("transactions").insert(transactionsToCreate);
 		if (error) {
 			Logger.error("Error creating recurring transactions", { error });
+		}
+	}
+
+	// --- Catch-up: backfill missed months for AUTO expenses ---
+	const today = parseLocalDate(getTodayDateString());
+
+	// Collect all missed occurrences across all expenses, grouped by month
+	type MissedOccurrence = { expense: (typeof allRecurring)[0]; dateStr: string };
+	const missedByMonth: Record<string, MissedOccurrence[]> = {};
+
+	for (const expense of allRecurring) {
+		if (!expense.is_active) continue;
+		const meta = (expense.meta_data as any) || {};
+		if (meta.is_automated === false) continue;
+
+		let currentDue = parseLocalDate(expense.next_due_date);
+		currentDue.setHours(0, 0, 0, 0);
+
+		// Skip if already in the future
+		if (currentDue > today) continue;
+
+		// Walk through each occurrence from next_due_date up to today
+		while (currentDue <= today) {
+			const occMonth = currentDue.getMonth() + 1;
+			const occYear = currentDue.getFullYear();
+			const monthKey = `${occYear}-${occMonth}`;
+			const dateStr = formatDateString(currentDue);
+
+			// Skip occurrences that belong to the target month (already handled above)
+			if (occYear !== targetYear || occMonth !== targetMonth) {
+				if (!missedByMonth[monthKey]) {
+					missedByMonth[monthKey] = [];
+				}
+				missedByMonth[monthKey].push({ expense, dateStr });
+			}
+
+			currentDue = calculateNextDueDate(currentDue, expense.billing_period);
+		}
+
+		// Advance next_due_date to the next future occurrence
+		const newDueDateStr = formatDateString(currentDue);
+		const oldDueDateStr = expense.next_due_date.split("T")[0];
+
+		if (newDueDateStr !== oldDueDateStr) {
+			const { error: updateError } = await supabase
+				.from("recurring_expenses")
+				.update({ next_due_date: newDueDateStr })
+				.eq("id", expense.id);
+
+			if (updateError) {
+				Logger.error(`Error advancing next_due_date for ${expense.name}`, { error: updateError });
+			}
+		}
+	}
+
+	// Process each missed month: find/create allocation, resolve categories, insert transactions
+	for (const monthKey of Object.keys(missedByMonth)) {
+		const items = missedByMonth[monthKey];
+		const [yearStr, monthStr] = monthKey.split("-");
+		const missedYear = parseInt(yearStr);
+		const missedMonth = parseInt(monthStr);
+
+		// Find or create allocation for this month (direct DB, no re-entrant sync)
+		let missedAllocationId: string;
+		const { data: existingAlloc } = await supabase
+			.from("allocations")
+			.select("id")
+			.eq("user_id", userId)
+			.eq("year", missedYear)
+			.eq("month", missedMonth)
+			.single();
+
+		if (existingAlloc) {
+			missedAllocationId = existingAlloc.id;
+		} else {
+			const { data: newAlloc, error: createErr } = await supabase
+				.from("allocations")
+				.insert({ user_id: userId, year: missedYear, month: missedMonth, expected_income: 0 })
+				.select("id")
+				.single();
+
+			if (createErr || !newAlloc) {
+				Logger.error(`Error creating allocation for ${missedYear}-${missedMonth}`, { error: createErr });
+				continue;
+			}
+			missedAllocationId = newAlloc.id;
+		}
+
+		// Resolve category IDs for this month's allocation
+		const { data: missedCategories } = await supabase
+			.from("allocation_categories")
+			.select("id, name")
+			.eq("allocation_id", missedAllocationId);
+
+		const missedCategoryMap: Record<string, string> = {};
+		for (const cat of missedCategories || []) {
+			if (cat.name === "Bills") missedCategoryMap["bill"] = cat.id;
+			if (cat.name === "Subscriptions") missedCategoryMap["subscription"] = cat.id;
+		}
+
+		// Create missing categories for this month's allocation if needed
+		const neededTypes = new Set(items.map((i: MissedOccurrence) => i.expense.category));
+		const catDefs: Array<{ type: string; name: string; color: string }> = [
+			{ type: "bill", name: "Bills", color: "orange" },
+			{ type: "subscription", name: "Subscriptions", color: "purple" },
+		];
+
+		for (const def of catDefs) {
+			if (neededTypes.has(def.type) && !missedCategoryMap[def.type]) {
+				const totalAmount = items
+					.filter((i: MissedOccurrence) => i.expense.category === def.type)
+					.reduce((sum: number, i: MissedOccurrence) => sum + Math.abs(Number(i.expense.amount)), 0);
+
+				const { data: newCat } = await supabase
+					.from("allocation_categories")
+					.insert({
+						allocation_id: missedAllocationId,
+						user_id: userId,
+						name: def.name,
+						budget_cap: totalAmount,
+						is_recurring: true,
+						display_order: def.type === "bill" ? 0 : 1,
+						color: def.color,
+					})
+					.select("id")
+					.single();
+
+				if (newCat) missedCategoryMap[def.type] = newCat.id;
+			}
+		}
+
+		// Check existing transactions for this month to dedup
+		const missedMonthStart = `${missedYear}-${String(missedMonth).padStart(2, "0")}-01`;
+		const missedMonthEnd = `${missedYear}-${String(missedMonth).padStart(2, "0")}-${new Date(missedYear, missedMonth, 0).getDate()}`;
+
+		const { data: missedExisting } = await supabase
+			.from("transactions")
+			.select("recurring_expense_id, transaction_date")
+			.eq("user_id", userId)
+			.gte("transaction_date", missedMonthStart)
+			.lte("transaction_date", missedMonthEnd)
+			.not("recurring_expense_id", "is", null);
+
+		const missedExistingKeys = new Set(
+			(missedExisting || []).map((t) => `${t.recurring_expense_id}:${t.transaction_date.split("T")[0]}`)
+		);
+
+		const missedTransactions = items
+			.filter((item: MissedOccurrence) => !missedExistingKeys.has(`${item.expense.id}:${item.dateStr}`))
+			.map((item: MissedOccurrence) => ({
+				user_id: userId,
+				name: item.expense.name,
+				amount: -Math.abs(Number(item.expense.amount)),
+				transaction_date: item.dateStr,
+				category_id: missedCategoryMap[item.expense.category] || null,
+				source: "recurring",
+				recurring_expense_id: item.expense.id,
+				notes: `Auto-created from recurring ${item.expense.category}`,
+			}));
+
+		if (missedTransactions.length > 0) {
+			const { error } = await supabase.from("transactions").insert(missedTransactions);
+			if (error) {
+				Logger.error(`Error backfilling transactions for ${missedYear}-${missedMonth}`, { error });
+			}
 		}
 	}
 }
@@ -441,7 +605,9 @@ export async function importPreviousMonthCategories(
 		notes: cat.notes,
 	}));
 
-	const { error: insertError } = await supabase.from("allocation_categories").insert(newCategories);
+	const { error: insertError } = await supabase
+		.from("allocation_categories")
+		.upsert(newCategories, { onConflict: "allocation_id, name", ignoreDuplicates: true });
 
 	if (insertError) {
 		Logger.error("Error copying categories", { error: insertError });
@@ -749,7 +915,14 @@ export async function deleteTransaction(transactionId: string): Promise<boolean>
 	return true;
 }
 
-export async function getUserTemplates(): Promise<AllocationTemplate[]> {
+export async function getUserTemplates(): Promise<
+	Array<{
+		id: string;
+		name: string;
+		categoryCount: number;
+		totalBudget: number;
+	}>
+> {
 	const supabase = await createClient();
 
 	const {
@@ -757,14 +930,29 @@ export async function getUserTemplates(): Promise<AllocationTemplate[]> {
 	} = await supabase.auth.getUser();
 	if (!user) return [];
 
-	const { data, error } = await supabase.from("allocation_templates").select("*").eq("user_id", user.id).order("name");
+	const { data, error } = await supabase
+		.from("allocation_templates")
+		.select(
+			`
+			*,
+			template_categories(budget_cap)
+		`
+		)
+		.eq("user_id", user.id)
+		.order("name");
 
 	if (error) {
 		Logger.error("Error fetching templates", { error });
 		return [];
 	}
 
-	return data as AllocationTemplate[];
+	return (data as any[]).map((t) => ({
+		id: t.id,
+		name: t.name,
+		description: t.description,
+		categoryCount: t.template_categories?.length || 0,
+		totalBudget: t.template_categories?.reduce((sum: number, c: any) => sum + Number(c.budget_cap), 0) || 0,
+	}));
 }
 
 export async function applyTemplateToAllocation(templateId: string, allocationId: string): Promise<boolean> {
@@ -849,15 +1037,15 @@ export async function createTemplateFromAllocation(
 export async function getHistoricalPace(
 	currentYear: number,
 	currentMonth: number
-): Promise<{ hasEnoughData: boolean; dailyPercentages: number[] }> {
+): Promise<{ hasEnoughData: boolean; dailyAmounts: number[] }> {
 	if (process.env.NEXT_PUBLIC_USE_SAMPLE_DATA === "true") {
 		// Create a realistic-looking fake curve for mock data mode
 		const fakeCurve = Array.from({ length: 31 }, (_, i) => {
 			const dayNum = i + 1;
-			// A logarithmic-ish curve that spends faster early then slows down
-			return Math.min(100, Math.round(100 * Math.pow(dayNum / 31, 0.7)));
+			// A logarithmic-ish curve that spends faster early then slows down (e.g. up to $5000)
+			return Math.round(5000 * Math.pow(dayNum / 31, 0.7));
 		});
-		return { hasEnoughData: true, dailyPercentages: fakeCurve };
+		return { hasEnoughData: true, dailyAmounts: fakeCurve };
 	}
 
 	const supabase = await createClient();
@@ -866,7 +1054,7 @@ export async function getHistoricalPace(
 		data: { user },
 	} = await supabase.auth.getUser();
 
-	if (!user) return { hasEnoughData: false, dailyPercentages: [] };
+	if (!user) return { hasEnoughData: false, dailyAmounts: [] };
 
 	// 1. Fetch up to 6 most recent past allocations
 	const { data: pastAllocations, error: allocError } = await supabase
@@ -879,7 +1067,7 @@ export async function getHistoricalPace(
 		.limit(6);
 
 	if (allocError || !pastAllocations || pastAllocations.length === 0) {
-		return { hasEnoughData: false, dailyPercentages: [] };
+		return { hasEnoughData: false, dailyAmounts: [] };
 	}
 
 	const allocIds = pastAllocations.map((a) => a.id);
@@ -899,7 +1087,7 @@ export async function getHistoricalPace(
 	const validAllocations = pastAllocations.filter((a) => (budgetMap.get(a.id) || 0) > 0);
 
 	if (validAllocations.length === 0) {
-		return { hasEnoughData: false, dailyPercentages: [] };
+		return { hasEnoughData: false, dailyAmounts: [] };
 	}
 
 	// 3. Fetch expenses for these past months
@@ -924,6 +1112,7 @@ export async function getHistoricalPace(
 		totalBudget: number;
 		daysInMonth: number;
 		dailySpend: number[];
+		transactionCount: number;
 	}
 
 	const monthStats = new Map<string, PastMonthStats>();
@@ -933,6 +1122,7 @@ export async function getHistoricalPace(
 			totalBudget: budgetMap.get(a.id) || 0,
 			daysInMonth: days,
 			dailySpend: new Array(days).fill(0),
+			transactionCount: 0,
 		});
 	});
 
@@ -946,36 +1136,54 @@ export async function getHistoricalPace(
 		const stats = monthStats.get(key);
 		if (stats && d >= 1 && d <= stats.daysInMonth) {
 			stats.dailySpend[d - 1] += Math.abs(t.amount);
+			stats.transactionCount += 1;
 		}
 	});
 
-	const dailyPercentageSums = new Array(31).fill(0);
-	const dailyPercentageCounts = new Array(31).fill(0);
+	// Check if the IMMEDIATE PREVIOUS MONTH has > 10 transactions
+	let hasEnoughTransactions = false;
+	const prevMonthNum = currentMonth === 1 ? 12 : currentMonth - 1;
+	const prevMonthYear = currentMonth === 1 ? currentYear - 1 : currentYear;
+	const prevMonthKey = `${prevMonthYear}-${prevMonthNum}`;
 
-	monthStats.forEach((stats) => {
-		let cumulativeSpend = 0;
-		for (let i = 0; i < stats.daysInMonth; i++) {
-			cumulativeSpend += stats.dailySpend[i];
-			const pct = (cumulativeSpend / stats.totalBudget) * 100;
-			dailyPercentageSums[i] += pct;
-			dailyPercentageCounts[i] += 1;
-		}
-	});
-
-	const averageDailyPercentages = dailyPercentageSums.map((sum, i) => {
-		if (dailyPercentageCounts[i] === 0) return 0;
-		return sum / dailyPercentageCounts[i];
-	});
-
-	// Make sure days 29-31 don't drop to 0 if no months have those lengths by carrying over last known percentage
-	let lastValidPct = 0;
-	for (let i = 0; i < averageDailyPercentages.length; i++) {
-		if (dailyPercentageCounts[i] > 0) {
-			lastValidPct = averageDailyPercentages[i];
-		} else {
-			averageDailyPercentages[i] = lastValidPct;
+	if (monthStats.has(prevMonthKey)) {
+		const prevMonthStats = monthStats.get(prevMonthKey);
+		if (prevMonthStats && prevMonthStats.transactionCount > 10) {
+			hasEnoughTransactions = true;
 		}
 	}
 
-	return { hasEnoughData: true, dailyPercentages: averageDailyPercentages };
+	if (!hasEnoughTransactions) {
+		return { hasEnoughData: false, dailyAmounts: [] };
+	}
+
+	const dailyAmountSums = new Array(31).fill(0);
+	const dailyAmountCounts = new Array(31).fill(0);
+
+	monthStats.forEach((stats) => {
+		let cumulativeSpend = 0;
+
+		for (let i = 0; i < stats.daysInMonth; i++) {
+			cumulativeSpend += stats.dailySpend[i];
+			dailyAmountSums[i] += cumulativeSpend;
+			dailyAmountCounts[i] += 1;
+		}
+	});
+
+	const averageDailyAmounts = dailyAmountSums.map((sum, i) => {
+		if (dailyAmountCounts[i] === 0) return 0;
+		return sum / dailyAmountCounts[i];
+	});
+
+	// Make sure days 29-31 don't drop to 0 if no months have those lengths by carrying over last known amount
+	let lastValidAmount = 0;
+	for (let i = 0; i < averageDailyAmounts.length; i++) {
+		if (dailyAmountCounts[i] > 0) {
+			lastValidAmount = averageDailyAmounts[i];
+		} else {
+			averageDailyAmounts[i] = lastValidAmount;
+		}
+	}
+
+	return { hasEnoughData: true, dailyAmounts: averageDailyAmounts };
 }

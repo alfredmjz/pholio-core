@@ -54,6 +54,9 @@ interface AllocationsDashboardViewProps {
 
 	exportDialogOpen: boolean;
 	setExportDialogOpen: (open: boolean) => void;
+
+	saveTemplateDialogOpen: boolean;
+	setSaveTemplateDialogOpen: (open: boolean) => void;
 }
 
 export function AllocationsDashboardView({
@@ -82,6 +85,8 @@ export function AllocationsDashboardView({
 	onStartFresh,
 	exportDialogOpen,
 	setExportDialogOpen,
+	saveTemplateDialogOpen,
+	setSaveTemplateDialogOpen,
 }: AllocationsDashboardViewProps) {
 	const usedColors = categories.map((c) => c.color).filter(Boolean) as string[];
 	const usedNames = categories.map((c) => c.name);
@@ -110,6 +115,7 @@ export function AllocationsDashboardView({
 				categories={categories}
 				accounts={accounts}
 				onTransactionSuccess={onTransactionSuccess}
+				onSaveTemplate={() => setSaveTemplateDialogOpen(true)}
 			/>
 
 			<PageContent>

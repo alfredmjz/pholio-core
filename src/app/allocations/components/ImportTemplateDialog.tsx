@@ -22,6 +22,7 @@ interface ImportTemplateDialogProps {
 	templates?: Array<{
 		id: string;
 		name: string;
+		description?: string;
 		categoryCount: number;
 		totalBudget: number;
 	}>;
@@ -190,14 +191,26 @@ export function ImportTemplateDialog({
 											selectedTemplateId === template.id ? "border-info bg-info/5" : "border-border"
 										)}
 									>
-										<div className="flex items-center justify-between">
-											<div>
-												<h5 className="font-medium text-primary">{template.name}</h5>
-												<p className="text-xs text-primary">
-													{template.categoryCount} categories &middot; {formatCurrency(template.totalBudget)}
-												</p>
+										<div className="flex items-center justify-between w-full">
+											<div className="flex-1 text-left min-w-0 pr-4">
+												<h5 className="text-sm font-semibold text-primary truncate">{template.name}</h5>
+												{template.description && (
+													<p className="text-xs text-muted-foreground truncate opacity-90 mt-1">
+														{template.description}
+													</p>
+												)}
 											</div>
-											{selectedTemplateId === template.id && <Check className="h-4 w-4 text-info" />}
+											<div className="flex items-center gap-3 shrink-0">
+												<div className="text-right">
+													<p className="text-sm font-semibold text-primary">{formatCurrency(template.totalBudget)}</p>
+													<p className="text-xs text-muted-foreground mt-0.5">{template.categoryCount} categories</p>
+												</div>
+												{selectedTemplateId === template.id ? (
+													<Check className="h-4 w-4 text-info" />
+												) : (
+													<div className="w-4 h-4" />
+												)}
+											</div>
 										</div>
 									</button>
 								))

@@ -751,7 +751,14 @@ export async function deleteTransaction(transactionId: string): Promise<boolean>
 	return true;
 }
 
-export async function getUserTemplates(): Promise<AllocationTemplate[]> {
+export async function getUserTemplates(): Promise<
+	Array<{
+		id: string;
+		name: string;
+		categoryCount: number;
+		totalBudget: number;
+	}>
+> {
 	const supabase = await createClient();
 
 	const {
@@ -759,14 +766,29 @@ export async function getUserTemplates(): Promise<AllocationTemplate[]> {
 	} = await supabase.auth.getUser();
 	if (!user) return [];
 
-	const { data, error } = await supabase.from("allocation_templates").select("*").eq("user_id", user.id).order("name");
+	const { data, error } = await supabase
+		.from("allocation_templates")
+		.select(
+			`
+			*,
+			template_categories(budget_cap)
+		`
+		)
+		.eq("user_id", user.id)
+		.order("name");
 
 	if (error) {
 		Logger.error("Error fetching templates", { error });
 		return [];
 	}
 
-	return data as AllocationTemplate[];
+	return (data as any[]).map((t) => ({
+		id: t.id,
+		name: t.name,
+		description: t.description,
+		categoryCount: t.template_categories?.length || 0,
+		totalBudget: t.template_categories?.reduce((sum: number, c: any) => sum + Number(c.budget_cap), 0) || 0,
+	}));
 }
 
 export async function applyTemplateToAllocation(templateId: string, allocationId: string): Promise<boolean> {

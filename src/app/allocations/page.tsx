@@ -7,6 +7,7 @@ import {
 	getTransactionsForMonth,
 	getPreviousMonthSummary,
 	getHistoricalPace,
+	getUserTemplates,
 } from "./actions";
 import { getAccountsForSelector } from "@/lib/actions/unified-transaction-actions";
 import { getAllocationSettings } from "@/app/settings/actions";
@@ -45,7 +46,11 @@ async function AllocationsLoader({ year, month }: { year: number; month: number 
 	let accounts: any[] = [];
 	let previousMonthData: { categoryCount: number; totalBudget: number; hasData: boolean } | null = null;
 
-	const [userSettings, historicalPace] = await Promise.all([getAllocationSettings(), getHistoricalPace(year, month)]);
+	const [userSettings, historicalPace, userTemplates] = await Promise.all([
+		getAllocationSettings(),
+		getHistoricalPace(year, month),
+		getUserTemplates(),
+	]);
 
 	if (process.env.NEXT_PUBLIC_USE_SAMPLE_DATA === "true") {
 		await new Promise((resolve) => setTimeout(resolve, 2000));
@@ -100,6 +105,7 @@ async function AllocationsLoader({ year, month }: { year: number; month: number 
 			previousMonthData={previousMonthData}
 			historicalPace={historicalPace}
 			userSettings={userSettings}
+			templates={userTemplates}
 		/>
 	);
 }

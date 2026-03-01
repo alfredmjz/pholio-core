@@ -873,15 +873,15 @@ export async function createTemplateFromAllocation(
 export async function getHistoricalPace(
 	currentYear: number,
 	currentMonth: number
-): Promise<{ hasEnoughData: boolean; dailyPercentages: number[] }> {
+): Promise<{ hasEnoughData: boolean; dailyAmounts: number[] }> {
 	if (process.env.NEXT_PUBLIC_USE_SAMPLE_DATA === "true") {
 		// Create a realistic-looking fake curve for mock data mode
 		const fakeCurve = Array.from({ length: 31 }, (_, i) => {
 			const dayNum = i + 1;
-			// A logarithmic-ish curve that spends faster early then slows down
-			return Math.min(100, Math.round(100 * Math.pow(dayNum / 31, 0.7)));
+			// A logarithmic-ish curve that spends faster early then slows down (e.g. up to $5000)
+			return Math.round(5000 * Math.pow(dayNum / 31, 0.7));
 		});
-		return { hasEnoughData: true, dailyPercentages: fakeCurve };
+		return { hasEnoughData: true, dailyAmounts: fakeCurve };
 	}
 
 	const supabase = await createClient();
@@ -890,7 +890,7 @@ export async function getHistoricalPace(
 		data: { user },
 	} = await supabase.auth.getUser();
 
-	if (!user) return { hasEnoughData: false, dailyPercentages: [] };
+	if (!user) return { hasEnoughData: false, dailyAmounts: [] };
 
 	// 1. Fetch up to 6 most recent past allocations
 	const { data: pastAllocations, error: allocError } = await supabase
@@ -903,7 +903,7 @@ export async function getHistoricalPace(
 		.limit(6);
 
 	if (allocError || !pastAllocations || pastAllocations.length === 0) {
-		return { hasEnoughData: false, dailyPercentages: [] };
+		return { hasEnoughData: false, dailyAmounts: [] };
 	}
 
 	const allocIds = pastAllocations.map((a) => a.id);
@@ -923,7 +923,7 @@ export async function getHistoricalPace(
 	const validAllocations = pastAllocations.filter((a) => (budgetMap.get(a.id) || 0) > 0);
 
 	if (validAllocations.length === 0) {
-		return { hasEnoughData: false, dailyPercentages: [] };
+		return { hasEnoughData: false, dailyAmounts: [] };
 	}
 
 	// 3. Fetch expenses for these past months
@@ -948,6 +948,7 @@ export async function getHistoricalPace(
 		totalBudget: number;
 		daysInMonth: number;
 		dailySpend: number[];
+		transactionCount: number;
 	}
 
 	const monthStats = new Map<string, PastMonthStats>();
@@ -957,6 +958,7 @@ export async function getHistoricalPace(
 			totalBudget: budgetMap.get(a.id) || 0,
 			daysInMonth: days,
 			dailySpend: new Array(days).fill(0),
+			transactionCount: 0,
 		});
 	});
 
@@ -970,36 +972,54 @@ export async function getHistoricalPace(
 		const stats = monthStats.get(key);
 		if (stats && d >= 1 && d <= stats.daysInMonth) {
 			stats.dailySpend[d - 1] += Math.abs(t.amount);
+			stats.transactionCount += 1;
 		}
 	});
 
-	const dailyPercentageSums = new Array(31).fill(0);
-	const dailyPercentageCounts = new Array(31).fill(0);
+	// Check if the IMMEDIATE PREVIOUS MONTH has > 10 transactions
+	let hasEnoughTransactions = false;
+	const prevMonthNum = currentMonth === 1 ? 12 : currentMonth - 1;
+	const prevMonthYear = currentMonth === 1 ? currentYear - 1 : currentYear;
+	const prevMonthKey = `${prevMonthYear}-${prevMonthNum}`;
 
-	monthStats.forEach((stats) => {
-		let cumulativeSpend = 0;
-		for (let i = 0; i < stats.daysInMonth; i++) {
-			cumulativeSpend += stats.dailySpend[i];
-			const pct = (cumulativeSpend / stats.totalBudget) * 100;
-			dailyPercentageSums[i] += pct;
-			dailyPercentageCounts[i] += 1;
-		}
-	});
-
-	const averageDailyPercentages = dailyPercentageSums.map((sum, i) => {
-		if (dailyPercentageCounts[i] === 0) return 0;
-		return sum / dailyPercentageCounts[i];
-	});
-
-	// Make sure days 29-31 don't drop to 0 if no months have those lengths by carrying over last known percentage
-	let lastValidPct = 0;
-	for (let i = 0; i < averageDailyPercentages.length; i++) {
-		if (dailyPercentageCounts[i] > 0) {
-			lastValidPct = averageDailyPercentages[i];
-		} else {
-			averageDailyPercentages[i] = lastValidPct;
+	if (monthStats.has(prevMonthKey)) {
+		const prevMonthStats = monthStats.get(prevMonthKey);
+		if (prevMonthStats && prevMonthStats.transactionCount > 10) {
+			hasEnoughTransactions = true;
 		}
 	}
 
-	return { hasEnoughData: true, dailyPercentages: averageDailyPercentages };
+	if (!hasEnoughTransactions) {
+		return { hasEnoughData: false, dailyAmounts: [] };
+	}
+
+	const dailyAmountSums = new Array(31).fill(0);
+	const dailyAmountCounts = new Array(31).fill(0);
+
+	monthStats.forEach((stats) => {
+		let cumulativeSpend = 0;
+
+		for (let i = 0; i < stats.daysInMonth; i++) {
+			cumulativeSpend += stats.dailySpend[i];
+			dailyAmountSums[i] += cumulativeSpend;
+			dailyAmountCounts[i] += 1;
+		}
+	});
+
+	const averageDailyAmounts = dailyAmountSums.map((sum, i) => {
+		if (dailyAmountCounts[i] === 0) return 0;
+		return sum / dailyAmountCounts[i];
+	});
+
+	// Make sure days 29-31 don't drop to 0 if no months have those lengths by carrying over last known amount
+	let lastValidAmount = 0;
+	for (let i = 0; i < averageDailyAmounts.length; i++) {
+		if (dailyAmountCounts[i] > 0) {
+			lastValidAmount = averageDailyAmounts[i];
+		} else {
+			averageDailyAmounts[i] = lastValidAmount;
+		}
+	}
+
+	return { hasEnoughData: true, dailyAmounts: averageDailyAmounts };
 }

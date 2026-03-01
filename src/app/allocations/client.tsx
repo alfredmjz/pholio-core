@@ -35,7 +35,7 @@ interface AllocationClientProps {
 	} | null;
 	historicalPace: {
 		hasEnoughData: boolean;
-		dailyPercentages: number[];
+		dailyAmounts: number[];
 	};
 	userSettings?: {
 		newMonthDefault: AllocationNewMonthDefault;

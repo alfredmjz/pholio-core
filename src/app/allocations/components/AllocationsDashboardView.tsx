@@ -47,7 +47,7 @@ interface AllocationsDashboardViewProps {
 	setTemplateDialogOpen: (open: boolean) => void;
 	monthName: string;
 	previousMonthData: { name: string; year: number; categoryCount: number; totalBudget: number } | null;
-	historicalPace: { hasEnoughData: boolean; dailyPercentages: number[] };
+	historicalPace: { hasEnoughData: boolean; dailyAmounts: number[] };
 	onImportPrevious: (income: number) => Promise<void>;
 	onUseTemplate: (id: string, income: number) => Promise<void>;
 	onStartFresh: (income: number) => Promise<void>;

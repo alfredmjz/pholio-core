@@ -17,8 +17,8 @@ export function BudgetSummaryCards({
 	totalSpent,
 	className,
 }: BudgetSummaryCardsProps) {
-	const leftToSpend = expectedIncome - totalSpent;
-	const spentPercentage = expectedIncome > 0 ? (totalSpent / expectedIncome) * 100 : 0;
+	const leftToAllocate = expectedIncome - totalBudgetAllocated;
+	const spentPercentage = totalBudgetAllocated > 0 ? (totalSpent / totalBudgetAllocated) * 100 : 0;
 
 	const isOnTrack = spentPercentage <= 75;
 	const isWarning = spentPercentage > 75 && spentPercentage <= 100;
@@ -60,23 +60,12 @@ export function BudgetSummaryCards({
 			</Card>
 
 			<Card className="p-5 bg-card border border-border">
-				<p className="text-sm text-primary font-medium mb-1">Left to Spend</p>
-				<p className={cn("text-3xl font-bold", isOverBudget ? "text-error" : "text-success")}>
-					{isOverBudget ? "-" : ""}
-					{formatCurrency(Math.abs(leftToSpend))}
-					{isOverBudget && <span className="text-lg ml-1">over</span>}
+				<p className="text-sm text-primary font-medium mb-1">Left to Allocate</p>
+				<p className={cn("text-3xl font-bold", leftToAllocate < 0 ? "text-error" : "text-success")}>
+					{formatCurrency(Math.abs(leftToAllocate))}
 				</p>
-				<p
-					className={cn(
-						"text-xs font-medium mt-2",
-						isOnTrack && "text-success",
-						isWarning && "text-warning",
-						isOverBudget && "text-error"
-					)}
-				>
-					{isOnTrack && "On track"}
-					{isWarning && "Getting close"}
-					{isOverBudget && "Over budget"}
+				<p className={cn("text-xs font-medium mt-2", leftToAllocate >= 0 ? "text-success" : "text-error")}>
+					{leftToAllocate >= 0 ? "On track" : "Over allocated"}
 				</p>
 			</Card>
 

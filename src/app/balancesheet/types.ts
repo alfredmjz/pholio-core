@@ -157,6 +157,7 @@ export interface UpdateAccountInput {
 	institution?: string | null;
 	current_balance?: number;
 	credit_limit?: number | null;
+	original_amount?: number | null;
 	interest_rate?: number | null;
 	interest_type?: InterestType | null;
 	loan_term_months?: number | null;

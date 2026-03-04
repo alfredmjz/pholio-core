@@ -101,10 +101,14 @@ export function ActivityCard({ transactions, isLoading, formatCurrency, onTransa
 								{getTransactionIcon(txn.transaction_type)}
 							</div>
 
-							{/* Title & Description */}
+							{/* Description */}
 							<div className="flex-1 min-w-0">
-								<p className="text-sm font-medium truncate">{getTransactionTitle(txn.transaction_type)}</p>
-								{txn.description && <p className="text-xs text-primary truncate">{txn.description}</p>}
+								<p className="text-sm font-medium truncate">
+									{txn.description || getTransactionTitle(txn.transaction_type)}
+								</p>
+								{txn.description && (
+									<p className="text-xs text-primary truncate">{getTransactionTitle(txn.transaction_type)}</p>
+								)}
 							</div>
 
 							{/* Amount & Date */}

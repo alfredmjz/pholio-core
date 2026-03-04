@@ -78,7 +78,7 @@ CREATE TABLE public.account_transactions (
         'deposit', 'withdrawal', 'interest', 'payment',
         'adjustment', 'contribution', 'transfer'
     )),
-    description TEXT,
+    description TEXT NOT NULL,
     transaction_date DATE NOT NULL DEFAULT CURRENT_DATE,
 
     -- Link to allocations system (Foreign key added below or inline)

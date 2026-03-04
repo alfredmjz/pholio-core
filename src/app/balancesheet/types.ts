@@ -96,7 +96,7 @@ export interface AccountTransaction {
 	user_id: string;
 	amount: number;
 	transaction_type: TransactionType;
-	description: string | null;
+	description: string;
 	transaction_date: string;
 	linked_allocation_transaction_id: string | null;
 	created_at: string;
@@ -176,7 +176,7 @@ export interface RecordTransactionInput {
 	account_id: string;
 	amount: number;
 	transaction_type: TransactionType;
-	description?: string | null;
+	description: string;
 	transaction_date?: string;
 }
 

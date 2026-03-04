@@ -4,6 +4,7 @@ import { Badge } from "@/components/ui/badge";
 import { Progress } from "@/components/ui/progress";
 import { cn } from "@/lib/utils";
 import type { AccountWithType } from "../../types";
+import { getFieldVisibility } from "../../field-visibility";
 
 interface AccountStatsProps {
 	account: AccountWithType;
@@ -16,6 +17,15 @@ interface AccountStatsProps {
  * Account statistics section with balance, interest rate, and goal progress.
  */
 export function AccountStats({ account, accountClass, progress, formatCurrency }: AccountStatsProps) {
+	const visibility = getFieldVisibility(account.account_type?.category, account.account_type?.name);
+
+	// Determine which goal/amount to display
+	const goalLabel = visibility.showOriginalAmount ? "Original Loan" : "Target Goal";
+	const goalValue = visibility.showOriginalAmount ? account.original_amount : account.target_balance;
+	const showGoal = visibility.showOriginalAmount
+		? !!account.original_amount
+		: visibility.showTargetGoal && !!account.target_balance;
+
 	return (
 		<div className="flex items-start gap-8 flex-wrap">
 			{/* Current Balance */}
@@ -29,24 +39,22 @@ export function AccountStats({ account, accountClass, progress, formatCurrency }
 				>
 					{formatCurrency(account.current_balance)}
 				</div>
-				{account.interest_rate && (
+				{account.interest_rate && visibility.showInterestRate && (
 					<div className="flex items-center gap-2 text-sm text-primary">
 						<Badge variant="secondary" className="text-xs">
-							APY
+							{visibility.interestRateLabel.replace(" (%)", "")}
 						</Badge>
 						<span>{(account.interest_rate * 100).toFixed(2)}%</span>
 					</div>
 				)}
 			</div>
 
-			{/* Target / Goal with Enhanced Progress */}
-			{account.target_balance && (
+			{/* Target / Goal / Original Loan with Enhanced Progress */}
+			{showGoal && goalValue && (
 				<div className="flex flex-col gap-2 flex-1 min-w-[200px]">
 					<div className="flex items-center justify-between">
-						<span className="text-xs font-medium text-primary uppercase tracking-wider">
-							{accountClass === "asset" ? "Target Goal" : "Original Loan"}
-						</span>
-						<span className="text-sm font-medium text-primary">{formatCurrency(account.target_balance)}</span>
+						<span className="text-xs font-medium text-primary uppercase tracking-wider">{goalLabel}</span>
+						<span className="text-sm font-medium text-primary">{formatCurrency(goalValue)}</span>
 					</div>
 					{progress !== null && (
 						<div className="flex flex-col gap-2 relative mt-4">

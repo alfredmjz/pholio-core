@@ -7,6 +7,7 @@ import { Landmark, Wallet, CreditCard, Building, TrendingUp, GripVertical } from
 import { Badge } from "@/components/ui/badge";
 import { useSortable } from "@dnd-kit/sortable";
 import { CSS } from "@dnd-kit/utilities";
+import { getFieldVisibility } from "../field-visibility";
 
 interface AccountCardProps {
 	account: AccountWithType;
@@ -94,7 +95,8 @@ export function AccountCard({ account, onClick }: AccountCardProps) {
 
 	const getProgressLabel = () => {
 		if (accountClass === "asset") return "Goal Progress";
-		if (account.credit_limit) return "Credit Usage";
+		const vis = getFieldVisibility(category, account.account_type?.name);
+		if (vis.showCreditLimit) return "Credit Usage";
 		return "Paid Off";
 	};
 

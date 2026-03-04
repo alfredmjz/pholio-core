@@ -259,6 +259,19 @@ COMMENT ON COLUMN public.accounts.interest_rate IS 'APR/APY as decimal (0.0650 =
 COMMENT ON COLUMN public.accounts.payment_due_date IS 'The day of the month the payment is due (1-31). Applies mainly to credit cards and loans.';
 
 -- ============================================================================
+-- DATA MIGRATION: Copy target_balance → original_amount for debt accounts
+-- ============================================================================
+
+UPDATE public.accounts a
+SET original_amount = a.target_balance,
+    target_balance = NULL
+FROM public.account_types at
+WHERE a.account_type_id = at.id
+  AND at.category = 'debt'
+  AND a.target_balance IS NOT NULL
+  AND a.original_amount IS NULL;
+
+-- ============================================================================
 -- ANALYZE TABLES
 -- ============================================================================
 

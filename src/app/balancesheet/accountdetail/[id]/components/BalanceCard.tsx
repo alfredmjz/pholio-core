@@ -6,6 +6,7 @@ import { Badge } from "@/components/ui/badge";
 import { Progress } from "@/components/ui/progress";
 import { cn } from "@/lib/utils";
 import type { AccountWithType } from "../../../types";
+import { getFieldVisibility } from "../../../field-visibility";
 
 interface BalanceCardProps {
 	account: AccountWithType;
@@ -14,19 +15,20 @@ interface BalanceCardProps {
 }
 
 export function BalanceCard({ account, accountClass, formatCurrency }: BalanceCardProps) {
-	const progress = account.target_balance
+	const visibility = getFieldVisibility(account.account_type?.category, account.account_type?.name);
+
+	const goalValue = visibility.showOriginalAmount ? account.original_amount : account.target_balance;
+	const showGoal = visibility.showOriginalAmount
+		? !!account.original_amount
+		: visibility.showTargetGoal && !!account.target_balance;
+
+	const progress = goalValue
 		? accountClass === "asset"
-			? (account.current_balance / account.target_balance) * 100
-			: account.original_amount
-				? ((account.original_amount - account.current_balance) / account.original_amount) * 100
-				: null
+			? (account.current_balance / goalValue) * 100
+			: ((goalValue - account.current_balance) / goalValue) * 100
 		: null;
 
-	const remaining = account.target_balance
-		? accountClass === "asset"
-			? account.target_balance - account.current_balance
-			: null
-		: null;
+	const remaining = goalValue ? (accountClass === "asset" ? goalValue - account.current_balance : null) : null;
 
 	const estimatedAnnualInterest =
 		account.interest_rate && account.current_balance ? account.current_balance * account.interest_rate : null;
@@ -46,9 +48,9 @@ export function BalanceCard({ account, accountClass, formatCurrency }: BalanceCa
 						>
 							{formatCurrency(account.current_balance)}
 						</div>
-						{account.interest_rate && (
+						{account.interest_rate && visibility.showInterestRate && (
 							<div className="flex items-center gap-2 text-sm text-primary">
-								<span>APY:</span>
+								<span>{visibility.interestRateLabel.replace(" (%)", "")}:</span>
 								<span className="font-medium">{(account.interest_rate * 100).toFixed(1)}%</span>
 							</div>
 						)}
@@ -60,18 +62,19 @@ export function BalanceCard({ account, accountClass, formatCurrency }: BalanceCa
 							variant="secondary"
 							className="flex items-center gap-1 px-2 py-1 bg-green-100 text-green-700 dark:bg-green-900/30 dark:text-green-400"
 						>
-							<TrendingUp className="h-3 w-3" />
-							+{formatCurrency(estimatedAnnualInterest)}/yr
+							<TrendingUp className="h-3 w-3" />+{formatCurrency(estimatedAnnualInterest)}/yr
 						</Badge>
 					)}
 				</div>
 
-				{/* Progress to Goal */}
-				{account.target_balance && progress !== null && (
+				{/* Progress to Goal / Payoff */}
+				{showGoal && goalValue && progress !== null && (
 					<div className="flex flex-col gap-2">
 						<div className="flex items-center justify-between text-sm">
-							<span className="font-medium text-primary">Progress to Goal</span>
-							<span className="font-medium">{formatCurrency(account.target_balance)}</span>
+							<span className="font-medium text-primary">
+								{visibility.showOriginalAmount ? "Loan Progress" : "Progress to Goal"}
+							</span>
+							<span className="font-medium">{formatCurrency(goalValue)}</span>
 						</div>
 						<Progress
 							value={Math.min(progress, 100)}
@@ -87,3 +90,4 @@ export function BalanceCard({ account, accountClass, formatCurrency }: BalanceCa
 		</Card>
 	);
 }
+

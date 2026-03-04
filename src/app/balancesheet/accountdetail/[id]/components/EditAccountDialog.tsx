@@ -19,6 +19,7 @@ import type { AccountWithType } from "../../../types";
 import { validateDecimalInput } from "@/lib/input-utils";
 import { ProminentAmountInput } from "@/components/ProminentAmountInput";
 import { Switch } from "@/components/ui/switch";
+import { getFieldVisibility } from "../../../field-visibility";
 
 interface EditAccountDialogProps {
 	open: boolean;
@@ -42,6 +43,7 @@ export function EditAccountDialog({ open, onOpenChange, account, onSuccess }: Ed
 		institution: account.institution || "",
 		current_balance: account.current_balance.toString(),
 		target_balance: account.target_balance?.toString() || "",
+		original_amount: account.original_amount?.toString() || "",
 		interest_rate: account.interest_rate ? (account.interest_rate * 100).toString() : "",
 		notes: account.notes || "",
 		payment_due_date: account.payment_due_date?.toString() || "",
@@ -53,9 +55,7 @@ export function EditAccountDialog({ open, onOpenChange, account, onSuccess }: Ed
 	});
 
 	const category = account.account_type?.category;
-
-	// Liability accounts (debts) have target goal implicitly as 0
-	const isDebtAccount = account.account_type?.class === "liability";
+	const visibility = getFieldVisibility(category, account.account_type?.name);
 
 	const validateForm = (): boolean => {
 		const newErrors: ValidationErrors = {};
@@ -73,7 +73,7 @@ export function EditAccountDialog({ open, onOpenChange, account, onSuccess }: Ed
 		}
 
 		// Validate Target Goal (optional, but must be a valid number if provided)
-		if (!isDebtAccount && formData.target_balance.trim() && isNaN(parseFloat(formData.target_balance))) {
+		if (visibility.showTargetGoal && formData.target_balance.trim() && isNaN(parseFloat(formData.target_balance))) {
 			newErrors.target_balance = "Please enter a valid number";
 		}
 
@@ -107,10 +107,8 @@ export function EditAccountDialog({ open, onOpenChange, account, onSuccess }: Ed
 				name: formData.name,
 				institution: formData.institution || null,
 				current_balance: parseFloat(formData.current_balance) || 0,
-				target_balance:
-					category === "credit" || category === "debt" || category === "investment" || category === "retirement"
-						? null
-						: parseFloat(formData.target_balance) || null,
+				target_balance: visibility.showTargetGoal ? parseFloat(formData.target_balance) || null : null,
+				original_amount: visibility.showOriginalAmount ? parseFloat(formData.original_amount) || null : null,
 				interest_rate: formData.interest_rate ? parseFloat(formData.interest_rate) / 100 : null,
 				notes: formData.notes || null,
 				payment_due_date: formData.payment_due_date ? parseInt(formData.payment_due_date) : null,
@@ -174,12 +172,12 @@ export function EditAccountDialog({ open, onOpenChange, account, onSuccess }: Ed
 
 					{/* Institution */}
 					<div className="space-y-2">
-						<Label htmlFor="institution">Institution</Label>
+						<Label htmlFor="institution">{visibility.institutionLabel}</Label>
 						<Input
 							id="institution"
 							value={formData.institution}
 							onChange={(e) => setFormData({ ...formData, institution: e.target.value })}
-							placeholder="e.g., Ally Bank"
+							placeholder={visibility.institutionPlaceholder}
 						/>
 					</div>
 
@@ -215,11 +213,7 @@ export function EditAccountDialog({ open, onOpenChange, account, onSuccess }: Ed
 							{errors.current_balance && <p className="text-sm text-error">{errors.current_balance}</p>}
 						</div>
 
-						{(!category ||
-							(category !== "credit" &&
-								category !== "debt" &&
-								category !== "investment" &&
-								category !== "retirement")) && (
+						{visibility.showTargetGoal && (
 							<div className="space-y-2">
 								<Label htmlFor="target_balance">Target Goal</Label>
 								<Input
@@ -242,8 +236,8 @@ export function EditAccountDialog({ open, onOpenChange, account, onSuccess }: Ed
 						)}
 					</div>
 
-					{/* Dynamic Fields based on Category */}
-					{category === "credit" && (
+					{/* Credit-specific fields */}
+					{visibility.showCreditLimit && (
 						<>
 							<div className="grid grid-cols-2 gap-4">
 								<div className="space-y-2">
@@ -262,21 +256,23 @@ export function EditAccountDialog({ open, onOpenChange, account, onSuccess }: Ed
 										}}
 									/>
 								</div>
-								<div className="space-y-2">
-									<Label htmlFor="payment_due_date">Payment Due Date (1-31)</Label>
-									<Input
-										id="payment_due_date"
-										type="number"
-										min="1"
-										max="31"
-										placeholder="e.g., 21"
-										value={formData.payment_due_date}
-										onChange={(e) => setFormData({ ...formData, payment_due_date: e.target.value })}
-									/>
-								</div>
+								{visibility.showDueDate && (
+									<div className="space-y-2">
+										<Label htmlFor="payment_due_date">Payment Due Date (1-31)</Label>
+										<Input
+											id="payment_due_date"
+											type="number"
+											min="1"
+											max="31"
+											placeholder="e.g., 21"
+											value={formData.payment_due_date}
+											onChange={(e) => setFormData({ ...formData, payment_due_date: e.target.value })}
+										/>
+									</div>
+								)}
 							</div>
 							<div className="space-y-2">
-								<Label htmlFor="interest_rate">APR (%)</Label>
+								<Label htmlFor="interest_rate">{visibility.interestRateLabel}</Label>
 								<Input
 									id="interest_rate"
 									type="text"
@@ -297,51 +293,56 @@ export function EditAccountDialog({ open, onOpenChange, account, onSuccess }: Ed
 						</>
 					)}
 
-					{category === "debt" && (
+					{/* Debt-specific fields */}
+					{visibility.showOriginalAmount && (
 						<>
 							<div className="grid grid-cols-2 gap-4">
 								<div className="space-y-2">
-									<Label htmlFor="target">Original Loan Amount</Label>
+									<Label htmlFor="original_amount">Original Loan Amount</Label>
 									<Input
-										id="target"
+										id="original_amount"
 										type="text"
 										inputMode="decimal"
 										placeholder="e.g., 15000"
-										value={formData.target_balance}
+										value={formData.original_amount}
 										onChange={(e) => {
 											const val = e.target.value;
 											if (validateDecimalInput(val)) {
-												setFormData({ ...formData, target_balance: val });
+												setFormData({ ...formData, original_amount: val });
 											}
 										}}
 									/>
 								</div>
-								<div className="space-y-2">
-									<Label htmlFor="loan_term_months">Loan Term (Months)</Label>
-									<Input
-										id="loan_term_months"
-										type="number"
-										placeholder="e.g., 60"
-										value={formData.loan_term_months}
-										onChange={(e) => setFormData({ ...formData, loan_term_months: e.target.value })}
-									/>
-								</div>
+								{visibility.showLoanTerm && (
+									<div className="space-y-2">
+										<Label htmlFor="loan_term_months">Loan Term (Months)</Label>
+										<Input
+											id="loan_term_months"
+											type="number"
+											placeholder="e.g., 60"
+											value={formData.loan_term_months}
+											onChange={(e) => setFormData({ ...formData, loan_term_months: e.target.value })}
+										/>
+									</div>
+								)}
 							</div>
 							<div className="grid grid-cols-2 gap-4">
+								{visibility.showDueDate && (
+									<div className="space-y-2">
+										<Label htmlFor="payment_due_date">Payment Due Date (1-31)</Label>
+										<Input
+											id="payment_due_date"
+											type="number"
+											min="1"
+											max="31"
+											placeholder="e.g., 15"
+											value={formData.payment_due_date}
+											onChange={(e) => setFormData({ ...formData, payment_due_date: e.target.value })}
+										/>
+									</div>
+								)}
 								<div className="space-y-2">
-									<Label htmlFor="payment_due_date">Payment Due Date (1-31)</Label>
-									<Input
-										id="payment_due_date"
-										type="number"
-										min="1"
-										max="31"
-										placeholder="e.g., 15"
-										value={formData.payment_due_date}
-										onChange={(e) => setFormData({ ...formData, payment_due_date: e.target.value })}
-									/>
-								</div>
-								<div className="space-y-2">
-									<Label htmlFor="interest_rate">APR (%)</Label>
+									<Label htmlFor="interest_rate">{visibility.interestRateLabel}</Label>
 									<Input
 										id="interest_rate"
 										type="text"
@@ -363,7 +364,8 @@ export function EditAccountDialog({ open, onOpenChange, account, onSuccess }: Ed
 						</>
 					)}
 
-					{(category === "investment" || category === "retirement") && (
+					{/* Investment/Retirement fields */}
+					{visibility.showContributionRoom && (
 						<>
 							<div className="flex flex-row items-center justify-between rounded-lg border p-4">
 								<div className="space-y-0.5">
@@ -417,13 +419,10 @@ export function EditAccountDialog({ open, onOpenChange, account, onSuccess }: Ed
 						</>
 					)}
 
-					{(!category ||
-						(category !== "credit" &&
-							category !== "debt" &&
-							category !== "investment" &&
-							category !== "retirement")) && (
+					{/* Default interest rate for banking/property/other */}
+					{visibility.showInterestRate && !visibility.showCreditLimit && !visibility.showOriginalAmount && (
 						<div className="space-y-2">
-							<Label htmlFor="interest_rate">APY (%)</Label>
+							<Label htmlFor="interest_rate">{visibility.interestRateLabel}</Label>
 							<Input
 								id="interest_rate"
 								type="text"

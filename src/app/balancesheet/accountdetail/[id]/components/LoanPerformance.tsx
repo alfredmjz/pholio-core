@@ -17,8 +17,8 @@ export function LoanPerformance({ account, transactions, formatCurrency }: LoanP
 			.filter((t) => t.transaction_type === "interest")
 			.reduce((sum, t) => sum + Math.abs(t.amount), 0);
 
-		/** Uses `target_balance` as the original loan amount. */
-		const originalAmount = account.target_balance ?? 0;
+		/** Uses dedicated original_amount for debt, fallbacks to target_balance for older data. */
+		const originalAmount = account.original_amount ?? account.target_balance ?? 0;
 		const currentBalance = account.current_balance;
 		const principalPaid = Math.max(0, originalAmount - currentBalance);
 

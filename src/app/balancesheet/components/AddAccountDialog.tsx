@@ -25,6 +25,7 @@ import { FormSection } from "@/components/FormSection";
 import { CardSelector } from "@/components/CardSelector";
 import { ProminentAmountInput } from "@/components/ProminentAmountInput";
 import { Switch } from "@/components/ui/switch";
+import { getFieldVisibility } from "../field-visibility";
 
 interface AddAccountDialogProps {
 	open: boolean;
@@ -45,6 +46,7 @@ export function AddAccountDialog({ open, onOpenChange, onSuccess }: AddAccountDi
 		account_type_id: string;
 		current_balance: string;
 		target_balance: string;
+		original_amount: string;
 		interest_rate: string;
 		institution: string;
 		notes: string;
@@ -64,6 +66,7 @@ export function AddAccountDialog({ open, onOpenChange, onSuccess }: AddAccountDi
 		account_type_id: "",
 		current_balance: "",
 		target_balance: "",
+		original_amount: "",
 		interest_rate: "",
 		institution: "",
 		notes: "",
@@ -74,6 +77,27 @@ export function AddAccountDialog({ open, onOpenChange, onSuccess }: AddAccountDi
 		contribution_room: "",
 		annual_contribution_limit: "",
 	});
+
+	// Clear irrelevant fields when category changes
+	useEffect(() => {
+		if (!formData.account_type_id) return;
+		const type = allAccountTypes.find((t) => t.id === formData.account_type_id);
+		if (!type) return;
+		const vis = getFieldVisibility(type.category, type.name);
+		setFormData((prev) => ({
+			...prev,
+			target_balance: vis.showTargetGoal ? prev.target_balance : "",
+			original_amount: vis.showOriginalAmount ? prev.original_amount : "",
+			credit_limit: vis.showCreditLimit ? prev.credit_limit : "",
+			interest_rate: vis.showInterestRate ? prev.interest_rate : "",
+			loan_term_months: vis.showLoanTerm ? prev.loan_term_months : "",
+			payment_due_date: vis.showDueDate ? prev.payment_due_date : "",
+			track_contribution_room: vis.showContributionRoom ? prev.track_contribution_room : false,
+			contribution_room: vis.showContributionRoom ? prev.contribution_room : "",
+			annual_contribution_limit: vis.showContributionRoom ? prev.annual_contribution_limit : "",
+		}));
+		// eslint-disable-next-line react-hooks/exhaustive-deps
+	}, [formData.account_type_id]);
 	const [errors, setErrors] = useState<ValidationErrors>({});
 	const [openCombobox, setOpenCombobox] = useState(false);
 	const [searchValue, setSearchValue] = useState("");
@@ -166,6 +190,7 @@ export function AddAccountDialog({ open, onOpenChange, onSuccess }: AddAccountDi
 				interest_rate: formData.interest_rate ? parseFloat(formData.interest_rate) / 100 : null,
 				interest_type: formData.interest_rate ? "compound" : null,
 				target_balance: formData.target_balance ? parseFloat(formData.target_balance) : null,
+				original_amount: formData.original_amount ? parseFloat(formData.original_amount) : null,
 				institution: formData.institution || null,
 				notes: formData.notes || null,
 				payment_due_date: formData.payment_due_date ? parseInt(formData.payment_due_date) : null,
@@ -190,6 +215,7 @@ export function AddAccountDialog({ open, onOpenChange, onSuccess }: AddAccountDi
 					account_type_id: "",
 					current_balance: "",
 					target_balance: "",
+					original_amount: "",
 					interest_rate: "",
 					institution: "",
 					notes: "",
@@ -221,6 +247,7 @@ export function AddAccountDialog({ open, onOpenChange, onSuccess }: AddAccountDi
 		(t) => t.class === accountType && t.name.toLowerCase().includes(searchValue.toLowerCase())
 	);
 	const selectedType = (allAccountTypes || []).find((t) => t.id === formData.account_type_id);
+	const visibility = getFieldVisibility(selectedType?.category, selectedType?.name);
 
 	return (
 		<Dialog open={open} onOpenChange={onOpenChange}>
@@ -368,11 +395,7 @@ export function AddAccountDialog({ open, onOpenChange, onSuccess }: AddAccountDi
 								{errors.current_balance && <p className="text-sm text-error">{errors.current_balance}</p>}
 							</div>
 
-							{(!selectedType ||
-								(selectedType.category !== "credit" &&
-									selectedType.category !== "debt" &&
-									selectedType.category !== "investment" &&
-									selectedType.category !== "retirement")) && (
+							{visibility.showTargetGoal && (
 								<div className="space-y-2">
 									<Label htmlFor="target">Target Goal</Label>
 									<ProminentAmountInput
@@ -389,19 +412,19 @@ export function AddAccountDialog({ open, onOpenChange, onSuccess }: AddAccountDi
 							)}
 						</div>
 
-						{/* Dynamic Fields based on Category */}
-						{selectedType?.category === "credit" && (
-							<>
-								<div className="grid grid-cols-2 gap-4 mt-4">
-									<div className="space-y-2">
-										<Label htmlFor="credit_limit">Credit Limit (Optional)</Label>
-										<ProminentAmountInput
-											id="credit_limit"
-											value={formData.credit_limit}
-											onChange={(val) => setFormData({ ...formData, credit_limit: val })}
-											hasError={false}
-										/>
-									</div>
+						{/* Credit-specific fields */}
+						{visibility.showCreditLimit && (
+							<div className="grid grid-cols-2 gap-4 mt-4">
+								<div className="space-y-2">
+									<Label htmlFor="credit_limit">Credit Limit (Optional)</Label>
+									<ProminentAmountInput
+										id="credit_limit"
+										value={formData.credit_limit}
+										onChange={(val) => setFormData({ ...formData, credit_limit: val })}
+										hasError={false}
+									/>
+								</div>
+								{visibility.showDueDate && (
 									<div className="space-y-2">
 										<Label htmlFor="payment_due_date">Payment Due Date (1-31)</Label>
 										<Input
@@ -415,51 +438,23 @@ export function AddAccountDialog({ open, onOpenChange, onSuccess }: AddAccountDi
 											className="h-10"
 										/>
 									</div>
-								</div>
-								<div className="grid grid-cols-2 gap-4 mt-4">
-									<div className="space-y-2">
-										<Label htmlFor="interest">APR (%)</Label>
-										<Input
-											id="interest"
-											type="text"
-											inputMode="decimal"
-											placeholder="19.99"
-											value={formData.interest_rate}
-											onChange={(e) => {
-												const val = e.target.value;
-												if (validateDecimalInput(val)) {
-													setFormData({ ...formData, interest_rate: val });
-												}
-											}}
-											className="h-10"
-										/>
-									</div>
-									<div className="space-y-2">
-										<Label htmlFor="institution">Institution/Lender</Label>
-										<Input
-											id="institution"
-											placeholder="Chase, Amex, etc."
-											value={formData.institution}
-											onChange={(e) => setFormData({ ...formData, institution: e.target.value })}
-											className="h-10"
-										/>
-									</div>
-								</div>
-							</>
+								)}
+							</div>
 						)}
 
-						{selectedType?.category === "debt" && (
-							<>
-								<div className="grid grid-cols-2 gap-4 mt-4">
-									<div className="space-y-2">
-										<Label htmlFor="target">Original Loan Amount</Label>
-										<ProminentAmountInput
-											id="target"
-											value={formData.target_balance}
-											onChange={(val) => setFormData({ ...formData, target_balance: val })}
-											hasError={false}
-										/>
-									</div>
+						{/* Debt-specific fields: Original Loan Amount & Loan Term */}
+						{visibility.showOriginalAmount && (
+							<div className="grid grid-cols-2 gap-4 mt-4">
+								<div className="space-y-2">
+									<Label htmlFor="original_amount">Original Loan Amount</Label>
+									<ProminentAmountInput
+										id="original_amount"
+										value={formData.original_amount}
+										onChange={(val) => setFormData({ ...formData, original_amount: val })}
+										hasError={false}
+									/>
+								</div>
+								{visibility.showLoanTerm && (
 									<div className="space-y-2">
 										<Label htmlFor="loan_term">Loan Term (Months)</Label>
 										<Input
@@ -471,53 +466,95 @@ export function AddAccountDialog({ open, onOpenChange, onSuccess }: AddAccountDi
 											className="h-10"
 										/>
 									</div>
+								)}
+							</div>
+						)}
+
+						{/* Debt-specific: Due Date & APR row */}
+						{visibility.showOriginalAmount && visibility.showDueDate && (
+							<div className="grid grid-cols-2 gap-4 mt-4">
+								<div className="space-y-2">
+									<Label htmlFor="payment_due_date">Payment Due Date (1-31)</Label>
+									<Input
+										id="payment_due_date"
+										type="number"
+										min="1"
+										max="31"
+										placeholder="e.g., 15"
+										value={formData.payment_due_date}
+										onChange={(e) => setFormData({ ...formData, payment_due_date: e.target.value })}
+										className="h-10"
+									/>
 								</div>
-								<div className="grid grid-cols-2 gap-4 mt-4">
-									<div className="space-y-2">
-										<Label htmlFor="payment_due_date">Payment Due Date (1-31)</Label>
-										<Input
-											id="payment_due_date"
-											type="number"
-											min="1"
-											max="31"
-											placeholder="e.g., 15"
-											value={formData.payment_due_date}
-											onChange={(e) => setFormData({ ...formData, payment_due_date: e.target.value })}
-											className="h-10"
-										/>
-									</div>
-									<div className="space-y-2">
-										<Label htmlFor="interest">APR (%)</Label>
-										<Input
-											id="interest"
-											type="text"
-											inputMode="decimal"
-											placeholder="5.50"
-											value={formData.interest_rate}
-											onChange={(e) => {
-												const val = e.target.value;
-												if (validateDecimalInput(val)) {
-													setFormData({ ...formData, interest_rate: val });
-												}
-											}}
-											className="h-10"
-										/>
-									</div>
+								<div className="space-y-2">
+									<Label htmlFor="interest">{visibility.interestRateLabel}</Label>
+									<Input
+										id="interest"
+										type="text"
+										inputMode="decimal"
+										placeholder="5.50"
+										value={formData.interest_rate}
+										onChange={(e) => {
+											const val = e.target.value;
+											if (validateDecimalInput(val)) {
+												setFormData({ ...formData, interest_rate: val });
+											}
+										}}
+										className="h-10"
+									/>
 								</div>
-								<div className="space-y-2 mt-4">
-									<Label htmlFor="institution">Lender</Label>
+							</div>
+						)}
+
+						{/* Interest Rate for non-debt categories that show it (credit, banking, etc.) */}
+						{visibility.showInterestRate && !visibility.showOriginalAmount && (
+							<div className="grid grid-cols-2 gap-4 mt-4">
+								<div className="space-y-2">
+									<Label htmlFor="interest">{visibility.interestRateLabel}</Label>
+									<Input
+										id="interest"
+										type="text"
+										inputMode="decimal"
+										placeholder={selectedType?.category === "credit" ? "19.99" : "4.00"}
+										value={formData.interest_rate}
+										onChange={(e) => {
+											const val = e.target.value;
+											if (validateDecimalInput(val)) {
+												setFormData({ ...formData, interest_rate: val });
+											}
+										}}
+										className="h-10"
+									/>
+								</div>
+								<div className="space-y-2">
+									<Label htmlFor="institution">{visibility.institutionLabel}</Label>
 									<Input
 										id="institution"
-										placeholder="Bank of America, etc."
+										placeholder={visibility.institutionPlaceholder}
 										value={formData.institution}
 										onChange={(e) => setFormData({ ...formData, institution: e.target.value })}
 										className="h-10"
 									/>
 								</div>
-							</>
+							</div>
 						)}
 
-						{(selectedType?.category === "investment" || selectedType?.category === "retirement") && (
+						{/* Institution for debt (shown separately since APR is in a different row) */}
+						{visibility.showOriginalAmount && (
+							<div className="space-y-2 mt-4">
+								<Label htmlFor="institution">{visibility.institutionLabel}</Label>
+								<Input
+									id="institution"
+									placeholder={visibility.institutionPlaceholder}
+									value={formData.institution}
+									onChange={(e) => setFormData({ ...formData, institution: e.target.value })}
+									className="h-10"
+								/>
+							</div>
+						)}
+
+						{/* Contribution Room (Investment/Retirement) */}
+						{visibility.showContributionRoom && (
 							<>
 								<div className="flex flex-row items-center justify-between rounded-lg border p-4 mt-4">
 									<div className="space-y-0.5">
@@ -556,52 +593,14 @@ export function AddAccountDialog({ open, onOpenChange, onSuccess }: AddAccountDi
 								)}
 
 								<div className="space-y-2 mt-4">
-									<Label htmlFor="institution">Institution/Brokerage</Label>
+									<Label htmlFor="institution">{visibility.institutionLabel}</Label>
 									<Input
 										id="institution"
-										placeholder="Wealthsimple, Questrade, etc."
+										placeholder={visibility.institutionPlaceholder}
 										value={formData.institution}
 										onChange={(e) => setFormData({ ...formData, institution: e.target.value })}
 										className="h-10"
 									/>
-								</div>
-							</>
-						)}
-
-						{(!selectedType ||
-							(selectedType.category !== "credit" &&
-								selectedType.category !== "debt" &&
-								selectedType.category !== "investment" &&
-								selectedType.category !== "retirement")) && (
-							<>
-								<div className="grid grid-cols-2 gap-4 mt-4">
-									<div className="space-y-2">
-										<Label htmlFor="interest">APY (%)</Label>
-										<Input
-											id="interest"
-											type="text"
-											inputMode="decimal"
-											placeholder="4.00"
-											value={formData.interest_rate}
-											onChange={(e) => {
-												const val = e.target.value;
-												if (validateDecimalInput(val)) {
-													setFormData({ ...formData, interest_rate: val });
-												}
-											}}
-											className="h-10"
-										/>
-									</div>
-									<div className="space-y-2">
-										<Label htmlFor="institution">Institution</Label>
-										<Input
-											id="institution"
-											placeholder="Chase, Ally Bank, etc."
-											value={formData.institution}
-											onChange={(e) => setFormData({ ...formData, institution: e.target.value })}
-											className="h-10"
-										/>
-									</div>
 								</div>
 							</>
 						)}

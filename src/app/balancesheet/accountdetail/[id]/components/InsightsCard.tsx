@@ -5,6 +5,7 @@ import { Card } from "@/components/ui/card";
 import { cn } from "@/lib/utils";
 import { parseLocalDate } from "@/lib/date-utils";
 import type { AccountWithType, AccountTransaction } from "../../../types";
+import { getFieldVisibility } from "../../../field-visibility";
 
 interface InsightsCardProps {
 	account: AccountWithType;
@@ -42,6 +43,7 @@ const TRANSACTION_CATEGORIES = [
 ] as const;
 
 export function InsightsCard({ account, transactions, accountClass, formatCurrency }: InsightsCardProps) {
+	const visibility = getFieldVisibility(account.account_type?.category, account.account_type?.name);
 	const stats = useMemo(() => {
 		// Calculate amounts for each category
 		const categoryStats = TRANSACTION_CATEGORIES.map((category) => {
@@ -73,8 +75,10 @@ export function InsightsCard({ account, transactions, accountClass, formatCurren
 
 		// Calculate time to goal (months)
 		let monthsToGoal: number | null = null;
-		if (account.target_balance && thisMonthChange > 0) {
-			const remaining = account.target_balance - account.current_balance;
+		const goalValue = visibility.showOriginalAmount ? account.original_amount : account.target_balance;
+
+		if (goalValue && thisMonthChange > 0) {
+			const remaining = goalValue - account.current_balance;
 			if (remaining > 0) {
 				monthsToGoal = Math.ceil(remaining / thisMonthChange);
 			}
@@ -139,14 +143,14 @@ export function InsightsCard({ account, transactions, accountClass, formatCurren
 					{stats.monthsToGoal !== null && (
 						<div className="flex flex-col gap-1">
 							<div className="text-2xl font-bold">{stats.monthsToGoal} months</div>
-							<div className="text-sm text-primary">To goal</div>
+							<div className="text-sm text-primary">{visibility.showOriginalAmount ? "To payoff" : "To goal"}</div>
 						</div>
 					)}
 
-					{account.interest_rate !== null && (
+					{account.interest_rate !== null && visibility.showInterestRate && (
 						<div className="flex flex-col gap-1">
 							<div className="text-2xl font-bold">{(account.interest_rate * 100).toFixed(1)}%</div>
-							<div className="text-sm text-primary">Current APY</div>
+							<div className="text-sm text-primary">{visibility.interestRateLabel.replace(" (%)", "")}</div>
 						</div>
 					)}
 				</div>

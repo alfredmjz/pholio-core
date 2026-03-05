@@ -13,7 +13,13 @@ import { ImportTemplateDialog } from "./ImportTemplateDialog";
 import { ExportDialog } from "./ExportDialog";
 import { PageShell, PageContent } from "@/components/layout/page-shell";
 
-import type { MonthYear, AllocationSummary, AllocationCategory, Transaction } from "@/app/allocations/types";
+import type {
+	MonthYear,
+	AllocationSummary,
+	AllocationCategory,
+	Transaction,
+	IncomeVerificationResult,
+} from "@/app/allocations/types";
 import type { AccountWithType } from "@/app/balancesheet/types";
 import type { TransactionType } from "./TransactionTypeIcon";
 
@@ -48,6 +54,7 @@ interface AllocationsDashboardViewProps {
 	monthName: string;
 	previousMonthData: { name: string; year: number; categoryCount: number; totalBudget: number } | null;
 	historicalPace: { hasEnoughData: boolean; dailyAmounts: number[] };
+	incomeVerification: IncomeVerificationResult;
 	onImportPrevious: (income: number) => Promise<void>;
 	onUseTemplate: (id: string, income: number) => Promise<void>;
 	onStartFresh: (income: number) => Promise<void>;
@@ -80,6 +87,7 @@ export function AllocationsDashboardView({
 	monthName,
 	previousMonthData,
 	historicalPace,
+	incomeVerification,
 	onImportPrevious,
 	onUseTemplate,
 	onStartFresh,
@@ -126,6 +134,8 @@ export function AllocationsDashboardView({
 								expectedIncome={summary.allocation.expected_income}
 								totalBudgetAllocated={summary.summary.total_budget_caps}
 								totalSpent={summary.summary.total_actual_spend}
+								incomeVerification={incomeVerification}
+								allocationId={summary.allocation.id}
 							/>
 
 							<SpendingAllocation categories={categories} />

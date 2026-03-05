@@ -18,7 +18,7 @@ import { ImportTemplateDialog } from "./components/ImportTemplateDialog";
 import { SaveTemplateDialog } from "./components/SaveTemplateDialog";
 
 import type { TransactionType } from "./components/TransactionTypeIcon";
-import type { MonthYear, AllocationSummary, Transaction } from "./types";
+import type { MonthYear, AllocationSummary, Transaction, IncomeVerificationResult } from "./types";
 import type { AccountWithType } from "@/app/balancesheet/types";
 import type { AllocationNewMonthDefault } from "@/app/settings/actions";
 
@@ -37,6 +37,7 @@ interface AllocationClientProps {
 		hasEnoughData: boolean;
 		dailyAmounts: number[];
 	};
+	incomeVerification: IncomeVerificationResult;
 	userSettings?: {
 		newMonthDefault: AllocationNewMonthDefault;
 	};
@@ -72,6 +73,7 @@ export function AllocationClient({
 	initialAccounts,
 	previousMonthData,
 	historicalPace,
+	incomeVerification,
 	userSettings,
 	templates,
 }: AllocationClientProps) {
@@ -278,6 +280,7 @@ export function AllocationClient({
 				monthName={monthName}
 				previousMonthData={getPreviousMonth()}
 				historicalPace={historicalPace}
+				incomeVerification={incomeVerification}
 				onImportPrevious={handleImportPrevious}
 				onUseTemplate={handleUseTemplate}
 				onStartFresh={handleStartFresh}

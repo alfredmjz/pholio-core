@@ -682,6 +682,7 @@ function BudgetSummaryCardsDemo() {
 			expectedIncome={MOCK_BUDGET_SUMMARY_DATA.expectedIncome}
 			totalBudgetAllocated={MOCK_BUDGET_SUMMARY_DATA.totalBudgetAllocated}
 			totalSpent={MOCK_BUDGET_SUMMARY_DATA.totalSpent}
+			incomeVerification={{ status: "verified", consecutiveMatches: 4, drift: null }}
 		/>
 	);
 }
@@ -1020,4 +1021,3 @@ function AdditionalComponentsDemo() {
 		</div>
 	);
 }
-

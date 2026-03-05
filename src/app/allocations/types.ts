@@ -101,3 +101,18 @@ export interface MonthYear {
 	year: number;
 	month: number; // 1-12
 }
+
+export type IncomeVerificationStatus = "verified" | "tracking" | "not_set";
+
+export interface IncomeDrift {
+	detected: boolean;
+	direction: "increase" | "decrease";
+	suggestedAmount: number;
+	monthsObserved: number;
+}
+
+export interface IncomeVerificationResult {
+	status: IncomeVerificationStatus;
+	consecutiveMatches: number;
+	drift: IncomeDrift | null;
+}

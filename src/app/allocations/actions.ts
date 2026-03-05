@@ -2,7 +2,14 @@
 
 import { createClient } from "@/lib/supabase/server";
 import { revalidatePath } from "next/cache";
-import type { Allocation, AllocationCategory, AllocationSummary, AllocationTemplate, Transaction } from "./types";
+import type {
+	Allocation,
+	AllocationCategory,
+	AllocationSummary,
+	AllocationTemplate,
+	Transaction,
+	IncomeVerificationResult,
+} from "./types";
 import { sampleAllocationSummary, sampleTransactions } from "@/mock-data/allocations";
 import { Logger } from "@/lib/logger";
 import { parseLocalDate, calculateNextDueDate, getTodayDateString, formatDateString } from "@/lib/date-utils";
@@ -1186,4 +1193,151 @@ export async function getHistoricalPace(
 	}
 
 	return { hasEnoughData: true, dailyAmounts: averageDailyAmounts };
+}
+
+// =============================================================================
+// Income Verification & Drift Detection
+// =============================================================================
+
+const INCOME_MATCH_TOLERANCE = 0.05; // ±5%
+const MONTHS_TO_VERIFY = 3;
+const MONTHS_TO_DETECT_DRIFT = 2;
+const MONTHS_TO_LOOK_BACK = 6;
+
+export async function getIncomeVerification(
+	currentYear: number,
+	currentMonth: number
+): Promise<IncomeVerificationResult> {
+	const defaultResult: IncomeVerificationResult = {
+		status: "not_set",
+		consecutiveMatches: 0,
+		drift: null,
+	};
+
+	if (process.env.NEXT_PUBLIC_USE_SAMPLE_DATA === "true") {
+		return { status: "verified", consecutiveMatches: 4, drift: null };
+	}
+
+	const supabase = await createClient();
+
+	const {
+		data: { user },
+	} = await supabase.auth.getUser();
+	if (!user) return defaultResult;
+
+	// Build the list of past months to analyze (most recent first, excluding current)
+	const monthsToCheck: { year: number; month: number }[] = [];
+	let y = currentYear;
+	let m = currentMonth;
+	for (let i = 0; i < MONTHS_TO_LOOK_BACK; i++) {
+		m--;
+		if (m === 0) {
+			m = 12;
+			y--;
+		}
+		monthsToCheck.push({ year: y, month: m });
+	}
+
+	// Fetch allocations for the look-back period
+	const { data: allocations } = await supabase
+		.from("allocations")
+		.select("year, month, expected_income")
+		.eq("user_id", user.id)
+		.order("year", { ascending: false })
+		.order("month", { ascending: false })
+		.limit(MONTHS_TO_LOOK_BACK + 1);
+
+	if (!allocations || allocations.length === 0) return defaultResult;
+
+	// Build a map of allocations by year-month
+	const allocationMap = new Map<string, number>();
+	for (const alloc of allocations) {
+		allocationMap.set(`${alloc.year}-${alloc.month}`, Number(alloc.expected_income));
+	}
+
+	// Get the current expected income (from current or most recent allocation)
+	const currentExpected =
+		allocationMap.get(`${currentYear}-${currentMonth}`) ??
+		(allocations.length > 0 ? Number(allocations[0].expected_income) : 0);
+
+	if (currentExpected === 0) return defaultResult;
+
+	// For each past month, get total income (positive transactions)
+	const monthlyActuals: { year: number; month: number; actual: number; expected: number }[] = [];
+
+	for (const { year, month } of monthsToCheck) {
+		const expected = allocationMap.get(`${year}-${month}`);
+		if (expected === undefined) continue; // No allocation for this month
+
+		const startDate = `${year}-${String(month).padStart(2, "0")}-01`;
+		const lastDay = new Date(year, month, 0).getDate();
+		const endDate = `${year}-${String(month).padStart(2, "0")}-${lastDay}`;
+
+		const { data: incomeTransactions } = await supabase
+			.from("transactions")
+			.select("amount")
+			.eq("user_id", user.id)
+			.gte("transaction_date", startDate)
+			.lte("transaction_date", endDate)
+			.gt("amount", 0); // Positive amounts = income
+
+		const totalIncome = (incomeTransactions || []).reduce((sum, t) => sum + Number(t.amount), 0);
+
+		monthlyActuals.push({ year, month, actual: totalIncome, expected: Number(expected) });
+	}
+
+	if (monthlyActuals.length === 0) return { ...defaultResult, status: "tracking" };
+
+	// --- Verification: count consecutive months where actual ≈ expected (within tolerance) ---
+	let consecutiveMatches = 0;
+	for (const entry of monthlyActuals) {
+		if (entry.expected === 0) break;
+		const ratio = entry.actual / entry.expected;
+		if (ratio >= 1 - INCOME_MATCH_TOLERANCE && ratio <= 1 + INCOME_MATCH_TOLERANCE) {
+			consecutiveMatches++;
+		} else {
+			break; // Streak broken
+		}
+	}
+
+	const status = consecutiveMatches >= MONTHS_TO_VERIFY ? "verified" : "tracking";
+
+	// --- Drift detection: check if recent actual income consistently differs from expected ---
+	let drift: IncomeVerificationResult["drift"] = null;
+
+	if (monthlyActuals.length >= MONTHS_TO_DETECT_DRIFT) {
+		let driftMonths = 0;
+		let driftDirection: "increase" | "decrease" | null = null;
+		let driftSum = 0;
+
+		for (const entry of monthlyActuals) {
+			if (entry.expected === 0 || entry.actual === 0) break;
+			const ratio = entry.actual / entry.expected;
+
+			if (ratio > 1 + INCOME_MATCH_TOLERANCE) {
+				if (driftDirection === "decrease") break; // Direction changed
+				driftDirection = "increase";
+				driftMonths++;
+				driftSum += entry.actual;
+			} else if (ratio < 1 - INCOME_MATCH_TOLERANCE) {
+				if (driftDirection === "increase") break; // Direction changed
+				driftDirection = "decrease";
+				driftMonths++;
+				driftSum += entry.actual;
+			} else {
+				break; // Back within tolerance
+			}
+		}
+
+		if (driftMonths >= MONTHS_TO_DETECT_DRIFT && driftDirection) {
+			drift = {
+				detected: true,
+				direction: driftDirection,
+				suggestedAmount: Math.round(driftSum / driftMonths),
+				monthsObserved: driftMonths,
+			};
+		}
+	}
+
+	return { status, consecutiveMatches, drift };
 }

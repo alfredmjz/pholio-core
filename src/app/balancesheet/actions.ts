@@ -412,11 +412,24 @@ export async function recordTransaction(input: RecordTransactionInput): Promise<
 	const accountClass = (account.account_type as any)?.class;
 
 	let newBalance = account.current_balance;
+
 	if (accountClass === "asset") {
-		newBalance +=
-			input.transaction_type === "deposit" || input.transaction_type === "contribution" ? input.amount : -input.amount;
+		if (
+			input.transaction_type === "deposit" ||
+			input.transaction_type === "contribution" ||
+			input.transaction_type === "refund" ||
+			input.transaction_type === "interest"
+		) {
+			newBalance += Math.abs(input.amount);
+		} else {
+			newBalance -= Math.abs(input.amount);
+		}
 	} else {
-		newBalance += input.transaction_type === "payment" ? -input.amount : input.amount;
+		if (input.transaction_type === "payment" || input.transaction_type === "refund") {
+			newBalance -= Math.abs(input.amount);
+		} else {
+			newBalance += Math.abs(input.amount);
+		}
 	}
 
 	let updateData: any = { current_balance: newBalance };

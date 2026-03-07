@@ -59,7 +59,7 @@ export async function createUnifiedTransaction(input: UnifiedTransactionInput): 
 				amount: allocAmount,
 				transaction_date: normalizedInput.date,
 				notes: normalizedInput.notes || null,
-				source: "manual",
+				source: normalizedInput.source || "manual",
 			})
 			.select("id")
 			.single();
@@ -318,22 +318,33 @@ function calculateTransactionDetails(
 ) {
 	const isAsset = (account.account_type as any)?.class === "asset";
 	let txType: string;
-	let accountAmount: number;
 
 	if (input.type === "income") {
-		// Income increases assets, decreases liabilities (rare)
 		txType = input.transactionType || (isAsset ? "deposit" : "payment");
-		accountAmount = input.amount;
 	} else {
-		// Expense decreases assets, increases liabilities
-		if (isAsset) {
-			txType = input.transactionType || "withdrawal";
+		txType = input.transactionType || (isAsset ? "withdrawal" : "adjustment");
+	}
+
+	let accountAmount: number;
+	if (isAsset) {
+		// For assets: deposits, contributions, refunds, and interest ADD to the balance
+		if (txType === "deposit" || txType === "contribution" || txType === "refund" || txType === "interest") {
+			accountAmount = Math.abs(input.amount);
+		} else {
+			// Withdrawals and payments SUBTRACT from the balance
+			accountAmount = -Math.abs(input.amount);
+		}
+	} else {
+		// For liabilities (loans, credit cards):
+		// Payments and refunds REDUCE the debt (negative amount)
+		if (txType === "payment" || txType === "refund") {
 			accountAmount = -Math.abs(input.amount);
 		} else {
-			txType = input.transactionType || "adjustment";
-			accountAmount = Math.abs(input.amount); // Liability increases
+			// Charges, withdrawals, interest, fees INCREASE the debt (positive amount)
+			accountAmount = Math.abs(input.amount);
 		}
 	}
+
 	return { txType, accountAmount };
 }
 

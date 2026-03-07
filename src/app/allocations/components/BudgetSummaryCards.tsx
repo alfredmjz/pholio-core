@@ -28,7 +28,7 @@ export function BudgetSummaryCards({
 }: BudgetSummaryCardsProps) {
 	const router = useRouter();
 	const isOverAllocated = totalBudgetAllocated > expectedIncome;
-	const savingsEstimate = expectedIncome - totalSpent;
+	const savingsEstimate = expectedIncome - totalBudgetAllocated;
 	const [isDriftDismissed, setIsDriftDismissed] = useState(false);
 	const [isUpdating, setIsUpdating] = useState(false);
 
@@ -164,7 +164,7 @@ export function BudgetSummaryCards({
 										savingsEstimate >= 0 ? "bg-success" : "bg-error"
 									)}
 									style={{
-										width: `${Math.min(expectedIncome > 0 ? (totalSpent / expectedIncome) * 100 : 0, 100)}%`,
+										width: `${Math.min(expectedIncome > 0 ? (totalBudgetAllocated / expectedIncome) * 100 : 0, 100)}%`,
 									}}
 								/>
 							</div>

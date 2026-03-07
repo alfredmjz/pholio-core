@@ -75,6 +75,7 @@ export function UnifiedTransactionDialog({
 	const [categoryId, setCategoryId] = useState<string>(defaultCategoryId || "uncategorized");
 	const [accountId, setAccountId] = useState<string>(defaultAccountId || "none");
 	const [transactionType, setTransactionType] = useState<string>("deposit");
+	const [incomeSource, setIncomeSource] = useState<string>("salary");
 	const [notes, setNotes] = useState("");
 	const [suggestedAccountInfo, setSuggestedAccountInfo] = useState<string | null>(null);
 	const [errors, setErrors] = useState<ValidationErrors>({});
@@ -99,7 +100,7 @@ export function UnifiedTransactionDialog({
 
 			setCategoryId(defaultCategoryId || "uncategorized");
 			setAccountId(defaultAccountId || "none");
-			setTransactionType(defaultType === "income" ? "deposit" : "expense");
+			setTransactionType(defaultType === "income" ? "deposit" : "withdrawal");
 			setNotes("");
 			setSuggestedAccountInfo(null);
 			setErrors({});
@@ -108,10 +109,10 @@ export function UnifiedTransactionDialog({
 
 	// Reset transactionType when switching between income and expense
 	useEffect(() => {
-		if (type === "income" && transactionType === "expense") {
+		if (type === "income" && !["deposit", "contribution", "refund"].includes(transactionType)) {
 			setTransactionType("deposit");
-		} else if (type === "expense") {
-			setTransactionType("expense");
+		} else if (type === "expense" && !["withdrawal", "payment", "interest"].includes(transactionType)) {
+			setTransactionType("withdrawal");
 		}
 	}, [type]);
 
@@ -192,8 +193,9 @@ export function UnifiedTransactionDialog({
 				type,
 				categoryId: categoryId === "uncategorized" ? null : categoryId,
 				accountId: accountId === "none" ? null : accountId,
-				transactionType: type === "income" ? (transactionType as any) : undefined,
+				transactionType: transactionType as any,
 				notes: notes || undefined,
+				source: isAllocationsContext && type === "income" ? incomeSource : "manual",
 			};
 
 			const result = await createUnifiedTransaction(input);
@@ -255,19 +257,52 @@ export function UnifiedTransactionDialog({
 						/>
 					</FormSection>
 
-					{type === "income" && (
+					{!isAllocationsContext &&
+						(type === "income" ? (
+							<div className="space-y-2">
+								<Label htmlFor="transactionType">Income Type (Account)</Label>
+								<Select value={transactionType} onValueChange={setTransactionType}>
+									<SelectTrigger className="h-10">
+										<SelectValue placeholder="Select type" />
+									</SelectTrigger>
+									<SelectContent>
+										<SelectItem value="deposit">💰 Deposit</SelectItem>
+										<SelectItem value="contribution">➕ Contribution</SelectItem>
+										<SelectItem value="refund">🔄 Refund</SelectItem>
+									</SelectContent>
+								</Select>
+							</div>
+						) : (
+							<div className="space-y-2">
+								<Label htmlFor="transactionType">Expense Type (Account)</Label>
+								<Select value={transactionType} onValueChange={setTransactionType}>
+									<SelectTrigger className="h-10">
+										<SelectValue placeholder="Select type" />
+									</SelectTrigger>
+									<SelectContent>
+										<SelectItem value="withdrawal">💸 Withdrawal</SelectItem>
+										<SelectItem value="payment">💳 Payment</SelectItem>
+										<SelectItem value="interest">📈 Interest</SelectItem>
+									</SelectContent>
+								</Select>
+							</div>
+						))}
+
+					{isAllocationsContext && type === "income" && (
 						<div className="space-y-2">
-							<Label htmlFor="transactionType">Income Type</Label>
-							<Select value={transactionType} onValueChange={setTransactionType}>
+							<Label htmlFor="incomeSource">Income Source</Label>
+							<Select value={incomeSource} onValueChange={setIncomeSource}>
 								<SelectTrigger className="h-10">
-									<SelectValue placeholder="Select type" />
+									<SelectValue placeholder="Select source" />
 								</SelectTrigger>
 								<SelectContent>
-									<SelectItem value="deposit">💰 Deposit</SelectItem>
-									<SelectItem value="contribution">➕ Contribution</SelectItem>
-									<SelectItem value="refund">🔄 Refund</SelectItem>
+									<SelectItem value="salary">💼 Salary / Expected</SelectItem>
+									<SelectItem value="external">🎁 External / One-time</SelectItem>
 								</SelectContent>
 							</Select>
+							<p className="text-xs text-muted-foreground mt-1">
+								Only salary counts towards your stable income verification.
+							</p>
 						</div>
 					)}
 
@@ -334,7 +369,7 @@ export function UnifiedTransactionDialog({
 
 					<div className="space-y-2">
 						<Label htmlFor="category">
-							Budget Category{categoryRequired && <span className="text-error">*</span>}
+							Budget Category{categoryRequired && <span className="text-error"> *</span>}
 							{categoryRequired && !categoryDisabled && " "}
 							{categoryDisabled && (
 								<span className="ml-2 text-xs text-primary">(Not applicable for balance sheet)</span>

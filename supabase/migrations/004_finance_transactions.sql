@@ -148,7 +148,14 @@ BEGIN
     transaction_spend AS (
         SELECT
             category_id,
-            SUM(ABS(amount)) as total_spend,
+            -- For categorized transactions, SUM(-amount) so refunds (positive) reduce spend.
+            -- For uncategorized, only sum negative amounts (expenses) so income doesn't artificially reduce total spend.
+            SUM(
+                CASE
+                    WHEN category_id IS NOT NULL THEN -amount
+                    ELSE CASE WHEN amount < 0 THEN -amount ELSE 0 END
+                END
+            ) as total_spend,
             COUNT(*) as transaction_count
         FROM public.transactions t
         CROSS JOIN allocation_period ap

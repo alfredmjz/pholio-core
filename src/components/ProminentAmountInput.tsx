@@ -48,7 +48,7 @@ export function ProminentAmountInput({
 					placeholder="0.00"
 					value={value}
 					onChange={(e) => {
-						const inputValue = e.target.value;
+						const inputValue = e.target.value.replace(/[^0-9.]/g, "");
 						if (validateDecimalInput(inputValue)) {
 							onChange(inputValue);
 						}

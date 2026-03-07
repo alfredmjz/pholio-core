@@ -1279,7 +1279,8 @@ export async function getIncomeVerification(
 			.eq("user_id", user.id)
 			.gte("transaction_date", startDate)
 			.lte("transaction_date", endDate)
-			.gt("amount", 0); // Positive amounts = income
+			.gt("amount", 0) // Positive amounts = income
+			.neq("source", "external"); // Exclude one-time / external income
 
 		const totalIncome = (incomeTransactions || []).reduce((sum, t) => sum + Number(t.amount), 0);
 

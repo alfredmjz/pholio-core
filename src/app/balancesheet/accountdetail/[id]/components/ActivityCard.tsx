@@ -122,7 +122,7 @@ export function ActivityCard({ transactions, isLoading, formatCurrency, onTransa
 									)}
 								>
 									{txn.transaction_type === "withdrawal" || txn.transaction_type === "payment" ? "-" : "+"}
-									{formatCurrency(txn.amount)}
+									{formatCurrency(Math.abs(txn.amount))}
 								</span>
 								<span className="text-xs text-primary">{formatFullDate(txn.transaction_date)}</span>
 							</div>

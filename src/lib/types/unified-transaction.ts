@@ -24,6 +24,9 @@ export interface UnifiedTransactionInput {
 	// Account tracking (optional - budget-only transactions allowed)
 	accountId?: string | null;
 	transactionType?: TransactionType; // deposit, withdrawal, payment, etc.
+
+	// Optional source override
+	source?: string;
 }
 
 /**

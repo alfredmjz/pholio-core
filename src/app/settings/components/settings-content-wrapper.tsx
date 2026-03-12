@@ -38,20 +38,9 @@ export function SettingsContentWrapper({ title, description, children, className
 			</div>
 
 			{/* Content Area - Auto-divides direct children */}
-			<div className="flex flex-col divide-y divide-border">
-				{React.Children.map(children, (child, index) => {
+			<div className="flex flex-col">
+				{React.Children.map(children, (child) => {
 					if (!child) return null;
-
-					// Determine padding based on position to ensure even spacing around dividers
-					// First item: padding-bottom only (if not alone)
-					// Last item: padding-top only (if not alone)
-					// Middle items: padding-top and padding-bottom
-					const isFirst = index === 0;
-					// We can't easily know isLast during map without converting to array and filtering nulls first,
-					// but CSS 'first:' and 'last:' selectors on the wrapper generic class handle this better.
-					// However, the previous manual implementation used explicit classes.
-					// Let's use a uniform wrapper that responds to standard pseudo-classes.
-
 					return <section className="py-8 first:pt-0 last:pb-0">{child}</section>;
 				})}
 			</div>

@@ -7,6 +7,7 @@ export const sampleProfile = {
 	avatar_url: null,
 	email: "demo@example.com",
 	allocation_new_month_default: "dialog" as const,
+	timezone: null,
 	created_at: new Date().toISOString(),
 	updated_at: new Date().toISOString(),
 };

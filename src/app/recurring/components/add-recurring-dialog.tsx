@@ -12,7 +12,7 @@ import { Calendar } from "@/components/ui/calendar";
 import { Switch } from "@/components/ui/switch";
 import { Popover, PopoverContent, PopoverTrigger } from "@/components/ui/popover";
 import { cn } from "@/lib/utils";
-import { format } from "date-fns";
+import { formatDateString, formatLongDate } from "@/lib/date-utils";
 import { CalendarIcon, CircleDollarSign, CreditCard, House } from "lucide-react";
 import { toast } from "sonner";
 import { ServiceLogo } from "@/components/service-logo";
@@ -136,7 +136,7 @@ export function AddRecurringDialog({ open, onOpenChange, onSuccess }: AddRecurri
 				name: formData.name,
 				amount: amount,
 				billing_period: formData.billing_period,
-				next_due_date: format(formData.next_due_date, "yyyy-MM-dd"),
+				next_due_date: formatDateString(formData.next_due_date),
 				category: formData.category,
 				service_provider: serviceProvider,
 				is_active: true,
@@ -292,7 +292,7 @@ export function AddRecurringDialog({ open, onOpenChange, onSuccess }: AddRecurri
 									)}
 								>
 									<CalendarIcon className="mr-2 h-4 w-4" />
-									{formData.next_due_date ? format(formData.next_due_date, "PPP") : <span>Pick a date</span>}
+									{formData.next_due_date ? formatLongDate(formData.next_due_date) : <span>Pick a date</span>}
 								</Button>
 							</PopoverTrigger>
 							<PopoverContent className="w-auto p-0">

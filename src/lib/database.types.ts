@@ -12,6 +12,7 @@ export interface Database {
 					is_guest: boolean;
 					guest_name: string | null;
 					has_seen_welcome: boolean;
+					timezone: string | null;
 					created_at: string;
 					updated_at: string;
 				};
@@ -23,6 +24,7 @@ export interface Database {
 					is_guest?: boolean;
 					guest_name?: string | null;
 					has_seen_welcome?: boolean;
+					timezone?: string | null;
 					created_at?: string;
 					updated_at?: string;
 				};
@@ -34,6 +36,7 @@ export interface Database {
 					is_guest?: boolean;
 					guest_name?: string | null;
 					has_seen_welcome?: boolean;
+					timezone?: string | null;
 					created_at?: string;
 					updated_at?: string;
 				};

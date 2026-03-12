@@ -1,5 +1,5 @@
 import { useState } from "react";
-import { format } from "date-fns";
+import { formatDateString, formatLongDate } from "@/lib/date-utils";
 import { Calendar as CalendarIcon } from "lucide-react";
 
 import { cn } from "@/lib/utils";
@@ -35,7 +35,7 @@ export function DatePicker({
 
 	const handleSelect = (date: Date | undefined) => {
 		if (date) {
-			onChange(format(date, "yyyy-MM-dd"));
+			onChange(formatDateString(date));
 			setOpen(false);
 		}
 	};
@@ -54,7 +54,7 @@ export function DatePicker({
 					)}
 				>
 					<CalendarIcon className="mr-2 h-4 w-4" />
-					{selectedDate ? format(selectedDate, "PPP") : placeholder}
+					{selectedDate ? formatLongDate(selectedDate) : placeholder}
 				</Button>
 			</PopoverTrigger>
 			<PopoverContent className="w-auto p-0" align="start">

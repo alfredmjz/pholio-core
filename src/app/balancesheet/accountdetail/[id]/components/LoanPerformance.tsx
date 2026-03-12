@@ -3,7 +3,7 @@
 import { useMemo } from "react";
 import { Card } from "@/components/ui/card";
 import type { AccountWithType, AccountTransaction } from "../../../types";
-import { differenceInMonths, parseISO } from "date-fns";
+import { differenceInMonths, parseLocalDate } from "@/lib/date-utils";
 
 interface LoanPerformanceProps {
 	account: AccountWithType;
@@ -29,7 +29,7 @@ export function LoanPerformance({ account, transactions, formatCurrency }: LoanP
 
 		let remainingTermMsg = "N/A";
 		if (account.loan_term_months && account.loan_start_date) {
-			const startDate = parseISO(account.loan_start_date);
+			const startDate = parseLocalDate(account.loan_start_date);
 			const monthsPassed = differenceInMonths(new Date(), startDate);
 			const remaining = Math.max(0, account.loan_term_months - monthsPassed);
 			const years = Math.floor(remaining / 12);

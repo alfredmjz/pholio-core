@@ -5,7 +5,7 @@ import { ChevronLeft, ChevronRight, Calendar as CalendarIcon } from "lucide-reac
 import { cn } from "@/lib/utils";
 import { Button } from "@/components/ui/button";
 import { Popover, PopoverContent, PopoverTrigger } from "@/components/ui/popover";
-import { format } from "date-fns";
+import { formatMonthYear } from "@/lib/date-utils";
 
 interface MonthPickerProps {
 	date?: Date;
@@ -54,7 +54,7 @@ export function MonthPicker({
 					)}
 				>
 					{!customLabel && <CalendarIcon className="mr-2 h-4 w-4" />}
-					{customLabel ? customLabel : date ? format(date, "MMMM yyyy") : <span>{placeholder}</span>}
+					{customLabel ? customLabel : date ? formatMonthYear(date) : <span>{placeholder}</span>}
 				</Button>
 			</PopoverTrigger>
 			<PopoverContent className="w-64 p-3" align={align}>

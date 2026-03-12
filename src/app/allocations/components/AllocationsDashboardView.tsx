@@ -64,6 +64,7 @@ interface AllocationsDashboardViewProps {
 
 	saveTemplateDialogOpen: boolean;
 	setSaveTemplateDialogOpen: (open: boolean) => void;
+	timezone?: string | null;
 }
 
 export function AllocationsDashboardView({
@@ -95,6 +96,7 @@ export function AllocationsDashboardView({
 	setExportDialogOpen,
 	saveTemplateDialogOpen,
 	setSaveTemplateDialogOpen,
+	timezone,
 }: AllocationsDashboardViewProps) {
 	const usedColors = categories.map((c) => c.color).filter(Boolean) as string[];
 	const usedNames = categories.map((c) => c.name);
@@ -148,6 +150,7 @@ export function AllocationsDashboardView({
 								totalBudget={summary.summary.total_budget_caps}
 								historicalPace={historicalPace}
 								className="flex-1"
+								timezone={timezone}
 							/>
 						</div>
 					</div>

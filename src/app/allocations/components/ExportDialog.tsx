@@ -10,7 +10,7 @@ import { exportTransactions } from "../utils/exportUtils";
 import { toast } from "sonner";
 import { supabase } from "@/lib/supabase/client";
 import { MonthPicker } from "@/components/month-picker";
-import { format } from "date-fns";
+import { formatMonthYear } from "@/lib/date-utils";
 import { useRouter } from "next/navigation";
 import { GoogleSheetsIcon } from "@/components/icons/allocation-icons";
 
@@ -264,7 +264,7 @@ export function ExportDialog({ open, onOpenChange, currentYear, currentMonth }: 
 						<div className="flex items-center justify-center gap-2 px-4 py-2 mt-4 mx-auto w-fit rounded-full bg-blue-50 text-blue-700 text-sm max-w-full">
 							<Calendar className="h-4 w-4 shrink-0" />
 							<span className="font-medium truncate">
-								{startDate ? format(startDate, "MMMM yyyy") : "..."} - {endDate ? format(endDate, "MMMM yyyy") : "..."}
+								{startDate ? formatMonthYear(startDate) : "..."} - {endDate ? formatMonthYear(endDate) : "..."}
 							</span>
 						</div>
 					</TabsContent>

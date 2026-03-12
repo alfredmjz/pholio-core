@@ -383,3 +383,76 @@ export async function updateAllocationSettings(settings: {
 		return { success: false, error: "An unexpected error occurred" };
 	}
 }
+
+// =============================================================================
+// TIMEZONE SETTINGS
+// =============================================================================
+
+/**
+ * Get user's timezone preference.
+ * Returns null if not explicitly set (system-detected should be used).
+ */
+export async function getTimezone(): Promise<string | null> {
+	if (process.env.NEXT_PUBLIC_USE_SAMPLE_DATA === "true") {
+		return (sampleProfile as any).timezone ?? null;
+	}
+
+	try {
+		const supabase = await createClient();
+
+		const {
+			data: { user },
+		} = await supabase.auth.getUser();
+
+		if (!user) return null;
+
+		const { data: profile } = await supabase.from("users").select("timezone").eq("id", user.id).single();
+
+		return profile?.timezone ?? null;
+	} catch (error) {
+		Logger.error("Error getting timezone", { error });
+		return null;
+	}
+}
+
+/**
+ * Update user's timezone preference.
+ * Pass null to reset to system-detected timezone.
+ */
+export async function updateTimezone(timezone: string | null): Promise<{ success: boolean; error?: string }> {
+	if (process.env.NEXT_PUBLIC_USE_SAMPLE_DATA === "true") {
+		return { success: true };
+	}
+
+	try {
+		const supabase = await createClient();
+
+		const {
+			data: { user },
+		} = await supabase.auth.getUser();
+
+		if (!user) {
+			return { success: false, error: "You must be logged in" };
+		}
+
+		const { error } = await supabase
+			.from("users")
+			.update({
+				timezone,
+				updated_at: new Date().toISOString(),
+			})
+			.eq("id", user.id);
+
+		if (error) {
+			Logger.error("Error updating timezone", { error });
+			return { success: false, error: "Failed to update timezone" };
+		}
+
+		revalidatePath("/settings");
+		revalidatePath("/allocations");
+		return { success: true };
+	} catch (error) {
+		Logger.error("Unexpected error in updateTimezone", { error });
+		return { success: false, error: "An unexpected error occurred" };
+	}
+}

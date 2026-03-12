@@ -33,6 +33,7 @@ CREATE TABLE public.users (
     avatar_url TEXT,
     is_guest BOOLEAN DEFAULT false NOT NULL,
     guest_name TEXT,
+    timezone TEXT DEFAULT NULL,
     has_seen_welcome BOOLEAN DEFAULT false NOT NULL,
     -- Allocation settings: Controls default behavior when navigating to a new month
     -- 'dialog': Show import template dialog (default)
@@ -44,6 +45,9 @@ CREATE TABLE public.users (
     created_at TIMESTAMP WITH TIME ZONE DEFAULT TIMEZONE('utc', NOW()) NOT NULL,
     updated_at TIMESTAMP WITH TIME ZONE DEFAULT TIMEZONE('utc', NOW()) NOT NULL
 );
+
+-- Add a comment for documentation
+COMMENT ON COLUMN public.users.timezone IS 'IANA timezone identifier (e.g. America/New_York). NULL means use system-detected timezone.';
 
 -- Enable Row Level Security (RLS)
 ALTER TABLE public.users ENABLE ROW LEVEL SECURITY;

@@ -9,8 +9,7 @@ import {
 } from "@/components/ui/dialog";
 import { Button } from "@/components/ui/button";
 import { RecurringExpense, payRecurringExpense } from "../actions";
-import { format } from "date-fns";
-import { calculateNextDueDate } from "@/lib/date-utils";
+import { formatFullDate, calculateNextDueDate, getTodayDateString, parseLocalDate } from "@/lib/date-utils";
 import { toast } from "sonner";
 import { Loader2, Check } from "lucide-react";
 import { cn } from "@/lib/utils";
@@ -21,16 +20,25 @@ interface PayFutureBillDialogProps {
 	expense: RecurringExpense;
 	onSuccess?: () => void;
 	onUpdate?: (id: string, updates: Partial<RecurringExpense>) => void;
+	timezone?: string | null;
 }
 
-export function PayFutureBillDialog({ open, onOpenChange, expense, onSuccess, onUpdate }: PayFutureBillDialogProps) {
+export function PayFutureBillDialog({
+	open,
+	onOpenChange,
+	expense,
+	onSuccess,
+	onUpdate,
+	timezone,
+}: PayFutureBillDialogProps) {
 	const [selectedCount, setSelectedCount] = useState(0);
 	const [isSubmitting, setIsSubmitting] = useState(false);
 
 	const potentialBills = useMemo(() => {
 		const bills = [];
 		let currentDate = new Date(expense.next_due_date);
-		const today = new Date();
+		const todayStr = getTodayDateString(timezone || undefined);
+		const today = parseLocalDate(todayStr);
 		const currentMonth = today.getMonth();
 		const currentYear = today.getFullYear();
 
@@ -133,7 +141,7 @@ export function PayFutureBillDialog({ open, onOpenChange, expense, onSuccess, on
 											>
 												{isSelected && <Check className="w-2.5 h-2.5" />}
 											</div>
-											<span className={cn(isSelected && "font-medium")}>{format(bill.date, "MMM d, yyyy")}</span>
+											<span className={cn(isSelected && "font-medium")}>{formatFullDate(bill.date)}</span>
 										</div>
 										<div className={cn("text-right", isSelected && "font-medium")}>${bill.amount.toFixed(2)}</div>
 									</div>
@@ -159,7 +167,7 @@ export function PayFutureBillDialog({ open, onOpenChange, expense, onSuccess, on
 								</div>
 								<div className="flex justify-between items-center pt-2 border-t border-border/50 mt-2">
 									<span className="text-muted-foreground">New Next Due Date:</span>
-									<span className="font-medium text-primary">{format(nextDueDate, "MMM d, yyyy")}</span>
+									<span className="font-medium text-primary">{formatFullDate(nextDueDate)}</span>
 								</div>
 							</div>
 						)

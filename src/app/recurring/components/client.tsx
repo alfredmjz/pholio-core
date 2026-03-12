@@ -14,9 +14,10 @@ import { useOptimisticRecurring } from "@/hooks/useOptimisticRecurring";
 
 interface RecurringClientProps {
 	initialExpenses: RecurringExpense[];
+	timezone: string | null;
 }
 
-export function RecurringClient({ initialExpenses }: RecurringClientProps) {
+export function RecurringClient({ initialExpenses, timezone }: RecurringClientProps) {
 	const { expenses, optimisticallyAdd, optimisticallyDelete, optimisticallyUpdate } =
 		useOptimisticRecurring(initialExpenses);
 	const [isAddOpen, setIsAddOpen] = useState(false);
@@ -98,7 +99,13 @@ export function RecurringClient({ initialExpenses }: RecurringClientProps) {
 						) : (
 							<div className="grid gap-4 grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 xl:grid-cols-4">
 								{bills.map((bill) => (
-									<BillCard key={bill.id} bill={bill} onDelete={optimisticallyDelete} onUpdate={optimisticallyUpdate} />
+									<BillCard
+										key={bill.id}
+										bill={bill}
+										onDelete={optimisticallyDelete}
+										onUpdate={optimisticallyUpdate}
+										timezone={timezone}
+									/>
 								))}
 							</div>
 						)}

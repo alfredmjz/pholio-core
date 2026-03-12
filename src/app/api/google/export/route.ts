@@ -1,7 +1,7 @@
 import { type NextRequest, NextResponse } from "next/server";
 import { createClient } from "@/lib/supabase/server";
 import { google } from "googleapis";
-import { format } from "date-fns";
+import { formatDateString } from "@/lib/date-utils";
 import { Logger } from "@/lib/logger";
 
 export async function POST(req: NextRequest) {
@@ -63,8 +63,8 @@ export async function POST(req: NextRequest) {
 			nextMonthStart = new Date(endYear, endMonth, 1);
 		}
 
-		const startStr = format(startDate, "yyyy-MM-dd");
-		const endStr = format(nextMonthStart, "yyyy-MM-dd");
+		const startStr = formatDateString(startDate);
+		const endStr = formatDateString(nextMonthStart);
 
 		// Count TOTAL likely visible transactions for debug (Removed verbose log)
 		const { count: totalCount } = await supabase.from("transactions").select("*", { count: "exact", head: true });
@@ -105,7 +105,7 @@ export async function POST(req: NextRequest) {
 		if (reqStartDate && reqEndDate) {
 			title = `Pholio:Budget Report ${reqStartDate} to ${reqEndDate}`;
 		} else {
-			const monthName = format(startDate, "MMMM");
+			const monthName = startDate.toLocaleDateString("en-US", { month: "long" });
 			title = `Pholio:Budget Report ${monthName} ${startYear}`;
 		}
 
@@ -129,7 +129,7 @@ export async function POST(req: NextRequest) {
 
 		transactions.forEach((t: any) => {
 			values.push([
-				format(new Date(t.transaction_date), "yyyy-MM-dd"),
+				formatDateString(new Date(t.transaction_date)),
 				t.description || t.name,
 				t.category?.name || "Uncategorized",
 				t.amount,

@@ -23,7 +23,9 @@ export function RecurringClient({ initialExpenses, timezone }: RecurringClientPr
 	const [isAddOpen, setIsAddOpen] = useState(false);
 
 	const subscriptions = expenses.filter((e) => e.category === "subscription");
-	const bills = expenses.filter((e) => e.category === "bill");
+	const bills = expenses
+		.filter((e) => e.category === "bill")
+		.sort((a, b) => new Date(a.next_due_date).getTime() - new Date(b.next_due_date).getTime());
 
 	const totalMonthly = expenses
 		.filter((e) => e.is_active)
@@ -51,7 +53,7 @@ export function RecurringClient({ initialExpenses, timezone }: RecurringClientPr
 			</PageHeader>
 
 			<PageContent>
-				<div className="grid gap-4 md:grid-cols-2 lg:grid-cols-4">
+				<div className="grid gap-4 md:grid-cols-3">
 					<Card>
 						<CardHeader className="flex flex-row items-center justify-between space-y-0 pb-2">
 							<CardTitle className="text-sm font-medium">Monthly Fixed Cost</CardTitle>
@@ -68,6 +70,14 @@ export function RecurringClient({ initialExpenses, timezone }: RecurringClientPr
 						</CardHeader>
 						<CardContent>
 							<div className="text-2xl font-bold">{subscriptions.filter((s) => s.is_active).length}</div>
+						</CardContent>
+					</Card>
+					<Card>
+						<CardHeader className="flex flex-row items-center justify-between space-y-0 pb-2">
+							<CardTitle className="text-sm font-medium">Active Bills</CardTitle>
+						</CardHeader>
+						<CardContent>
+							<div className="text-2xl font-bold">{bills.filter((b) => b.is_active).length}</div>
 						</CardContent>
 					</Card>
 				</div>

@@ -13,6 +13,7 @@ import type {
 import { sampleAllocationSummary, sampleTransactions } from "@/mock-data/allocations";
 import { Logger } from "@/lib/logger";
 import { parseLocalDate, calculateNextDueDate, getTodayDateString, formatDateString } from "@/lib/date-utils";
+import { getTimezone } from "@/app/settings/actions";
 
 export async function getAllocation(year: number, month: number): Promise<Allocation | null> {
 	// Handle sample data mode
@@ -40,7 +41,8 @@ export async function getAllocation(year: number, month: number): Promise<Alloca
 		.single();
 
 	if (existing) {
-		await syncRecurringExpenses(existing.id, user.id, month, year);
+		const timezone = await getTimezone();
+		await syncRecurringExpenses(existing.id, user.id, month, year, timezone);
 	}
 
 	return existing as Allocation | null;
@@ -73,7 +75,8 @@ export async function getOrCreateAllocation(
 		.single();
 
 	if (existing) {
-		await syncRecurringExpenses(existing.id, user.id, month, year);
+		const timezone = await getTimezone();
+		await syncRecurringExpenses(existing.id, user.id, month, year, timezone);
 		return existing as Allocation;
 	}
 
@@ -94,12 +97,19 @@ export async function getOrCreateAllocation(
 		return null;
 	}
 
-	await syncRecurringExpenses(newAllocation.id, user.id, month, year);
+	const timezone = await getTimezone();
+	await syncRecurringExpenses(newAllocation.id, user.id, month, year, timezone);
 
 	return newAllocation as Allocation;
 }
 
-async function syncRecurringExpenses(allocationId: string, userId: string, targetMonth: number, targetYear: number) {
+async function syncRecurringExpenses(
+	allocationId: string,
+	userId: string,
+	targetMonth: number,
+	targetYear: number,
+	timezone?: string | null
+) {
 	const supabase = await createClient();
 
 	const { data: allRecurring } = await supabase.from("recurring_expenses").select("*").eq("user_id", userId);
@@ -327,7 +337,7 @@ async function syncRecurringExpenses(allocationId: string, userId: string, targe
 			const meta = (expense.meta_data as any) || {};
 			if (meta.is_automated === false) continue;
 
-			const todayLocal = parseLocalDate(getTodayDateString());
+			const todayLocal = parseLocalDate(getTodayDateString(timezone || undefined));
 			const targetDate = new Date(dateObj);
 			targetDate.setHours(0, 0, 0, 0);
 
@@ -356,7 +366,7 @@ async function syncRecurringExpenses(allocationId: string, userId: string, targe
 	}
 
 	// --- Catch-up: backfill missed months for AUTO expenses ---
-	const today = parseLocalDate(getTodayDateString());
+	const today = parseLocalDate(getTodayDateString(timezone || undefined));
 
 	// Collect all missed occurrences across all expenses, grouped by month
 	type MissedOccurrence = { expense: (typeof allRecurring)[0]; dateStr: string };

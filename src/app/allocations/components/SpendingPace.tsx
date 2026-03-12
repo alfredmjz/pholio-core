@@ -1,16 +1,16 @@
 import { useMemo } from "react";
-import { format, getDaysInMonth, isSameMonth } from "date-fns";
+import { parseLocalDate, getDaysInMonth, isSameMonth, formatFullDate, getTodayDateString } from "@/lib/date-utils";
 import { ComposedChart, Area, Line, XAxis, Tooltip, ResponsiveContainer } from "recharts";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
-import { parseLocalDate } from "@/lib/date-utils";
 import type { MonthYear, Transaction } from "@/app/allocations/types";
 
 interface SpendingPaceProps {
 	currentMonth: MonthYear;
 	transactions: Transaction[];
 	totalBudget: number;
-	historicalPace?: { hasEnoughData: boolean; dailyAmounts: number[] };
+	historicalPace: { hasEnoughData: boolean; dailyAmounts: number[] };
 	className?: string;
+	timezone?: string | null;
 }
 
 export function SpendingPace({
@@ -19,11 +19,13 @@ export function SpendingPace({
 	totalBudget,
 	historicalPace,
 	className,
+	timezone,
 }: SpendingPaceProps) {
 	const { data, pacePercentage, isFaster } = useMemo(() => {
 		const targetMonthDate = new Date(currentMonth.year, currentMonth.month - 1, 1);
-		const daysInMonth = getDaysInMonth(targetMonthDate);
-		const today = new Date();
+		const daysInMonth = getDaysInMonth(currentMonth.year, currentMonth.month);
+		const todayStr = getTodayDateString(timezone || undefined);
+		const today = parseLocalDate(todayStr);
 		const isCurrentMonth = isSameMonth(targetMonthDate, today);
 
 		// Group transactions by day
@@ -89,7 +91,7 @@ export function SpendingPace({
 	const CustomTooltip = ({ active, payload }: any) => {
 		if (active && payload && payload.length) {
 			const fullDate = payload[0].payload.fullDate;
-			const formattedDate = format(new Date(fullDate), "MMM d, yyyy");
+			const formattedDate = formatFullDate(new Date(fullDate));
 			return (
 				<div className="flex flex-col items-center">
 					<div className="text-sm font-medium text-muted-foreground">{formattedDate}</div>

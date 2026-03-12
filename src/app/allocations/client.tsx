@@ -48,6 +48,7 @@ interface AllocationClientProps {
 		categoryCount: number;
 		totalBudget: number;
 	}>;
+	timezone: string | null;
 }
 
 const MONTH_NAMES = [
@@ -76,6 +77,7 @@ export function AllocationClient({
 	incomeVerification,
 	userSettings,
 	templates,
+	timezone,
 }: AllocationClientProps) {
 	const router = useRouter();
 
@@ -288,6 +290,7 @@ export function AllocationClient({
 				setExportDialogOpen={setExportDialogOpen}
 				saveTemplateDialogOpen={saveTemplateDialogOpen}
 				setSaveTemplateDialogOpen={setSaveTemplateDialogOpen}
+				timezone={timezone}
 			/>
 
 			{summary && (

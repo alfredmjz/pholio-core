@@ -225,7 +225,7 @@ host = "smtp.resend.com"
 port = 465
 user = "resend"
 pass = "env(RESEND_API_KEY)"
-admin_email = "noreply@pholio.app"
+admin_email = "noreply@pholio.ca"
 sender_name = "Pholio"
 
 # Uncomment to customize email template

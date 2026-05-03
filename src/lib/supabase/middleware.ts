@@ -89,6 +89,13 @@ export async function updateSession(request: NextRequest) {
 		});
 	}
 
+	// If no token exists at all on a protected route, redirect to login immediately
+	// without hitting the Supabase API.
+	if (!userId && !verified) {
+		const loginUrl = new URL("/login", request.url);
+		return NextResponse.redirect(loginUrl);
+	}
+
 	if (verified && userId) {
 		// JWT verified via JWKS - user is authenticated securely
 		// Refresh session in background (non-blocking)
@@ -133,7 +140,13 @@ export async function updateSession(request: NextRequest) {
 				Logger.warn("[updateSession] Auth API timeout caught, falling back to unexpired local JWT", { userId });
 				return supabaseResponse;
 			}
-			Logger.error("[updateSession] Authoritative API check FAILED", { error: error.message });
+
+			// Downgrade "session missing" to a warning instead of an error to reduce log noise
+			if (error.message.includes("session missing") || error.message.includes("Auth session missing")) {
+				Logger.warn("[updateSession] No active session found", { path: pathname });
+			} else {
+				Logger.error("[updateSession] Authoritative API check FAILED", { error: error.message });
+			}
 		}
 	} catch (err: any) {
 		Logger.error("Auth fallback check failed", { error: err.message });

@@ -1,6 +1,6 @@
 "use client";
 
-import { useState } from "react";
+import { useState, useEffect } from "react";
 import { useRouter } from "next/navigation";
 import { Card } from "@/components/ui/card";
 import { CheckCircle2, Clock, CircleDashed, TrendingUp, TrendingDown, X } from "lucide-react";
@@ -31,6 +31,24 @@ export function BudgetSummaryCards({
 	const savingsEstimate = expectedIncome - totalBudgetAllocated;
 	const [isDriftDismissed, setIsDriftDismissed] = useState(false);
 	const [isUpdating, setIsUpdating] = useState(false);
+	const [isMounted, setIsMounted] = useState(false);
+
+	useEffect(() => {
+		if (allocationId) {
+			const dismissed = localStorage.getItem(`dismissed-drift-${allocationId}`);
+			setIsDriftDismissed(dismissed === "true");
+		} else {
+			setIsDriftDismissed(false);
+		}
+		setIsMounted(true);
+	}, [allocationId]);
+
+	const dismissDrift = () => {
+		setIsDriftDismissed(true);
+		if (allocationId) {
+			localStorage.setItem(`dismissed-drift-${allocationId}`, "true");
+		}
+	};
 
 	const formatCurrency = (value: number) => {
 		return new Intl.NumberFormat("en-US", {
@@ -48,7 +66,7 @@ export function BudgetSummaryCards({
 			const success = await updateExpectedIncome(allocationId, incomeVerification.drift.suggestedAmount);
 			if (success) {
 				toast.success("Expected income updated!");
-				setIsDriftDismissed(true);
+				dismissDrift();
 				router.refresh();
 			} else {
 				toast.error("Failed to update expected income");
@@ -95,7 +113,7 @@ export function BudgetSummaryCards({
 		);
 	};
 
-	const showDrift = incomeVerification.drift?.detected && !isDriftDismissed && allocationId;
+	const showDrift = isMounted && incomeVerification.drift?.detected && !isDriftDismissed && allocationId;
 
 	return (
 		<div className={cn("flex flex-col gap-3", className)}>
@@ -175,11 +193,11 @@ export function BudgetSummaryCards({
 
 			{showDrift && incomeVerification.drift && (
 				<Card className="p-4 bg-card border border-border">
-					<div className="flex items-start gap-3">
+					<div className="flex items-center gap-3">
 						{incomeVerification.drift.direction === "increase" ? (
-							<TrendingUp className="h-5 w-5 text-success shrink-0 mt-0.5" />
+							<TrendingUp className="h-5 w-5 text-success shrink-0" />
 						) : (
-							<TrendingDown className="h-5 w-5 text-warning shrink-0 mt-0.5" />
+							<TrendingDown className="h-5 w-5 text-warning shrink-0" />
 						)}
 						<div className="flex-1 min-w-0">
 							<p className="text-sm text-primary font-medium">
@@ -199,7 +217,7 @@ export function BudgetSummaryCards({
 								{isUpdating ? "Updating..." : "Update"}
 							</button>
 							<button
-								onClick={() => setIsDriftDismissed(true)}
+								onClick={dismissDrift}
 								className="p-1 rounded-md text-muted-foreground hover:text-primary hover:bg-muted transition-colors"
 								title="Dismiss"
 							>

@@ -33,6 +33,7 @@ interface AllocationClientProps {
 	} | null;
 	userSettings?: {
 		newMonthDefault: AllocationNewMonthDefault;
+		defaultExpectedIncome?: number;
 	};
 }
 
@@ -241,6 +242,7 @@ export function AllocationClient({
 					onImportPrevious={handleImportPrevious}
 					onUseTemplate={handleUseTemplate}
 					onStartFresh={handleStartFresh}
+					defaultExpectedIncome={userSettings?.defaultExpectedIncome}
 				/>
 			</AllocationProvider>
 		);
@@ -281,6 +283,7 @@ export function AllocationClient({
 				onImportPrevious={handleImportPrevious}
 				onUseTemplate={handleUseTemplate}
 				onStartFresh={handleStartFresh}
+				defaultExpectedIncome={userSettings?.defaultExpectedIncome}
 				exportDialogOpen={exportDialogOpen}
 				setExportDialogOpen={setExportDialogOpen}
 			/>

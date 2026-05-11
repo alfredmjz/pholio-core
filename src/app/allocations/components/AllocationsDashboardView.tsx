@@ -50,6 +50,7 @@ interface AllocationsDashboardViewProps {
 	onImportPrevious: (income: number) => Promise<void>;
 	onUseTemplate: (id: string, income: number) => Promise<void>;
 	onStartFresh: (income: number) => Promise<void>;
+	defaultExpectedIncome?: number;
 
 	exportDialogOpen: boolean;
 	setExportDialogOpen: (open: boolean) => void;
@@ -78,6 +79,7 @@ export function AllocationsDashboardView({
 	onImportPrevious,
 	onUseTemplate,
 	onStartFresh,
+	defaultExpectedIncome,
 	exportDialogOpen,
 	setExportDialogOpen,
 }: AllocationsDashboardViewProps) {
@@ -155,6 +157,7 @@ export function AllocationsDashboardView({
 				onImportPrevious={onImportPrevious}
 				onUseTemplate={onUseTemplate}
 				onStartFresh={onStartFresh}
+				defaultExpectedIncome={defaultExpectedIncome}
 			/>
 
 			<ExportDialog

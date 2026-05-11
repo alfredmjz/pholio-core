@@ -15,6 +15,7 @@ interface AddTransactionButtonProps {
 	variant?: "default" | "destructive" | "outline" | "secondary" | "ghost" | "link";
 	size?: "default" | "sm" | "lg" | "icon";
 	onSuccess?: () => void;
+	boundaryMonth?: { year: number; month: number };
 }
 
 export function AddTransactionButton({
@@ -24,6 +25,7 @@ export function AddTransactionButton({
 	variant = "default",
 	size = "default",
 	onSuccess,
+	boundaryMonth,
 }: AddTransactionButtonProps) {
 	const [open, setOpen] = useState(false);
 
@@ -46,6 +48,7 @@ export function AddTransactionButton({
 				accounts={accounts}
 				onSuccess={onSuccess}
 				context="allocations"
+				boundaryMonth={boundaryMonth}
 			/>
 		</>
 	);

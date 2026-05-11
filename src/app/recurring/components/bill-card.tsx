@@ -1,6 +1,5 @@
 import { RecurringExpense, deleteRecurringExpense, markAsPaid } from "../actions";
-import { format } from "date-fns";
-import { calculateNextDueDate, parseLocalDate } from "@/lib/date-utils";
+import { calculateNextDueDate, parseLocalDate, formatShortDate, getTodayDateString } from "@/lib/date-utils";
 import { CalendarIcon, CheckCircle2, Zap } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { toast } from "sonner";
@@ -18,9 +17,10 @@ interface BillCardProps {
 	bill: RecurringExpense;
 	onDelete?: (id: string) => void;
 	onUpdate?: (id: string, updates: Partial<RecurringExpense>) => void;
+	timezone?: string | null;
 }
 
-export function BillCard({ bill, onDelete, onUpdate }: BillCardProps) {
+export function BillCard({ bill, onDelete, onUpdate, timezone }: BillCardProps) {
 	const router = useRouter();
 	const [isDeleting, setIsDeleting] = useState(false);
 	const [isEditOpen, setIsEditOpen] = useState(false);
@@ -28,10 +28,10 @@ export function BillCard({ bill, onDelete, onUpdate }: BillCardProps) {
 
 	const dueDate = parseLocalDate(bill.next_due_date);
 
-	const today = new Date();
-	const todayZero = new Date(today.getFullYear(), today.getMonth(), today.getDate());
-	const isPastDue = todayZero > dueDate;
-	const isDueToday = todayZero.getTime() === dueDate.getTime();
+	const todayStr = getTodayDateString(timezone || undefined);
+	const todayDate = parseLocalDate(todayStr);
+	const isPastDue = todayDate > dueDate;
+	const isDueToday = todayDate.getTime() === dueDate.getTime();
 
 	const handleDelete = async () => {
 		setIsDeleting(true);
@@ -116,7 +116,7 @@ export function BillCard({ bill, onDelete, onUpdate }: BillCardProps) {
 							)}
 						>
 							<CalendarIcon className="w-3.5 h-3.5" />
-							<span>{format(dueDate, "MMM d")}</span>
+							<span>{formatShortDate(dueDate)}</span>
 						</div>
 
 						{isAutomated && (
@@ -170,6 +170,7 @@ export function BillCard({ bill, onDelete, onUpdate }: BillCardProps) {
 				expense={bill}
 				onUpdate={onUpdate}
 				onSuccess={() => router.refresh()}
+				timezone={timezone}
 			/>
 		</>
 	);

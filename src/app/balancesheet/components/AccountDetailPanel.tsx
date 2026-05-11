@@ -100,8 +100,8 @@ export function AccountDetailPanel({
 	const progress =
 		account.target_balance && accountClass === "asset"
 			? (account.current_balance / account.target_balance) * 100
-			: account.target_balance && accountClass === "liability"
-				? ((account.target_balance - account.current_balance) / account.target_balance) * 100
+			: account.original_amount && accountClass === "liability"
+				? ((account.original_amount - account.current_balance) / account.original_amount) * 100
 				: null;
 
 	return (

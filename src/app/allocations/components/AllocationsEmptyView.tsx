@@ -44,6 +44,7 @@ export function AllocationsEmptyView({
 				categories={categories}
 				accounts={accounts}
 				onTransactionSuccess={onTransactionSuccess}
+				onSaveTemplate={() => {}}
 			/>
 
 			{/* Empty State Card */}

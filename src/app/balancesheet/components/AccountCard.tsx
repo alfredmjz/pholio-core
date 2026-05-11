@@ -7,6 +7,7 @@ import { Landmark, Wallet, CreditCard, Building, TrendingUp, GripVertical } from
 import { Badge } from "@/components/ui/badge";
 import { useSortable } from "@dnd-kit/sortable";
 import { CSS } from "@dnd-kit/utilities";
+import { getFieldVisibility } from "../field-visibility";
 
 interface AccountCardProps {
 	account: AccountWithType;
@@ -94,21 +95,16 @@ export function AccountCard({ account, onClick }: AccountCardProps) {
 
 	const getProgressLabel = () => {
 		if (accountClass === "asset") return "Goal Progress";
-		if (account.credit_limit) return "Credit Usage";
+		const vis = getFieldVisibility(category, account.account_type?.name);
+		if (vis.showCreditLimit) return "Credit Usage";
 		return "Paid Off";
 	};
 
 	const getProgressBreakdown = () => {
-		if (progress === null || !account.percent_change || accountClass !== "asset" || account.percent_change <= 0) {
+		if (progress === null || accountClass !== "asset" || !account.target_balance) {
 			return { base: progress, contribution: 0 };
 		}
-		const current = account.current_balance;
-		const previous = current / (1 + account.percent_change / 100);
-		const changeAmount = current - previous;
-		const target = account.target_balance || 1;
-		const contribution = (changeAmount / target) * 100;
-		const base = (progress || 0) - contribution;
-		return { base: Math.max(0, base), contribution: Math.max(0, contribution) };
+		return { base: progress, contribution: 0 };
 	};
 
 	const { base: baseProgress, contribution: contributionProgress } = getProgressBreakdown();

@@ -60,7 +60,6 @@ export function BalanceSheetClient({
 	const [transactionDialogOpen, setTransactionDialogOpen] = useState(false);
 	const [adjustmentDialogOpen, setAdjustmentDialogOpen] = useState(false);
 
-	// Dnd Sensors
 	const sensors = useSensors(
 		useSensor(PointerSensor, {
 			activationConstraint: {
@@ -72,17 +71,20 @@ export function BalanceSheetClient({
 		})
 	);
 
-	// Transaction cache for optimistic loading
 	const transactionCache = useRef<Map<string, AccountTransaction[]>>(new Map());
-
 	const assetAccounts = accounts.filter((acc) => acc.account_type?.class === "asset");
 	const liabilityAccounts = accounts.filter((acc) => acc.account_type?.class === "liability");
+	const [filterType, setFilterType] = useState<"all" | "assets" | "liabilities">("all");
 
-	// Display accounts based on search, ignoring the strict Asset/Liability split for rendering
-	// This allows custom ordering to mix types if desired.
-	const displayedAccounts = accounts.filter((acc) => acc.name.toLowerCase().includes(searchQuery.toLowerCase()));
+	const displayedAccounts = accounts.filter((acc) => {
+		const matchesSearch = acc.name.toLowerCase().includes(searchQuery.toLowerCase());
+		const matchesType =
+			filterType === "all" ||
+			(filterType === "assets" && acc.account_type?.class === "asset") ||
+			(filterType === "liabilities" && acc.account_type?.class === "liability");
+		return matchesSearch && matchesType;
+	});
 
-	// Track which accounts we've already started loading to prevent Strict Mode double-loads
 	const loadingRef = useRef<Set<string>>(new Set());
 
 	// Load transactions when account is selected
@@ -110,21 +112,6 @@ export function BalanceSheetClient({
 			}
 		}
 	}, [selectedAccount]);
-
-	// Background refresh: updates cache silently without loading state
-	const refreshTransactionsInBackground = async (accountId: string) => {
-		console.log("Refreshing transactions:", accountId);
-		try {
-			const txns = await getAccountTransactions(accountId);
-			transactionCache.current.set(accountId, txns);
-			// Only update UI if still viewing the same account
-			if (selectedAccount?.id === accountId) {
-				setTransactions(txns);
-			}
-		} catch (error) {
-			console.error("Failed to refresh transactions:", error);
-		}
-	};
 
 	const loadTransactions = async (accountId: string) => {
 		console.log("Loading transactions:", accountId);
@@ -297,7 +284,7 @@ export function BalanceSheetClient({
 											className="bg-background pl-9 h-10"
 										/>
 									</div>
-									<Select defaultValue="all">
+									<Select value={filterType} onValueChange={(v: "all" | "assets" | "liabilities") => setFilterType(v)}>
 										<SelectTrigger className="bg-background w-[120px] h-10">
 											<SelectValue placeholder="All" />
 										</SelectTrigger>

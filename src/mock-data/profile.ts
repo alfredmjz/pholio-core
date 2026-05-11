@@ -8,6 +8,7 @@ export const sampleProfile = {
 	email: "demo@example.com",
 	allocation_new_month_default: "dialog" as const,
 	default_expected_income: 0,
+	timezone: null,
 	created_at: new Date().toISOString(),
 	updated_at: new Date().toISOString(),
 };

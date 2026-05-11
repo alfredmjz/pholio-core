@@ -22,6 +22,7 @@ interface TransactionLedgerProps {
 	externalTypeFilter?: TransactionType | null;
 	onClearExternalFilter?: () => void;
 	onTransactionSuccess?: () => void;
+	currentMonth?: { year: number; month: number };
 }
 
 type SortField = "date" | "name" | "amount" | "category" | "type";
@@ -34,6 +35,7 @@ export function TransactionLedger({
 	externalTypeFilter,
 	onClearExternalFilter,
 	onTransactionSuccess,
+	currentMonth,
 }: TransactionLedgerProps) {
 	const [searchQuery, setSearchQuery] = useState("");
 	const [categoryFilter, setCategoryFilter] = useState<string>("all");
@@ -280,10 +282,10 @@ export function TransactionLedger({
 								<th className="px-4 py-3 text-left text-xs font-semibold text-primary uppercase tracking-wider">
 									<SortButton field="name">Name</SortButton>
 								</th>
-								<th className="px-4 py-3 text-left text-xs font-semibold text-primary uppercase tracking-wider w-[140px]">
+								<th className="px-4 py-3 text-left text-xs font-semibold text-primary uppercase tracking-wider w-[180px]">
 									<SortButton field="category">Category</SortButton>
 								</th>
-								<th className="px-4 py-3 text-left text-xs font-semibold text-primary uppercase tracking-wider w-[120px]">
+								<th className="px-4 py-3 text-left text-xs font-semibold text-primary uppercase tracking-wider w-[160px]">
 									<SortButton field="type">Type</SortButton>
 								</th>
 								<th className="px-4 py-3 text-right text-xs font-semibold text-primary uppercase tracking-wider w-[100px]">
@@ -376,6 +378,7 @@ export function TransactionLedger({
 				transaction={selectedTransaction}
 				categories={categories}
 				accounts={accounts}
+				boundaryMonth={currentMonth}
 			/>
 		</Card>
 	);

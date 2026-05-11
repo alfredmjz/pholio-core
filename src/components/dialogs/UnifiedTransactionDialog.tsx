@@ -38,6 +38,7 @@ interface UnifiedTransactionDialogProps {
 	defaultType?: "income" | "expense";
 	onSuccess?: () => void;
 	context?: "balancesheet" | "allocations";
+	boundaryMonth?: { year: number; month: number };
 }
 
 interface ValidationErrors {
@@ -58,6 +59,7 @@ export function UnifiedTransactionDialog({
 	defaultType,
 	onSuccess,
 	context,
+	boundaryMonth,
 }: UnifiedTransactionDialogProps) {
 	const isBalanceSheetContext = context === "balancesheet";
 	const isAllocationsContext = context === "allocations";
@@ -72,6 +74,8 @@ export function UnifiedTransactionDialog({
 	const [date, setDate] = useState(defaultDate || getTodayDateString());
 	const [categoryId, setCategoryId] = useState<string>(defaultCategoryId || "uncategorized");
 	const [accountId, setAccountId] = useState<string>(defaultAccountId || "none");
+	const [transactionType, setTransactionType] = useState<string>("deposit");
+	const [incomeSource, setIncomeSource] = useState<string>("salary");
 	const [notes, setNotes] = useState("");
 	const [suggestedAccountInfo, setSuggestedAccountInfo] = useState<string | null>(null);
 	const [errors, setErrors] = useState<ValidationErrors>({});
@@ -81,14 +85,36 @@ export function UnifiedTransactionDialog({
 			setType(defaultType || "expense");
 			setDescription("");
 			setAmount("");
-			setDate(defaultDate || getTodayDateString());
+
+			// Default date: use defaultDate, or today, but clamp to boundaryMonth if provided
+			let initialDate = defaultDate || getTodayDateString();
+			if (boundaryMonth) {
+				const monthStart = `${boundaryMonth.year}-${String(boundaryMonth.month).padStart(2, "0")}-01`;
+				const lastDay = new Date(boundaryMonth.year, boundaryMonth.month, 0).getDate();
+				const monthEnd = `${boundaryMonth.year}-${String(boundaryMonth.month).padStart(2, "0")}-${lastDay}`;
+				if (initialDate < monthStart || initialDate > monthEnd) {
+					initialDate = monthStart;
+				}
+			}
+			setDate(initialDate);
+
 			setCategoryId(defaultCategoryId || "uncategorized");
 			setAccountId(defaultAccountId || "none");
+			setTransactionType(defaultType === "income" ? "deposit" : "withdrawal");
 			setNotes("");
 			setSuggestedAccountInfo(null);
 			setErrors({});
 		}
-	}, [open, defaultDate, defaultCategoryId, defaultAccountId, defaultType]);
+	}, [open, defaultDate, defaultCategoryId, defaultAccountId, defaultType, boundaryMonth]);
+
+	// Reset transactionType when switching between income and expense
+	useEffect(() => {
+		if (type === "income" && !["deposit", "contribution", "refund"].includes(transactionType)) {
+			setTransactionType("deposit");
+		} else if (type === "expense" && !["withdrawal", "payment", "interest"].includes(transactionType)) {
+			setTransactionType("withdrawal");
+		}
+	}, [type]);
 
 	useEffect(() => {
 		if (!categoryId || categoryId === "uncategorized") {
@@ -167,7 +193,9 @@ export function UnifiedTransactionDialog({
 				type,
 				categoryId: categoryId === "uncategorized" ? null : categoryId,
 				accountId: accountId === "none" ? null : accountId,
+				transactionType: transactionType as any,
 				notes: notes || undefined,
+				source: isAllocationsContext && type === "income" ? incomeSource : "manual",
 			};
 
 			const result = await createUnifiedTransaction(input);
@@ -229,6 +257,55 @@ export function UnifiedTransactionDialog({
 						/>
 					</FormSection>
 
+					{!isAllocationsContext &&
+						(type === "income" ? (
+							<div className="space-y-2">
+								<Label htmlFor="transactionType">Income Type (Account)</Label>
+								<Select value={transactionType} onValueChange={setTransactionType}>
+									<SelectTrigger className="h-10">
+										<SelectValue placeholder="Select type" />
+									</SelectTrigger>
+									<SelectContent>
+										<SelectItem value="deposit">💰 Deposit</SelectItem>
+										<SelectItem value="contribution">➕ Contribution</SelectItem>
+										<SelectItem value="refund">🔄 Refund</SelectItem>
+									</SelectContent>
+								</Select>
+							</div>
+						) : (
+							<div className="space-y-2">
+								<Label htmlFor="transactionType">Expense Type (Account)</Label>
+								<Select value={transactionType} onValueChange={setTransactionType}>
+									<SelectTrigger className="h-10">
+										<SelectValue placeholder="Select type" />
+									</SelectTrigger>
+									<SelectContent>
+										<SelectItem value="withdrawal">💸 Withdrawal</SelectItem>
+										<SelectItem value="payment">💳 Payment</SelectItem>
+										<SelectItem value="interest">📈 Interest</SelectItem>
+									</SelectContent>
+								</Select>
+							</div>
+						))}
+
+					{isAllocationsContext && type === "income" && (
+						<div className="space-y-2">
+							<Label htmlFor="incomeSource">Income Source</Label>
+							<Select value={incomeSource} onValueChange={setIncomeSource}>
+								<SelectTrigger className="h-10">
+									<SelectValue placeholder="Select source" />
+								</SelectTrigger>
+								<SelectContent>
+									<SelectItem value="salary">💼 Salary / Expected</SelectItem>
+									<SelectItem value="external">🎁 External / One-time</SelectItem>
+								</SelectContent>
+							</Select>
+							<p className="text-xs text-muted-foreground mt-1">
+								Only salary counts towards your stable income verification.
+							</p>
+						</div>
+					)}
+
 					<FormSection icon={<Info />} title="Transaction Details" variant="subtle">
 						<div className="space-y-2">
 							<Label htmlFor="amount">
@@ -251,7 +328,22 @@ export function UnifiedTransactionDialog({
 								<Label htmlFor="date">
 									Date <span className="text-error">*</span>
 								</Label>
-								<DatePicker id="date" value={date} onChange={setDate} placeholder="Select transaction date" />
+								<DatePicker
+									id="date"
+									value={date}
+									onChange={setDate}
+									placeholder="Select transaction date"
+									minDate={
+										boundaryMonth
+											? `${boundaryMonth.year}-${String(boundaryMonth.month).padStart(2, "0")}-01`
+											: undefined
+									}
+									maxDate={
+										boundaryMonth
+											? `${boundaryMonth.year}-${String(boundaryMonth.month).padStart(2, "0")}-${new Date(boundaryMonth.year, boundaryMonth.month, 0).getDate()}`
+											: undefined
+									}
+								/>
 								{errors.date && <p className="text-sm text-error">{errors.date}</p>}
 							</div>
 
@@ -277,7 +369,7 @@ export function UnifiedTransactionDialog({
 
 					<div className="space-y-2">
 						<Label htmlFor="category">
-							Budget Category{categoryRequired && <span className="text-error">*</span>}
+							Budget Category{categoryRequired && <span className="text-error"> *</span>}
 							{categoryRequired && !categoryDisabled && " "}
 							{categoryDisabled && (
 								<span className="ml-2 text-xs text-primary">(Not applicable for balance sheet)</span>

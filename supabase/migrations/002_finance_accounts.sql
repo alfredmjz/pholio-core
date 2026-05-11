@@ -126,6 +126,7 @@ CREATE TABLE public.accounts (
     interest_type TEXT CHECK (interest_type IN ('simple', 'compound', 'none')),
     loan_start_date DATE,
     loan_term_months INTEGER,
+    payment_due_date SMALLINT CHECK (payment_due_date >= 1 AND payment_due_date <= 31),
 
     -- Savings goals
     target_balance DECIMAL(15, 2),
@@ -255,6 +256,20 @@ COMMENT ON COLUMN public.accounts.track_contribution_room IS 'User choice: enabl
 COMMENT ON COLUMN public.accounts.contribution_room IS 'Remaining contribution room (for tax-advantaged accounts)';
 COMMENT ON COLUMN public.accounts.annual_contribution_limit IS 'Annual contribution limit (for reference)';
 COMMENT ON COLUMN public.accounts.interest_rate IS 'APR/APY as decimal (0.0650 = 6.50%)';
+COMMENT ON COLUMN public.accounts.payment_due_date IS 'The day of the month the payment is due (1-31). Applies mainly to credit cards and loans.';
+
+-- ============================================================================
+-- DATA MIGRATION: Copy target_balance → original_amount for debt accounts
+-- ============================================================================
+
+UPDATE public.accounts a
+SET original_amount = a.target_balance,
+    target_balance = NULL
+FROM public.account_types at
+WHERE a.account_type_id = at.id
+  AND at.category = 'debt'
+  AND a.target_balance IS NOT NULL
+  AND a.original_amount IS NULL;
 
 -- ============================================================================
 -- ANALYZE TABLES

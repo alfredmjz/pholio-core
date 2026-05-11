@@ -56,7 +56,7 @@ export function AccountTransactionDialog({
 		e.preventDefault();
 		if (!transaction) return;
 
-		if (!amount || !date) {
+		if (!amount || !date || !description.trim()) {
 			toast.error("Please fill in all required fields");
 			return;
 		}
@@ -136,7 +136,7 @@ export function AccountTransactionDialog({
 
 					<div className="space-y-2">
 						<Label htmlFor="description">
-							Description <span className="text-muted-foreground font-normal">(Optional)</span>
+							Description <span className="text-error">*</span>
 						</Label>
 						<Input
 							id="description"

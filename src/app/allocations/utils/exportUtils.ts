@@ -1,6 +1,6 @@
 import { supabase } from "@/lib/supabase/client";
 import * as XLSX from "xlsx";
-import { format } from "date-fns";
+import { formatDateString } from "@/lib/date-utils";
 
 export type ExportRange = {
 	type: "current" | "custom";
@@ -67,7 +67,7 @@ export async function exportTransactions(range: ExportRange, filename: string = 
 
 	// Format data for export
 	const exportData: ExportTransaction[] = transactions.map((t: any) => ({
-		Date: format(new Date(t.transaction_date), "yyyy-MM-dd"),
+		Date: formatDateString(new Date(t.transaction_date)),
 		Description: t.description || t.name,
 		Category: t.category?.name || "Uncategorized",
 		Amount: Number(t.amount),

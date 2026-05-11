@@ -16,6 +16,10 @@ import { Label } from "@/components/ui/label";
 import { MinimalTiptap } from "@/components/ui/shadcn-io/minimal-tiptap";
 import { updateAccount } from "../../../actions";
 import type { AccountWithType } from "../../../types";
+import { validateDecimalInput } from "@/lib/input-utils";
+import { ProminentAmountInput } from "@/components/ProminentAmountInput";
+import { Switch } from "@/components/ui/switch";
+import { getFieldVisibility } from "../../../field-visibility";
 
 interface EditAccountDialogProps {
 	open: boolean;
@@ -28,6 +32,7 @@ interface ValidationErrors {
 	name?: string;
 	current_balance?: string;
 	target_balance?: string;
+	interest_rate?: string;
 }
 
 export function EditAccountDialog({ open, onOpenChange, account, onSuccess }: EditAccountDialogProps) {
@@ -38,12 +43,19 @@ export function EditAccountDialog({ open, onOpenChange, account, onSuccess }: Ed
 		institution: account.institution || "",
 		current_balance: account.current_balance.toString(),
 		target_balance: account.target_balance?.toString() || "",
+		original_amount: account.original_amount?.toString() || "",
 		interest_rate: account.interest_rate ? (account.interest_rate * 100).toString() : "",
 		notes: account.notes || "",
+		payment_due_date: account.payment_due_date?.toString() || "",
+		credit_limit: account.credit_limit?.toString() || "",
+		loan_term_months: account.loan_term_months?.toString() || "",
+		track_contribution_room: account.track_contribution_room || false,
+		contribution_room: account.contribution_room?.toString() || "",
+		annual_contribution_limit: account.annual_contribution_limit?.toString() || "",
 	});
 
-	// Liability accounts (debts) have target goal implicitly as 0
-	const isDebtAccount = account.account_type?.class === "liability";
+	const category = account.account_type?.category;
+	const visibility = getFieldVisibility(category, account.account_type?.name);
 
 	const validateForm = (): boolean => {
 		const newErrors: ValidationErrors = {};
@@ -60,13 +72,14 @@ export function EditAccountDialog({ open, onOpenChange, account, onSuccess }: Ed
 			newErrors.current_balance = "Please enter a valid number";
 		}
 
-		// Validate Target Goal (only required for non-debt accounts)
-		if (!isDebtAccount) {
-			if (!formData.target_balance.trim()) {
-				newErrors.target_balance = "Target goal is required";
-			} else if (isNaN(parseFloat(formData.target_balance))) {
-				newErrors.target_balance = "Please enter a valid number";
-			}
+		// Validate Target Goal (optional, but must be a valid number if provided)
+		if (visibility.showTargetGoal && formData.target_balance.trim() && isNaN(parseFloat(formData.target_balance))) {
+			newErrors.target_balance = "Please enter a valid number";
+		}
+
+		// Validate Interest Rate (optional, but must be a valid number if provided)
+		if (formData.interest_rate.trim() && isNaN(parseFloat(formData.interest_rate))) {
+			newErrors.interest_rate = "Please enter a valid number";
 		}
 
 		setErrors(newErrors);
@@ -94,9 +107,18 @@ export function EditAccountDialog({ open, onOpenChange, account, onSuccess }: Ed
 				name: formData.name,
 				institution: formData.institution || null,
 				current_balance: parseFloat(formData.current_balance) || 0,
-				target_balance: isDebtAccount ? 0 : parseFloat(formData.target_balance),
+				target_balance: visibility.showTargetGoal ? parseFloat(formData.target_balance) || null : null,
+				original_amount: visibility.showOriginalAmount ? parseFloat(formData.original_amount) || null : null,
 				interest_rate: formData.interest_rate ? parseFloat(formData.interest_rate) / 100 : null,
 				notes: formData.notes || null,
+				payment_due_date: formData.payment_due_date ? parseInt(formData.payment_due_date) : null,
+				credit_limit: formData.credit_limit ? parseFloat(formData.credit_limit) : null,
+				loan_term_months: formData.loan_term_months ? parseInt(formData.loan_term_months) : null,
+				track_contribution_room: formData.track_contribution_room,
+				contribution_room: formData.contribution_room ? parseFloat(formData.contribution_room) : null,
+				annual_contribution_limit: formData.annual_contribution_limit
+					? parseFloat(formData.annual_contribution_limit)
+					: null,
 			});
 
 			if (result) {
@@ -150,12 +172,12 @@ export function EditAccountDialog({ open, onOpenChange, account, onSuccess }: Ed
 
 					{/* Institution */}
 					<div className="space-y-2">
-						<Label htmlFor="institution">Institution</Label>
+						<Label htmlFor="institution">{visibility.institutionLabel}</Label>
 						<Input
 							id="institution"
 							value={formData.institution}
 							onChange={(e) => setFormData({ ...formData, institution: e.target.value })}
-							placeholder="e.g., Ally Bank"
+							placeholder={visibility.institutionPlaceholder}
 						/>
 					</div>
 
@@ -167,59 +189,256 @@ export function EditAccountDialog({ open, onOpenChange, account, onSuccess }: Ed
 						</div>
 					</div>
 
-					{/* Current Balance & APY */}
-					<div className="flex gap-4">
-						<div className="flex-1 space-y-2">
+					{/* Generic Base Fields */}
+					<div className="grid grid-cols-2 gap-4">
+						<div className="space-y-2">
 							<Label htmlFor="current_balance">
 								Current Balance <span className="text-error">*</span>
 							</Label>
 							<Input
 								id="current_balance"
-								type="number"
+								type="text"
 								inputMode="decimal"
-								step="0.01"
+								placeholder="0.00"
 								value={formData.current_balance}
 								onChange={(e) => {
-									setFormData({ ...formData, current_balance: e.target.value });
-									if (errors.current_balance) setErrors({ ...errors, current_balance: undefined });
+									const val = e.target.value;
+									if (validateDecimalInput(val)) {
+										setFormData({ ...formData, current_balance: val });
+										if (errors.current_balance) setErrors({ ...errors, current_balance: undefined });
+									}
 								}}
 								className={errors.current_balance ? "border-error" : ""}
 							/>
 							{errors.current_balance && <p className="text-sm text-error">{errors.current_balance}</p>}
 						</div>
-						<div className="flex-1 space-y-2">
-							<Label htmlFor="interest_rate">{isDebtAccount ? "APR (%)" : "APY (%)"}</Label>
-							<Input
-								id="interest_rate"
-								type="number"
-								inputMode="decimal"
-								step="0.01"
-								value={formData.interest_rate}
-								onChange={(e) => setFormData({ ...formData, interest_rate: e.target.value })}
-								placeholder="e.g., 4.5"
-							/>
-						</div>
+
+						{visibility.showTargetGoal && (
+							<div className="space-y-2">
+								<Label htmlFor="target_balance">Target Goal</Label>
+								<Input
+									id="target_balance"
+									type="text"
+									inputMode="decimal"
+									placeholder="0.00"
+									value={formData.target_balance}
+									onChange={(e) => {
+										const val = e.target.value;
+										if (validateDecimalInput(val)) {
+											setFormData({ ...formData, target_balance: val });
+											if (errors.target_balance) setErrors({ ...errors, target_balance: undefined });
+										}
+									}}
+									className={errors.target_balance ? "border-error" : ""}
+								/>
+								{errors.target_balance && <p className="text-sm text-error">{errors.target_balance}</p>}
+							</div>
+						)}
 					</div>
 
-					{/* Target Goal (only for non-debt accounts) */}
-					{!isDebtAccount && (
+					{/* Credit-specific fields */}
+					{visibility.showCreditLimit && (
+						<>
+							<div className="grid grid-cols-2 gap-4">
+								<div className="space-y-2">
+									<Label htmlFor="credit_limit">Credit Limit (Optional)</Label>
+									<Input
+										id="credit_limit"
+										type="text"
+										inputMode="decimal"
+										placeholder="e.g., 5000"
+										value={formData.credit_limit}
+										onChange={(e) => {
+											const val = e.target.value;
+											if (validateDecimalInput(val)) {
+												setFormData({ ...formData, credit_limit: val });
+											}
+										}}
+									/>
+								</div>
+								{visibility.showDueDate && (
+									<div className="space-y-2">
+										<Label htmlFor="payment_due_date">Payment Due Date (1-31)</Label>
+										<Input
+											id="payment_due_date"
+											type="number"
+											min="1"
+											max="31"
+											placeholder="e.g., 21"
+											value={formData.payment_due_date}
+											onChange={(e) => setFormData({ ...formData, payment_due_date: e.target.value })}
+										/>
+									</div>
+								)}
+							</div>
+							<div className="space-y-2">
+								<Label htmlFor="interest_rate">{visibility.interestRateLabel}</Label>
+								<Input
+									id="interest_rate"
+									type="text"
+									inputMode="decimal"
+									placeholder="e.g., 19.99"
+									value={formData.interest_rate}
+									onChange={(e) => {
+										const val = e.target.value;
+										if (validateDecimalInput(val)) {
+											setFormData({ ...formData, interest_rate: val });
+											if (errors.interest_rate) setErrors({ ...errors, interest_rate: undefined });
+										}
+									}}
+									className={errors.interest_rate ? "border-error" : ""}
+								/>
+								{errors.interest_rate && <p className="text-sm text-error">{errors.interest_rate}</p>}
+							</div>
+						</>
+					)}
+
+					{/* Debt-specific fields */}
+					{visibility.showOriginalAmount && (
+						<>
+							<div className="grid grid-cols-2 gap-4">
+								<div className="space-y-2">
+									<Label htmlFor="original_amount">Original Loan Amount</Label>
+									<Input
+										id="original_amount"
+										type="text"
+										inputMode="decimal"
+										placeholder="e.g., 15000"
+										value={formData.original_amount}
+										onChange={(e) => {
+											const val = e.target.value;
+											if (validateDecimalInput(val)) {
+												setFormData({ ...formData, original_amount: val });
+											}
+										}}
+									/>
+								</div>
+								{visibility.showLoanTerm && (
+									<div className="space-y-2">
+										<Label htmlFor="loan_term_months">Loan Term (Months)</Label>
+										<Input
+											id="loan_term_months"
+											type="number"
+											placeholder="e.g., 60"
+											value={formData.loan_term_months}
+											onChange={(e) => setFormData({ ...formData, loan_term_months: e.target.value })}
+										/>
+									</div>
+								)}
+							</div>
+							<div className="grid grid-cols-2 gap-4">
+								{visibility.showDueDate && (
+									<div className="space-y-2">
+										<Label htmlFor="payment_due_date">Payment Due Date (1-31)</Label>
+										<Input
+											id="payment_due_date"
+											type="number"
+											min="1"
+											max="31"
+											placeholder="e.g., 15"
+											value={formData.payment_due_date}
+											onChange={(e) => setFormData({ ...formData, payment_due_date: e.target.value })}
+										/>
+									</div>
+								)}
+								<div className="space-y-2">
+									<Label htmlFor="interest_rate">{visibility.interestRateLabel}</Label>
+									<Input
+										id="interest_rate"
+										type="text"
+										inputMode="decimal"
+										placeholder="e.g., 5.50"
+										value={formData.interest_rate}
+										onChange={(e) => {
+											const val = e.target.value;
+											if (validateDecimalInput(val)) {
+												setFormData({ ...formData, interest_rate: val });
+												if (errors.interest_rate) setErrors({ ...errors, interest_rate: undefined });
+											}
+										}}
+										className={errors.interest_rate ? "border-error" : ""}
+									/>
+									{errors.interest_rate && <p className="text-sm text-error">{errors.interest_rate}</p>}
+								</div>
+							</div>
+						</>
+					)}
+
+					{/* Investment/Retirement fields */}
+					{visibility.showContributionRoom && (
+						<>
+							<div className="flex flex-row items-center justify-between rounded-lg border p-4">
+								<div className="space-y-0.5">
+									<Label>Track Contribution Room</Label>
+									<p className="text-sm text-muted-foreground">
+										Track your maximum allowable contributions (e.g., for TFSA, RRSP, FHSA).
+									</p>
+								</div>
+								<Switch
+									checked={formData.track_contribution_room}
+									onCheckedChange={(checked) => setFormData({ ...formData, track_contribution_room: checked })}
+								/>
+							</div>
+
+							{formData.track_contribution_room && (
+								<div className="grid grid-cols-2 gap-4">
+									<div className="space-y-2">
+										<Label htmlFor="contribution_room">Total Contribution Room</Label>
+										<Input
+											id="contribution_room"
+											type="text"
+											inputMode="decimal"
+											placeholder="e.g., 95000"
+											value={formData.contribution_room}
+											onChange={(e) => {
+												const val = e.target.value;
+												if (validateDecimalInput(val)) {
+													setFormData({ ...formData, contribution_room: val });
+												}
+											}}
+										/>
+									</div>
+									<div className="space-y-2">
+										<Label htmlFor="annual_limit">Annual Limit</Label>
+										<Input
+											id="annual_limit"
+											type="text"
+											inputMode="decimal"
+											placeholder="e.g., 7000"
+											value={formData.annual_contribution_limit}
+											onChange={(e) => {
+												const val = e.target.value;
+												if (validateDecimalInput(val)) {
+													setFormData({ ...formData, annual_contribution_limit: val });
+												}
+											}}
+										/>
+									</div>
+								</div>
+							)}
+						</>
+					)}
+
+					{/* Default interest rate for banking/property/other */}
+					{visibility.showInterestRate && !visibility.showCreditLimit && !visibility.showOriginalAmount && (
 						<div className="space-y-2">
-							<Label htmlFor="target_balance">
-								Target Goal <span className="text-error">*</span>
-							</Label>
+							<Label htmlFor="interest_rate">{visibility.interestRateLabel}</Label>
 							<Input
-								id="target_balance"
-								type="number"
+								id="interest_rate"
+								type="text"
 								inputMode="decimal"
-								step="0.01"
-								value={formData.target_balance}
+								placeholder="e.g., 4.5"
+								value={formData.interest_rate}
 								onChange={(e) => {
-									setFormData({ ...formData, target_balance: e.target.value });
-									if (errors.target_balance) setErrors({ ...errors, target_balance: undefined });
+									const val = e.target.value;
+									if (validateDecimalInput(val)) {
+										setFormData({ ...formData, interest_rate: val });
+										if (errors.interest_rate) setErrors({ ...errors, interest_rate: undefined });
+									}
 								}}
-								className={errors.target_balance ? "border-error" : ""}
+								className={errors.interest_rate ? "border-error" : ""}
 							/>
-							{errors.target_balance && <p className="text-sm text-error">{errors.target_balance}</p>}
+							{errors.interest_rate && <p className="text-sm text-error">{errors.interest_rate}</p>}
 						</div>
 					)}
 

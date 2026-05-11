@@ -20,13 +20,9 @@ export function TransactionTable({ transactions, categories, onClickTransaction 
 						<th className="px-4 py-3 text-left text-xs font-semibold text-primary uppercase tracking-wide w-[100px]">
 							Date
 						</th>
-						<th className="px-4 py-3 text-left text-xs font-semibold text-primary uppercase tracking-wide w-[140px]">
-							Name
-						</th>
-						<th className="px-4 py-3 text-left text-xs font-semibold text-primary uppercase tracking-wide w-[120px]">
-							Category
-						</th>
-						<th className="px-4 py-3 text-left text-xs font-semibold text-primary uppercase tracking-wide w-[140px]">
+						<th className="px-4 py-3 text-left text-xs font-semibold text-primary uppercase tracking-wide">Name</th>
+						<th className="px-4 py-3 text-left text-xs font-semibold text-primary uppercase tracking-wide">Category</th>
+						<th className="px-4 py-3 text-left text-xs font-semibold text-primary uppercase tracking-wide w-[180px]">
 							Type
 						</th>
 						<th className="px-4 py-3 text-right text-xs font-semibold text-primary uppercase tracking-wide w-[100px]">
@@ -66,7 +62,7 @@ export function TransactionTable({ transactions, categories, onClickTransaction 
 										<span className="text-sm text-primary">Uncategorized</span>
 									)}
 								</td>
-								<td className="px-4 py-3 text-left text-xs font-semibold text-primary uppercase tracking-wide w-[140px]">
+								<td className="px-4 py-3 text-left">
 									<TransactionTypeIcon type={txType} size="sm" showLabel />
 								</td>
 								<td className="px-4 py-3 text-right whitespace-nowrap">

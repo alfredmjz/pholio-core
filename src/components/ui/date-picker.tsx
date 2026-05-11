@@ -1,5 +1,5 @@
 import { useState } from "react";
-import { format } from "date-fns";
+import { formatDateString, formatLongDate } from "@/lib/date-utils";
 import { Calendar as CalendarIcon } from "lucide-react";
 
 import { cn } from "@/lib/utils";
@@ -14,6 +14,8 @@ interface DatePickerProps {
 	className?: string;
 	placeholder?: string;
 	id?: string;
+	minDate?: string;
+	maxDate?: string;
 }
 
 export function DatePicker({
@@ -23,6 +25,8 @@ export function DatePicker({
 	className,
 	placeholder = "Pick a date",
 	id,
+	minDate,
+	maxDate,
 }: DatePickerProps) {
 	const [open, setOpen] = useState(false);
 
@@ -31,7 +35,7 @@ export function DatePicker({
 
 	const handleSelect = (date: Date | undefined) => {
 		if (date) {
-			onChange(format(date, "yyyy-MM-dd"));
+			onChange(formatDateString(date));
 			setOpen(false);
 		}
 	};
@@ -50,11 +54,22 @@ export function DatePicker({
 					)}
 				>
 					<CalendarIcon className="mr-2 h-4 w-4" />
-					{selectedDate ? format(selectedDate, "PPP") : placeholder}
+					{selectedDate ? formatLongDate(selectedDate) : placeholder}
 				</Button>
 			</PopoverTrigger>
 			<PopoverContent className="w-auto p-0" align="start">
-				<Calendar mode="single" selected={selectedDate || new Date()} onSelect={handleSelect} autoFocus required />
+				<Calendar
+					mode="single"
+					selected={selectedDate || new Date()}
+					onSelect={handleSelect}
+					autoFocus
+					required
+					disabled={[
+						...(minDate ? [{ before: new Date(minDate + "T00:00:00") }] : []),
+						...(maxDate ? [{ after: new Date(maxDate + "T00:00:00") }] : []),
+					]}
+					defaultMonth={minDate ? new Date(minDate + "T00:00:00") : undefined}
+				/>
 			</PopoverContent>
 		</Popover>
 	);

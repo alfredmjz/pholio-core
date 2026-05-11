@@ -1,9 +1,14 @@
 "use client";
 
 import { Button } from "@/components/ui/button";
-import { Settings, Download } from "lucide-react";
-import { toast } from "sonner";
+import { Settings, Download, FolderPlus } from "lucide-react";
 import { MonthSelector } from "@/components/month-selector";
+import {
+	DropdownMenu,
+	DropdownMenuContent,
+	DropdownMenuItem,
+	DropdownMenuTrigger,
+} from "@/components/ui/dropdown-menu";
 import { AddTransactionButton } from "./AddTransactionButton";
 import { PageHeader } from "@/components/layout/page-shell";
 import type { MonthYear, AllocationCategory } from "@/app/allocations/types";
@@ -16,6 +21,7 @@ interface AllocationsHeaderProps {
 	categories: AllocationCategory[];
 	accounts: AccountWithType[];
 	onTransactionSuccess: () => void;
+	onSaveTemplate: () => void;
 }
 
 export function AllocationsHeader({
@@ -25,6 +31,7 @@ export function AllocationsHeader({
 	categories,
 	accounts,
 	onTransactionSuccess,
+	onSaveTemplate,
 }: AllocationsHeaderProps) {
 	return (
 		<PageHeader isSticky={true}>
@@ -36,10 +43,27 @@ export function AllocationsHeader({
 						<Download className="h-4 w-4" />
 						Export
 					</Button>
-					<Button variant="outline" size="icon" onClick={() => toast.info("Settings coming soon!")}>
-						<Settings className="h-4 w-4" />
-					</Button>
-					<AddTransactionButton categories={categories} accounts={accounts} onSuccess={onTransactionSuccess} />
+
+					<DropdownMenu>
+						<DropdownMenuTrigger asChild>
+							<Button variant="outline" size="icon">
+								<Settings className="h-4 w-4" />
+							</Button>
+						</DropdownMenuTrigger>
+						<DropdownMenuContent align="end">
+							<DropdownMenuItem onClick={onSaveTemplate}>
+								<FolderPlus className="mr-2 h-4 w-4" />
+								Save as Template
+							</DropdownMenuItem>
+						</DropdownMenuContent>
+					</DropdownMenu>
+
+					<AddTransactionButton
+						categories={categories}
+						accounts={accounts}
+						onSuccess={onTransactionSuccess}
+						boundaryMonth={currentMonth}
+					/>
 				</div>
 			</div>
 		</PageHeader>

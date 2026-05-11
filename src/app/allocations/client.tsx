@@ -9,14 +9,16 @@ import {
 	getOrCreateAllocation,
 	importPreviousMonthCategories,
 	applyTemplateToAllocation,
+	createTemplateFromAllocation,
 } from "./actions";
 import { AllocationProvider } from "./context/AllocationContext";
 import { AllocationsEmptyView } from "./components/AllocationsEmptyView";
 import { AllocationsDashboardView } from "./components/AllocationsDashboardView";
 import { ImportTemplateDialog } from "./components/ImportTemplateDialog";
+import { SaveTemplateDialog } from "./components/SaveTemplateDialog";
 
 import type { TransactionType } from "./components/TransactionTypeIcon";
-import type { MonthYear, AllocationSummary, Transaction } from "./types";
+import type { MonthYear, AllocationSummary, Transaction, IncomeVerificationResult } from "./types";
 import type { AccountWithType } from "@/app/balancesheet/types";
 import type { AllocationNewMonthDefault } from "@/app/settings/actions";
 
@@ -31,10 +33,23 @@ interface AllocationClientProps {
 		totalBudget: number;
 		hasData: boolean;
 	} | null;
+	historicalPace: {
+		hasEnoughData: boolean;
+		dailyAmounts: number[];
+	};
+	incomeVerification: IncomeVerificationResult;
 	userSettings?: {
 		newMonthDefault: AllocationNewMonthDefault;
 		defaultExpectedIncome?: number;
 	};
+	templates: Array<{
+		id: string;
+		name: string;
+		description?: string;
+		categoryCount: number;
+		totalBudget: number;
+	}>;
+	timezone: string | null;
 }
 
 const MONTH_NAMES = [
@@ -59,7 +74,11 @@ export function AllocationClient({
 	initialTransactions,
 	initialAccounts,
 	previousMonthData,
+	historicalPace,
+	incomeVerification,
 	userSettings,
+	templates,
+	timezone,
 }: AllocationClientProps) {
 	const router = useRouter();
 
@@ -69,51 +88,27 @@ export function AllocationClient({
 	});
 	const [addCategoryDialogOpen, setAddCategoryDialogOpen] = useState(false);
 	const [templateDialogOpen, setTemplateDialogOpen] = useState(false);
+	const [saveTemplateDialogOpen, setSaveTemplateDialogOpen] = useState(false);
+	const [isSavingTemplate, setIsSavingTemplate] = useState(false);
 	const [exportDialogOpen, setExportDialogOpen] = useState(false);
 	const [typeFilter, setTypeFilter] = useState<TransactionType | null>(null);
 
-	const {
-		summary,
-		transactions,
-		isConnected,
-		isRefetching,
-		optimisticallyAddCategory,
-		optimisticallyUpdateBudget,
-		optimisticallyUpdateName,
-		optimisticallyDeleteCategory,
-		optimisticallyReorderCategories,
-		rollback,
-	} = useAllocationSync(
-		initialSummary?.allocation.id || "",
-		currentMonth.year,
-		currentMonth.month,
-		initialSummary,
-		initialTransactions
-	);
+	const { summary, transactions, isConnected, isRefetching, optimisticallyReorderCategories, rollback } =
+		useAllocationSync(
+			initialSummary?.allocation.id || "",
+			currentMonth.year,
+			currentMonth.month,
+			initialSummary,
+			initialTransactions
+		);
 
 	useEffect(() => {
 		// Only act if we have no summary (truly empty month)
 		if (!summary && !templateDialogOpen) {
 			// Delay to avoid flash on initial load
 			const timer = setTimeout(() => {
-				const defaultBehavior = userSettings?.newMonthDefault || "dialog";
-
-				switch (defaultBehavior) {
-					case "dialog":
-						setTemplateDialogOpen(true);
-						break;
-					case "import_previous":
-						setTemplateDialogOpen(true);
-						break;
-					case "template":
-						setTemplateDialogOpen(true);
-						break;
-					case "fresh":
-						setTemplateDialogOpen(true);
-						break;
-					default:
-						setTemplateDialogOpen(true);
-				}
+				// All default behaviors currently open the template dialog
+				setTemplateDialogOpen(true);
 			}, 500);
 			return () => clearTimeout(timer);
 		}
@@ -125,17 +120,11 @@ export function AllocationClient({
 		router.push(`/allocations?year=${newMonth.year}&month=${newMonth.month}`);
 	};
 
-	const handleAddCategory = () => {
-		setAddCategoryDialogOpen(true);
-	};
-
-	const handleAddCategorySubmit = async (name: string, budgetCap: number) => {
+	const handleAddCategorySubmit = async (name: string, budgetCap: number, color?: string) => {
 		if (!summary) return;
 
 		const previousSummary = summary;
-		const tempId = optimisticallyAddCategory(name, budgetCap);
-
-		const newCategory = await createCategory(summary.allocation.id, name, budgetCap);
+		const newCategory = await createCategory(summary.allocation.id, name, budgetCap, false, undefined, color);
 
 		if (newCategory) {
 			toast.success("Category created");
@@ -195,6 +184,26 @@ export function AllocationClient({
 		setTemplateDialogOpen(false);
 	};
 
+	const handleSaveTemplate = async (name: string, description: string) => {
+		if (!summary) return;
+
+		setIsSavingTemplate(true);
+		try {
+			const template = await createTemplateFromAllocation(summary.allocation.id, name, description);
+			if (template) {
+				toast.success("Template saved!");
+				setSaveTemplateDialogOpen(false);
+				router.refresh();
+			} else {
+				toast.error("Save Failed", {
+					description: "Failed to save the template.",
+				});
+			}
+		} finally {
+			setIsSavingTemplate(false);
+		}
+	};
+
 	const getPreviousMonth = () => {
 		const prevMonth = currentMonth.month === 1 ? 12 : currentMonth.month - 1;
 		const prevYear = currentMonth.month === 1 ? currentMonth.year - 1 : currentMonth.year;
@@ -212,9 +221,6 @@ export function AllocationClient({
 		return (
 			<AllocationProvider
 				value={{
-					optimisticallyUpdateBudget,
-					optimisticallyUpdateName,
-					optimisticallyDeleteCategory,
 					optimisticallyReorderCategories,
 					rollback,
 				}}
@@ -238,7 +244,7 @@ export function AllocationClient({
 					monthName={monthName}
 					year={currentMonth.year}
 					previousMonth={getPreviousMonth()}
-					templates={[]}
+					templates={templates}
 					onImportPrevious={handleImportPrevious}
 					onUseTemplate={handleUseTemplate}
 					onStartFresh={handleStartFresh}
@@ -253,9 +259,6 @@ export function AllocationClient({
 	return (
 		<AllocationProvider
 			value={{
-				optimisticallyUpdateBudget,
-				optimisticallyUpdateName,
-				optimisticallyDeleteCategory,
 				optimisticallyReorderCategories,
 				rollback,
 			}}
@@ -280,13 +283,27 @@ export function AllocationClient({
 				setTemplateDialogOpen={setTemplateDialogOpen}
 				monthName={monthName}
 				previousMonthData={getPreviousMonth()}
+				historicalPace={historicalPace}
+				incomeVerification={incomeVerification}
 				onImportPrevious={handleImportPrevious}
 				onUseTemplate={handleUseTemplate}
 				onStartFresh={handleStartFresh}
 				defaultExpectedIncome={userSettings?.defaultExpectedIncome}
 				exportDialogOpen={exportDialogOpen}
 				setExportDialogOpen={setExportDialogOpen}
+				saveTemplateDialogOpen={saveTemplateDialogOpen}
+				setSaveTemplateDialogOpen={setSaveTemplateDialogOpen}
+				timezone={timezone}
 			/>
+
+			{summary && (
+				<SaveTemplateDialog
+					open={saveTemplateDialogOpen}
+					onOpenChange={setSaveTemplateDialogOpen}
+					onSave={handleSaveTemplate}
+					isSaving={isSavingTemplate}
+				/>
+			)}
 		</AllocationProvider>
 	);
 }

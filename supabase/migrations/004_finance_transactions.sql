@@ -78,7 +78,7 @@ CREATE TABLE public.account_transactions (
         'deposit', 'withdrawal', 'interest', 'payment',
         'adjustment', 'contribution', 'transfer'
     )),
-    description TEXT,
+    description TEXT NOT NULL,
     transaction_date DATE NOT NULL DEFAULT CURRENT_DATE,
 
     -- Link to allocations system (Foreign key added below or inline)
@@ -148,7 +148,14 @@ BEGIN
     transaction_spend AS (
         SELECT
             category_id,
-            SUM(ABS(amount)) as total_spend,
+            -- For categorized transactions, SUM(-amount) so refunds (positive) reduce spend.
+            -- For uncategorized, only sum negative amounts (expenses) so income doesn't artificially reduce total spend.
+            SUM(
+                CASE
+                    WHEN category_id IS NOT NULL THEN -amount
+                    ELSE CASE WHEN amount < 0 THEN -amount ELSE 0 END
+                END
+            ) as total_spend,
             COUNT(*) as transaction_count
         FROM public.transactions t
         CROSS JOIN allocation_period ap
@@ -156,6 +163,61 @@ BEGIN
           AND EXTRACT(YEAR FROM t.transaction_date) = ap.year
           AND EXTRACT(MONTH FROM t.transaction_date) = ap.month
         GROUP BY category_id
+    ),
+    -- Group categories with their spend data
+    categorized_data AS (
+        SELECT
+            ac.id,
+            ac.name,
+            ac.budget_cap,
+            ac.is_recurring,
+            ac.display_order,
+            ac.color,
+            ac.icon,
+            ac.notes,
+            COALESCE(ts.total_spend, 0) as actual_spend,
+            ac.budget_cap - COALESCE(ts.total_spend, 0) as remaining,
+            CASE
+                WHEN ac.budget_cap > 0 THEN
+                    ROUND((COALESCE(ts.total_spend, 0) / ac.budget_cap * 100)::numeric, 2)
+                ELSE 0
+            END as utilization_percentage,
+            COALESCE(ts.transaction_count, 0) as transaction_count,
+            ac.allocation_id,
+            ac.user_id,
+            ac.created_at,
+            ac.updated_at
+        FROM public.allocation_categories ac
+        LEFT JOIN transaction_spend ts ON ts.category_id = ac.id
+        WHERE ac.allocation_id = p_allocation_id
+    ),
+    -- Handle Uncategorized spending separately
+    uncategorized_spend AS (
+        SELECT
+            '00000000-0000-0000-0000-000000000000'::uuid as id,
+            'Uncategorized' as name,
+            0 as budget_cap,
+            false as is_recurring,
+            999 as display_order, -- Always last
+            'gray' as color,
+            'help-circle' as icon,
+            'Transactions without a category' as notes,
+            COALESCE(ts.total_spend, 0) as actual_spend,
+            -COALESCE(ts.total_spend, 0) as remaining,
+            0 as utilization_percentage,
+            COALESCE(ts.transaction_count, 0) as transaction_count,
+            p_allocation_id as allocation_id,
+            (SELECT user_id FROM allocation_period) as user_id,
+            NOW() as created_at,
+            NOW() as updated_at
+        FROM transaction_spend ts
+        WHERE ts.category_id IS NULL
+    ),
+    -- Combine all categories
+    all_categories_result AS (
+        SELECT * FROM categorized_data
+        UNION ALL
+        SELECT * FROM uncategorized_spend
     )
     SELECT json_build_object(
         'allocation', (
@@ -164,34 +226,8 @@ BEGIN
             WHERE a.id = p_allocation_id
         ),
         'categories', (
-            SELECT json_agg(
-                json_build_object(
-                    'id', ac.id,
-                    'name', ac.name,
-                    'budget_cap', ac.budget_cap,
-                    'is_recurring', ac.is_recurring,
-                    'display_order', ac.display_order,
-                    'color', ac.color,
-                    'icon', ac.icon,
-                    'notes', ac.notes,
-                    'actual_spend', COALESCE(ts.total_spend, 0),
-                    'remaining', ac.budget_cap - COALESCE(ts.total_spend, 0),
-                    'utilization_percentage', CASE
-                        WHEN ac.budget_cap > 0 THEN
-                            ROUND((COALESCE(ts.total_spend, 0) / ac.budget_cap * 100)::numeric, 2)
-                        ELSE 0
-                    END,
-                    'transaction_count', COALESCE(ts.transaction_count, 0),
-                    'allocation_id', ac.allocation_id,
-                    'user_id', ac.user_id,
-                    'created_at', ac.created_at,
-                    'updated_at', ac.updated_at
-                )
-                ORDER BY ac.display_order
-            )
-            FROM public.allocation_categories ac
-            LEFT JOIN transaction_spend ts ON ts.category_id = ac.id
-            WHERE ac.allocation_id = p_allocation_id
+            SELECT json_agg(c ORDER BY c.display_order)
+            FROM all_categories_result c
         ),
         'summary', (
             SELECT json_build_object(

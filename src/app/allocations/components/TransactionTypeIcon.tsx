@@ -101,7 +101,10 @@ export function TransactionTypeIcon({ type, size = "md", showLabel = false, clas
 
 	if (showLabel) {
 		return (
-			<Badge variant="secondary" className={cn(config.bgColor, config.textColor, "gap-1.5 font-medium", className)}>
+			<Badge
+				variant="secondary"
+				className={cn(config.bgColor, config.textColor, "gap-1.5 font-medium whitespace-nowrap", className)}
+			>
 				<Icon className={iconSizes[size]} />
 				{config.label}
 			</Badge>

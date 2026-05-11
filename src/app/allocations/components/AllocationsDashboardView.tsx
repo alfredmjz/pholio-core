@@ -5,14 +5,21 @@ import { WifiOff, Loader2 } from "lucide-react";
 import { AllocationsHeader } from "./AllocationsHeader";
 import { BudgetSummaryCards } from "./BudgetSummaryCards";
 import { CategoryPerformance } from "./CategoryPerformance";
-import { AllocationDonutChart } from "./AllocationDonutChart";
+import { SpendingPace } from "./SpendingPace";
+import { SpendingAllocation } from "./SpendingAllocation";
 import { TransactionLedger } from "./TransactionLedger";
 import { AddCategoryDialog } from "./AddCategoryDialog";
 import { ImportTemplateDialog } from "./ImportTemplateDialog";
 import { ExportDialog } from "./ExportDialog";
 import { PageShell, PageContent } from "@/components/layout/page-shell";
 
-import type { MonthYear, AllocationSummary, AllocationCategory, Transaction } from "@/app/allocations/types";
+import type {
+	MonthYear,
+	AllocationSummary,
+	AllocationCategory,
+	Transaction,
+	IncomeVerificationResult,
+} from "@/app/allocations/types";
 import type { AccountWithType } from "@/app/balancesheet/types";
 import type { TransactionType } from "./TransactionTypeIcon";
 
@@ -40,13 +47,14 @@ interface AllocationsDashboardViewProps {
 	// Dialog Handlers & State
 	addCategoryDialogOpen: boolean;
 	setAddCategoryDialogOpen: (open: boolean) => void;
-	handleAddCategorySubmit: (name: string, budgetCap: number) => Promise<void>;
+	handleAddCategorySubmit: (name: string, budgetCap: number, color?: string) => Promise<void>;
 
 	templateDialogOpen: boolean;
 	setTemplateDialogOpen: (open: boolean) => void;
-	// Template handlers
 	monthName: string;
-	previousMonthData: any; // Type as needed
+	previousMonthData: { name: string; year: number; categoryCount: number; totalBudget: number } | null;
+	historicalPace: { hasEnoughData: boolean; dailyAmounts: number[] };
+	incomeVerification: IncomeVerificationResult;
 	onImportPrevious: (income: number) => Promise<void>;
 	onUseTemplate: (id: string, income: number) => Promise<void>;
 	onStartFresh: (income: number) => Promise<void>;
@@ -54,6 +62,10 @@ interface AllocationsDashboardViewProps {
 
 	exportDialogOpen: boolean;
 	setExportDialogOpen: (open: boolean) => void;
+
+	saveTemplateDialogOpen: boolean;
+	setSaveTemplateDialogOpen: (open: boolean) => void;
+	timezone?: string | null;
 }
 
 export function AllocationsDashboardView({
@@ -76,13 +88,21 @@ export function AllocationsDashboardView({
 	setTemplateDialogOpen,
 	monthName,
 	previousMonthData,
+	historicalPace,
+	incomeVerification,
 	onImportPrevious,
 	onUseTemplate,
 	onStartFresh,
 	defaultExpectedIncome,
 	exportDialogOpen,
 	setExportDialogOpen,
+	saveTemplateDialogOpen,
+	setSaveTemplateDialogOpen,
+	timezone,
 }: AllocationsDashboardViewProps) {
+	const usedColors = categories.map((c) => c.color).filter(Boolean) as string[];
+	const usedNames = categories.map((c) => c.name);
+
 	return (
 		<PageShell>
 			{!isConnected && (
@@ -107,27 +127,42 @@ export function AllocationsDashboardView({
 				categories={categories}
 				accounts={accounts}
 				onTransactionSuccess={onTransactionSuccess}
+				onSaveTemplate={() => setSaveTemplateDialogOpen(true)}
 			/>
 
 			<PageContent>
-				<div className="flex flex-col lg:flex-row gap-6">
-					<div className="flex-1 lg:flex-[3] flex flex-col gap-6">
-						<BudgetSummaryCards
-							expectedIncome={summary.allocation.expected_income}
-							totalBudgetAllocated={summary.summary.total_budget_caps}
-							totalSpent={summary.summary.total_actual_spend}
-						/>
+				<div className="flex flex-col gap-6">
+					<div className="flex flex-col lg:flex-row gap-6">
+						<div className="w-full lg:w-[60%] flex flex-col gap-6">
+							<BudgetSummaryCards
+								expectedIncome={summary.allocation.expected_income}
+								totalBudgetAllocated={summary.summary.total_budget_caps}
+								totalSpent={summary.summary.total_actual_spend}
+								incomeVerification={incomeVerification}
+								allocationId={summary.allocation.id}
+							/>
 
-						<CategoryPerformance
-							categories={categories}
-							onAddCategory={() => setAddCategoryDialogOpen(true)}
-							className="flex-1"
-						/>
+							<SpendingAllocation categories={categories} />
+						</div>
+
+						<div className="w-full lg:w-[40%] flex flex-col">
+							<SpendingPace
+								currentMonth={currentMonth}
+								transactions={transactions}
+								totalBudget={summary.summary.total_budget_caps}
+								historicalPace={historicalPace}
+								className="flex-1"
+								timezone={timezone}
+							/>
+						</div>
 					</div>
 
-					<div className="lg:flex-[1] flex">
-						<AllocationDonutChart categories={categories} className="flex-1" />
-					</div>
+					<CategoryPerformance
+						categories={categories}
+						onAddCategory={() => setAddCategoryDialogOpen(true)}
+						usedColors={usedColors}
+						usedNames={usedNames}
+					/>
 				</div>
 
 				<TransactionLedger
@@ -137,6 +172,7 @@ export function AllocationsDashboardView({
 					externalTypeFilter={typeFilter}
 					onClearExternalFilter={() => onSetTypeFilter(null)}
 					onTransactionSuccess={onTransactionSuccess}
+					currentMonth={currentMonth}
 				/>
 			</PageContent>
 
@@ -145,6 +181,8 @@ export function AllocationsDashboardView({
 				onOpenChange={setAddCategoryDialogOpen}
 				onSubmit={handleAddCategorySubmit}
 				unallocatedFunds={summary.summary.unallocated_funds}
+				usedColors={usedColors}
+				usedNames={usedNames}
 			/>
 
 			<ImportTemplateDialog
@@ -152,7 +190,7 @@ export function AllocationsDashboardView({
 				onOpenChange={setTemplateDialogOpen}
 				monthName={monthName}
 				year={currentMonth.year}
-				previousMonth={previousMonthData}
+				previousMonth={previousMonthData || undefined}
 				templates={[]}
 				onImportPrevious={onImportPrevious}
 				onUseTemplate={onUseTemplate}

@@ -36,10 +36,11 @@ export function DonutChart({
 
 	// Calculate segments
 	const segments = useMemo(() => {
-		if (data.length === 0 || total === 0) return [];
+		const filtered = data.filter((item) => item.value > 0);
+		if (filtered.length === 0 || total === 0) return [];
 
 		let currentAngle = 0;
-		return data.map((item, index) => {
+		return filtered.map((item, index) => {
 			const percentage = (item.value / total) * 100;
 			const angle = (percentage / 100) * 360;
 			const startAngle = currentAngle;

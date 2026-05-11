@@ -21,7 +21,7 @@ import { OtherAccountsCard } from "./components/OtherAccountsCard";
 import { EditAccountDialog } from "./components/EditAccountDialog";
 import { AccountTransactionDialog } from "./components/AccountTransactionDialog";
 
-import { deleteAccount, getAccountTransactions } from "../../actions";
+import { deleteAccount, getAccountTransactions, getAccountById } from "../../actions";
 import type { AccountWithType, AccountTransaction } from "../../types";
 
 interface AccountDetailClientProps {
@@ -78,11 +78,17 @@ export function AccountDetailClient({
 	};
 
 	const handleTransactionSuccess = async () => {
-		// Refresh transactions
+		// Refresh transactions and account balance
 		setIsLoadingTransactions(true);
 		try {
-			const txns = await getAccountTransactions(account.id);
+			const [txns, updatedAccount] = await Promise.all([
+				getAccountTransactions(account.id),
+				getAccountById(account.id),
+			]);
 			setTransactions(txns);
+			if (updatedAccount) {
+				setAccount(updatedAccount);
+			}
 			router.refresh();
 		} finally {
 			setIsLoadingTransactions(false);

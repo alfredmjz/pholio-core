@@ -20,9 +20,12 @@ import { Check, ChevronsUpDown, Plus, Wallet, Info } from "lucide-react";
 import { createAccount, getAccountTypes, createAccountType } from "../actions";
 import type { CreateAccountInput, AccountType, AccountClass, AccountWithType } from "../types";
 import { cn } from "@/lib/utils";
+import { validateDecimalInput } from "@/lib/input-utils";
 import { FormSection } from "@/components/FormSection";
 import { CardSelector } from "@/components/CardSelector";
 import { ProminentAmountInput } from "@/components/ProminentAmountInput";
+import { Switch } from "@/components/ui/switch";
+import { getFieldVisibility } from "../field-visibility";
 
 interface AddAccountDialogProps {
 	open: boolean;
@@ -38,10 +41,63 @@ interface ValidationErrors {
 }
 
 export function AddAccountDialog({ open, onOpenChange, onSuccess }: AddAccountDialogProps) {
+	interface FormState {
+		name: string;
+		account_type_id: string;
+		current_balance: string;
+		target_balance: string;
+		original_amount: string;
+		interest_rate: string;
+		institution: string;
+		notes: string;
+		payment_due_date: string;
+		credit_limit: string;
+		loan_term_months: string;
+		track_contribution_room: boolean;
+		contribution_room: string;
+		annual_contribution_limit: string;
+	}
+
 	const [loading, setLoading] = useState(false);
 	const [accountType, setAccountType] = useState<AccountClass>("asset");
 	const [allAccountTypes, setAllAccountTypes] = useState<AccountType[]>([]);
-	const [formData, setFormData] = useState<Partial<CreateAccountInput>>({});
+	const [formData, setFormData] = useState<FormState>({
+		name: "",
+		account_type_id: "",
+		current_balance: "",
+		target_balance: "",
+		original_amount: "",
+		interest_rate: "",
+		institution: "",
+		notes: "",
+		payment_due_date: "",
+		credit_limit: "",
+		loan_term_months: "",
+		track_contribution_room: false,
+		contribution_room: "",
+		annual_contribution_limit: "",
+	});
+
+	// Clear irrelevant fields when category changes
+	useEffect(() => {
+		if (!formData.account_type_id) return;
+		const type = allAccountTypes.find((t) => t.id === formData.account_type_id);
+		if (!type) return;
+		const vis = getFieldVisibility(type.category, type.name);
+		setFormData((prev) => ({
+			...prev,
+			target_balance: vis.showTargetGoal ? prev.target_balance : "",
+			original_amount: vis.showOriginalAmount ? prev.original_amount : "",
+			credit_limit: vis.showCreditLimit ? prev.credit_limit : "",
+			interest_rate: vis.showInterestRate ? prev.interest_rate : "",
+			loan_term_months: vis.showLoanTerm ? prev.loan_term_months : "",
+			payment_due_date: vis.showDueDate ? prev.payment_due_date : "",
+			track_contribution_room: vis.showContributionRoom ? prev.track_contribution_room : false,
+			contribution_room: vis.showContributionRoom ? prev.contribution_room : "",
+			annual_contribution_limit: vis.showContributionRoom ? prev.annual_contribution_limit : "",
+		}));
+		// eslint-disable-next-line react-hooks/exhaustive-deps
+	}, [formData.account_type_id]);
 	const [errors, setErrors] = useState<ValidationErrors>({});
 	const [openCombobox, setOpenCombobox] = useState(false);
 	const [searchValue, setSearchValue] = useState("");
@@ -101,17 +157,9 @@ export function AddAccountDialog({ open, onOpenChange, onSuccess }: AddAccountDi
 			isValid = false;
 		}
 
-		if (formData.current_balance === undefined || formData.current_balance === null) {
+		if (!formData.current_balance.trim()) {
 			newErrors.current_balance = "Current balance is required";
 			isValid = false;
-		}
-
-		// Target balance is required for assets, but optional (or 0) for liabilities
-		if (accountType === "asset") {
-			if (formData.target_balance === undefined || formData.target_balance === null) {
-				newErrors.target_balance = "Target goal is required";
-				isValid = false;
-			}
 		}
 
 		setErrors(newErrors);
@@ -136,14 +184,23 @@ export function AddAccountDialog({ open, onOpenChange, onSuccess }: AddAccountDi
 
 		try {
 			const input: CreateAccountInput = {
-				name: formData.name!,
-				account_type_id: formData.account_type_id!,
-				current_balance: formData.current_balance!,
-				interest_rate: formData.interest_rate || null,
+				name: formData.name,
+				account_type_id: formData.account_type_id,
+				current_balance: parseFloat(formData.current_balance),
+				interest_rate: formData.interest_rate ? parseFloat(formData.interest_rate) / 100 : null,
 				interest_type: formData.interest_rate ? "compound" : null,
-				target_balance: formData.target_balance || null,
+				target_balance: formData.target_balance ? parseFloat(formData.target_balance) : null,
+				original_amount: formData.original_amount ? parseFloat(formData.original_amount) : null,
 				institution: formData.institution || null,
 				notes: formData.notes || null,
+				payment_due_date: formData.payment_due_date ? parseInt(formData.payment_due_date) : null,
+				credit_limit: formData.credit_limit ? parseFloat(formData.credit_limit) : null,
+				loan_term_months: formData.loan_term_months ? parseInt(formData.loan_term_months) : null,
+				track_contribution_room: formData.track_contribution_room,
+				contribution_room: formData.contribution_room ? parseFloat(formData.contribution_room) : null,
+				annual_contribution_limit: formData.annual_contribution_limit
+					? parseFloat(formData.annual_contribution_limit)
+					: null,
 			};
 
 			const result = await createAccount(input);
@@ -153,7 +210,22 @@ export function AddAccountDialog({ open, onOpenChange, onSuccess }: AddAccountDi
 				onOpenChange(false);
 				onSuccess(result);
 				// Reset form
-				setFormData({});
+				setFormData({
+					name: "",
+					account_type_id: "",
+					current_balance: "",
+					target_balance: "",
+					original_amount: "",
+					interest_rate: "",
+					institution: "",
+					notes: "",
+					payment_due_date: "",
+					credit_limit: "",
+					loan_term_months: "",
+					track_contribution_room: false,
+					contribution_room: "",
+					annual_contribution_limit: "",
+				});
 				setErrors({});
 				setSearchValue("");
 			} else {
@@ -171,8 +243,11 @@ export function AddAccountDialog({ open, onOpenChange, onSuccess }: AddAccountDi
 		}
 	};
 
-	const availableTypes = (allAccountTypes || []).filter((t) => t.class === accountType);
+	const availableTypes = (allAccountTypes || []).filter(
+		(t) => t.class === accountType && t.name.toLowerCase().includes(searchValue.toLowerCase())
+	);
 	const selectedType = (allAccountTypes || []).find((t) => t.id === formData.account_type_id);
+	const visibility = getFieldVisibility(selectedType?.category, selectedType?.name);
 
 	return (
 		<Dialog open={open} onOpenChange={onOpenChange}>
@@ -205,8 +280,8 @@ export function AddAccountDialog({ open, onOpenChange, onSuccess }: AddAccountDi
 								setAccountType(val);
 								setFormData({
 									...formData,
-									account_type_id: undefined,
-									current_balance: undefined,
+									account_type_id: "",
+									current_balance: "",
 								});
 								setErrors({});
 							}}
@@ -223,7 +298,7 @@ export function AddAccountDialog({ open, onOpenChange, onSuccess }: AddAccountDi
 								<Input
 									id="name"
 									placeholder="Emergency Fund"
-									value={formData.name || ""}
+									value={formData.name}
 									onChange={(e) => {
 										setFormData({ ...formData, name: e.target.value });
 										if (errors.name) setErrors({ ...errors, name: undefined });
@@ -253,7 +328,10 @@ export function AddAccountDialog({ open, onOpenChange, onSuccess }: AddAccountDi
 											<ChevronsUpDown className="ml-2 h-4 w-4 opacity-50" />
 										</Button>
 									</PopoverTrigger>
-									<PopoverContent className="w-[var(--radix-popover-trigger-width)] p-0">
+									<PopoverContent
+										className="w-[var(--radix-popover-trigger-width)] p-0"
+										onWheel={(e) => e.stopPropagation()}
+									>
 										<Command shouldFilter={false}>
 											<CommandInput
 												placeholder="Search or create category..."
@@ -307,10 +385,9 @@ export function AddAccountDialog({ open, onOpenChange, onSuccess }: AddAccountDi
 								</Label>
 								<ProminentAmountInput
 									id="balance"
-									value={formData.current_balance?.toString() ?? ""}
+									value={formData.current_balance}
 									onChange={(val) => {
-										const numVal = val === "" ? undefined : parseFloat(val);
-										setFormData({ ...formData, current_balance: numVal });
+										setFormData({ ...formData, current_balance: val });
 										if (errors.current_balance) setErrors({ ...errors, current_balance: undefined });
 									}}
 									hasError={!!errors.current_balance}
@@ -318,53 +395,215 @@ export function AddAccountDialog({ open, onOpenChange, onSuccess }: AddAccountDi
 								{errors.current_balance && <p className="text-sm text-error">{errors.current_balance}</p>}
 							</div>
 
-							<div className="space-y-2">
-								<Label htmlFor="target">
-									{accountType === "asset" ? "Target Goal" : "Original Amount"}{" "}
-									{accountType === "asset" && <span className="text-error">*</span>}
-								</Label>
-								<ProminentAmountInput
-									id="target"
-									value={formData.target_balance?.toString() ?? ""}
-									onChange={(val) => {
-										const numVal = val === "" ? undefined : parseFloat(val);
-										setFormData({ ...formData, target_balance: numVal });
-										if (errors.target_balance) setErrors({ ...errors, target_balance: undefined });
-									}}
-									hasError={!!errors.target_balance}
-								/>
-								{errors.target_balance && <p className="text-sm text-error">{errors.target_balance}</p>}
-							</div>
+							{visibility.showTargetGoal && (
+								<div className="space-y-2">
+									<Label htmlFor="target">Target Goal</Label>
+									<ProminentAmountInput
+										id="target"
+										value={formData.target_balance}
+										onChange={(val) => {
+											setFormData({ ...formData, target_balance: val });
+											if (errors.target_balance) setErrors({ ...errors, target_balance: undefined });
+										}}
+										hasError={!!errors.target_balance}
+									/>
+									{errors.target_balance && <p className="text-sm text-error">{errors.target_balance}</p>}
+								</div>
+							)}
 						</div>
 
-						<div className="grid grid-cols-2 gap-4">
-							<div className="space-y-2">
-								<Label htmlFor="interest">Interest Rate ({accountType === "asset" ? "APY" : "APR"} %)</Label>
-								<Input
-									id="interest"
-									type="number"
-									inputMode="decimal"
-									step="0.01"
-									placeholder="5.50"
-									value={formData.interest_rate ? formData.interest_rate * 100 : ""}
-									onChange={(e) =>
-										setFormData({ ...formData, interest_rate: parseFloat(e.target.value) / 100 || null })
-									}
-									className="h-10"
-								/>
+						{/* Credit-specific fields */}
+						{visibility.showCreditLimit && (
+							<div className="grid grid-cols-2 gap-4 mt-4">
+								<div className="space-y-2">
+									<Label htmlFor="credit_limit">Credit Limit (Optional)</Label>
+									<ProminentAmountInput
+										id="credit_limit"
+										value={formData.credit_limit}
+										onChange={(val) => setFormData({ ...formData, credit_limit: val })}
+										hasError={false}
+									/>
+								</div>
+								{visibility.showDueDate && (
+									<div className="space-y-2">
+										<Label htmlFor="payment_due_date">Payment Due Date (1-31)</Label>
+										<Input
+											id="payment_due_date"
+											type="number"
+											min="1"
+											max="31"
+											placeholder="e.g., 21"
+											value={formData.payment_due_date}
+											onChange={(e) => setFormData({ ...formData, payment_due_date: e.target.value })}
+											className="h-10"
+										/>
+									</div>
+								)}
 							</div>
+						)}
 
-							<div className="space-y-2">
-								<Label htmlFor="institution">Institution/Lender</Label>
+						{/* Debt-specific fields: Original Loan Amount & Loan Term */}
+						{visibility.showOriginalAmount && (
+							<div className="grid grid-cols-2 gap-4 mt-4">
+								<div className="space-y-2">
+									<Label htmlFor="original_amount">Original Loan Amount</Label>
+									<ProminentAmountInput
+										id="original_amount"
+										value={formData.original_amount}
+										onChange={(val) => setFormData({ ...formData, original_amount: val })}
+										hasError={false}
+									/>
+								</div>
+								{visibility.showLoanTerm && (
+									<div className="space-y-2">
+										<Label htmlFor="loan_term">Loan Term (Months)</Label>
+										<Input
+											id="loan_term"
+											type="number"
+											placeholder="e.g., 60"
+											value={formData.loan_term_months}
+											onChange={(e) => setFormData({ ...formData, loan_term_months: e.target.value })}
+											className="h-10"
+										/>
+									</div>
+								)}
+							</div>
+						)}
+
+						{/* Debt-specific: Due Date & APR row */}
+						{visibility.showOriginalAmount && visibility.showDueDate && (
+							<div className="grid grid-cols-2 gap-4 mt-4">
+								<div className="space-y-2">
+									<Label htmlFor="payment_due_date">Payment Due Date (1-31)</Label>
+									<Input
+										id="payment_due_date"
+										type="number"
+										min="1"
+										max="31"
+										placeholder="e.g., 15"
+										value={formData.payment_due_date}
+										onChange={(e) => setFormData({ ...formData, payment_due_date: e.target.value })}
+										className="h-10"
+									/>
+								</div>
+								<div className="space-y-2">
+									<Label htmlFor="interest">{visibility.interestRateLabel}</Label>
+									<Input
+										id="interest"
+										type="text"
+										inputMode="decimal"
+										placeholder="5.50"
+										value={formData.interest_rate}
+										onChange={(e) => {
+											const val = e.target.value;
+											if (validateDecimalInput(val)) {
+												setFormData({ ...formData, interest_rate: val });
+											}
+										}}
+										className="h-10"
+									/>
+								</div>
+							</div>
+						)}
+
+						{/* Interest Rate for non-debt categories that show it (credit, banking, etc.) */}
+						{visibility.showInterestRate && !visibility.showOriginalAmount && (
+							<div className="grid grid-cols-2 gap-4 mt-4">
+								<div className="space-y-2">
+									<Label htmlFor="interest">{visibility.interestRateLabel}</Label>
+									<Input
+										id="interest"
+										type="text"
+										inputMode="decimal"
+										placeholder={selectedType?.category === "credit" ? "19.99" : "4.00"}
+										value={formData.interest_rate}
+										onChange={(e) => {
+											const val = e.target.value;
+											if (validateDecimalInput(val)) {
+												setFormData({ ...formData, interest_rate: val });
+											}
+										}}
+										className="h-10"
+									/>
+								</div>
+								<div className="space-y-2">
+									<Label htmlFor="institution">{visibility.institutionLabel}</Label>
+									<Input
+										id="institution"
+										placeholder={visibility.institutionPlaceholder}
+										value={formData.institution}
+										onChange={(e) => setFormData({ ...formData, institution: e.target.value })}
+										className="h-10"
+									/>
+								</div>
+							</div>
+						)}
+
+						{/* Institution for debt (shown separately since APR is in a different row) */}
+						{visibility.showOriginalAmount && (
+							<div className="space-y-2 mt-4">
+								<Label htmlFor="institution">{visibility.institutionLabel}</Label>
 								<Input
 									id="institution"
-									placeholder="Chase, Ally Bank, etc."
-									value={formData.institution || ""}
+									placeholder={visibility.institutionPlaceholder}
+									value={formData.institution}
 									onChange={(e) => setFormData({ ...formData, institution: e.target.value })}
 									className="h-10"
 								/>
 							</div>
-						</div>
+						)}
+
+						{/* Contribution Room (Investment/Retirement) */}
+						{visibility.showContributionRoom && (
+							<>
+								<div className="flex flex-row items-center justify-between rounded-lg border p-4 mt-4">
+									<div className="space-y-0.5">
+										<Label>Track Contribution Room</Label>
+										<p className="text-sm text-muted-foreground">
+											Track your maximum allowable contributions (e.g., for TFSA, RRSP, FHSA).
+										</p>
+									</div>
+									<Switch
+										checked={formData.track_contribution_room}
+										onCheckedChange={(checked) => setFormData({ ...formData, track_contribution_room: checked })}
+									/>
+								</div>
+
+								{formData.track_contribution_room && (
+									<div className="grid grid-cols-2 gap-4 mt-4">
+										<div className="space-y-2">
+											<Label htmlFor="contribution_room">Total Contribution Room</Label>
+											<ProminentAmountInput
+												id="contribution_room"
+												value={formData.contribution_room}
+												onChange={(val) => setFormData({ ...formData, contribution_room: val })}
+												hasError={false}
+											/>
+										</div>
+										<div className="space-y-2">
+											<Label htmlFor="annual_limit">Annual Limit (e.g., 7000 for TFSA)</Label>
+											<ProminentAmountInput
+												id="annual_limit"
+												value={formData.annual_contribution_limit}
+												onChange={(val) => setFormData({ ...formData, annual_contribution_limit: val })}
+												hasError={false}
+											/>
+										</div>
+									</div>
+								)}
+
+								<div className="space-y-2 mt-4">
+									<Label htmlFor="institution">{visibility.institutionLabel}</Label>
+									<Input
+										id="institution"
+										placeholder={visibility.institutionPlaceholder}
+										value={formData.institution}
+										onChange={(e) => setFormData({ ...formData, institution: e.target.value })}
+										className="h-10"
+									/>
+								</div>
+							</>
+						)}
 					</FormSection>
 
 					{/* Notes - Optional section */}
@@ -372,7 +611,7 @@ export function AddAccountDialog({ open, onOpenChange, onSuccess }: AddAccountDi
 						<div className="space-y-2">
 							<Label>Notes</Label>
 							<MinimalTiptap
-								content={formData.notes || ""}
+								content={formData.notes}
 								onChange={(content) => setFormData({ ...formData, notes: content })}
 								placeholder="Additional information about this account..."
 							/>

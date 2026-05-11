@@ -35,7 +35,8 @@ export type TransactionType =
 	| "payment"
 	| "adjustment"
 	| "contribution"
-	| "transfer";
+	| "transfer"
+	| "refund";
 
 export interface Account {
 	id: string;
@@ -52,6 +53,7 @@ export interface Account {
 	interest_type: InterestType | null;
 	loan_start_date: string | null;
 	loan_term_months: number | null;
+	payment_due_date: number | null;
 	target_balance: number | null;
 	// Contribution room tracking (user choice)
 	track_contribution_room: boolean;
@@ -94,7 +96,7 @@ export interface AccountTransaction {
 	user_id: string;
 	amount: number;
 	transaction_type: TransactionType;
-	description: string | null;
+	description: string;
 	transaction_date: string;
 	linked_allocation_transaction_id: string | null;
 	created_at: string;
@@ -140,6 +142,7 @@ export interface CreateAccountInput {
 	interest_type?: InterestType | null;
 	loan_start_date?: string | null;
 	loan_term_months?: number | null;
+	payment_due_date?: number | null;
 	target_balance?: number | null;
 	track_contribution_room?: boolean;
 	contribution_room?: number | null;
@@ -154,8 +157,11 @@ export interface UpdateAccountInput {
 	institution?: string | null;
 	current_balance?: number;
 	credit_limit?: number | null;
+	original_amount?: number | null;
 	interest_rate?: number | null;
 	interest_type?: InterestType | null;
+	loan_term_months?: number | null;
+	payment_due_date?: number | null;
 	target_balance?: number | null;
 	track_contribution_room?: boolean;
 	contribution_room?: number | null;
@@ -171,7 +177,7 @@ export interface RecordTransactionInput {
 	account_id: string;
 	amount: number;
 	transaction_type: TransactionType;
-	description?: string | null;
+	description: string;
 	transaction_date?: string;
 }
 

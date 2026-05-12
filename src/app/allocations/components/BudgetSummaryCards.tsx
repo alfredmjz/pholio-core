@@ -3,7 +3,7 @@
 import { useState, useEffect } from "react";
 import { useRouter } from "next/navigation";
 import { Card } from "@/components/ui/card";
-import { CheckCircle2, Clock, CircleDashed, TrendingUp, TrendingDown, X } from "lucide-react";
+import { CheckCircle2, Clock, CircleDashed, TrendingUp, TrendingDown, X, Pencil } from "lucide-react";
 import { cn } from "@/lib/utils";
 import { toast } from "sonner";
 import { updateExpectedIncome } from "../actions";
@@ -32,6 +32,8 @@ export function BudgetSummaryCards({
 	const [isDriftDismissed, setIsDriftDismissed] = useState(false);
 	const [isUpdating, setIsUpdating] = useState(false);
 	const [isMounted, setIsMounted] = useState(false);
+	const [isEditingIncome, setIsEditingIncome] = useState(false);
+	const [editIncomeValue, setEditIncomeValue] = useState("");
 
 	useEffect(() => {
 		if (allocationId) {
@@ -76,6 +78,38 @@ export function BudgetSummaryCards({
 		}
 	};
 
+	const handleIncomeClick = () => {
+		setEditIncomeValue(expectedIncome > 0 ? expectedIncome.toString() : "");
+		setIsEditingIncome(true);
+	};
+
+	const handleIncomeSave = async () => {
+		const numValue = parseFloat(editIncomeValue) || 0;
+		if (numValue === expectedIncome) {
+			setIsEditingIncome(false);
+			return;
+		}
+		if (!allocationId) return;
+		setIsUpdating(true);
+		try {
+			const success = await updateExpectedIncome(allocationId, numValue);
+			if (success) {
+				toast.success("Expected income updated!");
+				router.refresh();
+			} else {
+				toast.error("Failed to update expected income");
+			}
+		} finally {
+			setIsUpdating(false);
+			setIsEditingIncome(false);
+		}
+	};
+
+	const handleIncomeKeyDown = (e: React.KeyboardEvent) => {
+		if (e.key === "Enter") handleIncomeSave();
+		if (e.key === "Escape") setIsEditingIncome(false);
+	};
+
 	const renderVerificationBadge = () => {
 		const { status, consecutiveMatches } = incomeVerification;
 
@@ -118,7 +152,10 @@ export function BudgetSummaryCards({
 	return (
 		<div className={cn("flex flex-col gap-3", className)}>
 			<div className="grid grid-cols-1 md:grid-cols-3 gap-4">
-				<Card className="p-5 bg-card border border-border relative overflow-hidden group">
+				<Card
+					className="p-5 bg-card border border-border relative overflow-hidden group cursor-pointer"
+					onClick={() => !isEditingIncome && handleIncomeClick()}
+				>
 					<div className="absolute inset-0 bg-gradient-to-br from-primary/[0.02] via-transparent to-transparent pointer-events-none" />
 					<div className="absolute -right-8 -top-8 w-32 h-32 bg-primary/10 rounded-full blur-2xl pointer-events-none transition-opacity duration-500 opacity-70 group-hover:opacity-100" />
 					<div
@@ -131,8 +168,30 @@ export function BudgetSummaryCards({
 					/>
 
 					<div className="relative z-10">
-						<p className="text-sm text-primary font-medium mb-1">Expected Income</p>
-						<p className="text-3xl font-bold text-primary">{formatCurrency(expectedIncome)}</p>
+						<div className="flex items-center justify-between mb-1">
+							<p className="text-sm text-primary font-medium">Expected Income</p>
+							{!isEditingIncome && (
+								<Pencil className="h-3.5 w-3.5 text-muted-foreground opacity-0 group-hover:opacity-100 transition-opacity" />
+							)}
+						</div>
+						{isEditingIncome ? (
+							<div className="flex items-center gap-2" onClick={(e) => e.stopPropagation()}>
+								<span className="text-2xl font-bold text-primary">$</span>
+								<input
+									type="number"
+									value={editIncomeValue}
+									onChange={(e) => setEditIncomeValue(e.target.value)}
+									onKeyDown={handleIncomeKeyDown}
+									onBlur={handleIncomeSave}
+									autoFocus
+									placeholder="0"
+									className="text-3xl font-bold text-primary bg-transparent border-b-2 border-primary outline-none w-full [appearance:textfield] [&::-webkit-outer-spin-button]:appearance-none [&::-webkit-inner-spin-button]:appearance-none"
+									disabled={isUpdating}
+								/>
+							</div>
+						) : (
+							<p className="text-3xl font-bold text-primary">{formatCurrency(expectedIncome)}</p>
+						)}
 						{renderVerificationBadge()}
 					</div>
 				</Card>

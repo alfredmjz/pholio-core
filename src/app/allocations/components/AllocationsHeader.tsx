@@ -1,7 +1,7 @@
 "use client";
 
 import { Button } from "@/components/ui/button";
-import { Settings, Download, FolderPlus } from "lucide-react";
+import { Settings, Download, FolderPlus, FolderInput } from "lucide-react";
 import { MonthSelector } from "@/components/month-selector";
 import {
 	DropdownMenu,
@@ -22,6 +22,7 @@ interface AllocationsHeaderProps {
 	accounts: AccountWithType[];
 	onTransactionSuccess: () => void;
 	onSaveTemplate: () => void;
+	onImportTemplate?: () => void;
 }
 
 export function AllocationsHeader({
@@ -32,6 +33,7 @@ export function AllocationsHeader({
 	accounts,
 	onTransactionSuccess,
 	onSaveTemplate,
+	onImportTemplate,
 }: AllocationsHeaderProps) {
 	return (
 		<PageHeader isSticky={true}>
@@ -51,6 +53,12 @@ export function AllocationsHeader({
 							</Button>
 						</DropdownMenuTrigger>
 						<DropdownMenuContent align="end">
+							{onImportTemplate && (
+								<DropdownMenuItem onClick={onImportTemplate}>
+									<FolderInput className="mr-2 h-4 w-4" />
+									Import Template
+								</DropdownMenuItem>
+							)}
 							<DropdownMenuItem onClick={onSaveTemplate}>
 								<FolderPlus className="mr-2 h-4 w-4" />
 								Save as Template

@@ -128,6 +128,7 @@ export function AllocationsDashboardView({
 				accounts={accounts}
 				onTransactionSuccess={onTransactionSuccess}
 				onSaveTemplate={() => setSaveTemplateDialogOpen(true)}
+				onImportTemplate={() => setTemplateDialogOpen(true)}
 			/>
 
 			<PageContent>

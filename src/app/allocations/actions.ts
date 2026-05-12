@@ -1019,20 +1019,28 @@ export async function createTemplateFromAllocation(
 	} = await supabase.auth.getUser();
 	if (!user) return null;
 
-	// Create template
+	// Create or update template
 	const { data: template, error: templateError } = await supabase
 		.from("allocation_templates")
-		.insert({
-			user_id: user.id,
-			name: templateName,
-			description,
-		})
+		.upsert(
+			{
+				user_id: user.id,
+				name: templateName,
+				description,
+			},
+			{ onConflict: 'user_id, name' }
+		)
 		.select()
 		.single();
 
 	if (templateError) {
 		Logger.error("Error creating template", { error: templateError });
 		return null;
+	}
+
+	// Remove old categories if updating an existing template
+	if (template) {
+		await supabase.from("template_categories").delete().eq("template_id", template.id);
 	}
 
 	// Copy categories from allocation to template

@@ -7,7 +7,7 @@ import { MOCK_RECURRING_EXPENSES } from "@/mock-data/recurring";
 import { MOCK_TRANSACTIONS } from "@/mock-data/transactions";
 import { Logger } from "@/lib/logger";
 import { calculateNextDueDate } from "@/lib/date-utils";
-import { getAllocation } from "../allocations/actions";
+import { getAllocation, autoCreateAllocationWithDefaults } from "../allocations/actions";
 
 export type RecurringExpenseStatus = "paid" | "partial" | "unpaid" | "overpaid" | "upcoming" | "overdue" | "due_today";
 
@@ -346,8 +346,14 @@ async function syncAllocationForCurrentMonth(delayMs: number = 0) {
 	}
 
 	const now = new Date();
+	const year = now.getFullYear();
+	const month = now.getMonth() + 1;
+	
 	try {
-		await getAllocation(now.getFullYear(), now.getMonth() + 1);
+		const existing = await getAllocation(year, month);
+		if (!existing) {
+			await autoCreateAllocationWithDefaults(year, month);
+		}
 	} catch (syncError) {
 		Logger.warn("Failed to auto-sync allocation", { error: syncError });
 	}

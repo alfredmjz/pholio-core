@@ -7,6 +7,7 @@ import { Monitor, Moon, Sun, Globe, ChevronsUpDown, Check, Wallet, Bell } from "
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card";
 import { Label } from "@/components/ui/label";
 import { Switch } from "@/components/ui/switch";
+import { Input } from "@/components/ui/input";
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
 import { ToggleGroup, ToggleGroupItem } from "@/components/ui/toggle-group";
 import { Popover, PopoverContent, PopoverTrigger } from "@/components/ui/popover";
@@ -14,6 +15,7 @@ import { Command, CommandEmpty, CommandGroup, CommandInput, CommandItem, Command
 import { Button } from "@/components/ui/button";
 import { cn } from "@/lib/utils";
 import { toast } from "sonner";
+import { getUserTemplates } from "@/app/allocations/actions";
 import {
 	getAllocationSettings,
 	updateAllocationSettings,
@@ -34,6 +36,9 @@ export default function PreferencesCard() {
 
 	// Allocation settings (persisted)
 	const [newMonthDefault, setNewMonthDefault] = useState<AllocationNewMonthDefault>("dialog");
+	const [defaultExpectedIncome, setDefaultExpectedIncome] = useState<string>("0");
+	const [defaultTemplateId, setDefaultTemplateId] = useState<string>("none");
+	const [templates, setTemplates] = useState<Array<{ id: string; name: string }>>([]);
 	const [isLoadingSettings, setIsLoadingSettings] = useState(true);
 
 	// Timezone settings (persisted)
@@ -69,9 +74,12 @@ export default function PreferencesCard() {
 		const detected = Intl.DateTimeFormat().resolvedOptions().timeZone;
 		setSystemTimezone(detected);
 
-		// Load allocation settings
-		getAllocationSettings().then((settings) => {
+		// Load allocation settings and templates
+		Promise.all([getAllocationSettings(), getUserTemplates()]).then(([settings, userTemplates]) => {
 			setNewMonthDefault(settings.newMonthDefault);
+			setDefaultExpectedIncome(settings.defaultExpectedIncome.toString());
+			setDefaultTemplateId(settings.defaultTemplateId || "none");
+			setTemplates(userTemplates);
 			setIsLoadingSettings(false);
 		});
 
@@ -120,6 +128,38 @@ export default function PreferencesCard() {
 			});
 		} else {
 			toast.success("Setting updated");
+		}
+	};
+
+	const handleDefaultExpectedIncomeChange = async (value: string) => {
+		const numValue = parseFloat(value) || 0;
+		const previousValue = defaultExpectedIncome;
+		setDefaultExpectedIncome(value);
+
+		const result = await updateAllocationSettings({ defaultExpectedIncome: numValue });
+		if (!result.success) {
+			setDefaultExpectedIncome(previousValue);
+			toast.error("Update Failed", {
+				description: result.error || "Failed to update default expected income.",
+			});
+		} else {
+			toast.success("Default expected income updated");
+		}
+	};
+
+	const handleDefaultTemplateIdChange = async (value: string) => {
+		const previousValue = defaultTemplateId;
+		setDefaultTemplateId(value);
+
+		const templateId = value === "none" ? null : value;
+		const result = await updateAllocationSettings({ defaultTemplateId: templateId });
+		if (!result.success) {
+			setDefaultTemplateId(previousValue);
+			toast.error("Update Failed", {
+				description: result.error || "Failed to update default template.",
+			});
+		} else {
+			toast.success("Default template updated");
 		}
 	};
 
@@ -210,28 +250,74 @@ export default function PreferencesCard() {
 						</div>
 					</div>
 
-					<div className="space-y-2.5">
-						<Label className="text-sm font-semibold" htmlFor="newMonthDefault">
-							New Month Default
-						</Label>
-						<Select
-							value={newMonthDefault}
-							onValueChange={(value) => handleNewMonthDefaultChange(value as AllocationNewMonthDefault)}
-							disabled={isLoadingSettings}
-						>
-							<SelectTrigger id="newMonthDefault" className="w-full max-w-[300px] bg-background">
-								<SelectValue placeholder="Select default behavior" />
-							</SelectTrigger>
-							<SelectContent>
-								<SelectItem value="dialog">Ask me each time</SelectItem>
-								<SelectItem value="import_previous">Import from previous month</SelectItem>
-								<SelectItem value="template">Use default template</SelectItem>
-								<SelectItem value="fresh">Start fresh (blank)</SelectItem>
-							</SelectContent>
-						</Select>
-						<p className="text-xs text-muted-foreground">
-							This setting controls what happens when you navigate to a month without a budget.
-						</p>
+					<div className="space-y-4">
+						<div className="space-y-2.5">
+							<Label className="text-sm font-semibold" htmlFor="newMonthDefault">
+								New Month Default (Page Navigation)
+							</Label>
+							<Select
+								value={newMonthDefault}
+								onValueChange={(value) => handleNewMonthDefaultChange(value as AllocationNewMonthDefault)}
+								disabled={isLoadingSettings}
+							>
+								<SelectTrigger id="newMonthDefault" className="w-full max-w-[300px] bg-background">
+									<SelectValue placeholder="Select default behavior" />
+								</SelectTrigger>
+								<SelectContent>
+									<SelectItem value="dialog">Ask me each time</SelectItem>
+									<SelectItem value="import_previous">Import from previous month</SelectItem>
+									<SelectItem value="template">Use default template</SelectItem>
+									<SelectItem value="fresh">Start fresh (blank)</SelectItem>
+								</SelectContent>
+							</Select>
+							<p className="text-xs text-muted-foreground">
+								Controls what happens when you navigate to a month without a budget.
+							</p>
+						</div>
+
+						<div className="space-y-2">
+							<Label htmlFor="defaultExpectedIncome">Default Expected Income</Label>
+							<div className="relative w-full max-w-[300px]">
+								<span className="absolute left-3 top-1/2 -translate-y-1/2 text-primary">$</span>
+								<Input
+									id="defaultExpectedIncome"
+									type="number"
+									inputMode="decimal"
+									value={defaultExpectedIncome}
+									onChange={(e) => setDefaultExpectedIncome(e.target.value)}
+									onBlur={() => handleDefaultExpectedIncomeChange(defaultExpectedIncome)}
+									disabled={isLoadingSettings}
+									className="pl-7"
+								/>
+							</div>
+							<p className="text-xs text-muted-foreground">
+								Used when auto-creating a budget (e.g., from recurring transactions).
+							</p>
+						</div>
+
+						<div className="space-y-2">
+							<Label htmlFor="defaultTemplate">Default Template</Label>
+							<Select
+								value={defaultTemplateId}
+								onValueChange={handleDefaultTemplateIdChange}
+								disabled={isLoadingSettings}
+							>
+								<SelectTrigger id="defaultTemplate" className="w-full max-w-[300px]">
+									<SelectValue placeholder="Select default template" />
+								</SelectTrigger>
+								<SelectContent>
+									<SelectItem value="none">None (use first created)</SelectItem>
+									{templates.map((t) => (
+										<SelectItem key={t.id} value={t.id}>
+											{t.name}
+										</SelectItem>
+									))}
+								</SelectContent>
+							</Select>
+							<p className="text-xs text-muted-foreground">
+								Applied automatically when a new month's budget is auto-created.
+							</p>
+						</div>
 					</div>
 				</div>
 

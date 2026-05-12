@@ -29,6 +29,7 @@ interface ImportTemplateDialogProps {
 	onImportPrevious: (expectedIncome: number) => void;
 	onUseTemplate: (templateId: string, expectedIncome: number) => void;
 	onStartFresh: (expectedIncome: number) => void;
+	defaultExpectedIncome?: number;
 }
 
 type ImportOption = "previous" | "template" | "fresh";
@@ -43,10 +44,11 @@ export function ImportTemplateDialog({
 	onImportPrevious,
 	onUseTemplate,
 	onStartFresh,
+	defaultExpectedIncome,
 }: ImportTemplateDialogProps) {
 	const [selectedOption, setSelectedOption] = useState<ImportOption | null>(null);
 	const [selectedTemplateId, setSelectedTemplateId] = useState<string | null>(null);
-	const [expectedIncome, setExpectedIncome] = useState("");
+	const [expectedIncome, setExpectedIncome] = useState(defaultExpectedIncome ? defaultExpectedIncome.toString() : "");
 	const [step, setStep] = useState<"choose" | "income">("choose");
 
 	const handleOptionSelect = (option: ImportOption) => {

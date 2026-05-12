@@ -13,7 +13,7 @@ import type {
 import { sampleAllocationSummary, sampleTransactions } from "@/mock-data/allocations";
 import { Logger } from "@/lib/logger";
 import { parseLocalDate, calculateNextDueDate, getTodayDateString, formatDateString } from "@/lib/date-utils";
-import { getTimezone } from "@/app/settings/actions";
+import { getAllocationSettings, getTimezone } from "@/app/settings/actions";
 
 export async function getAllocation(year: number, month: number): Promise<Allocation | null> {
 	// Handle sample data mode
@@ -101,6 +101,24 @@ export async function getOrCreateAllocation(
 	await syncRecurringExpenses(newAllocation.id, user.id, month, year, timezone);
 
 	return newAllocation as Allocation;
+}
+
+export async function autoCreateAllocationWithDefaults(
+	year: number,
+	month: number
+): Promise<Allocation | null> {
+	const settings = await getAllocationSettings();
+	const income = settings.defaultExpectedIncome || 0;
+	
+	const allocation = await getOrCreateAllocation(year, month, income);
+	if (!allocation) return null;
+	
+	// Apply default template if available
+	if (settings.defaultTemplateId) {
+		await applyTemplateToAllocation(settings.defaultTemplateId, allocation.id);
+	}
+	
+	return allocation;
 }
 
 async function syncRecurringExpenses(

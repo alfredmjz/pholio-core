@@ -40,7 +40,6 @@ interface AllocationClientProps {
 	incomeVerification: IncomeVerificationResult;
 	userSettings?: {
 		newMonthDefault: AllocationNewMonthDefault;
-		defaultExpectedIncome?: number;
 	};
 	templates: Array<{
 		id: string;
@@ -248,7 +247,6 @@ export function AllocationClient({
 					onImportPrevious={handleImportPrevious}
 					onUseTemplate={handleUseTemplate}
 					onStartFresh={handleStartFresh}
-					defaultExpectedIncome={userSettings?.defaultExpectedIncome}
 				/>
 			</AllocationProvider>
 		);
@@ -288,7 +286,7 @@ export function AllocationClient({
 				onImportPrevious={handleImportPrevious}
 				onUseTemplate={handleUseTemplate}
 				onStartFresh={handleStartFresh}
-				defaultExpectedIncome={userSettings?.defaultExpectedIncome}
+				templates={templates}
 				exportDialogOpen={exportDialogOpen}
 				setExportDialogOpen={setExportDialogOpen}
 				saveTemplateDialogOpen={saveTemplateDialogOpen}

@@ -3,7 +3,7 @@
 import { useState, useEffect } from "react";
 import { useRouter } from "next/navigation";
 import { Card } from "@/components/ui/card";
-import { CheckCircle2, Clock, CircleDashed, TrendingUp, TrendingDown, X, Pencil } from "lucide-react";
+import { CheckCircle2, Clock, CircleDashed, TrendingUp, TrendingDown, X, Pencil, Check } from "lucide-react";
 import { cn } from "@/lib/utils";
 import { toast } from "sonner";
 import { updateExpectedIncome } from "../actions";
@@ -182,12 +182,29 @@ export function BudgetSummaryCards({
 									value={editIncomeValue}
 									onChange={(e) => setEditIncomeValue(e.target.value)}
 									onKeyDown={handleIncomeKeyDown}
-									onBlur={handleIncomeSave}
 									autoFocus
 									placeholder="0"
 									className="text-3xl font-bold text-primary bg-transparent border-b-2 border-primary outline-none w-full [appearance:textfield] [&::-webkit-outer-spin-button]:appearance-none [&::-webkit-inner-spin-button]:appearance-none"
 									disabled={isUpdating}
 								/>
+								<div className="flex gap-1">
+									<button
+										onClick={handleIncomeSave}
+										disabled={isUpdating}
+										className="p-1 rounded-md bg-success/20 text-success hover:bg-success/30 transition-colors"
+										title="Save"
+									>
+										<Check className="h-4 w-4" />
+									</button>
+									<button
+										onClick={() => setIsEditingIncome(false)}
+										disabled={isUpdating}
+										className="p-1 rounded-md bg-muted text-muted-foreground hover:bg-muted/80 transition-colors"
+										title="Cancel"
+									>
+										<X className="h-4 w-4" />
+									</button>
+								</div>
 							</div>
 						) : (
 							<p className="text-3xl font-bold text-primary">{formatCurrency(expectedIncome)}</p>

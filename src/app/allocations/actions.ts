@@ -108,7 +108,7 @@ export async function autoCreateAllocationWithDefaults(
 	month: number
 ): Promise<Allocation | null> {
 	const settings = await getAllocationSettings();
-	const income = settings.defaultExpectedIncome || 0;
+	const income = 0;
 	
 	const allocation = await getOrCreateAllocation(year, month, income);
 	if (!allocation) return null;

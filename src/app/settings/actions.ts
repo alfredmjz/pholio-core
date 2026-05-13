@@ -299,14 +299,12 @@ export type AllocationNewMonthDefault = "dialog" | "import_previous" | "template
  */
 export async function getAllocationSettings(): Promise<{
 	newMonthDefault: AllocationNewMonthDefault;
-	defaultExpectedIncome: number;
 	defaultTemplateId: string | null;
 }> {
 	// Handle sample data mode
 	if (process.env.NEXT_PUBLIC_USE_SAMPLE_DATA === "true") {
 		return {
 			newMonthDefault: (sampleProfile.allocation_new_month_default as AllocationNewMonthDefault) || "dialog",
-			defaultExpectedIncome: sampleProfile.default_expected_income || 0,
 			defaultTemplateId: null,
 		};
 	}
@@ -319,12 +317,12 @@ export async function getAllocationSettings(): Promise<{
 		} = await supabase.auth.getUser();
 
 		if (!user) {
-			return { newMonthDefault: "dialog", defaultExpectedIncome: 0, defaultTemplateId: null };
+			return { newMonthDefault: "dialog", defaultTemplateId: null };
 		}
 
 		const { data: profile } = await supabase
 			.from("users")
-			.select("allocation_new_month_default, default_expected_income")
+			.select("allocation_new_month_default")
 			.eq("id", user.id)
 			.single();
 
@@ -356,12 +354,11 @@ export async function getAllocationSettings(): Promise<{
 
 		return {
 			newMonthDefault: (profile?.allocation_new_month_default as AllocationNewMonthDefault) || "dialog",
-			defaultExpectedIncome: Number(profile?.default_expected_income) || 0,
 			defaultTemplateId,
 		};
 	} catch (error) {
 		Logger.error("Error getting allocation settings", { error });
-		return { newMonthDefault: "dialog", defaultExpectedIncome: 0, defaultTemplateId: null };
+		return { newMonthDefault: "dialog", defaultTemplateId: null };
 	}
 }
 
@@ -370,7 +367,6 @@ export async function getAllocationSettings(): Promise<{
  */
 export async function updateAllocationSettings(settings: {
 	newMonthDefault?: AllocationNewMonthDefault;
-	defaultExpectedIncome?: number;
 	defaultTemplateId?: string | null;
 }): Promise<{ success: boolean; error?: string }> {
 	// Handle sample data mode
@@ -402,9 +398,6 @@ export async function updateAllocationSettings(settings: {
 			updates.allocation_new_month_default = settings.newMonthDefault;
 		}
 
-		if (settings.defaultExpectedIncome !== undefined) {
-			updates.default_expected_income = settings.defaultExpectedIncome;
-		}
 
 		const { error } = await supabase.from("users").update(updates).eq("id", user.id);
 

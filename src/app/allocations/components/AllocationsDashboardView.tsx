@@ -58,7 +58,13 @@ interface AllocationsDashboardViewProps {
 	onImportPrevious: (income: number) => Promise<void>;
 	onUseTemplate: (id: string, income: number) => Promise<void>;
 	onStartFresh: (income: number) => Promise<void>;
-	defaultExpectedIncome?: number;
+	templates: Array<{
+		id: string;
+		name: string;
+		description?: string;
+		categoryCount: number;
+		totalBudget: number;
+	}>;
 
 	exportDialogOpen: boolean;
 	setExportDialogOpen: (open: boolean) => void;
@@ -93,7 +99,7 @@ export function AllocationsDashboardView({
 	onImportPrevious,
 	onUseTemplate,
 	onStartFresh,
-	defaultExpectedIncome,
+	templates,
 	exportDialogOpen,
 	setExportDialogOpen,
 	saveTemplateDialogOpen,
@@ -192,11 +198,10 @@ export function AllocationsDashboardView({
 				monthName={monthName}
 				year={currentMonth.year}
 				previousMonth={previousMonthData || undefined}
-				templates={[]}
+				templates={templates}
 				onImportPrevious={onImportPrevious}
 				onUseTemplate={onUseTemplate}
 				onStartFresh={onStartFresh}
-				defaultExpectedIncome={defaultExpectedIncome}
 			/>
 
 			<ExportDialog

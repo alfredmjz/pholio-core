@@ -35,13 +35,17 @@ export default function PreferencesCard() {
 	const [pushNotifications, setPushNotifications] = useState(false);
 
 	// Allocation settings (persisted)
+	const [initialNewMonthDefault, setInitialNewMonthDefault] = useState<AllocationNewMonthDefault>("dialog");
+	const [initialDefaultTemplateId, setInitialDefaultTemplateId] = useState<string>("none");
+	
 	const [newMonthDefault, setNewMonthDefault] = useState<AllocationNewMonthDefault>("dialog");
-	const [defaultExpectedIncome, setDefaultExpectedIncome] = useState<string>("0");
 	const [defaultTemplateId, setDefaultTemplateId] = useState<string>("none");
 	const [templates, setTemplates] = useState<Array<{ id: string; name: string }>>([]);
 	const [isLoadingSettings, setIsLoadingSettings] = useState(true);
+	const [isSaving, setIsSaving] = useState(false);
 
 	// Timezone settings (persisted)
+	const [initialTimezone, setInitialTimezone] = useState<string>("");
 	const [timezone, setTimezone] = useState<string>("");
 	const [timezoneOpen, setTimezoneOpen] = useState(false);
 	const [systemTimezone, setSystemTimezone] = useState<string>("");
@@ -76,16 +80,22 @@ export default function PreferencesCard() {
 
 		// Load allocation settings and templates
 		Promise.all([getAllocationSettings(), getUserTemplates()]).then(([settings, userTemplates]) => {
+			setInitialNewMonthDefault(settings.newMonthDefault);
 			setNewMonthDefault(settings.newMonthDefault);
-			setDefaultExpectedIncome(settings.defaultExpectedIncome.toString());
-			setDefaultTemplateId(settings.defaultTemplateId || "none");
+			
+			const defaultTpl = settings.defaultTemplateId || "none";
+			setInitialDefaultTemplateId(defaultTpl);
+			setDefaultTemplateId(defaultTpl);
+			
 			setTemplates(userTemplates);
 			setIsLoadingSettings(false);
 		});
 
 		// Load timezone setting
 		getTimezone().then((saved) => {
-			setTimezone(saved || detected);
+			const tz = saved || detected;
+			setInitialTimezone(tz);
+			setTimezone(tz);
 		});
 	}, []);
 
@@ -116,69 +126,53 @@ export default function PreferencesCard() {
 		return () => clearInterval(interval);
 	}, [timezone]);
 
-	const handleNewMonthDefaultChange = async (value: AllocationNewMonthDefault) => {
-		const previousValue = newMonthDefault;
+	const handleNewMonthDefaultChange = (value: AllocationNewMonthDefault) => {
 		setNewMonthDefault(value);
-
-		const result = await updateAllocationSettings({ newMonthDefault: value });
-		if (!result.success) {
-			setNewMonthDefault(previousValue);
-			toast.error("Update Failed", {
-				description: result.error || "Failed to update your preference. Please try again.",
-			});
-		} else {
-			toast.success("Setting updated");
-		}
 	};
 
-	const handleDefaultExpectedIncomeChange = async (value: string) => {
-		const numValue = parseFloat(value) || 0;
-		const previousValue = defaultExpectedIncome;
-		setDefaultExpectedIncome(value);
-
-		const result = await updateAllocationSettings({ defaultExpectedIncome: numValue });
-		if (!result.success) {
-			setDefaultExpectedIncome(previousValue);
-			toast.error("Update Failed", {
-				description: result.error || "Failed to update default expected income.",
-			});
-		} else {
-			toast.success("Default expected income updated");
-		}
-	};
-
-	const handleDefaultTemplateIdChange = async (value: string) => {
-		const previousValue = defaultTemplateId;
+	const handleDefaultTemplateIdChange = (value: string) => {
 		setDefaultTemplateId(value);
-
-		const templateId = value === "none" ? null : value;
-		const result = await updateAllocationSettings({ defaultTemplateId: templateId });
-		if (!result.success) {
-			setDefaultTemplateId(previousValue);
-			toast.error("Update Failed", {
-				description: result.error || "Failed to update default template.",
-			});
-		} else {
-			toast.success("Default template updated");
-		}
 	};
 
-	const handleTimezoneChange = async (tz: string | null) => {
-		const previousValue = timezone;
-		const newValue = tz || systemTimezone;
-		setTimezone(newValue);
+	const handleTimezoneChange = (tz: string | null) => {
+		setTimezone(tz || systemTimezone);
 		setTimezoneOpen(false);
+	};
 
-		const result = await updateTimezone(tz);
-		if (!result.success) {
-			setTimezone(previousValue);
-			toast.error("Update Failed", {
-				description: result.error || "Failed to update timezone. Please try again.",
+	const handleCancel = () => {
+		setNewMonthDefault(initialNewMonthDefault);
+		setDefaultTemplateId(initialDefaultTemplateId);
+		setTimezone(initialTimezone);
+	};
+
+	const handleSave = async () => {
+		setIsSaving(true);
+		try {
+			const allocPromise = updateAllocationSettings({
+				newMonthDefault,
+				defaultTemplateId: defaultTemplateId === "none" ? null : defaultTemplateId,
 			});
-		} else {
-			toast.success("Timezone updated");
+			const tzPromise = updateTimezone(timezone);
+			
+			const [allocResult, tzResult] = await Promise.all([allocPromise, tzPromise]);
+			
+			if (!allocResult.success || !tzResult.success) {
+				toast.error("Save Failed", { description: "Some settings could not be saved." });
+			} else {
+				toast.success("Settings saved successfully");
+				setInitialNewMonthDefault(newMonthDefault);
+				setInitialDefaultTemplateId(defaultTemplateId);
+				setInitialTimezone(timezone);
+			}
+		} finally {
+			setIsSaving(false);
 		}
 	};
+
+	const hasChanges =
+		newMonthDefault !== initialNewMonthDefault ||
+		defaultTemplateId !== initialDefaultTemplateId ||
+		timezone !== initialTimezone;
 
 	if (!mounted) {
 		return null; // or a skeleton loader
@@ -272,26 +266,6 @@ export default function PreferencesCard() {
 							</Select>
 							<p className="text-xs text-muted-foreground">
 								Controls what happens when you navigate to a month without a budget.
-							</p>
-						</div>
-
-						<div className="space-y-2">
-							<Label htmlFor="defaultExpectedIncome">Default Expected Income</Label>
-							<div className="relative w-full max-w-[300px]">
-								<span className="absolute left-3 top-1/2 -translate-y-1/2 text-primary">$</span>
-								<Input
-									id="defaultExpectedIncome"
-									type="number"
-									inputMode="decimal"
-									value={defaultExpectedIncome}
-									onChange={(e) => setDefaultExpectedIncome(e.target.value)}
-									onBlur={() => handleDefaultExpectedIncomeChange(defaultExpectedIncome)}
-									disabled={isLoadingSettings}
-									className="pl-7"
-								/>
-							</div>
-							<p className="text-xs text-muted-foreground">
-								Used when auto-creating a budget (e.g., from recurring transactions).
 							</p>
 						</div>
 
@@ -462,6 +436,25 @@ export default function PreferencesCard() {
 							</div>
 						</div>
 					</div>
+				</div>
+
+				<hr className="border-border" />
+
+				{/* Save/Cancel Action */}
+				<div className="flex justify-end gap-3 pt-2">
+					<Button 
+						variant="outline" 
+						onClick={handleCancel} 
+						disabled={!hasChanges || isSaving || isLoadingSettings}
+					>
+						Cancel
+					</Button>
+					<Button 
+						onClick={handleSave} 
+						disabled={!hasChanges || isSaving || isLoadingSettings}
+					>
+						{isSaving ? "Saving..." : "Save Changes"}
+					</Button>
 				</div>
 			</CardContent>
 		</Card>

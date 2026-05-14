@@ -1,5 +1,7 @@
 export type CategoryType = "regular" | "savings_goal" | "debt_payment";
 
+export const VIRTUAL_UNCATEGORIZED_ID = "00000000-0000-0000-0000-000000000000";
+
 export interface Allocation {
 	id: string;
 	user_id: string;

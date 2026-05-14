@@ -2,6 +2,7 @@
 
 import { createClient } from "@/lib/supabase/server";
 import { revalidatePath } from "next/cache";
+import { VIRTUAL_UNCATEGORIZED_ID } from "./types";
 import type {
 	Allocation,
 	AllocationCategory,
@@ -14,6 +15,7 @@ import { sampleAllocationSummary, sampleTransactions } from "@/mock-data/allocat
 import { Logger } from "@/lib/logger";
 import { parseLocalDate, calculateNextDueDate, getTodayDateString, formatDateString } from "@/lib/date-utils";
 import { getAllocationSettings, getTimezone } from "@/app/settings/actions";
+
 
 export async function getAllocation(year: number, month: number): Promise<Allocation | null> {
 	// Handle sample data mode
@@ -566,7 +568,46 @@ export async function getAllocationSummary(allocationId: string): Promise<Alloca
 		return null;
 	}
 
-	return data as AllocationSummary;
+	const summary = data as AllocationSummary;
+
+	// Ensure "Uncategorized" is always present in the categories list
+	if (summary.categories) {
+		const hasUncategorized = summary.categories.some(
+			(c) => c.id === VIRTUAL_UNCATEGORIZED_ID || c.name.toLowerCase() === "uncategorized"
+		);
+
+		if (!hasUncategorized) {
+			summary.categories.push({
+				id: VIRTUAL_UNCATEGORIZED_ID,
+				allocation_id: allocationId,
+				user_id: summary.allocation.user_id,
+				name: "Uncategorized",
+				budget_cap: 0,
+				is_recurring: false,
+				display_order: 999, // Always last
+				color: "gray",
+				icon: "help-circle",
+				notes: "Transactions without a category",
+				created_at: new Date().toISOString(),
+				updated_at: new Date().toISOString(),
+				actual_spend: 0,
+				remaining: 0,
+				utilization_percentage: 0,
+				transaction_count: 0,
+			});
+		} else {
+			// Standardize ID if it's already there (e.g. from RPC)
+			const uncategorized = summary.categories.find((c) => c.name.toLowerCase() === "uncategorized");
+			if (uncategorized && uncategorized.id !== VIRTUAL_UNCATEGORIZED_ID) {
+				uncategorized.id = VIRTUAL_UNCATEGORIZED_ID;
+			}
+		}
+
+		// Sort by display order to ensure Uncategorized is at the bottom (as per RPC logic)
+		summary.categories.sort((a, b) => (a.display_order || 0) - (b.display_order || 0));
+	}
+
+	return summary;
 }
 
 export async function getPreviousMonthSummary(

@@ -84,7 +84,7 @@ export function BillCard({ bill, onDelete, onUpdate, timezone }: BillCardProps) 
 	const isAutomated = (bill.meta_data as any)?.is_automated === true;
 	const isFullyPaid = (bill.paid_count || 0) >= (bill.occurrences_count || 1);
 	const canPay = !isAutomated && !isFullyPaid;
-	const total = Math.max(bill.occurrences_count || 1, 1);
+	const total = bill.occurrences_count || 0;
 	const current = bill.paid_count || 0;
 
 	return (
@@ -131,29 +131,49 @@ export function BillCard({ bill, onDelete, onUpdate, timezone }: BillCardProps) 
 					<div className="w-full h-px bg-border/40" />
 
 					<div className="flex items-center justify-between w-full h-9">
-						<div className="flex flex-col justify-center gap-1.5">
-							<SegmentedProgress value={current} total={total} />
-							<span className="text-[10px] font-medium text-muted-foreground ml-0.5">
-								{current} of {total} paid
-							</span>
-						</div>
-
-						<div>
-							{canPay ? (
-								<Button
-									size="sm"
-									onClick={handleMarkAsPaid}
-									className="h-8 px-4 text-xs font-semibold shadow-sm rounded-full"
-								>
-									Pay
-								</Button>
-							) : isFullyPaid ? (
-								<div className="flex items-center gap-1.5 text-success text-xs font-semibold px-3 py-1 bg-success/10 rounded-full">
-									<CheckCircle2 className="w-3.5 h-3.5" />
-									<span>Paid</span>
+						{total > 0 ? (
+							<>
+								<div className="flex flex-col justify-center gap-1.5 flex-1 min-w-0 mr-4">
+									<SegmentedProgress value={current} total={total} />
+									<span className="text-[10px] font-medium text-muted-foreground ml-0.5">
+										{current} of {total} paid
+									</span>
 								</div>
-							) : null}
-						</div>
+
+								<div>
+									{canPay ? (
+										<Button
+											size="sm"
+											onClick={handleMarkAsPaid}
+											className="h-8 px-4 text-xs font-semibold shadow-sm rounded-full"
+										>
+											Pay
+										</Button>
+									) : isFullyPaid ? (
+										<div className="flex items-center gap-1.5 text-success text-xs font-semibold px-3 py-1 bg-success/10 rounded-full">
+											<CheckCircle2 className="w-3.5 h-3.5" />
+											<span>Paid</span>
+										</div>
+									) : null}
+								</div>
+							</>
+						) : (
+							<div className="flex items-center justify-between w-full">
+								<span className="text-[10px] font-medium text-muted-foreground italic">
+									No payments due in this month's budget
+								</span>
+								{!isAutomated && (
+									<Button
+										size="sm"
+										variant="ghost"
+										onClick={() => setIsPayFutureOpen(true)}
+										className="h-8 px-3 text-[10px] uppercase font-bold tracking-wider text-primary hover:bg-primary/5 rounded-full"
+									>
+										Pay Early
+									</Button>
+								)}
+							</div>
+						)}
 					</div>
 				</CardFooter>
 			</Card>

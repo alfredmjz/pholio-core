@@ -35,7 +35,8 @@ export function EditRecurringDialog({
 	const [formData, setFormData] = useState({
 		name: "",
 		amount: "",
-		billing_period: "monthly",
+		frequency_value: "1",
+		frequency_unit: "months",
 		next_due_date: new Date(),
 		category: "subscription",
 		is_automated: true,
@@ -45,11 +46,24 @@ export function EditRecurringDialog({
 
 	useEffect(() => {
 		if (expense) {
+			const [val, unit] = expense.billing_period.includes(":")
+				? expense.billing_period.split(":")
+				: [
+						expense.billing_period === "biweekly" ? "2" : "1",
+						expense.billing_period === "biweekly"
+							? "weeks"
+							: expense.billing_period === "yearly"
+								? "years"
+								: expense.billing_period === "weekly"
+									? "weeks"
+									: "months",
+					];
+
 			setFormData({
 				name: expense.name,
 				amount: String(expense.amount),
-				billing_period: expense.billing_period,
-
+				frequency_value: val,
+				frequency_unit: unit,
 				next_due_date: forceActiveOnSave
 					? new Date()
 					: new Date(
@@ -102,7 +116,7 @@ export function EditRecurringDialog({
 			const payload: Partial<RecurringExpense> = {
 				name: formData.name,
 				amount: amount,
-				billing_period: formData.billing_period,
+				billing_period: `${formData.frequency_value}:${formData.frequency_unit}`,
 				next_due_date: formatDateString(formData.next_due_date),
 				category: formData.category,
 				meta_data: {
@@ -180,20 +194,33 @@ export function EditRecurringDialog({
 					</div>
 					<div className="space-y-2">
 						<Label>Frequency</Label>
-						<Select
-							value={formData.billing_period}
-							onValueChange={(v) => setFormData({ ...formData, billing_period: v })}
-						>
-							<SelectTrigger className="h-10">
-								<SelectValue />
-							</SelectTrigger>
-							<SelectContent>
-								<SelectItem value="monthly">Monthly</SelectItem>
-								<SelectItem value="yearly">Annually</SelectItem>
-								<SelectItem value="weekly">Weekly</SelectItem>
-								<SelectItem value="biweekly">Bi-weekly</SelectItem>
-							</SelectContent>
-						</Select>
+						<div className="flex gap-2">
+							<Input
+								type="number"
+								min="1"
+								step="1"
+								value={formData.frequency_value}
+								onChange={(e) => {
+									const val = e.target.value.replace(/[^0-9]/g, "");
+									setFormData({ ...formData, frequency_value: val || "1" });
+								}}
+								className="h-10 w-20"
+							/>
+							<Select
+								value={formData.frequency_unit}
+								onValueChange={(v) => setFormData({ ...formData, frequency_unit: v })}
+							>
+								<SelectTrigger className="h-10 flex-1">
+									<SelectValue />
+								</SelectTrigger>
+								<SelectContent>
+									<SelectItem value="days">Days</SelectItem>
+									<SelectItem value="weeks">Weeks</SelectItem>
+									<SelectItem value="months">Months</SelectItem>
+									<SelectItem value="years">Years</SelectItem>
+								</SelectContent>
+							</Select>
+						</div>
 					</div>
 				</div>
 				<div className="grid grid-cols-2 gap-4">

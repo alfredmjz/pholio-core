@@ -219,10 +219,10 @@ async function syncRecurringExpenses(
 		.select("*")
 		.eq("allocation_id", allocationId);
 
-	const categoryMap = new Map((allCategories || []).map((c) => [c.name, c]));
+	const categoryMap = new Map((allCategories || []).map((c) => [c.name.toLowerCase(), c]));
 	const categoryIdMap: Record<string, string> = {};
 
-	const billsCategory = categoryMap.get("Bills");
+	const billsCategory = categoryMap.get("bills");
 
 	if (totalBills > 0) {
 		if (!billsCategory) {
@@ -274,7 +274,7 @@ async function syncRecurringExpenses(
 		}
 	}
 
-	const subsCategory = categoryMap.get("Subscriptions");
+	const subsCategory = categoryMap.get("subscriptions");
 	if (totalSubscriptions > 0) {
 		if (!subsCategory) {
 			const { data: newCat } = await supabase

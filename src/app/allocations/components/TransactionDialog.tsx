@@ -17,6 +17,7 @@ import {
 	deleteUnifiedTransaction,
 	createUnifiedTransaction,
 } from "@/lib/actions/unified-transaction-actions";
+import { VIRTUAL_UNCATEGORIZED_ID } from "../types";
 import type { Transaction, AllocationCategory } from "../types";
 import type { AccountWithType } from "@/app/balancesheet/types";
 import { FormSection } from "@/components/FormSection";
@@ -58,7 +59,7 @@ export function TransactionDialog({
 	const [name, setName] = useState("");
 	const [amount, setAmount] = useState("");
 	const [date, setDate] = useState(defaultDate || getTodayDateString());
-	const [categoryId, setCategoryId] = useState<string>("uncategorized");
+	const [categoryId, setCategoryId] = useState<string>(VIRTUAL_UNCATEGORIZED_ID);
 	const [accountId, setAccountId] = useState<string>("none");
 	const [type, setType] = useState<"income" | "expense">("expense");
 	const [notes, setNotes] = useState("");
@@ -70,7 +71,7 @@ export function TransactionDialog({
 				setName(transaction.name);
 				setAmount(Math.abs(transaction.amount).toString());
 				setDate(transaction.transaction_date.split("T")[0]);
-				setCategoryId(transaction.category_id || "uncategorized");
+				setCategoryId(transaction.category_id || VIRTUAL_UNCATEGORIZED_ID);
 				// Prefer direct account_id if available (from actions), else try linked transaction logic if data structure allows
 				setAccountId(transaction.account_id || transaction.linked_account_transaction?.account_id || "none");
 				setType(transaction.amount >= 0 ? "income" : "expense");
@@ -79,7 +80,7 @@ export function TransactionDialog({
 				setName("");
 				setAmount("");
 				setDate(defaultDate || getTodayDateString());
-				setCategoryId("uncategorized");
+				setCategoryId(VIRTUAL_UNCATEGORIZED_ID);
 				setAccountId("none");
 				setType("expense");
 				setNotes("");
@@ -98,7 +99,7 @@ export function TransactionDialog({
 
 		try {
 			const numAmount = parseFloat(amount);
-			const finalCategoryId = categoryId === "uncategorized" ? null : categoryId;
+			const finalCategoryId = categoryId === VIRTUAL_UNCATEGORIZED_ID ? null : categoryId;
 			const finalAccountId = accountId === "none" ? null : accountId;
 
 			if (transaction) {
@@ -232,7 +233,6 @@ export function TransactionDialog({
 									<SelectValue placeholder="Select a category" />
 								</SelectTrigger>
 								<SelectContent>
-									<SelectItem value="uncategorized">Uncategorized</SelectItem>
 									{categories.map((cat) => (
 										<SelectItem key={cat.id} value={cat.id}>
 											{cat.name}
@@ -253,11 +253,18 @@ export function TransactionDialog({
 							</SelectTrigger>
 							<SelectContent>
 								<SelectItem value="none">No Account</SelectItem>
-								{accounts.map((acc) => (
-									<SelectItem key={acc.id} value={acc.id}>
-										{acc.name}
-									</SelectItem>
-								))}
+								{[...accounts]
+									.sort((a, b) => {
+										const aInst = a.institution || "";
+										const bInst = b.institution || "";
+										if (aInst !== bInst) return aInst.localeCompare(bInst);
+										return a.name.localeCompare(b.name);
+									})
+									.map((acc) => (
+										<SelectItem key={acc.id} value={acc.id}>
+											{acc.institution ? `${acc.institution} - ${acc.name}` : acc.name}
+										</SelectItem>
+									))}
 							</SelectContent>
 						</Select>
 					</div>

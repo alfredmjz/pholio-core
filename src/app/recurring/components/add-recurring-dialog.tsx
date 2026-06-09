@@ -157,6 +157,7 @@ export function AddRecurringDialog({ open, onOpenChange, onSuccess }: AddRecurri
 				setStep(1);
 				setSelectedDomain(null);
 				setFormData({
+					name: "",
 					amount: "",
 					frequency_value: "1",
 					frequency_unit: "months",

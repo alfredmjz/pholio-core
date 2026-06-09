@@ -26,6 +26,7 @@ import { ProminentAmountInput } from "@/components/ProminentAmountInput";
 import { CardSelector } from "@/components/CardSelector";
 import { cn } from "@/lib/utils";
 import { getTodayDateString } from "@/lib/date-utils";
+import { VIRTUAL_UNCATEGORIZED_ID } from "@/app/allocations/types";
 
 interface UnifiedTransactionDialogProps {
 	open: boolean;
@@ -72,7 +73,7 @@ export function UnifiedTransactionDialog({
 	const [description, setDescription] = useState("");
 	const [amount, setAmount] = useState("");
 	const [date, setDate] = useState(defaultDate || getTodayDateString());
-	const [categoryId, setCategoryId] = useState<string>(defaultCategoryId || "uncategorized");
+	const [categoryId, setCategoryId] = useState<string>(defaultCategoryId || VIRTUAL_UNCATEGORIZED_ID);
 	const [accountId, setAccountId] = useState<string>(defaultAccountId || "none");
 	const [transactionType, setTransactionType] = useState<string>("deposit");
 	const [incomeSource, setIncomeSource] = useState<string>("salary");
@@ -98,7 +99,7 @@ export function UnifiedTransactionDialog({
 			}
 			setDate(initialDate);
 
-			setCategoryId(defaultCategoryId || "uncategorized");
+			setCategoryId(defaultCategoryId || VIRTUAL_UNCATEGORIZED_ID);
 			setAccountId(defaultAccountId || "none");
 			setTransactionType(defaultType === "income" ? "deposit" : "withdrawal");
 			setNotes("");
@@ -117,7 +118,7 @@ export function UnifiedTransactionDialog({
 	}, [type]);
 
 	useEffect(() => {
-		if (!categoryId || categoryId === "uncategorized") {
+		if (!categoryId || categoryId === VIRTUAL_UNCATEGORIZED_ID) {
 			setSuggestedAccountInfo(null);
 			return;
 		}
@@ -191,7 +192,7 @@ export function UnifiedTransactionDialog({
 				amount: numAmount,
 				date,
 				type,
-				categoryId: categoryId === "uncategorized" ? null : categoryId,
+				categoryId: categoryId === VIRTUAL_UNCATEGORIZED_ID ? null : categoryId,
 				accountId: accountId === "none" ? null : accountId,
 				transactionType: transactionType as any,
 				notes: notes || undefined,
@@ -382,7 +383,7 @@ export function UnifiedTransactionDialog({
 							)}
 						</Label>
 						<Select
-							value={categoryDisabled ? "uncategorized" : categoryId}
+							value={categoryDisabled ? VIRTUAL_UNCATEGORIZED_ID : categoryId}
 							onValueChange={setCategoryId}
 							disabled={categoryDisabled}
 						>
@@ -390,7 +391,6 @@ export function UnifiedTransactionDialog({
 								<SelectValue placeholder="Select a category" />
 							</SelectTrigger>
 							<SelectContent>
-								<SelectItem value="uncategorized">Uncategorized</SelectItem>
 								{categories.map((cat) => (
 									<SelectItem key={cat.id} value={cat.id}>
 										{cat.category_type === "savings_goal" && "💰 "}
@@ -419,18 +419,25 @@ export function UnifiedTransactionDialog({
 							</SelectTrigger>
 							<SelectContent>
 								{!accountRequired && <SelectItem value="none">No Account</SelectItem>}
-								{accounts.map((acc) => (
-									<SelectItem key={acc.id} value={acc.id}>
-										{acc.name} {acc.institution && `- ${acc.institution}`}
-									</SelectItem>
-								))}
+								{[...accounts]
+									.sort((a, b) => {
+										const aInst = a.institution || "";
+										const bInst = b.institution || "";
+										if (aInst !== bInst) return aInst.localeCompare(bInst);
+										return a.name.localeCompare(b.name);
+									})
+									.map((acc) => (
+										<SelectItem key={acc.id} value={acc.id}>
+											{acc.institution ? `${acc.institution} - ${acc.name}` : acc.name}
+										</SelectItem>
+									))}
 							</SelectContent>
 						</Select>
 						{suggestedAccountInfo && <p className="text-xs text-primary">{suggestedAccountInfo}</p>}
 						{errors.accountId && <p className="text-sm text-error">{errors.accountId}</p>}
 					</div>
 
-					{accountId === "none" && categoryId !== "uncategorized" && (
+					{accountId === "none" && categoryId !== VIRTUAL_UNCATEGORIZED_ID && (
 						<p className="text-sm text-primary flex items-start gap-2 p-3 bg-muted rounded-lg">
 							<Info className="h-4 w-4 shrink-0 mt-0.5" />
 							<span>Budget-only transaction: Your budget will update, but no account balance will change.</span>

@@ -3,6 +3,7 @@
 import { useState } from "react";
 import { addRecurringExpense, RecurringExpense } from "../actions";
 import { ControlBasedDialog } from "@/components/dialogWrapper";
+import { CardSelector } from "@/components/CardSelector";
 import { DialogFooter } from "@/components/ui/dialog";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
@@ -57,7 +58,8 @@ export function AddRecurringDialog({ open, onOpenChange, onSuccess }: AddRecurri
 	const [formData, setFormData] = useState({
 		name: "",
 		amount: "",
-		billing_period: "monthly",
+		frequency_value: "1",
+		frequency_unit: "months",
 		next_due_date: new Date(),
 		category: "subscription",
 		service_provider: "",
@@ -135,7 +137,7 @@ export function AddRecurringDialog({ open, onOpenChange, onSuccess }: AddRecurri
 			const result = await addRecurringExpense({
 				name: formData.name,
 				amount: amount,
-				billing_period: formData.billing_period,
+				billing_period: `${formData.frequency_value}:${formData.frequency_unit}`,
 				next_due_date: formatDateString(formData.next_due_date),
 				category: formData.category,
 				service_provider: serviceProvider,
@@ -157,7 +159,8 @@ export function AddRecurringDialog({ open, onOpenChange, onSuccess }: AddRecurri
 				setFormData({
 					name: "",
 					amount: "",
-					billing_period: "monthly",
+					frequency_value: "1",
+					frequency_unit: "months",
 					next_due_date: new Date(),
 					category: "subscription",
 					service_provider: "",
@@ -264,20 +267,33 @@ export function AddRecurringDialog({ open, onOpenChange, onSuccess }: AddRecurri
 						</div>
 						<div className="space-y-2">
 							<Label>Frequency</Label>
-							<Select
-								value={formData.billing_period}
-								onValueChange={(v) => setFormData({ ...formData, billing_period: v })}
-							>
-								<SelectTrigger className="h-10">
-									<SelectValue />
-								</SelectTrigger>
-								<SelectContent>
-									<SelectItem value="monthly">Monthly</SelectItem>
-									<SelectItem value="yearly">Annually</SelectItem>
-									<SelectItem value="weekly">Weekly</SelectItem>
-									<SelectItem value="biweekly">Bi-weekly</SelectItem>
-								</SelectContent>
-							</Select>
+							<div className="flex gap-2">
+								<Input
+									type="number"
+									min="1"
+									step="1"
+									value={formData.frequency_value}
+									onChange={(e) => {
+										const val = e.target.value.replace(/[^0-9]/g, "");
+										setFormData({ ...formData, frequency_value: val || "1" });
+									}}
+									className="h-10 w-20"
+								/>
+								<Select
+									value={formData.frequency_unit}
+									onValueChange={(v) => setFormData({ ...formData, frequency_unit: v })}
+								>
+									<SelectTrigger className="h-10 flex-1">
+										<SelectValue />
+									</SelectTrigger>
+									<SelectContent>
+										<SelectItem value="days">Days</SelectItem>
+										<SelectItem value="weeks">Weeks</SelectItem>
+										<SelectItem value="months">Months</SelectItem>
+										<SelectItem value="years">Years</SelectItem>
+									</SelectContent>
+								</Select>
+							</div>
 						</div>
 					</div>
 					<div className="space-y-2">

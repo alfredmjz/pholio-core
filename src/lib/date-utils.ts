@@ -160,27 +160,46 @@ export function formatRelativeTime(timestamp: string | Date): string {
  * Calculate the next due date based on frequency.
  *
  * @param currentDue - Date object representing current due date
- * @param frequency - 'monthly', 'yearly', 'weekly', 'biweekly'
+ * @param frequency - 'monthly', 'yearly', 'weekly', 'biweekly' or 'n:unit' (e.g. '3:months')
  * @returns Next due Date object
  */
 export function calculateNextDueDate(currentDue: Date, frequency: string): Date {
 	const result = new Date(currentDue);
 
-	switch (frequency) {
-		case "monthly":
-			result.setMonth(result.getMonth() + 1);
+	// Handle legacy formats
+	let normalizedFreq = frequency;
+	if (frequency === "monthly") normalizedFreq = "1:months";
+	else if (frequency === "yearly") normalizedFreq = "1:years";
+	else if (frequency === "weekly") normalizedFreq = "1:weeks";
+	else if (frequency === "biweekly") normalizedFreq = "2:weeks";
+
+	const [valueStr, unit] = normalizedFreq.includes(":") ? normalizedFreq.split(":") : ["1", normalizedFreq];
+	const value = parseInt(valueStr) || 1;
+
+	switch (unit) {
+		case "days":
+		case "daily":
+			result.setDate(result.getDate() + value);
 			break;
-		case "yearly":
-			result.setFullYear(result.getFullYear() + 1);
-			break;
+		case "weeks":
 		case "weekly":
-			result.setDate(result.getDate() + 7);
+			result.setDate(result.getDate() + value * 7);
 			break;
-		case "biweekly":
-			result.setDate(result.getDate() + 14);
+		case "months":
+		case "monthly":
+			result.setMonth(result.getMonth() + value);
+			break;
+		case "years":
+		case "yearly":
+			result.setFullYear(result.getFullYear() + value);
 			break;
 		default:
-			return new Date(currentDue);
+			// Fallback for any other legacy strings not handled above
+			if (frequency === "monthly") result.setMonth(result.getMonth() + 1);
+			else if (frequency === "yearly") result.setFullYear(result.getFullYear() + 1);
+			else if (frequency === "weekly") result.setDate(result.getDate() + 7);
+			else if (frequency === "biweekly") result.setDate(result.getDate() + 14);
+			return result;
 	}
 
 	return result;
@@ -233,4 +252,26 @@ export function isSameMonth(a: Date, b: Date): boolean {
  */
 export function differenceInMonths(later: Date, earlier: Date): number {
 	return (later.getFullYear() - earlier.getFullYear()) * 12 + (later.getMonth() - earlier.getMonth());
+}
+
+/**
+ * Formats a frequency string (e.g. '1:months') into a human-readable string.
+ */
+export function formatFrequency(frequency: string): string {
+	if (!frequency.includes(":")) {
+		return frequency.charAt(0).toUpperCase() + frequency.slice(1);
+	}
+
+	const [value, unit] = frequency.split(":");
+	const num = parseInt(value);
+
+	if (num === 1) {
+		if (unit === "days" || unit === "daily") return "Daily";
+		if (unit === "weeks" || unit === "weekly") return "Weekly";
+		if (unit === "months" || unit === "monthly") return "Monthly";
+		if (unit === "years" || unit === "yearly") return "Yearly";
+		return `Every ${unit.replace(/s$/, "")}`;
+	}
+
+	return `Every ${num} ${unit}`;
 }

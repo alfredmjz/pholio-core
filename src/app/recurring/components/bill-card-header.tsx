@@ -10,6 +10,7 @@ import {
 import { cn } from "@/lib/utils";
 import { MoreVertical } from "lucide-react";
 import { RecurringExpense } from "../actions";
+import { formatFrequency } from "@/lib/date-utils";
 
 interface BillCardHeaderProps {
 	bill: RecurringExpense;
@@ -34,7 +35,9 @@ export function BillCardHeader({ bill, isAutomated, isDeleting, onPayFuture, onE
 				</div>
 				<div className="flex flex-col">
 					<span className="font-semibold leading-none tracking-tight">{bill.name}</span>
-					<span className="text-xs text-muted-foreground capitalize mt-1">{bill.billing_period}</span>
+					<span className="text-xs text-muted-foreground capitalize mt-1">
+						{formatFrequency(bill.billing_period)}
+					</span>
 				</div>
 			</div>
 

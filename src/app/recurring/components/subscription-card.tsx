@@ -4,7 +4,7 @@ import { RecurringExpense, toggleSubscription, deleteRecurringExpense } from "..
 import { Switch } from "@/components/ui/switch";
 import { MoreVertical } from "lucide-react";
 import { cn } from "@/lib/utils";
-import { formatShortDate, parseLocalDate } from "@/lib/date-utils";
+import { formatShortDate, parseLocalDate, formatFrequency } from "@/lib/date-utils";
 import { useState } from "react";
 import { toast } from "sonner";
 import { Button } from "@/components/ui/button";
@@ -103,7 +103,7 @@ export function SubscriptionCard({ subscription, onDelete, onUpdate }: Subscript
 						<div className="flex flex-col gap-1.5">
 							<h3 className="font-bold text-lg leading-none tracking-tight">{subscription.name}</h3>
 							<div className="flex items-center gap-2 text-xs font-semibold text-muted-foreground uppercase tracking-wider">
-								<span>{subscription.billing_period}</span>
+								<span>{formatFrequency(subscription.billing_period)}</span>
 								<span>•</span>
 								<span className="flex items-center gap-1">{nextDueDate}</span>
 							</div>

@@ -864,7 +864,7 @@ export async function getTransactionsForMonth(year: number, month: number): Prom
 			`
 			*,
 			category:allocation_categories(name),
-			linked_account_transaction:account_transactions!linked_account_transaction_id(
+			linked_account_transaction:account_transactions!fk_linked_account_tx(
 				id,
 				account_id,
 				amount

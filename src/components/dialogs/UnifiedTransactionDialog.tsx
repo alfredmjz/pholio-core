@@ -454,13 +454,14 @@ export function UnifiedTransactionDialog({
 											<SelectValue placeholder="Select a category" />
 										</SelectTrigger>
 										<SelectContent>
-											{categories.map((cat) => (
-												<SelectItem key={cat.id} value={cat.id}>
-													{cat.category_type === "savings_goal" && "💰 "}
-													{cat.category_type === "debt_payment" && "💳 "}
-													{cat.name}
-												</SelectItem>
-											))}
+											<SelectItem value={VIRTUAL_UNCATEGORIZED_ID}>Uncategorized</SelectItem>
+											{categories
+												.filter((cat) => cat.id !== VIRTUAL_UNCATEGORIZED_ID)
+												.map((cat) => (
+													<SelectItem key={cat.id} value={cat.id}>
+														{cat.name}
+													</SelectItem>
+												))}
 										</SelectContent>
 									</Select>
 								</div>

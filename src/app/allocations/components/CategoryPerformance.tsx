@@ -48,34 +48,32 @@ export function CategoryPerformance({
 	const usedNames = propUsedNames || categories.map((c) => c.name);
 
 	const normalizedCategories = categories.map((cat) =>
-		cat.name.toLowerCase() === "uncategorized"
-			? { ...cat, id: VIRTUAL_UNCATEGORIZED_ID }
-			: cat
+		cat.name.toLowerCase() === "uncategorized" ? { ...cat, id: VIRTUAL_UNCATEGORIZED_ID } : cat
 	);
 
 	const displayCategories = normalizedCategories.some((cat) => cat.id === VIRTUAL_UNCATEGORIZED_ID)
 		? normalizedCategories
 		: [
-			{
-				id: VIRTUAL_UNCATEGORIZED_ID,
-				allocation_id: categories[0]?.allocation_id ?? "",
-				user_id: categories[0]?.user_id ?? "",
-				name: "Uncategorized",
-				budget_cap: 0,
-				is_recurring: false,
-				display_order: categories.length,
-				color: "gray",
-				icon: "help-circle",
-				notes: "Transactions without a category",
-				created_at: new Date().toISOString(),
-				updated_at: new Date().toISOString(),
-				actual_spend: 0,
-				remaining: 0,
-				utilization_percentage: 0,
-				transaction_count: 0,
-			},
-			...normalizedCategories,
-		];
+				{
+					id: VIRTUAL_UNCATEGORIZED_ID,
+					allocation_id: categories[0]?.allocation_id ?? "",
+					user_id: categories[0]?.user_id ?? "",
+					name: "Uncategorized",
+					budget_cap: 0,
+					is_recurring: false,
+					display_order: categories.length,
+					color: "gray",
+					icon: "help-circle",
+					notes: "Transactions without a category",
+					created_at: new Date().toISOString(),
+					updated_at: new Date().toISOString(),
+					actual_spend: 0,
+					remaining: 0,
+					utilization_percentage: 0,
+					transaction_count: 0,
+				},
+				...normalizedCategories,
+			];
 
 	const sensors = useSensors(
 		useSensor(MouseSensor, {

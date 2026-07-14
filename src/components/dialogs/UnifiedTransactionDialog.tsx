@@ -20,7 +20,11 @@ import { Calendar } from "@/components/ui/calendar";
 import { toast } from "sonner";
 import { Loader2, TrendingUp, TrendingDown, Info, Settings2, PlusCircle, Trash2 } from "lucide-react";
 import { createUnifiedTransaction, getSuggestedAccountForCategory } from "@/lib/actions/unified-transaction-actions";
-import { getTransactionPresets, TransactionPreset, createTransactionFromPreset, createTransactionsFromPresetBulk } from "@/app/allocations/preset-actions";
+import {
+	getTransactionPresets,
+	TransactionPreset,
+	createTransactionsFromPresetBulk,
+} from "@/app/allocations/preset-actions";
 import type { AllocationCategory } from "@/app/allocations/types";
 import type { AccountWithType } from "@/app/balancesheet/types";
 import type { UnifiedTransactionInput } from "@/lib/types/unified-transaction";
@@ -31,7 +35,6 @@ import { cn } from "@/lib/utils";
 import { getTodayDateString, parseLocalDate, formatDateString } from "@/lib/date-utils";
 import { VIRTUAL_UNCATEGORIZED_ID } from "@/app/allocations/types";
 import { ManagePresetsDialog } from "./ManagePresetsDialog";
-
 
 interface UnifiedTransactionDialogProps {
 	open: boolean;
@@ -73,7 +76,7 @@ export function UnifiedTransactionDialog({
 	const categoryDisabled = isBalanceSheetContext;
 	const categoryRequired = isAllocationsContext;
 	const [isLoading, setIsLoading] = useState(false);
-	
+
 	// Manual Entry State
 	const [type, setType] = useState<"income" | "expense">(defaultType || "expense");
 	const [description, setDescription] = useState("");
@@ -167,12 +170,25 @@ export function UnifiedTransactionDialog({
 	const validateForm = (): boolean => {
 		const newErrors: ValidationErrors = {};
 		let isValid = true;
-		if (!description.trim()) { newErrors.description = "Description is required"; isValid = false; }
-		if (!amount || parseFloat(amount) <= 0) { newErrors.amount = "Valid amount is required"; isValid = false; }
-		if (!date) { newErrors.date = "Date is required"; isValid = false; }
-		if (accountRequired && (accountId === "none" || !accountId)) { newErrors.accountId = "Account is required"; isValid = false; }
+		if (!description.trim()) {
+			newErrors.description = "Description is required";
+			isValid = false;
+		}
+		if (!amount || parseFloat(amount) <= 0) {
+			newErrors.amount = "Valid amount is required";
+			isValid = false;
+		}
+		if (!date) {
+			newErrors.date = "Date is required";
+			isValid = false;
+		}
+		if (accountRequired && (accountId === "none" || !accountId)) {
+			newErrors.accountId = "Account is required";
+			isValid = false;
+		}
 		setErrors(newErrors);
-		if (!isValid) toast.error("Please fill in all required fields", { description: "Check the form for displayed errors." });
+		if (!isValid)
+			toast.error("Please fill in all required fields", { description: "Check the form for displayed errors." });
 		return isValid;
 	};
 
@@ -209,14 +225,14 @@ export function UnifiedTransactionDialog({
 	};
 
 	const incrementDateCount = (dateStr: string) => {
-		setSelectedDatesMap(prev => ({
+		setSelectedDatesMap((prev) => ({
 			...prev,
-			[dateStr]: (prev[dateStr] || 0) + 1
+			[dateStr]: (prev[dateStr] || 0) + 1,
 		}));
 	};
 
 	const decrementDateCount = (dateStr: string) => {
-		setSelectedDatesMap(prev => {
+		setSelectedDatesMap((prev) => {
 			const count = prev[dateStr] || 0;
 			if (count <= 1) {
 				const newMap = { ...prev };
@@ -225,13 +241,13 @@ export function UnifiedTransactionDialog({
 			}
 			return {
 				...prev,
-				[dateStr]: count - 1
+				[dateStr]: count - 1,
 			};
 		});
 	};
 
 	const removeDateEntry = (dateStr: string) => {
-		setSelectedDatesMap(prev => {
+		setSelectedDatesMap((prev) => {
 			const newMap = { ...prev };
 			delete newMap[dateStr];
 			return newMap;
@@ -262,7 +278,7 @@ export function UnifiedTransactionDialog({
 		try {
 			const result = await createTransactionsFromPresetBulk(selectedPresetId, entries);
 			if (result.success) {
-				const preset = presets.find(p => p.id === selectedPresetId);
+				const preset = presets.find((p) => p.id === selectedPresetId);
 				const totalCount = entries.reduce((acc, curr) => acc + curr.count, 0);
 				toast.success(`Successfully added ${totalCount} transactions from preset "${preset?.name}"`);
 				setSelectedDatesMap({});
@@ -281,40 +297,51 @@ export function UnifiedTransactionDialog({
 	const selectedCategory = categories.find((c) => c.id === categoryId);
 	const showCategoryBadge = selectedCategory?.category_type && selectedCategory.category_type !== "regular";
 
-	const selectedPreset = presets.find(p => p.id === selectedPresetId);
+	const selectedPreset = presets.find((p) => p.id === selectedPresetId);
 
 	return (
 		<>
 			<Dialog open={open} onOpenChange={onOpenChange}>
-				<DialogContent className="sm:max-w-[500px]" showCloseButton={false}>
+				<DialogContent className="sm:max-w-[560px] max-h-[calc(100dvh-2rem)] overflow-y-auto" showCloseButton={false}>
 					<DialogHeader>
 						<DialogTitle>Add Transaction</DialogTitle>
 						<DialogDescription>Enter transaction details to update your budget and account balance.</DialogDescription>
 					</DialogHeader>
 
 					<Tabs value={activeTab} onValueChange={setActiveTab} className="w-full mt-2">
-						<TabsList className="grid w-full grid-cols-2 mb-4">
+						<TabsList className="grid w-full grid-cols-2 mb-4 gap-2">
 							<TabsTrigger value="manual">Manual Entry</TabsTrigger>
 							<TabsTrigger value="presets">Use Preset</TabsTrigger>
 						</TabsList>
 
 						<TabsContent value="manual" className="mt-0">
 							<form onSubmit={handleSubmit} className="flex flex-col gap-6">
-								<FormSection icon={type === "expense" ? <TrendingDown /> : <TrendingUp />} title="Transaction Type" variant="subtle">
+								<FormSection
+									icon={type === "expense" ? <TrendingDown /> : <TrendingUp />}
+									title="Transaction Type"
+									variant="subtle"
+								>
 									<CardSelector
+										className="grid-cols-1 sm:grid-cols-2"
 										options={[
 											{ value: "expense", label: "Expense", icon: "📉", color: "bg-red-100" },
 											{ value: "income", label: "Income", icon: "📈", color: "bg-green-100" },
 										]}
-										value={type} onChange={setType} selectedBorderColor="border-blue-200"
+										value={type}
+										onChange={setType}
+										selectedBorderColor="border-blue-200"
 									/>
 								</FormSection>
 
 								{!isAllocationsContext && (
 									<div className="space-y-2">
-										<Label htmlFor="transactionType">{type === "income" ? "Income Type" : "Expense Type"} (Account)</Label>
+										<Label htmlFor="transactionType">
+											{type === "income" ? "Income Type" : "Expense Type"} (Account)
+										</Label>
 										<Select value={transactionType} onValueChange={setTransactionType}>
-											<SelectTrigger className="h-10"><SelectValue placeholder="Select type" /></SelectTrigger>
+											<SelectTrigger className="h-10">
+												<SelectValue placeholder="Select type" />
+											</SelectTrigger>
 											<SelectContent>
 												{type === "income" ? (
 													<>
@@ -338,7 +365,9 @@ export function UnifiedTransactionDialog({
 									<div className="space-y-2">
 										<Label htmlFor="incomeSource">Income Source</Label>
 										<Select value={incomeSource} onValueChange={setIncomeSource}>
-											<SelectTrigger className="h-10"><SelectValue placeholder="Select source" /></SelectTrigger>
+											<SelectTrigger className="h-10">
+												<SelectValue placeholder="Select source" />
+											</SelectTrigger>
 											<SelectContent>
 												<SelectItem value="salary">💼 Salary / Expected</SelectItem>
 												<SelectItem value="external">🎁 External / One-time</SelectItem>
@@ -349,20 +378,58 @@ export function UnifiedTransactionDialog({
 
 								<FormSection icon={<Info />} title="Transaction Details" variant="subtle">
 									<div className="space-y-2">
-										<Label htmlFor="amount">Amount <span className="text-error">*</span></Label>
-										<ProminentAmountInput value={amount} onChange={(val) => { setAmount(val); if (errors.amount) setErrors({ ...errors, amount: undefined }); }} id="amount" hasError={!!errors.amount} />
+										<Label htmlFor="amount">
+											Amount <span className="text-error">*</span>
+										</Label>
+										<ProminentAmountInput
+											value={amount}
+											onChange={(val) => {
+												setAmount(val);
+												if (errors.amount) setErrors({ ...errors, amount: undefined });
+											}}
+											id="amount"
+											hasError={!!errors.amount}
+										/>
 										{errors.amount && <p className="text-sm text-error">{errors.amount}</p>}
 									</div>
 
-									<div className="flex flex-row justify-between gap-4">
+									<div className="flex flex-col gap-4 sm:flex-row sm:justify-between">
 										<div className="flex-1 space-y-2">
-											<Label htmlFor="date">Date <span className="text-error">*</span></Label>
-											<DatePicker id="date" value={date} onChange={setDate} minDate={boundaryMonth ? `${boundaryMonth.year}-${String(boundaryMonth.month).padStart(2, "0")}-01` : undefined} maxDate={boundaryMonth ? `${boundaryMonth.year}-${String(boundaryMonth.month).padStart(2, "0")}-${new Date(boundaryMonth.year, boundaryMonth.month, 0).getDate()}` : undefined} />
+											<Label htmlFor="date">
+												Date <span className="text-error">*</span>
+											</Label>
+											<DatePicker
+												id="date"
+												value={date}
+												onChange={setDate}
+												minDate={
+													boundaryMonth
+														? `${boundaryMonth.year}-${String(boundaryMonth.month).padStart(2, "0")}-01`
+														: undefined
+												}
+												maxDate={
+													boundaryMonth
+														? `${boundaryMonth.year}-${String(boundaryMonth.month).padStart(2, "0")}-${new Date(boundaryMonth.year, boundaryMonth.month, 0).getDate()}`
+														: undefined
+												}
+											/>
 											{errors.date && <p className="text-sm text-error">{errors.date}</p>}
 										</div>
 										<div className="flex-1 space-y-2">
-											<Label htmlFor="description">Description <span className="text-error">*</span></Label>
-											<Input id="description" placeholder="e.g. Grocery Store" value={description} onChange={(e) => { setDescription(e.target.value); if (errors.description) setErrors({ ...errors, description: undefined }); }} required className={cn("h-10", errors.description && "border-error")} />
+											<Label htmlFor="description">
+												Description <span className="text-error">*</span>
+											</Label>
+											<Input
+												id="description"
+												placeholder="e.g. Grocery Store"
+												value={description}
+												onChange={(e) => {
+													setDescription(e.target.value);
+													if (errors.description) setErrors({ ...errors, description: undefined });
+												}}
+												required
+												className={cn("h-10", errors.description && "border-error")}
+											/>
 											{errors.description && <p className="text-sm text-error">{errors.description}</p>}
 										</div>
 									</div>
@@ -378,16 +445,23 @@ export function UnifiedTransactionDialog({
 											</span>
 										)}
 									</Label>
-									<Select value={categoryDisabled ? VIRTUAL_UNCATEGORIZED_ID : categoryId} onValueChange={setCategoryId} disabled={categoryDisabled}>
-										<SelectTrigger className="h-10"><SelectValue placeholder="Select a category" /></SelectTrigger>
+									<Select
+										value={categoryDisabled ? VIRTUAL_UNCATEGORIZED_ID : categoryId}
+										onValueChange={setCategoryId}
+										disabled={categoryDisabled}
+									>
+										<SelectTrigger className="h-10">
+											<SelectValue placeholder="Select a category" />
+										</SelectTrigger>
 										<SelectContent>
-											{categories.map((cat) => (
-												<SelectItem key={cat.id} value={cat.id}>
-													{cat.category_type === "savings_goal" && "💰 "}
-													{cat.category_type === "debt_payment" && "💳 "}
-													{cat.name}
-												</SelectItem>
-											))}
+											<SelectItem value={VIRTUAL_UNCATEGORIZED_ID}>Uncategorized</SelectItem>
+											{categories
+												.filter((cat) => cat.id !== VIRTUAL_UNCATEGORIZED_ID)
+												.map((cat) => (
+													<SelectItem key={cat.id} value={cat.id}>
+														{cat.name}
+													</SelectItem>
+												))}
 										</SelectContent>
 									</Select>
 								</div>
@@ -397,8 +471,16 @@ export function UnifiedTransactionDialog({
 										Account
 										{accountRequired ? <span className="text-error">*</span> : " (Optional)"}
 									</Label>
-									<Select value={accountId} onValueChange={(val) => { setAccountId(val); if (errors.accountId) setErrors({ ...errors, accountId: undefined }); }}>
-										<SelectTrigger className={cn("h-10", errors.accountId && "border-error")}><SelectValue placeholder={accountRequired ? "Select an account" : "No account selected"} /></SelectTrigger>
+									<Select
+										value={accountId}
+										onValueChange={(val) => {
+											setAccountId(val);
+											if (errors.accountId) setErrors({ ...errors, accountId: undefined });
+										}}
+									>
+										<SelectTrigger className={cn("h-10", errors.accountId && "border-error")}>
+											<SelectValue placeholder={accountRequired ? "Select an account" : "No account selected"} />
+										</SelectTrigger>
 										<SelectContent>
 											{!accountRequired && <SelectItem value="none">No Account</SelectItem>}
 											{[...accounts]
@@ -430,14 +512,31 @@ export function UnifiedTransactionDialog({
 									<FormSection variant="subtle">
 										<div className="space-y-2">
 											<Label htmlFor="notes">Notes (Optional)</Label>
-											<Textarea id="notes" placeholder="Add any additional details..." value={notes} onChange={(e) => setNotes(e.target.value)} rows={3} className="bg-secondary border-border/60 resize-none" />
+											<Textarea
+												id="notes"
+												placeholder="Add any additional details..."
+												value={notes}
+												onChange={(e) => setNotes(e.target.value)}
+												rows={3}
+												className="bg-secondary border-border/60 resize-none"
+											/>
 										</div>
 									</FormSection>
 								)}
 
-								<DialogFooter>
-									<Button type="button" variant="outline" onClick={() => onOpenChange(false)} disabled={isLoading}>Cancel</Button>
-									<Button type="submit" disabled={isLoading}>{isLoading && <Loader2 className="mr-2 h-4 w-4 animate-spin" />} Add Transaction</Button>
+								<DialogFooter className="flex-col-reverse gap-2 sm:flex-row sm:gap-3">
+									<Button
+										type="button"
+										variant="outline"
+										className="w-full sm:w-auto"
+										onClick={() => onOpenChange(false)}
+										disabled={isLoading}
+									>
+										Cancel
+									</Button>
+									<Button type="submit" className="w-full sm:w-auto" disabled={isLoading}>
+										{isLoading && <Loader2 className="mr-2 h-4 w-4 animate-spin" />} Add Transaction
+									</Button>
 								</DialogFooter>
 							</form>
 						</TabsContent>
@@ -450,7 +549,7 @@ export function UnifiedTransactionDialog({
 										<Settings2 className="h-4 w-4 mr-1" /> Manage
 									</Button>
 								</div>
-								
+
 								{presets.length === 0 ? (
 									<div className="text-center p-6 border border-dashed rounded-lg bg-muted/30">
 										<p className="text-sm text-muted-foreground mb-4">You don't have any presets yet.</p>
@@ -464,7 +563,7 @@ export function UnifiedTransactionDialog({
 											<SelectValue placeholder="Choose a transaction preset" />
 										</SelectTrigger>
 										<SelectContent>
-											{presets.map(p => (
+											{presets.map((p) => (
 												<SelectItem key={p.id} value={p.id}>
 													{p.name} (${p.amount.toFixed(2)})
 												</SelectItem>
@@ -477,12 +576,17 @@ export function UnifiedTransactionDialog({
 							{selectedPreset && (
 								<div className="flex flex-col gap-4">
 									<div className="bg-muted/50 p-3 rounded-lg border text-sm">
-										<p><strong>{selectedPreset.description}</strong></p>
+										<p>
+											<strong>{selectedPreset.description}</strong>
+										</p>
 										<p className="text-muted-foreground mt-1">
-											{selectedPreset.type === 'expense' ? '📉' : '📈'} ${selectedPreset.amount.toFixed(2)} • {selectedPreset.transaction_type}
+											{selectedPreset.type === "expense" ? "📉" : "📈"} ${selectedPreset.amount.toFixed(2)} •{" "}
+											{selectedPreset.transaction_type}
 										</p>
 										<p className="text-xs text-primary mt-2">
-											<span className="font-medium">Instructions:</span> Click dates on the calendar below to select. Click a date multiple times to add multiple items on that day. Adjust totals in the list below before confirming.
+											<span className="font-medium">Instructions:</span> Click dates on the calendar below to select.
+											Click a date multiple times to add multiple items on that day. Adjust totals in the list below
+											before confirming.
 										</p>
 									</div>
 
@@ -496,15 +600,15 @@ export function UnifiedTransactionDialog({
 											className="rounded-md"
 											mode="multiple"
 											selected={Object.keys(selectedDatesMap)
-												.filter(dateStr => selectedDatesMap[dateStr] > 0)
-												.map(dateStr => parseLocalDate(dateStr))}
+												.filter((dateStr) => selectedDatesMap[dateStr] > 0)
+												.map((dateStr) => parseLocalDate(dateStr))}
 											onSelect={(dates) => {
 												if (!dates) {
 													setSelectedDatesMap({});
 													return;
 												}
 												const newMap: Record<string, number> = {};
-												dates.forEach(d => {
+												dates.forEach((d) => {
 													const dateStr = formatDateString(d);
 													newMap[dateStr] = selectedDatesMap[dateStr] || 1;
 												});
@@ -517,13 +621,18 @@ export function UnifiedTransactionDialog({
 									{/* Selected Dates summary */}
 									{Object.keys(selectedDatesMap).length > 0 && (
 										<div className="flex flex-col gap-2 max-h-[160px] overflow-y-auto border rounded-lg p-2 bg-muted/20">
-											<p className="text-xs font-semibold text-muted-foreground uppercase tracking-wider px-1">Selected Days</p>
+											<p className="text-xs font-semibold text-muted-foreground uppercase tracking-wider px-1">
+												Selected Days
+											</p>
 											{Object.entries(selectedDatesMap)
 												.filter(([_, count]) => count > 0)
 												.map(([dateStr, count]) => {
 													const subtotal = selectedPreset.amount * count;
 													return (
-														<div key={dateStr} className="flex justify-between items-center bg-background border p-2 rounded-md text-xs">
+														<div
+															key={dateStr}
+															className="flex justify-between items-center bg-background border p-2 rounded-md text-xs"
+														>
 															<div className="flex flex-col gap-0.5">
 																<span className="font-medium">{formatDisplayDate(dateStr)}</span>
 																<span className="text-muted-foreground">
@@ -573,13 +682,21 @@ export function UnifiedTransactionDialog({
 										className="w-full mt-2"
 									>
 										{isAddingFromPreset && <Loader2 className="mr-2 h-4 w-4 animate-spin" />}
-										Confirm & Add {Object.values(selectedDatesMap).reduce((a, b) => a + b, 0)} Items 
-										({selectedPreset.type === 'expense' ? '-' : '+'}${ (Object.values(selectedDatesMap).reduce((a, b) => a + b, 0) * selectedPreset.amount).toFixed(2) })
+										Confirm & Add {Object.values(selectedDatesMap).reduce((a, b) => a + b, 0)} Items (
+										{selectedPreset.type === "expense" ? "-" : "+"}$
+										{(Object.values(selectedDatesMap).reduce((a, b) => a + b, 0) * selectedPreset.amount).toFixed(2)})
 									</Button>
 								</div>
 							)}
-							<DialogFooter className="mt-4">
-								<Button type="button" variant="outline" onClick={() => onOpenChange(false)}>Close</Button>
+							<DialogFooter className="mt-4 flex-col-reverse gap-2 sm:flex-row sm:gap-3">
+								<Button
+									type="button"
+									variant="outline"
+									className="w-full sm:w-auto"
+									onClick={() => onOpenChange(false)}
+								>
+									Close
+								</Button>
 							</DialogFooter>
 						</TabsContent>
 					</Tabs>

@@ -9,6 +9,7 @@ import { reorderCategories } from "../actions";
 import { toast } from "sonner";
 import { useAllocationContext } from "../context/AllocationContext";
 import type { AllocationCategory } from "../types";
+import { VIRTUAL_UNCATEGORIZED_ID } from "../types";
 import { CategoryCard } from "./CategoryCard";
 import {
 	DndContext,
@@ -45,6 +46,34 @@ export function CategoryPerformance({
 
 	const usedColors = propUsedColors || (categories.map((c) => c.color).filter(Boolean) as string[]);
 	const usedNames = propUsedNames || categories.map((c) => c.name);
+
+	const normalizedCategories = categories.map((cat) =>
+		cat.name.toLowerCase() === "uncategorized" ? { ...cat, id: VIRTUAL_UNCATEGORIZED_ID } : cat
+	);
+
+	const displayCategories = normalizedCategories.some((cat) => cat.id === VIRTUAL_UNCATEGORIZED_ID)
+		? normalizedCategories
+		: [
+				{
+					id: VIRTUAL_UNCATEGORIZED_ID,
+					allocation_id: categories[0]?.allocation_id ?? "",
+					user_id: categories[0]?.user_id ?? "",
+					name: "Uncategorized",
+					budget_cap: 0,
+					is_recurring: false,
+					display_order: categories.length,
+					color: "gray",
+					icon: "help-circle",
+					notes: "Transactions without a category",
+					created_at: new Date().toISOString(),
+					updated_at: new Date().toISOString(),
+					actual_spend: 0,
+					remaining: 0,
+					utilization_percentage: 0,
+					transaction_count: 0,
+				},
+				...normalizedCategories,
+			];
 
 	const sensors = useSensors(
 		useSensor(MouseSensor, {
@@ -96,23 +125,6 @@ export function CategoryPerformance({
 		}
 	};
 
-	if (categories.length === 0) {
-		return (
-			<div className={cn("w-full flex flex-col gap-4", className)}>
-				<div className="flex items-center justify-between px-2 md:px-0">
-					<h3 className="text-sm font-semibold text-foreground tracking-tight">Category Performance</h3>
-					<Button variant="outline" size="sm" onClick={onAddCategory} className="gap-1.5">
-						<Plus className="h-4 w-4" />
-						Add Category
-					</Button>
-				</div>
-				<Card className="p-12 flex items-center justify-center border-dashed">
-					<p className="text-sm text-muted-foreground">No categories yet. Add your first category to start tracking.</p>
-				</Card>
-			</div>
-		);
-	}
-
 	return (
 		<div className={cn("w-full flex flex-col gap-4", className)}>
 			{/* Global style injection while dragging to force the cursor to be a grabbing hand everywhere */}
@@ -139,8 +151,8 @@ export function CategoryPerformance({
 				modifiers={[restrictToParentElement]}
 			>
 				<div className="flex flex-col gap-3 md:grid md:grid-cols-2 lg:grid-cols-3 xl:grid-cols-4 md:gap-4">
-					<SortableContext items={categories.map((c) => c.id)} strategy={rectSortingStrategy}>
-						{categories.map((category) => (
+					<SortableContext items={displayCategories.map((c) => c.id)} strategy={rectSortingStrategy}>
+						{displayCategories.map((category) => (
 							<CategoryCard key={category.id} category={category} usedColors={usedColors} usedNames={usedNames} />
 						))}
 					</SortableContext>

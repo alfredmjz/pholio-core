@@ -35,7 +35,10 @@ const DialogContent = React.forwardRef<
 		<DialogPrimitive.Overlay className="fixed inset-0 z-50 bg-black/50" />
 		<DialogPrimitive.Content
 			ref={ref}
-			className={cn("fixed left-[50%] top-[50%] z-50 w-full max-w-lg translate-x-[-50%] translate-y-[-50%]", className)}
+			className={cn(
+				"fixed left-[50%] top-[50%] z-50 w-[calc(100%-1rem)] max-w-lg translate-x-[-50%] translate-y-[-50%] max-h-[calc(100dvh-2rem)] overflow-y-auto sm:w-full",
+				className
+			)}
 			{...props}
 		>
 			<div className="relative rounded-lg border border-border bg-background shadow-lg">
@@ -44,7 +47,7 @@ const DialogContent = React.forwardRef<
 						<X className="h-4 w-4 text-primary-muted" />
 					</DialogPrimitive.Close>
 				)}
-				<div className="p-6">{children}</div>
+				<div className="p-4 sm:p-6">{children}</div>
 			</div>
 		</DialogPrimitive.Content>
 	</DialogPortal>

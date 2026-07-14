@@ -136,7 +136,12 @@ DROP POLICY IF EXISTS "Users manage own account transactions" ON public.account_
 CREATE POLICY "Users manage own account transactions" ON public.account_transactions FOR ALL USING (auth.uid() = user_id);
 
 -- Add the missing link back to transactions
+-- Drop both the named constraint and any auto-generated duplicate before re-adding.
+-- Safe on fresh installs (IF EXISTS is a no-op) and fixes existing DBs with the duplicate.
+ALTER TABLE public.transactions DROP CONSTRAINT IF EXISTS fk_linked_account_tx;
+ALTER TABLE public.transactions DROP CONSTRAINT IF EXISTS transactions_linked_account_transaction_id_fkey;
 ALTER TABLE public.transactions ADD CONSTRAINT fk_linked_account_tx FOREIGN KEY (linked_account_transaction_id) REFERENCES public.account_transactions(id) ON DELETE SET NULL;
+
 
 -- Indexes
 CREATE INDEX IF NOT EXISTS transactions_date_idx ON public.transactions(transaction_date DESC);
@@ -148,3 +153,35 @@ GRANT ALL ON public.allocations TO authenticated;
 GRANT ALL ON public.allocation_categories TO authenticated;
 GRANT ALL ON public.transactions TO authenticated;
 GRANT ALL ON public.account_transactions TO authenticated;
+
+-- =============================================================================
+-- TABLE: transaction_presets
+-- =============================================================================
+
+CREATE TABLE IF NOT EXISTS public.transaction_presets (
+    id UUID PRIMARY KEY DEFAULT gen_random_uuid(),
+    user_id UUID NOT NULL REFERENCES auth.users(id) ON DELETE CASCADE,
+    name VARCHAR(100) NOT NULL,
+    description VARCHAR(200) NOT NULL,
+    amount DECIMAL(15, 2) NOT NULL,
+    type TEXT NOT NULL CHECK (type IN ('income', 'expense')),
+    transaction_type TEXT NOT NULL CHECK (transaction_type IN ('deposit', 'withdrawal', 'interest', 'payment', 'adjustment', 'contribution', 'transfer', 'refund')),
+    category_id UUID REFERENCES public.allocation_categories(id) ON DELETE SET NULL,
+    account_id UUID REFERENCES public.accounts(id) ON DELETE SET NULL,
+    created_at TIMESTAMPTZ DEFAULT NOW(),
+    updated_at TIMESTAMPTZ DEFAULT NOW()
+);
+
+ALTER TABLE public.transaction_presets ENABLE ROW LEVEL SECURITY;
+DROP POLICY IF EXISTS "Users can manage own presets" ON public.transaction_presets;
+CREATE POLICY "Users can manage own presets" ON public.transaction_presets FOR ALL USING (auth.uid() = user_id);
+
+DROP TRIGGER IF EXISTS update_transaction_presets_updated_at ON public.transaction_presets;
+CREATE TRIGGER update_transaction_presets_updated_at BEFORE UPDATE ON public.transaction_presets FOR EACH ROW EXECUTE FUNCTION public.update_updated_at_column();
+
+-- Indexes
+CREATE INDEX IF NOT EXISTS idx_transaction_presets_user ON public.transaction_presets(user_id);
+
+-- Grants
+GRANT ALL ON public.transaction_presets TO authenticated;
+

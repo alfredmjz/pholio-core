@@ -32,6 +32,7 @@ import { getTodayDateString, parseLocalDate, formatDateString } from "@/lib/date
 import { VIRTUAL_UNCATEGORIZED_ID } from "@/app/allocations/types";
 import { ManagePresetsDialog } from "./ManagePresetsDialog";
 
+
 interface UnifiedTransactionDialogProps {
 	open: boolean;
 	onOpenChange: (open: boolean) => void;
@@ -368,36 +369,68 @@ export function UnifiedTransactionDialog({
 								</FormSection>
 
 								<div className="space-y-2">
-									<Label htmlFor="category">Budget Category{categoryRequired && <span className="text-error"> *</span>}</Label>
+									<Label htmlFor="category">
+										Budget Category{categoryRequired && <span className="text-error"> *</span>}
+										{showCategoryBadge && !categoryDisabled && (
+											<span className="ml-2 text-xs text-primary">
+												{selectedCategory?.category_type === "savings_goal" && "(Savings Goal)"}
+												{selectedCategory?.category_type === "debt_payment" && "(Debt Payment)"}
+											</span>
+										)}
+									</Label>
 									<Select value={categoryDisabled ? VIRTUAL_UNCATEGORIZED_ID : categoryId} onValueChange={setCategoryId} disabled={categoryDisabled}>
 										<SelectTrigger className="h-10"><SelectValue placeholder="Select a category" /></SelectTrigger>
 										<SelectContent>
 											{categories.map((cat) => (
-												<SelectItem key={cat.id} value={cat.id}>{cat.name}</SelectItem>
+												<SelectItem key={cat.id} value={cat.id}>
+													{cat.category_type === "savings_goal" && "💰 "}
+													{cat.category_type === "debt_payment" && "💳 "}
+													{cat.name}
+												</SelectItem>
 											))}
 										</SelectContent>
 									</Select>
 								</div>
 
 								<div className="space-y-2">
-									<Label htmlFor="account">Account{accountRequired ? <span className="text-error">*</span> : " (Optional)"}</Label>
+									<Label htmlFor="account">
+										Account
+										{accountRequired ? <span className="text-error">*</span> : " (Optional)"}
+									</Label>
 									<Select value={accountId} onValueChange={(val) => { setAccountId(val); if (errors.accountId) setErrors({ ...errors, accountId: undefined }); }}>
 										<SelectTrigger className={cn("h-10", errors.accountId && "border-error")}><SelectValue placeholder={accountRequired ? "Select an account" : "No account selected"} /></SelectTrigger>
 										<SelectContent>
 											{!accountRequired && <SelectItem value="none">No Account</SelectItem>}
-											{[...accounts].map((acc) => (
-												<SelectItem key={acc.id} value={acc.id}>{acc.name}</SelectItem>
-											))}
+											{[...accounts]
+												.sort((a, b) => {
+													const aInst = a.institution || "";
+													const bInst = b.institution || "";
+													if (aInst !== bInst) return aInst.localeCompare(bInst);
+													return a.name.localeCompare(b.name);
+												})
+												.map((acc) => (
+													<SelectItem key={acc.id} value={acc.id}>
+														{acc.institution ? `${acc.institution} - ${acc.name}` : acc.name}
+													</SelectItem>
+												))}
 										</SelectContent>
 									</Select>
+									{suggestedAccountInfo && <p className="text-xs text-primary">{suggestedAccountInfo}</p>}
 									{errors.accountId && <p className="text-sm text-error">{errors.accountId}</p>}
 								</div>
+
+								{accountId === "none" && categoryId !== VIRTUAL_UNCATEGORIZED_ID && (
+									<p className="text-sm text-primary flex items-start gap-2 p-3 bg-muted rounded-lg">
+										<Info className="h-4 w-4 shrink-0 mt-0.5" />
+										<span>Budget-only transaction: Your budget will update, but no account balance will change.</span>
+									</p>
+								)}
 
 								{notes && (
 									<FormSection variant="subtle">
 										<div className="space-y-2">
 											<Label htmlFor="notes">Notes (Optional)</Label>
-											<Textarea id="notes" value={notes} onChange={(e) => setNotes(e.target.value)} rows={3} className="bg-secondary border-border/60 resize-none" />
+											<Textarea id="notes" placeholder="Add any additional details..." value={notes} onChange={(e) => setNotes(e.target.value)} rows={3} className="bg-secondary border-border/60 resize-none" />
 										</div>
 									</FormSection>
 								)}
@@ -545,7 +578,6 @@ export function UnifiedTransactionDialog({
 									</Button>
 								</div>
 							)}
-
 							<DialogFooter className="mt-4">
 								<Button type="button" variant="outline" onClick={() => onOpenChange(false)}>Close</Button>
 							</DialogFooter>

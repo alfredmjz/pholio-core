@@ -615,6 +615,8 @@ export function UnifiedTransactionDialog({
 												setSelectedDatesMap(newMap);
 											}}
 											defaultMonth={boundaryMonth ? new Date(boundaryMonth.year, boundaryMonth.month - 1) : undefined}
+											month={boundaryMonth ? new Date(boundaryMonth.year, boundaryMonth.month - 1) : undefined}
+											disableNavigation={!!boundaryMonth}
 										/>
 									</div>
 

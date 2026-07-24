@@ -135,6 +135,9 @@ CREATE TABLE IF NOT EXISTS public.recurring_expenses (
     updated_at TIMESTAMPTZ DEFAULT now()
 );
 
+-- Drop the old constraint if it exists (for existing DBs)
+ALTER TABLE public.recurring_expenses DROP CONSTRAINT IF EXISTS recurring_expenses_billing_period_check;
+
 ALTER TABLE public.recurring_expenses ENABLE ROW LEVEL SECURITY;
 DROP POLICY IF EXISTS "Users can manage own recurring expenses" ON public.recurring_expenses;
 CREATE POLICY "Users can manage own recurring expenses" ON public.recurring_expenses USING (auth.uid() = user_id);

@@ -18,6 +18,7 @@ export interface TransactionPreset {
 	account_id: string | null;
 	created_at?: string;
 	updated_at?: string;
+	category?: { name: string } | null;
 }
 
 export type CreateTransactionPresetInput = Omit<TransactionPreset, "id" | "user_id" | "created_at" | "updated_at">;
@@ -59,7 +60,7 @@ export async function getTransactionPresets(): Promise<{ success: boolean; data?
 
 		const { data, error } = await supabase
 			.from("transaction_presets")
-			.select("*")
+			.select("*, category:allocation_categories(name)")
 			.eq("user_id", user.id)
 			.order("created_at", { ascending: false });
 
@@ -212,6 +213,109 @@ export async function deleteTransactionPreset(id: string): Promise<{ success: bo
 }
 
 /**
+ * Resolve source category ID to the target month/year's category ID by name,
+ * and create it in the target month/year's allocation if it does not exist.
+ */
+async function resolveCategoryForTargetDate(
+	supabase: any,
+	userId: string,
+	sourceCategoryId: string | null,
+	targetDateStr: string
+): Promise<string | null> {
+	if (!sourceCategoryId) return null;
+
+	try {
+		// 1. Get the name and details of the source category
+		const { data: sourceCat } = await supabase
+			.from("allocation_categories")
+			.select("name, color, icon, is_recurring, display_order")
+			.eq("id", sourceCategoryId)
+			.single();
+
+		if (!sourceCat) return null;
+
+		const categoryName = sourceCat.name;
+
+		// 2. Parse target date to get year and month
+		const dateParts = targetDateStr.split("T")[0].split("-").map(Number);
+		const targetYear = dateParts[0];
+		const targetMonth = dateParts[1];
+
+		if (!targetYear || !targetMonth) return null;
+
+		// 3. Find or create allocation for target month
+		let targetAllocationId: string;
+		const { data: existingAlloc } = await supabase
+			.from("allocations")
+			.select("id")
+			.eq("user_id", userId)
+			.eq("year", targetYear)
+			.eq("month", targetMonth)
+			.single();
+
+		if (existingAlloc) {
+			targetAllocationId = existingAlloc.id;
+		} else {
+			// Create new allocation
+			const { data: newAlloc, error: allocError } = await supabase
+				.from("allocations")
+				.insert({
+					user_id: userId,
+					year: targetYear,
+					month: targetMonth,
+					expected_income: 0,
+				})
+				.select("id")
+				.single();
+
+			if (allocError || !newAlloc) {
+				Logger.error("Failed to create target allocation for preset", { error: allocError });
+				return null;
+			}
+			targetAllocationId = newAlloc.id;
+		}
+
+		// 4. Find category with the same name in target allocation
+		const { data: targetCat } = await supabase
+			.from("allocation_categories")
+			.select("id")
+			.eq("allocation_id", targetAllocationId)
+			.eq("name", categoryName)
+			.single();
+
+		if (targetCat) {
+			return targetCat.id;
+		}
+
+		// 5. If it doesn't exist, create it in target allocation
+		const { data: newCat, error: catError } = await supabase
+			.from("allocation_categories")
+			.insert({
+				allocation_id: targetAllocationId,
+				user_id: userId,
+				name: categoryName,
+				budget_cap: 0,
+				is_recurring: sourceCat.is_recurring,
+				display_order: sourceCat.display_order,
+				color: sourceCat.color,
+				icon: sourceCat.icon,
+			})
+			.select("id")
+			.single();
+
+		if (catError || !newCat) {
+			Logger.error("Failed to create target category for preset", { error: catError });
+			return null;
+		}
+
+		return newCat.id;
+	} catch (error) {
+		Logger.error("Error in resolveCategoryForTargetDate", { error });
+		return null;
+	}
+}
+
+/**
  * Create a transaction from a preset
  */
 export async function createTransactionFromPreset(presetId: string, date: string): Promise<{ success: boolean; error?: string }> {
@@ -225,12 +329,23 @@ export async function createTransactionFromPreset(presetId: string, date: string
 		return { success: false, error: "Preset not found" };
 	}
 
+	const supabase = await createClient();
+	const {
+		data: { user },
+	} = await supabase.auth.getUser();
+
+	if (!user) {
+		return { success: false, error: "Unauthorized" };
+	}
+
+	const resolvedCategoryId = await resolveCategoryForTargetDate(supabase, user.id, preset.category_id, date);
+
 	const input: UnifiedTransactionInput = {
 		description: preset.description,
 		amount: preset.amount,
 		date: date,
 		type: preset.type,
-		categoryId: preset.category_id,
+		categoryId: resolvedCategoryId,
 		accountId: preset.account_id,
 		transactionType: preset.transaction_type as any,
 		source: "manual",
@@ -257,6 +372,15 @@ export async function createTransactionsFromPresetBulk(
 			return { success: false, error: "Preset not found" };
 		}
 
+		const supabase = await createClient();
+		const {
+			data: { user },
+		} = await supabase.auth.getUser();
+
+		if (!user) {
+			return { success: false, error: "Unauthorized" };
+		}
+
 		// Insert each aggregated transaction
 		for (const entry of datesAndCounts) {
 			if (entry.count <= 0) continue;
@@ -266,12 +390,14 @@ export async function createTransactionsFromPresetBulk(
 				? `${preset.description} (x${entry.count})` 
 				: preset.description;
 
+			const resolvedCategoryId = await resolveCategoryForTargetDate(supabase, user.id, preset.category_id, entry.date);
+
 			const input: UnifiedTransactionInput = {
 				description: compiledDescription,
 				amount: compiledAmount,
 				date: entry.date,
 				type: preset.type,
-				categoryId: preset.category_id,
+				categoryId: resolvedCategoryId,
 				accountId: preset.account_id,
 				transactionType: preset.transaction_type as any,
 				source: "manual",

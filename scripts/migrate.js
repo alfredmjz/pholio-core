@@ -112,67 +112,42 @@ async function runMigrations() {
 	combinedSQL += "-- ✅ End of Migrations\n";
 	combinedSQL += "-- ════════════════════════════════════════════════════════════\n";
 
-	// Write to file
+	// Write combined migrations file
 	fs.writeFileSync(outputPath, combinedSQL, "utf8");
 
 	// Generate Production Safe Update Script
+	// Since all migrations already use IF NOT EXISTS / DROP ... IF EXISTS idioms,
+	// the combined migration output is inherently safe for production re-runs.
 	const prodSafePath = path.join(outputDir, "production-safe-update.sql");
-	const prodSafeSQL = `-- ════════════════════════════════════════════════════════════
--- Pholio Production Database Safe Update Script
--- ════════════════════════════════════════════════════════════
---
--- This script contains ONLY the incremental changes introduced in recent
--- updates. It is completely safe to run on an existing production database
--- with active data. It does not drop tables or truncate records.
---
--- INSTRUCTIONS:
--- 1. Copy ALL content from this file.
--- 2. Go to: https://supabase.com/dashboard → Your Project
--- 3. Click "SQL Editor" in the left sidebar.
--- 4. Create a new query, paste this script, and click "Run".
---
--- ════════════════════════════════════════════════════════════
+	let prodSafeSQL = "-- ════════════════════════════════════════════════════════════\n";
+	prodSafeSQL += "-- Pholio Production Database Safe Update Script\n";
+	prodSafeSQL += `-- Generated: ${new Date().toISOString()}\n`;
+	prodSafeSQL += "-- ════════════════════════════════════════════════════════════\n";
+	prodSafeSQL += "--\n";
+	prodSafeSQL += "-- This script is safe to run on an existing production database.\n";
+	prodSafeSQL += "-- All statements use IF NOT EXISTS / DROP ... IF EXISTS guards,\n";
+	prodSafeSQL += "-- so no existing tables or data will be dropped or truncated.\n";
+	prodSafeSQL += "--\n";
+	prodSafeSQL += "-- INSTRUCTIONS:\n";
+	prodSafeSQL += "-- 1. Copy ALL content from this file.\n";
+	prodSafeSQL += "-- 2. Go to: https://supabase.com/dashboard → Your Project\n";
+	prodSafeSQL += '-- 3. Click "SQL Editor" in the left sidebar.\n';
+	prodSafeSQL += "-- 4. Create a new query, paste this script, and click \"Run\".\n";
+	prodSafeSQL += "--\n";
+	prodSafeSQL += "-- ════════════════════════════════════════════════════════════\n\n";
 
--- 1. Create Transaction Presets Table
-CREATE TABLE IF NOT EXISTS public.transaction_presets (
-    id UUID PRIMARY KEY DEFAULT gen_random_uuid(),
-    user_id UUID NOT NULL REFERENCES auth.users(id) ON DELETE CASCADE,
-    name VARCHAR(100) NOT NULL,
-    description VARCHAR(200) NOT NULL,
-    amount DECIMAL(15, 2) NOT NULL,
-    type TEXT NOT NULL CHECK (type IN ('income', 'expense')),
-    transaction_type TEXT NOT NULL CHECK (transaction_type IN ('deposit', 'withdrawal', 'interest', 'payment', 'adjustment', 'contribution', 'transfer', 'refund')),
-    category_id UUID REFERENCES public.allocation_categories(id) ON DELETE SET NULL,
-    account_id UUID REFERENCES public.accounts(id) ON DELETE SET NULL,
-    created_at TIMESTAMPTZ DEFAULT NOW(),
-    updated_at TIMESTAMPTZ DEFAULT NOW()
-);
+	migrations.forEach((migration) => {
+		prodSafeSQL += `-- ── ${migration.name} ──\n`;
+		prodSafeSQL += migration.content;
+		prodSafeSQL += "\n\n";
+	});
 
--- 2. Enable RLS and Policies for Transaction Presets
-ALTER TABLE public.transaction_presets ENABLE ROW LEVEL SECURITY;
-DROP POLICY IF EXISTS "Users can manage own presets" ON public.transaction_presets;
-CREATE POLICY "Users can manage own presets" ON public.transaction_presets FOR ALL USING (auth.uid() = user_id);
+	prodSafeSQL += "-- ════════════════════════════════════════════════════════════\n";
+	prodSafeSQL += "-- ✅ End of Production Safe Update\n";
+	prodSafeSQL += "-- ════════════════════════════════════════════════════════════\n";
 
--- 3. Create update_at Trigger for Transaction Presets
-DROP TRIGGER IF EXISTS update_transaction_presets_updated_at ON public.transaction_presets;
-CREATE TRIGGER update_transaction_presets_updated_at BEFORE UPDATE ON public.transaction_presets FOR EACH ROW EXECUTE FUNCTION public.update_updated_at_column();
-
--- 4. Create index for performance
-CREATE INDEX IF NOT EXISTS idx_transaction_presets_user ON public.transaction_presets(user_id);
-
--- 5. Grant Permissions to Authenticated Users
-GRANT ALL ON public.transaction_presets TO authenticated;
-
--- 6. Clean up Duplicate Foreign Key Constraint on transactions
-ALTER TABLE public.transactions DROP CONSTRAINT IF EXISTS transactions_linked_account_transaction_id_fkey;
-
--- 7. Remove Stale expected income column from users
-ALTER TABLE public.users DROP COLUMN IF EXISTS default_expected_income;
-
--- 8. Clean up outdated constraint on recurring expenses
-ALTER TABLE public.recurring_expenses DROP CONSTRAINT IF EXISTS recurring_expenses_billing_period_check;
-`;
 	fs.writeFileSync(prodSafePath, prodSafeSQL, "utf8");
+
 
 	console.log("✅ Migration file created successfully!\n");
 	console.log("📄 File location:");

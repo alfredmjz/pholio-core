@@ -34,11 +34,18 @@ export function BillCard({ bill, onDelete, onUpdate, timezone }: BillCardProps) 
 	const isDueToday = todayDate.getTime() === dueDate.getTime();
 
 	const handleDelete = async () => {
+		const confirmDelete = confirm(
+			"Are you sure you want to delete this bill? Past transactions will not be deleted, but future recurring payments will stop."
+		);
+		if (!confirmDelete) return;
+
 		setIsDeleting(true);
 		try {
 			const success = await deleteRecurringExpense(bill.id);
 			if (success) {
-				toast.success("Bill deleted");
+				toast.success("Bill deleted", {
+					description: "Previously recorded transactions have been kept.",
+				});
 				onDelete?.(bill.id);
 			} else {
 				toast.error("Delete Failed");

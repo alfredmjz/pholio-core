@@ -47,7 +47,9 @@ export function SubscriptionCard({ subscription, onDelete, onUpdate }: Subscript
 				setIsActive(!checked);
 				toast.error("Status Update Failed");
 			} else {
-				toast.success("Subscription paused");
+				toast.success("Subscription paused", {
+					description: "Future payments will stop, and past transactions are kept.",
+				});
 			}
 		} catch (err) {
 			setIsActive(!checked);
@@ -58,11 +60,18 @@ export function SubscriptionCard({ subscription, onDelete, onUpdate }: Subscript
 	};
 
 	const handleDelete = async () => {
+		const confirmDelete = confirm(
+			"Are you sure you want to delete this subscription? Past transactions will not be deleted, but future recurring payments will stop."
+		);
+		if (!confirmDelete) return;
+
 		setIsDeleting(true);
 		try {
 			const success = await deleteRecurringExpense(subscription.id);
 			if (success) {
-				toast.success("Subscription deleted");
+				toast.success("Subscription deleted", {
+					description: "Previously recorded transactions have been kept.",
+				});
 				onDelete?.(subscription.id);
 			} else {
 				toast.error("Delete Failed");

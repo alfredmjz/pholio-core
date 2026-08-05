@@ -128,6 +128,8 @@ CREATE TABLE IF NOT EXISTS public.account_transactions (
     description TEXT NOT NULL,
     transaction_date DATE NOT NULL DEFAULT CURRENT_DATE,
     linked_allocation_transaction_id UUID REFERENCES public.transactions(id) ON DELETE SET NULL,
+    recurring_transfer_id UUID REFERENCES public.recurring_transfers(id) ON DELETE SET NULL,
+    linked_transfer_transaction_id UUID REFERENCES public.account_transactions(id) ON DELETE SET NULL,
     created_at TIMESTAMPTZ DEFAULT NOW()
 );
 
@@ -147,6 +149,8 @@ ALTER TABLE public.transactions ADD CONSTRAINT fk_linked_account_tx FOREIGN KEY 
 CREATE INDEX IF NOT EXISTS transactions_date_idx ON public.transactions(transaction_date DESC);
 CREATE INDEX IF NOT EXISTS idx_account_txn_account ON public.account_transactions(account_id, transaction_date DESC);
 CREATE INDEX IF NOT EXISTS idx_transactions_recurring_expense_id ON public.transactions(recurring_expense_id);
+CREATE INDEX IF NOT EXISTS idx_account_transactions_recurring_transfer_id ON public.account_transactions(recurring_transfer_id);
+CREATE INDEX IF NOT EXISTS idx_account_transactions_linked_transfer_transaction_id ON public.account_transactions(linked_transfer_transaction_id);
 
 -- Grants
 GRANT ALL ON public.allocations TO authenticated;

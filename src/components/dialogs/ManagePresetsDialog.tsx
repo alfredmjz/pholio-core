@@ -89,7 +89,19 @@ export function ManagePresetsDialog({
 		setAmount(preset.amount.toString());
 		setType(preset.type);
 		setTransactionType(preset.transaction_type);
-		setCategoryId(preset.category_id || VIRTUAL_UNCATEGORIZED_ID);
+
+		// Resolve category ID by name if it's from another month
+		let resolvedCategoryId = preset.category_id || VIRTUAL_UNCATEGORIZED_ID;
+		if (preset.category_id && preset.category?.name) {
+			const matchingCategory = categories.find(
+				(c) => c.name.toLowerCase() === preset.category?.name?.toLowerCase()
+			);
+			if (matchingCategory) {
+				resolvedCategoryId = matchingCategory.id;
+			}
+		}
+
+		setCategoryId(resolvedCategoryId);
 		setAccountId(preset.account_id || "none");
 	};
 

@@ -16,7 +16,6 @@ import { Logger } from "@/lib/logger";
 import { parseLocalDate, calculateNextDueDate, getTodayDateString, formatDateString, stepDate } from "@/lib/date-utils";
 import { getAllocationSettings, getTimezone } from "@/app/settings/actions";
 
-
 export async function getAllocation(year: number, month: number): Promise<Allocation | null> {
 	// Handle sample data mode
 	if (process.env.NEXT_PUBLIC_USE_SAMPLE_DATA === "true") {
@@ -105,21 +104,18 @@ export async function getOrCreateAllocation(
 	return newAllocation as Allocation;
 }
 
-export async function autoCreateAllocationWithDefaults(
-	year: number,
-	month: number
-): Promise<Allocation | null> {
+export async function autoCreateAllocationWithDefaults(year: number, month: number): Promise<Allocation | null> {
 	const settings = await getAllocationSettings();
 	const income = 0;
-	
+
 	const allocation = await getOrCreateAllocation(year, month, income);
 	if (!allocation) return null;
-	
+
 	// Apply default template if available
 	if (settings.defaultTemplateId) {
 		await applyTemplateToAllocation(settings.defaultTemplateId, allocation.id);
 	}
-	
+
 	return allocation;
 }
 
@@ -309,14 +305,24 @@ async function syncRecurringExpenses(
 			if (error) {
 				Logger.warn("Failed to delete empty Subscriptions category", { error, categoryId: subsCategory.id });
 
+				// Ensure budget cap is 0 at least
 				if (Number(subsCategory.budget_cap) !== 0) {
 					await supabase.from("allocation_categories").update({ budget_cap: 0 }).eq("id", subsCategory.id);
 				}
 			}
 		} else {
+			// If there are existing transactions for this subscription category, preserve the existing budget
+			// so that historical transactions don't show as "over budget" after a subscription is paused.
 			categoryIdMap["subscription"] = subsCategory.id;
-			if (Number(subsCategory.budget_cap) !== 0) {
-				await supabase.from("allocation_categories").update({ budget_cap: 0 }).eq("id", subsCategory.id);
+			if (hasSubscriptions) {
+				// If there are active subscriptions, ensure the budget cap reflects the expected total (handled above when totalSubscriptions > 0).
+			} else {
+				// No active subscriptions: only zero the budget cap if there are no transactions present.
+				if (!txCount || txCount === 0) {
+					if (Number(subsCategory.budget_cap) !== 0) {
+						await supabase.from("allocation_categories").update({ budget_cap: 0 }).eq("id", subsCategory.id);
+					}
+				}
 			}
 		}
 	}
@@ -1106,7 +1112,7 @@ export async function createTemplateFromAllocation(
 				name: templateName,
 				description,
 			},
-			{ onConflict: 'user_id, name' }
+			{ onConflict: "user_id, name" }
 		)
 		.select()
 		.single();

@@ -141,7 +141,7 @@ async function syncRecurringExpenses(
 
 	const { data: existingTransactions } = await supabase
 		.from("transactions")
-		.select("id, recurring_expense_id, transaction_date")
+		.select("id, recurring_expense_id, transaction_date, amount, name")
 		.eq("user_id", userId)
 		.gte("transaction_date", startDate)
 		.lte("transaction_date", endDate)

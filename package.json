@@ -1,6 +1,6 @@
 {
 	"name": "pholio",
-	"version": "1.11.1",
+	"version": "1.11.2",
 	"private": true,
 	"type": "module",
 	"scripts": {
@@ -14,7 +14,7 @@
 	"devDependencies": {
 		"@prettier/plugin-xml": "^3.4.2",
 		"@semantic-release/exec": "^7.1.0",
-		"@semantic-release/git": "^10.0.1",
-		"semantic-release": "^25.0.7"
+		"@semantic-release/git": "^11.0.1",
+		"semantic-release": "^25.0.9"
 	}
 }

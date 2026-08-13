@@ -2,7 +2,7 @@
 
 import { RecurringExpense, toggleSubscription, deleteRecurringExpense } from "../actions";
 import { Switch } from "@/components/ui/switch";
-import { MoreVertical } from "lucide-react";
+import { MoreVertical, PauseCircle } from "lucide-react";
 import { cn } from "@/lib/utils";
 import { formatShortDate, parseLocalDate, formatFrequency } from "@/lib/date-utils";
 import { useState } from "react";
@@ -47,7 +47,9 @@ export function SubscriptionCard({ subscription, onDelete, onUpdate }: Subscript
 				setIsActive(!checked);
 				toast.error("Status Update Failed");
 			} else {
-				toast.success("Subscription paused");
+				toast.success("Subscription paused", {
+					description: "Future payments will stop, and past transactions are kept.",
+				});
 			}
 		} catch (err) {
 			setIsActive(!checked);
@@ -58,11 +60,18 @@ export function SubscriptionCard({ subscription, onDelete, onUpdate }: Subscript
 	};
 
 	const handleDelete = async () => {
+		const confirmDelete = confirm(
+			"Are you sure you want to delete this subscription? Past transactions will not be deleted, but future recurring payments will stop."
+		);
+		if (!confirmDelete) return;
+
 		setIsDeleting(true);
 		try {
 			const success = await deleteRecurringExpense(subscription.id);
 			if (success) {
-				toast.success("Subscription deleted");
+				toast.success("Subscription deleted", {
+					description: "Previously recorded transactions have been kept.",
+				});
 				onDelete?.(subscription.id);
 			} else {
 				toast.error("Delete Failed");
@@ -107,6 +116,12 @@ export function SubscriptionCard({ subscription, onDelete, onUpdate }: Subscript
 								<span>•</span>
 								<span className="flex items-center gap-1">{nextDueDate}</span>
 							</div>
+							{!isActive && (
+								<div className="flex items-center gap-1 text-amber-600 dark:text-amber-400 text-[10px] font-semibold uppercase tracking-wide mt-0.5">
+									<PauseCircle className="h-3 w-3" />
+									Paused — no future payments
+								</div>
+							)}
 						</div>
 					</div>
 

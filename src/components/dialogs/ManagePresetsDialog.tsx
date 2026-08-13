@@ -51,6 +51,7 @@ export function ManagePresetsDialog({
 	const [type, setType] = useState<"income" | "expense">("expense");
 	const [transactionType, setTransactionType] = useState<string>("withdrawal");
 	const [categoryId, setCategoryId] = useState<string>(VIRTUAL_UNCATEGORIZED_ID);
+	const [extraCategory, setExtraCategory] = useState<{ id: string; name: string } | null>(null);
 	const [accountId, setAccountId] = useState<string>("none");
 
 	const loadPresets = async () => {
@@ -78,6 +79,7 @@ export function ManagePresetsDialog({
 		setType("expense");
 		setTransactionType("withdrawal");
 		setCategoryId(VIRTUAL_UNCATEGORIZED_ID);
+		setExtraCategory(null);
 		setAccountId("none");
 	};
 
@@ -89,7 +91,24 @@ export function ManagePresetsDialog({
 		setAmount(preset.amount.toString());
 		setType(preset.type);
 		setTransactionType(preset.transaction_type);
-		setCategoryId(preset.category_id || VIRTUAL_UNCATEGORIZED_ID);
+
+		// Resolve category ID by name if it's from another month
+		let resolvedCategoryId = preset.category_id || VIRTUAL_UNCATEGORIZED_ID;
+		setExtraCategory(null);
+		
+		if (preset.category_id && preset.category?.name) {
+			const matchingCategory = categories.find(
+				(c) => c.name.toLowerCase() === preset.category?.name?.toLowerCase()
+			);
+			if (matchingCategory) {
+				resolvedCategoryId = matchingCategory.id;
+			} else {
+				// Category is not in current month's list, keep the old ID and show it
+				setExtraCategory({ id: preset.category_id, name: preset.category.name });
+			}
+		}
+
+		setCategoryId(resolvedCategoryId);
 		setAccountId(preset.account_id || "none");
 	};
 
@@ -256,6 +275,9 @@ export function ManagePresetsDialog({
 								<SelectTrigger><SelectValue placeholder="Uncategorized" /></SelectTrigger>
 								<SelectContent>
 									<SelectItem value={VIRTUAL_UNCATEGORIZED_ID}>Uncategorized</SelectItem>
+									{extraCategory && (
+										<SelectItem value={extraCategory.id}>{extraCategory.name} (Other Month)</SelectItem>
+									)}
 									{categories
 										.filter(c => c.id !== VIRTUAL_UNCATEGORIZED_ID && c.name.toLowerCase() !== "uncategorized")
 										.map(c => <SelectItem key={c.id} value={c.id}>{c.name}</SelectItem>)}

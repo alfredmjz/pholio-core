@@ -60,6 +60,7 @@ export interface Transaction {
 	category_name?: string;
 
 	recurring_expense_id?: string | null;
+	is_recurring_stopped?: boolean;
 }
 
 export interface AllocationTemplate {

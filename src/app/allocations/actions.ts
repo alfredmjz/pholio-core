@@ -13,9 +13,8 @@ import type {
 } from "./types";
 import { sampleAllocationSummary, sampleTransactions } from "@/mock-data/allocations";
 import { Logger } from "@/lib/logger";
-import { parseLocalDate, calculateNextDueDate, getTodayDateString, formatDateString } from "@/lib/date-utils";
+import { parseLocalDate, calculateNextDueDate, getTodayDateString, formatDateString, stepDate } from "@/lib/date-utils";
 import { getAllocationSettings, getTimezone } from "@/app/settings/actions";
-
 
 export async function getAllocation(year: number, month: number): Promise<Allocation | null> {
 	// Handle sample data mode
@@ -105,21 +104,18 @@ export async function getOrCreateAllocation(
 	return newAllocation as Allocation;
 }
 
-export async function autoCreateAllocationWithDefaults(
-	year: number,
-	month: number
-): Promise<Allocation | null> {
+export async function autoCreateAllocationWithDefaults(year: number, month: number): Promise<Allocation | null> {
 	const settings = await getAllocationSettings();
 	const income = 0;
-	
+
 	const allocation = await getOrCreateAllocation(year, month, income);
 	if (!allocation) return null;
-	
+
 	// Apply default template if available
 	if (settings.defaultTemplateId) {
 		await applyTemplateToAllocation(settings.defaultTemplateId, allocation.id);
 	}
-	
+
 	return allocation;
 }
 
@@ -141,7 +137,7 @@ async function syncRecurringExpenses(
 
 	const { data: existingTransactions } = await supabase
 		.from("transactions")
-		.select("id, recurring_expense_id, transaction_date")
+		.select("id, recurring_expense_id, transaction_date, amount, name")
 		.eq("user_id", userId)
 		.gte("transaction_date", startDate)
 		.lte("transaction_date", endDate)
@@ -149,8 +145,8 @@ async function syncRecurringExpenses(
 
 	const existingRecurringIds = new Set((existingTransactions || []).map((t) => t.recurring_expense_id));
 
-	const hasBills = allRecurring.some((r) => r.category === "bill");
-	const hasSubscriptions = allRecurring.some((r) => r.category === "subscription");
+	const hasBills = allRecurring.some((r) => r.category === "bill" && r.is_active);
+	const hasSubscriptions = allRecurring.some((r) => r.category === "subscription" && r.is_active);
 
 	let totalBills = 0;
 	let totalSubscriptions = 0;
@@ -158,50 +154,42 @@ async function syncRecurringExpenses(
 	const applicableExpenses: Array<{ expense: (typeof allRecurring)[0]; dates: Date[] }> = [];
 
 	for (const expense of allRecurring) {
+		if (!expense.is_active) continue;
+
 		const occurrences: Date[] = [];
 		const nextDue = parseLocalDate(expense.next_due_date);
 		const billingPeriod = expense.billing_period;
 
-		const isInMonth = (d: Date) => d.getMonth() + 1 === targetMonth && d.getFullYear() === targetYear;
+		let normalizedFreq = billingPeriod;
+		if (billingPeriod === "monthly") normalizedFreq = "1:months";
+		else if (billingPeriod === "yearly") normalizedFreq = "1:years";
+		else if (billingPeriod === "weekly") normalizedFreq = "1:weeks";
+		else if (billingPeriod === "biweekly") normalizedFreq = "2:weeks";
 
-		if (billingPeriod === "monthly") {
-			// Use the day of month from next_due_date
-			const day = nextDue.getDate();
-			const projected = new Date(targetYear, targetMonth - 1, day);
+		const [valueStr, unit] = normalizedFreq.includes(":") ? normalizedFreq.split(":") : ["1", normalizedFreq];
+		const value = parseInt(valueStr) || 1;
 
-			if (projected.getMonth() !== targetMonth - 1) {
-				projected.setDate(0);
-			}
+		let current = new Date(nextDue);
+		current.setHours(0, 0, 0, 0);
 
-			if (isInMonth(projected)) occurrences.push(projected);
-		} else if (billingPeriod === "yearly") {
-			if (nextDue.getMonth() + 1 === targetMonth) {
-				const projected = new Date(targetYear, nextDue.getMonth(), nextDue.getDate());
-				if (isInMonth(projected)) occurrences.push(projected);
-			}
-		} else if (billingPeriod === "weekly" || billingPeriod === "biweekly") {
-			const periodDays = billingPeriod === "weekly" ? 7 : 14;
-			const msPerDay = 1000 * 60 * 60 * 24;
-			const periodMs = periodDays * msPerDay;
+		const monthStart = new Date(targetYear, targetMonth - 1, 1);
+		const monthEnd = new Date(targetYear, targetMonth, 0);
 
-			let current = new Date(nextDue);
+		// Step backward until current is before the target month
+		while (current >= monthStart) {
+			const prev = stepDate(current, value, unit, -1);
+			if (prev.getTime() === current.getTime()) break;
+			current = prev;
+		}
 
-			current.setHours(0, 0, 0, 0);
-			const startMs = parseLocalDate(startDate).getTime();
-			const endMs = parseLocalDate(endDate).getTime();
-
-			while (current.getTime() > endMs) {
-				current.setDate(current.getDate() - periodDays);
-			}
-
-			while (current.getTime() < startMs) {
-				current.setDate(current.getDate() + periodDays);
-			}
-
-			while (current.getTime() <= endMs && current.getTime() >= startMs) {
+		// Step forward and collect all occurrences within the target month
+		while (current <= monthEnd) {
+			if (current >= monthStart) {
 				occurrences.push(new Date(current));
-				current.setDate(current.getDate() + periodDays);
 			}
+			const next = stepDate(current, value, unit, 1);
+			if (next.getTime() === current.getTime()) break;
+			current = next;
 		}
 
 		if (occurrences.length > 0) {
@@ -252,14 +240,13 @@ async function syncRecurringExpenses(
 			categoryIdMap["bill"] = billsCategory.id;
 		}
 	} else if (billsCategory && billsCategory.is_recurring) {
-		if (!hasBills) {
-			const { error: unlinkError } = await supabase
-				.from("transactions")
-				.update({ category_id: null })
-				.eq("category_id", billsCategory.id);
-			if (unlinkError)
-				Logger.warn("Failed to unlink transactions before deleting Bills category", { error: unlinkError });
+		// Check if there are existing transactions in this allocation linked to billsCategory
+		const { count: txCount } = await supabase
+			.from("transactions")
+			.select("id", { count: "exact", head: true })
+			.eq("category_id", billsCategory.id);
 
+		if (!hasBills && (!txCount || txCount === 0)) {
 			const { error } = await supabase.from("allocation_categories").delete().eq("id", billsCategory.id);
 			if (error) {
 				Logger.warn("Failed to delete empty Bills category", { error, categoryId: billsCategory.id });
@@ -270,6 +257,7 @@ async function syncRecurringExpenses(
 				}
 			}
 		} else {
+			categoryIdMap["bill"] = billsCategory.id;
 			if (Number(billsCategory.budget_cap) !== 0) {
 				await supabase.from("allocation_categories").update({ budget_cap: 0 }).eq("id", billsCategory.id);
 			}
@@ -306,20 +294,35 @@ async function syncRecurringExpenses(
 			categoryIdMap["subscription"] = subsCategory.id;
 		}
 	} else if (subsCategory && subsCategory.is_recurring) {
-		if (!hasSubscriptions) {
-			await supabase.from("transactions").update({ category_id: null }).eq("category_id", subsCategory.id);
+		// Check if there are existing transactions in this allocation linked to subsCategory
+		const { count: txCount } = await supabase
+			.from("transactions")
+			.select("id", { count: "exact", head: true })
+			.eq("category_id", subsCategory.id);
 
+		if (!hasSubscriptions && (!txCount || txCount === 0)) {
 			const { error } = await supabase.from("allocation_categories").delete().eq("id", subsCategory.id);
 			if (error) {
 				Logger.warn("Failed to delete empty Subscriptions category", { error, categoryId: subsCategory.id });
 
+				// Ensure budget cap is 0 at least
 				if (Number(subsCategory.budget_cap) !== 0) {
 					await supabase.from("allocation_categories").update({ budget_cap: 0 }).eq("id", subsCategory.id);
 				}
 			}
 		} else {
-			if (Number(subsCategory.budget_cap) !== 0) {
-				await supabase.from("allocation_categories").update({ budget_cap: 0 }).eq("id", subsCategory.id);
+			// If there are existing transactions for this subscription category, preserve the existing budget
+			// so that historical transactions don't show as "over budget" after a subscription is paused.
+			categoryIdMap["subscription"] = subsCategory.id;
+			if (hasSubscriptions) {
+				// If there are active subscriptions, ensure the budget cap reflects the expected total (handled above when totalSubscriptions > 0).
+			} else {
+				// No active subscriptions: only zero the budget cap if there are no transactions present.
+				if (!txCount || txCount === 0) {
+					if (Number(subsCategory.budget_cap) !== 0) {
+						await supabase.from("allocation_categories").update({ budget_cap: 0 }).eq("id", subsCategory.id);
+					}
+				}
 			}
 		}
 	}
@@ -335,10 +338,16 @@ async function syncRecurringExpenses(
 		notes: string;
 	}> = [];
 
-	const existingTransactionKeys = new Set(
+	const transactionsToUpdate: Array<{
+		id: string;
+		amount: number;
+		name: string;
+	}> = [];
+
+	const existingTransactionMap = new Map(
 		(existingTransactions || []).map((t) => {
 			const dateStr = t.transaction_date ? t.transaction_date.split("T")[0] : "";
-			return `${t.recurring_expense_id}:${dateStr}`;
+			return [`${t.recurring_expense_id}:${dateStr}`, t];
 		})
 	);
 
@@ -350,7 +359,21 @@ async function syncRecurringExpenses(
 			const dateStr = formatDateString(dateObj);
 			const key = `${expense.id}:${dateStr}`;
 
-			if (existingTransactionKeys.has(key)) continue;
+			const expectedAmount = -Math.abs(Number(expense.amount));
+			const expectedName = expense.name;
+			const categoryId = categoryIdMap[expense.category] || null;
+
+			const existingTx = existingTransactionMap.get(key);
+			if (existingTx) {
+				if (Number(existingTx.amount) !== expectedAmount || existingTx.name !== expectedName) {
+					transactionsToUpdate.push({
+						id: existingTx.id,
+						amount: expectedAmount,
+						name: expectedName,
+					});
+				}
+				continue;
+			}
 
 			if (!expense.is_active) continue;
 
@@ -363,12 +386,10 @@ async function syncRecurringExpenses(
 
 			if (targetDate > todayLocal) continue;
 
-			const categoryId = categoryIdMap[expense.category] || null;
-
 			transactionsToCreate.push({
 				user_id: userId,
-				name: expense.name,
-				amount: -Math.abs(Number(expense.amount)),
+				name: expectedName,
+				amount: expectedAmount,
 				transaction_date: dateStr,
 				category_id: categoryId,
 				source: "recurring",
@@ -382,6 +403,19 @@ async function syncRecurringExpenses(
 		const { error } = await supabase.from("transactions").insert(transactionsToCreate);
 		if (error) {
 			Logger.error("Error creating recurring transactions", { error });
+		}
+	}
+
+	if (transactionsToUpdate.length > 0) {
+		// Supabase RPC or batch update might be better, but loop is fine for a few updates
+		for (const tx of transactionsToUpdate) {
+			const { error } = await supabase
+				.from("transactions")
+				.update({ amount: tx.amount, name: tx.name })
+				.eq("id", tx.id);
+			if (error) {
+				Logger.error("Error updating recurring transaction amount", { error, txId: tx.id });
+			}
 		}
 	}
 
@@ -864,6 +898,7 @@ export async function getTransactionsForMonth(year: number, month: number): Prom
 			`
 			*,
 			category:allocation_categories(name),
+			recurring_expense:recurring_expenses(id, is_active),
 			linked_account_transaction:account_transactions!fk_linked_account_tx(
 				id,
 				account_id,
@@ -881,13 +916,21 @@ export async function getTransactionsForMonth(year: number, month: number): Prom
 		return [];
 	}
 
-	// Flatten the category name into the transaction object
-	return (data as any[]).map((t) => ({
-		...t,
-		category_name: t.category?.name,
-		category: undefined,
-		account_id: t.linked_account_transaction?.account_id,
-	})) as Transaction[];
+	// Flatten the category name and calculate recurring stopped status
+	return (data as any[]).map((t) => {
+		const isRecurringStopped =
+			(t.recurring_expense && t.recurring_expense.is_active === false) ||
+			(t.source === "recurring" && !t.recurring_expense_id);
+
+		return {
+			...t,
+			category_name: t.category?.name,
+			category: undefined,
+			recurring_expense: undefined,
+			is_recurring_stopped: isRecurringStopped,
+			account_id: t.linked_account_transaction?.account_id,
+		};
+	}) as Transaction[];
 }
 
 export async function createTransaction(
@@ -1069,7 +1112,7 @@ export async function createTemplateFromAllocation(
 				name: templateName,
 				description,
 			},
-			{ onConflict: 'user_id, name' }
+			{ onConflict: "user_id, name" }
 		)
 		.select()
 		.single();

@@ -230,15 +230,8 @@ export async function updateRecurringExpense(id: string, updates: Partial<Recurr
 export async function deleteRecurringExpense(id: string): Promise<boolean> {
 	const supabase = await createClient();
 
-	// First, delete all transactions linked to this recurring expense
-	const { error: txError } = await supabase.from("transactions").delete().eq("recurring_expense_id", id);
-
-	if (txError) {
-		Logger.error("Error deleting linked transactions", { error: txError });
-		return false;
-	}
-
-	// Then delete the recurring expense itself
+	// Delete the recurring expense itself.
+	// Previously recorded transactions are preserved because of ON DELETE SET NULL constraint.
 	const { error } = await supabase.from("recurring_expenses").delete().eq("id", id);
 
 	if (error) {

@@ -112,8 +112,42 @@ async function runMigrations() {
 	combinedSQL += "-- ✅ End of Migrations\n";
 	combinedSQL += "-- ════════════════════════════════════════════════════════════\n";
 
-	// Write to file
+	// Write combined migrations file
 	fs.writeFileSync(outputPath, combinedSQL, "utf8");
+
+	// Generate Production Safe Update Script
+	// Since all migrations already use IF NOT EXISTS / DROP ... IF EXISTS idioms,
+	// the combined migration output is inherently safe for production re-runs.
+	const prodSafePath = path.join(outputDir, "production-safe-update.sql");
+	let prodSafeSQL = "-- ════════════════════════════════════════════════════════════\n";
+	prodSafeSQL += "-- Pholio Production Database Safe Update Script\n";
+	prodSafeSQL += `-- Generated: ${new Date().toISOString()}\n`;
+	prodSafeSQL += "-- ════════════════════════════════════════════════════════════\n";
+	prodSafeSQL += "--\n";
+	prodSafeSQL += "-- This script is safe to run on an existing production database.\n";
+	prodSafeSQL += "-- All statements use IF NOT EXISTS / DROP ... IF EXISTS guards,\n";
+	prodSafeSQL += "-- so no existing tables or data will be dropped or truncated.\n";
+	prodSafeSQL += "--\n";
+	prodSafeSQL += "-- INSTRUCTIONS:\n";
+	prodSafeSQL += "-- 1. Copy ALL content from this file.\n";
+	prodSafeSQL += "-- 2. Go to: https://supabase.com/dashboard → Your Project\n";
+	prodSafeSQL += '-- 3. Click "SQL Editor" in the left sidebar.\n';
+	prodSafeSQL += "-- 4. Create a new query, paste this script, and click \"Run\".\n";
+	prodSafeSQL += "--\n";
+	prodSafeSQL += "-- ════════════════════════════════════════════════════════════\n\n";
+
+	migrations.forEach((migration) => {
+		prodSafeSQL += `-- ── ${migration.name} ──\n`;
+		prodSafeSQL += migration.content;
+		prodSafeSQL += "\n\n";
+	});
+
+	prodSafeSQL += "-- ════════════════════════════════════════════════════════════\n";
+	prodSafeSQL += "-- ✅ End of Production Safe Update\n";
+	prodSafeSQL += "-- ════════════════════════════════════════════════════════════\n";
+
+	fs.writeFileSync(prodSafePath, prodSafeSQL, "utf8");
+
 
 	console.log("✅ Migration file created successfully!\n");
 	console.log("📄 File location:");

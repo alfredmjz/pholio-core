@@ -206,6 +206,39 @@ export function calculateNextDueDate(currentDue: Date, frequency: string): Date 
 }
 
 /**
+ * Step a Date object forward or backward by a given frequency value and unit.
+ *
+ * @param date - The starting Date object
+ * @param value - The step value (e.g. 1, 2)
+ * @param unit - The unit of time (e.g. 'days', 'weeks', 'months', 'years')
+ * @param direction - 1 for forward, -1 for backward
+ * @returns A new Date object
+ */
+export function stepDate(date: Date, value: number, unit: string, direction: 1 | -1): Date {
+	const result = new Date(date);
+	const step = value * direction;
+	switch (unit) {
+		case "days":
+		case "daily":
+			result.setDate(result.getDate() + step);
+			break;
+		case "weeks":
+		case "weekly":
+			result.setDate(result.getDate() + step * 7);
+			break;
+		case "months":
+		case "monthly":
+			result.setMonth(result.getMonth() + step);
+			break;
+		case "years":
+		case "yearly":
+			result.setFullYear(result.getFullYear() + step);
+			break;
+	}
+	return result;
+}
+
+/**
  * Format a Date object as a YYYY-MM-DD string using LOCAL time components.
  * This avoids timezone drift from toISOString() which uses UTC.
  *

@@ -1,7 +1,7 @@
 "use client";
 
 import { useState, useMemo } from "react";
-import { Search, Filter, X, ArrowUpDown, ChevronUp, ChevronDown } from "lucide-react";
+import { Search, Filter, X, ArrowUpDown, ChevronUp, ChevronDown, Ban } from "lucide-react";
 import { Card } from "@/components/ui/card";
 import { Input } from "@/components/ui/input";
 import { Button } from "@/components/ui/button";
@@ -322,7 +322,18 @@ export function TransactionLedger({
 												</span>
 											</td>
 											<td className="px-4 py-3">
-												<div className="text-sm font-medium text-primary">{transaction.name}</div>
+												<div className="flex items-center gap-2 flex-wrap">
+													<span className="text-sm font-medium text-primary">{transaction.name}</span>
+													{transaction.is_recurring_stopped && (
+														<Badge
+															variant="outline"
+															className="text-[10px] font-semibold text-amber-600 dark:text-amber-400 bg-amber-500/10 border-amber-500/30 gap-1 px-1.5 py-0"
+															title="Recurring has been stopped/paused — this is the last recorded transaction."
+														>
+															<Ban className="h-2.5 w-2.5" /> Final / Stopped
+														</Badge>
+													)}
+												</div>
 												{transaction.notes && (
 													<div className="text-xs text-primary truncate max-w-[200px]">{transaction.notes}</div>
 												)}

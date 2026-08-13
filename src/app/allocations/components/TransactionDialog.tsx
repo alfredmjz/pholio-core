@@ -10,7 +10,7 @@ import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@
 import { Textarea } from "@/components/ui/textarea";
 import { DatePicker } from "@/components/ui/date-picker";
 
-import { Loader2, Info, TrendingDown, Trash2 } from "lucide-react";
+import { Loader2, Info, TrendingDown, Trash2, Ban } from "lucide-react";
 import { toast } from "sonner";
 import {
 	updateUnifiedTransaction,
@@ -180,6 +180,18 @@ export function TransactionDialog({
 			showCloseButton={false}
 		>
 			<form onSubmit={handleSubmit} className="flex flex-col gap-6">
+				{transaction?.is_recurring_stopped && (
+					<div className="flex items-start gap-2.5 p-3 rounded-lg bg-amber-500/10 border border-amber-500/30 text-amber-800 dark:text-amber-300 text-xs">
+						<Ban className="h-4 w-4 text-amber-600 dark:text-amber-400 shrink-0 mt-0.5" />
+						<div>
+							<span className="font-semibold">Recurring Stopped — Final Record</span>
+							<p className="text-amber-700/90 dark:text-amber-400/90 mt-0.5">
+								The recurring bill/subscription for this transaction was paused or deleted. Future transactions will not be generated automatically.
+							</p>
+						</div>
+					</div>
+				)}
+
 				<FormSection icon={<TrendingDown />} title="Transaction Type" variant="subtle">
 					<CardSelector
 						options={[

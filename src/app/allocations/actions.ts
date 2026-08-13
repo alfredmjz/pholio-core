@@ -244,14 +244,13 @@ async function syncRecurringExpenses(
 			categoryIdMap["bill"] = billsCategory.id;
 		}
 	} else if (billsCategory && billsCategory.is_recurring) {
-		if (!hasBills) {
-			const { error: unlinkError } = await supabase
-				.from("transactions")
-				.update({ category_id: null })
-				.eq("category_id", billsCategory.id);
-			if (unlinkError)
-				Logger.warn("Failed to unlink transactions before deleting Bills category", { error: unlinkError });
+		// Check if there are existing transactions in this allocation linked to billsCategory
+		const { count: txCount } = await supabase
+			.from("transactions")
+			.select("id", { count: "exact", head: true })
+			.eq("category_id", billsCategory.id);
 
+		if (!hasBills && (!txCount || txCount === 0)) {
 			const { error } = await supabase.from("allocation_categories").delete().eq("id", billsCategory.id);
 			if (error) {
 				Logger.warn("Failed to delete empty Bills category", { error, categoryId: billsCategory.id });
@@ -262,6 +261,7 @@ async function syncRecurringExpenses(
 				}
 			}
 		} else {
+			categoryIdMap["bill"] = billsCategory.id;
 			if (Number(billsCategory.budget_cap) !== 0) {
 				await supabase.from("allocation_categories").update({ budget_cap: 0 }).eq("id", billsCategory.id);
 			}
@@ -298,9 +298,13 @@ async function syncRecurringExpenses(
 			categoryIdMap["subscription"] = subsCategory.id;
 		}
 	} else if (subsCategory && subsCategory.is_recurring) {
-		if (!hasSubscriptions) {
-			await supabase.from("transactions").update({ category_id: null }).eq("category_id", subsCategory.id);
+		// Check if there are existing transactions in this allocation linked to subsCategory
+		const { count: txCount } = await supabase
+			.from("transactions")
+			.select("id", { count: "exact", head: true })
+			.eq("category_id", subsCategory.id);
 
+		if (!hasSubscriptions && (!txCount || txCount === 0)) {
 			const { error } = await supabase.from("allocation_categories").delete().eq("id", subsCategory.id);
 			if (error) {
 				Logger.warn("Failed to delete empty Subscriptions category", { error, categoryId: subsCategory.id });
@@ -310,6 +314,7 @@ async function syncRecurringExpenses(
 				}
 			}
 		} else {
+			categoryIdMap["subscription"] = subsCategory.id;
 			if (Number(subsCategory.budget_cap) !== 0) {
 				await supabase.from("allocation_categories").update({ budget_cap: 0 }).eq("id", subsCategory.id);
 			}
@@ -887,6 +892,7 @@ export async function getTransactionsForMonth(year: number, month: number): Prom
 			`
 			*,
 			category:allocation_categories(name),
+			recurring_expense:recurring_expenses(id, is_active),
 			linked_account_transaction:account_transactions!fk_linked_account_tx(
 				id,
 				account_id,
@@ -904,13 +910,21 @@ export async function getTransactionsForMonth(year: number, month: number): Prom
 		return [];
 	}
 
-	// Flatten the category name into the transaction object
-	return (data as any[]).map((t) => ({
-		...t,
-		category_name: t.category?.name,
-		category: undefined,
-		account_id: t.linked_account_transaction?.account_id,
-	})) as Transaction[];
+	// Flatten the category name and calculate recurring stopped status
+	return (data as any[]).map((t) => {
+		const isRecurringStopped =
+			(t.recurring_expense && t.recurring_expense.is_active === false) ||
+			(t.source === "recurring" && !t.recurring_expense_id);
+
+		return {
+			...t,
+			category_name: t.category?.name,
+			category: undefined,
+			recurring_expense: undefined,
+			is_recurring_stopped: isRecurringStopped,
+			account_id: t.linked_account_transaction?.account_id,
+		};
+	}) as Transaction[];
 }
 
 export async function createTransaction(

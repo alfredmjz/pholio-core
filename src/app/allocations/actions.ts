@@ -327,10 +327,16 @@ async function syncRecurringExpenses(
 		notes: string;
 	}> = [];
 
-	const existingTransactionKeys = new Set(
+	const transactionsToUpdate: Array<{
+		id: string;
+		amount: number;
+		name: string;
+	}> = [];
+
+	const existingTransactionMap = new Map(
 		(existingTransactions || []).map((t) => {
 			const dateStr = t.transaction_date ? t.transaction_date.split("T")[0] : "";
-			return `${t.recurring_expense_id}:${dateStr}`;
+			return [`${t.recurring_expense_id}:${dateStr}`, t];
 		})
 	);
 
@@ -342,7 +348,21 @@ async function syncRecurringExpenses(
 			const dateStr = formatDateString(dateObj);
 			const key = `${expense.id}:${dateStr}`;
 
-			if (existingTransactionKeys.has(key)) continue;
+			const expectedAmount = -Math.abs(Number(expense.amount));
+			const expectedName = expense.name;
+			const categoryId = categoryIdMap[expense.category] || null;
+
+			const existingTx = existingTransactionMap.get(key);
+			if (existingTx) {
+				if (Number(existingTx.amount) !== expectedAmount || existingTx.name !== expectedName) {
+					transactionsToUpdate.push({
+						id: existingTx.id,
+						amount: expectedAmount,
+						name: expectedName,
+					});
+				}
+				continue;
+			}
 
 			if (!expense.is_active) continue;
 
@@ -355,12 +375,10 @@ async function syncRecurringExpenses(
 
 			if (targetDate > todayLocal) continue;
 
-			const categoryId = categoryIdMap[expense.category] || null;
-
 			transactionsToCreate.push({
 				user_id: userId,
-				name: expense.name,
-				amount: -Math.abs(Number(expense.amount)),
+				name: expectedName,
+				amount: expectedAmount,
 				transaction_date: dateStr,
 				category_id: categoryId,
 				source: "recurring",
@@ -374,6 +392,19 @@ async function syncRecurringExpenses(
 		const { error } = await supabase.from("transactions").insert(transactionsToCreate);
 		if (error) {
 			Logger.error("Error creating recurring transactions", { error });
+		}
+	}
+
+	if (transactionsToUpdate.length > 0) {
+		// Supabase RPC or batch update might be better, but loop is fine for a few updates
+		for (const tx of transactionsToUpdate) {
+			const { error } = await supabase
+				.from("transactions")
+				.update({ amount: tx.amount, name: tx.name })
+				.eq("id", tx.id);
+			if (error) {
+				Logger.error("Error updating recurring transaction amount", { error, txId: tx.id });
+			}
 		}
 	}
 

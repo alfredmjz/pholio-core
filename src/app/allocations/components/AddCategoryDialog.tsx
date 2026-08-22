@@ -10,6 +10,7 @@ import { Label } from "@/components/ui/label";
 import { CATEGORY_PALETTE, COLOR_NAME_MAP, getNextAvailableColor } from "../utils/colors";
 import { cn } from "@/lib/utils";
 import { AlertCircle } from "lucide-react";
+import { sanitizeDecimalInput } from "@/lib/input-utils";
 
 interface AddCategoryDialogProps {
 	open: boolean;
@@ -144,17 +145,16 @@ export function AddCategoryDialog({
 							<span className="absolute left-3 top-1/2 -translate-y-1/2 text-primary">$</span>
 							<Input
 								id="budget-cap"
-								type="number"
+								type="text"
 								inputMode="decimal"
 								value={budgetCap}
 								onChange={(e) => {
-									setBudgetCap(e.target.value);
-									if (budgetError) validateBudget(e.target.value);
+									const val = sanitizeDecimalInput(e.target.value, 2);
+									setBudgetCap(val);
+									if (budgetError) validateBudget(val);
 								}}
 								onBlur={(e) => validateBudget(e.target.value)}
 								placeholder="0.00"
-								step="0.01"
-								min="0"
 								className={`pl-7 ${budgetError ? "border-error" : ""}`}
 							/>
 						</div>

@@ -7,6 +7,7 @@ import { CheckCircle2, Clock, CircleDashed, TrendingUp, TrendingDown, X, Pencil,
 import { cn } from "@/lib/utils";
 import { toast } from "sonner";
 import { updateExpectedIncome } from "../actions";
+import { sanitizeDecimalInput } from "@/lib/input-utils";
 import type { IncomeVerificationResult } from "../types";
 
 interface BudgetSummaryCardsProps {
@@ -178,13 +179,14 @@ export function BudgetSummaryCards({
 							<div className="flex items-center gap-2" onClick={(e) => e.stopPropagation()}>
 								<span className="text-2xl font-bold text-primary">$</span>
 								<input
-									type="number"
+									type="text"
+									inputMode="decimal"
 									value={editIncomeValue}
-									onChange={(e) => setEditIncomeValue(e.target.value)}
+									onChange={(e) => setEditIncomeValue(sanitizeDecimalInput(e.target.value, 2))}
 									onKeyDown={handleIncomeKeyDown}
 									autoFocus
-									placeholder="0"
-									className="text-3xl font-bold text-primary bg-transparent border-b-2 border-primary outline-none w-full [appearance:textfield] [&::-webkit-outer-spin-button]:appearance-none [&::-webkit-inner-spin-button]:appearance-none"
+									placeholder="0.00"
+									className="text-3xl font-bold text-primary bg-transparent border-b-2 border-primary outline-none w-full"
 									disabled={isUpdating}
 								/>
 								<div className="flex gap-1">

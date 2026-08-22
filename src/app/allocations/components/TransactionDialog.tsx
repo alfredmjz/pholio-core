@@ -24,6 +24,7 @@ import { FormSection } from "@/components/FormSection";
 import { CardSelector } from "@/components/CardSelector";
 import { ProminentAmountInput } from "@/components/ProminentAmountInput";
 import { getTodayDateString } from "@/lib/date-utils";
+import { formatAccountDisplayName, sortAccounts } from "@/lib/account-utils";
 import {
 	AlertDialog,
 	AlertDialogAction,
@@ -265,18 +266,11 @@ export function TransactionDialog({
 							</SelectTrigger>
 							<SelectContent>
 								<SelectItem value="none">No Account</SelectItem>
-								{[...accounts]
-									.sort((a, b) => {
-										const aInst = a.institution || "";
-										const bInst = b.institution || "";
-										if (aInst !== bInst) return aInst.localeCompare(bInst);
-										return a.name.localeCompare(b.name);
-									})
-									.map((acc) => (
-										<SelectItem key={acc.id} value={acc.id}>
-											{acc.institution ? `${acc.institution} - ${acc.name}` : acc.name}
-										</SelectItem>
-									))}
+								{sortAccounts(accounts).map((acc) => (
+									<SelectItem key={acc.id} value={acc.id}>
+										{formatAccountDisplayName(acc)}
+									</SelectItem>
+								))}
 							</SelectContent>
 						</Select>
 					</div>

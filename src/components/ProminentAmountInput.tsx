@@ -4,7 +4,7 @@ import * as React from "react";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
 import { cn } from "@/lib/utils";
-import { validateDecimalInput } from "@/lib/input-utils";
+import { sanitizeDecimalInput } from "@/lib/input-utils";
 
 interface ProminentAmountInputProps {
 	value: string;
@@ -48,10 +48,8 @@ export function ProminentAmountInput({
 					placeholder="0.00"
 					value={value}
 					onChange={(e) => {
-						const inputValue = e.target.value.replace(/[^0-9.]/g, "");
-						if (validateDecimalInput(inputValue)) {
-							onChange(inputValue);
-						}
+						const sanitized = sanitizeDecimalInput(e.target.value, 2);
+						onChange(sanitized);
 					}}
 					className={cn("pl-10 h-10 text-lg tracking-tight", hasError ? "border-error" : "")}
 				/>

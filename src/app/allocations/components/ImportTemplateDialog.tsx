@@ -8,6 +8,7 @@ import { Label } from "@/components/ui/label";
 import { Card } from "@/components/ui/card";
 import { FileText, FolderOpen, Sparkles, ChevronRight, Check } from "lucide-react";
 import { cn } from "@/lib/utils";
+import { sanitizeDecimalInput } from "@/lib/input-utils";
 
 interface ImportTemplateDialogProps {
 	open: boolean;
@@ -252,11 +253,11 @@ export function ImportTemplateDialog({
 							<span className="absolute left-3 top-1/2 -translate-y-1/2 text-primary">$</span>
 							<Input
 								id="expectedIncome"
-								type="number"
+								type="text"
 								inputMode="decimal"
 								placeholder="0.00"
 								value={expectedIncome}
-								onChange={(e) => setExpectedIncome(e.target.value)}
+								onChange={(e) => setExpectedIncome(sanitizeDecimalInput(e.target.value, 2))}
 								className="pl-7 text-lg font-semibold"
 								autoFocus
 							/>

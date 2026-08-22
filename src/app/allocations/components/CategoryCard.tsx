@@ -9,6 +9,7 @@ import { cn } from "@/lib/utils";
 import { updateCategoryBudget, updateCategoryName, deleteCategory, updateCategoryColor } from "../actions";
 import { toast } from "sonner";
 import { getCategoryColor, CATEGORY_PALETTE, COLOR_NAME_MAP } from "../utils/colors";
+import { sanitizeDecimalInput } from "@/lib/input-utils";
 import { DeleteCategoryDialog } from "./DeleteCategoryDialog";
 import type { AllocationCategory } from "../types";
 import { useSortable } from "@dnd-kit/sortable";
@@ -194,10 +195,10 @@ export function CategoryCard({ category, usedColors, usedNames }: CategoryCardPr
 											<span className="text-xs font-semibold">{formatCurrency(actualSpend)}</span>
 											<span className="text-xs text-muted-foreground">/</span>
 											<Input
-												type="number"
+												type="text"
 												inputMode="decimal"
 												value={budgetValue}
-												onChange={(e) => setBudgetValue(e.target.value)}
+												onChange={(e) => setBudgetValue(sanitizeDecimalInput(e.target.value, 2))}
 												onKeyDown={handleKeyDown}
 												className="h-6 w-16 text-xs text-right px-1"
 											/>
@@ -347,10 +348,10 @@ export function CategoryCard({ category, usedColors, usedNames }: CategoryCardPr
 								{isEditing ? (
 									<div className="flex items-center gap-1 justify-end">
 										<Input
-											type="number"
+											type="text"
 											inputMode="decimal"
 											value={budgetValue}
-											onChange={(e) => setBudgetValue(e.target.value)}
+											onChange={(e) => setBudgetValue(sanitizeDecimalInput(e.target.value, 2))}
 											onKeyDown={handleKeyDown}
 											className="h-7 w-20 text-sm font-bold"
 										/>

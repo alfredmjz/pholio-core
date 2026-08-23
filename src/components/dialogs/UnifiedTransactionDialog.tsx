@@ -34,6 +34,7 @@ import { CardSelector } from "@/components/CardSelector";
 import { cn } from "@/lib/utils";
 import { getTodayDateString, parseLocalDate, formatDateString } from "@/lib/date-utils";
 import { VIRTUAL_UNCATEGORIZED_ID } from "@/app/allocations/types";
+import { formatAccountDisplayName, sortAccounts } from "@/lib/account-utils";
 import { ManagePresetsDialog } from "./ManagePresetsDialog";
 
 interface UnifiedTransactionDialogProps {
@@ -483,18 +484,11 @@ export function UnifiedTransactionDialog({
 										</SelectTrigger>
 										<SelectContent>
 											{!accountRequired && <SelectItem value="none">No Account</SelectItem>}
-											{[...accounts]
-												.sort((a, b) => {
-													const aInst = a.institution || "";
-													const bInst = b.institution || "";
-													if (aInst !== bInst) return aInst.localeCompare(bInst);
-													return a.name.localeCompare(b.name);
-												})
-												.map((acc) => (
-													<SelectItem key={acc.id} value={acc.id}>
-														{acc.institution ? `${acc.institution} - ${acc.name}` : acc.name}
-													</SelectItem>
-												))}
+											{sortAccounts(accounts).map((acc) => (
+												<SelectItem key={acc.id} value={acc.id}>
+													{formatAccountDisplayName(acc)}
+												</SelectItem>
+											))}
 										</SelectContent>
 									</Select>
 									{suggestedAccountInfo && <p className="text-xs text-primary">{suggestedAccountInfo}</p>}

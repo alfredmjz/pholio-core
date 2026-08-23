@@ -20,7 +20,7 @@ import { Check, ChevronsUpDown, Plus, Wallet, Info } from "lucide-react";
 import { createAccount, getAccountTypes, createAccountType } from "../actions";
 import type { CreateAccountInput, AccountType, AccountClass, AccountWithType } from "../types";
 import { cn } from "@/lib/utils";
-import { validateDecimalInput } from "@/lib/input-utils";
+import { sanitizeDecimalInput, sanitizeIntegerInput } from "@/lib/input-utils";
 import { FormSection } from "@/components/FormSection";
 import { CardSelector } from "@/components/CardSelector";
 import { ProminentAmountInput } from "@/components/ProminentAmountInput";
@@ -429,12 +429,11 @@ export function AddAccountDialog({ open, onOpenChange, onSuccess }: AddAccountDi
 										<Label htmlFor="payment_due_date">Payment Due Date (1-31)</Label>
 										<Input
 											id="payment_due_date"
-											type="number"
-											min="1"
-											max="31"
+											type="text"
+											inputMode="numeric"
 											placeholder="e.g., 21"
 											value={formData.payment_due_date}
-											onChange={(e) => setFormData({ ...formData, payment_due_date: e.target.value })}
+											onChange={(e) => setFormData({ ...formData, payment_due_date: sanitizeIntegerInput(e.target.value) })}
 											className="h-10"
 										/>
 									</div>
@@ -459,10 +458,11 @@ export function AddAccountDialog({ open, onOpenChange, onSuccess }: AddAccountDi
 										<Label htmlFor="loan_term">Loan Term (Months)</Label>
 										<Input
 											id="loan_term"
-											type="number"
+											type="text"
+											inputMode="numeric"
 											placeholder="e.g., 60"
 											value={formData.loan_term_months}
-											onChange={(e) => setFormData({ ...formData, loan_term_months: e.target.value })}
+											onChange={(e) => setFormData({ ...formData, loan_term_months: sanitizeIntegerInput(e.target.value) })}
 											className="h-10"
 										/>
 									</div>
@@ -477,12 +477,11 @@ export function AddAccountDialog({ open, onOpenChange, onSuccess }: AddAccountDi
 									<Label htmlFor="payment_due_date">Payment Due Date (1-31)</Label>
 									<Input
 										id="payment_due_date"
-										type="number"
-										min="1"
-										max="31"
+										type="text"
+										inputMode="numeric"
 										placeholder="e.g., 15"
 										value={formData.payment_due_date}
-										onChange={(e) => setFormData({ ...formData, payment_due_date: e.target.value })}
+										onChange={(e) => setFormData({ ...formData, payment_due_date: sanitizeIntegerInput(e.target.value) })}
 										className="h-10"
 									/>
 								</div>
@@ -495,10 +494,7 @@ export function AddAccountDialog({ open, onOpenChange, onSuccess }: AddAccountDi
 										placeholder="5.50"
 										value={formData.interest_rate}
 										onChange={(e) => {
-											const val = e.target.value;
-											if (validateDecimalInput(val)) {
-												setFormData({ ...formData, interest_rate: val });
-											}
+											setFormData({ ...formData, interest_rate: sanitizeDecimalInput(e.target.value, 2) });
 										}}
 										className="h-10"
 									/>
@@ -518,10 +514,7 @@ export function AddAccountDialog({ open, onOpenChange, onSuccess }: AddAccountDi
 										placeholder={selectedType?.category === "credit" ? "19.99" : "4.00"}
 										value={formData.interest_rate}
 										onChange={(e) => {
-											const val = e.target.value;
-											if (validateDecimalInput(val)) {
-												setFormData({ ...formData, interest_rate: val });
-											}
+											setFormData({ ...formData, interest_rate: sanitizeDecimalInput(e.target.value, 2) });
 										}}
 										className="h-10"
 									/>

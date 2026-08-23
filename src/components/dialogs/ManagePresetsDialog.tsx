@@ -10,6 +10,7 @@ import { toast } from "sonner";
 import { Loader2, Plus, Edit2, Trash2 } from "lucide-react";
 import type { AllocationCategory } from "@/app/allocations/types";
 import type { AccountWithType } from "@/app/balancesheet/types";
+import { formatAccountDisplayName, sortAccounts } from "@/lib/account-utils";
 import { FormSection } from "@/components/FormSection";
 import { CardSelector } from "@/components/CardSelector";
 import { ProminentAmountInput } from "@/components/ProminentAmountInput";
@@ -291,7 +292,11 @@ export function ManagePresetsDialog({
 								<SelectTrigger><SelectValue placeholder="No Account" /></SelectTrigger>
 								<SelectContent>
 									<SelectItem value="none">No Account</SelectItem>
-									{accounts.map(a => <SelectItem key={a.id} value={a.id}>{a.name}</SelectItem>)}
+									{sortAccounts(accounts).map((a) => (
+										<SelectItem key={a.id} value={a.id}>
+											{formatAccountDisplayName(a)}
+										</SelectItem>
+									))}
 								</SelectContent>
 							</Select>
 						</div>

@@ -52,5 +52,9 @@ supabase/signing_keys.json
 #Screenshot testing folders
 .playwright-mcp/
 
+# Local agent scratch & short-term memories
+.agents/scratch/
+.scratch/
+
 # Claude settings
 .claude/*.local.*

@@ -184,11 +184,7 @@ export function EditRecurringDialog({
 						</Label>
 						<ProminentAmountInput
 							value={formData.amount}
-							onChange={(val) => {
-								if (val === "" || /^\d*\.?\d{0,2}$/.test(val)) {
-									setFormData({ ...formData, amount: val });
-								}
-							}}
+							onChange={(val) => setFormData({ ...formData, amount: val })}
 							hasError={false}
 						/>
 					</div>
@@ -196,9 +192,8 @@ export function EditRecurringDialog({
 						<Label>Frequency</Label>
 						<div className="flex gap-2">
 							<Input
-								type="number"
-								min="1"
-								step="1"
+								type="text"
+								inputMode="numeric"
 								value={formData.frequency_value}
 								onChange={(e) => {
 									const val = e.target.value.replace(/[^0-9]/g, "");

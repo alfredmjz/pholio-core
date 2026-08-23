@@ -16,7 +16,7 @@ import { Label } from "@/components/ui/label";
 import { MinimalTiptap } from "@/components/ui/shadcn-io/minimal-tiptap";
 import { updateAccount } from "../../../actions";
 import type { AccountWithType } from "../../../types";
-import { validateDecimalInput } from "@/lib/input-utils";
+import { sanitizeDecimalInput, sanitizeIntegerInput } from "@/lib/input-utils";
 import { ProminentAmountInput } from "@/components/ProminentAmountInput";
 import { Switch } from "@/components/ui/switch";
 import { getFieldVisibility } from "../../../field-visibility";
@@ -202,11 +202,9 @@ export function EditAccountDialog({ open, onOpenChange, account, onSuccess }: Ed
 								placeholder="0.00"
 								value={formData.current_balance}
 								onChange={(e) => {
-									const val = e.target.value;
-									if (validateDecimalInput(val)) {
-										setFormData({ ...formData, current_balance: val });
-										if (errors.current_balance) setErrors({ ...errors, current_balance: undefined });
-									}
+									const val = sanitizeDecimalInput(e.target.value, 2);
+									setFormData({ ...formData, current_balance: val });
+									if (errors.current_balance) setErrors({ ...errors, current_balance: undefined });
 								}}
 								className={errors.current_balance ? "border-error" : ""}
 							/>
@@ -223,11 +221,9 @@ export function EditAccountDialog({ open, onOpenChange, account, onSuccess }: Ed
 									placeholder="0.00"
 									value={formData.target_balance}
 									onChange={(e) => {
-										const val = e.target.value;
-										if (validateDecimalInput(val)) {
-											setFormData({ ...formData, target_balance: val });
-											if (errors.target_balance) setErrors({ ...errors, target_balance: undefined });
-										}
+										const val = sanitizeDecimalInput(e.target.value, 2);
+										setFormData({ ...formData, target_balance: val });
+										if (errors.target_balance) setErrors({ ...errors, target_balance: undefined });
 									}}
 									className={errors.target_balance ? "border-error" : ""}
 								/>
@@ -249,10 +245,7 @@ export function EditAccountDialog({ open, onOpenChange, account, onSuccess }: Ed
 										placeholder="e.g., 5000"
 										value={formData.credit_limit}
 										onChange={(e) => {
-											const val = e.target.value;
-											if (validateDecimalInput(val)) {
-												setFormData({ ...formData, credit_limit: val });
-											}
+											setFormData({ ...formData, credit_limit: sanitizeDecimalInput(e.target.value, 2) });
 										}}
 									/>
 								</div>
@@ -261,12 +254,11 @@ export function EditAccountDialog({ open, onOpenChange, account, onSuccess }: Ed
 										<Label htmlFor="payment_due_date">Payment Due Date (1-31)</Label>
 										<Input
 											id="payment_due_date"
-											type="number"
-											min="1"
-											max="31"
+											type="text"
+											inputMode="numeric"
 											placeholder="e.g., 21"
 											value={formData.payment_due_date}
-											onChange={(e) => setFormData({ ...formData, payment_due_date: e.target.value })}
+											onChange={(e) => setFormData({ ...formData, payment_due_date: sanitizeIntegerInput(e.target.value) })}
 										/>
 									</div>
 								)}
@@ -280,11 +272,9 @@ export function EditAccountDialog({ open, onOpenChange, account, onSuccess }: Ed
 									placeholder="e.g., 19.99"
 									value={formData.interest_rate}
 									onChange={(e) => {
-										const val = e.target.value;
-										if (validateDecimalInput(val)) {
-											setFormData({ ...formData, interest_rate: val });
-											if (errors.interest_rate) setErrors({ ...errors, interest_rate: undefined });
-										}
+										const val = sanitizeDecimalInput(e.target.value, 2);
+										setFormData({ ...formData, interest_rate: val });
+										if (errors.interest_rate) setErrors({ ...errors, interest_rate: undefined });
 									}}
 									className={errors.interest_rate ? "border-error" : ""}
 								/>
@@ -306,10 +296,7 @@ export function EditAccountDialog({ open, onOpenChange, account, onSuccess }: Ed
 										placeholder="e.g., 15000"
 										value={formData.original_amount}
 										onChange={(e) => {
-											const val = e.target.value;
-											if (validateDecimalInput(val)) {
-												setFormData({ ...formData, original_amount: val });
-											}
+											setFormData({ ...formData, original_amount: sanitizeDecimalInput(e.target.value, 2) });
 										}}
 									/>
 								</div>
@@ -318,10 +305,11 @@ export function EditAccountDialog({ open, onOpenChange, account, onSuccess }: Ed
 										<Label htmlFor="loan_term_months">Loan Term (Months)</Label>
 										<Input
 											id="loan_term_months"
-											type="number"
+											type="text"
+											inputMode="numeric"
 											placeholder="e.g., 60"
 											value={formData.loan_term_months}
-											onChange={(e) => setFormData({ ...formData, loan_term_months: e.target.value })}
+											onChange={(e) => setFormData({ ...formData, loan_term_months: sanitizeIntegerInput(e.target.value) })}
 										/>
 									</div>
 								)}
@@ -332,12 +320,11 @@ export function EditAccountDialog({ open, onOpenChange, account, onSuccess }: Ed
 										<Label htmlFor="payment_due_date">Payment Due Date (1-31)</Label>
 										<Input
 											id="payment_due_date"
-											type="number"
-											min="1"
-											max="31"
+											type="text"
+											inputMode="numeric"
 											placeholder="e.g., 15"
 											value={formData.payment_due_date}
-											onChange={(e) => setFormData({ ...formData, payment_due_date: e.target.value })}
+											onChange={(e) => setFormData({ ...formData, payment_due_date: sanitizeIntegerInput(e.target.value) })}
 										/>
 									</div>
 								)}
@@ -350,11 +337,9 @@ export function EditAccountDialog({ open, onOpenChange, account, onSuccess }: Ed
 										placeholder="e.g., 5.50"
 										value={formData.interest_rate}
 										onChange={(e) => {
-											const val = e.target.value;
-											if (validateDecimalInput(val)) {
-												setFormData({ ...formData, interest_rate: val });
-												if (errors.interest_rate) setErrors({ ...errors, interest_rate: undefined });
-											}
+											const val = sanitizeDecimalInput(e.target.value, 2);
+											setFormData({ ...formData, interest_rate: val });
+											if (errors.interest_rate) setErrors({ ...errors, interest_rate: undefined });
 										}}
 										className={errors.interest_rate ? "border-error" : ""}
 									/>
@@ -391,11 +376,8 @@ export function EditAccountDialog({ open, onOpenChange, account, onSuccess }: Ed
 											placeholder="e.g., 95000"
 											value={formData.contribution_room}
 											onChange={(e) => {
-												const val = e.target.value;
-												if (validateDecimalInput(val)) {
-													setFormData({ ...formData, contribution_room: val });
-												}
-											}}
+											setFormData({ ...formData, contribution_room: sanitizeDecimalInput(e.target.value, 2) });
+										}}
 										/>
 									</div>
 									<div className="space-y-2">
@@ -407,11 +389,8 @@ export function EditAccountDialog({ open, onOpenChange, account, onSuccess }: Ed
 											placeholder="e.g., 7000"
 											value={formData.annual_contribution_limit}
 											onChange={(e) => {
-												const val = e.target.value;
-												if (validateDecimalInput(val)) {
-													setFormData({ ...formData, annual_contribution_limit: val });
-												}
-											}}
+											setFormData({ ...formData, annual_contribution_limit: sanitizeDecimalInput(e.target.value, 2) });
+										}}
 										/>
 									</div>
 								</div>
@@ -430,11 +409,9 @@ export function EditAccountDialog({ open, onOpenChange, account, onSuccess }: Ed
 								placeholder="e.g., 4.5"
 								value={formData.interest_rate}
 								onChange={(e) => {
-									const val = e.target.value;
-									if (validateDecimalInput(val)) {
-										setFormData({ ...formData, interest_rate: val });
-										if (errors.interest_rate) setErrors({ ...errors, interest_rate: undefined });
-									}
+									const val = sanitizeDecimalInput(e.target.value, 2);
+									setFormData({ ...formData, interest_rate: val });
+									if (errors.interest_rate) setErrors({ ...errors, interest_rate: undefined });
 								}}
 								className={errors.interest_rate ? "border-error" : ""}
 							/>

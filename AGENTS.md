@@ -258,18 +258,40 @@ Logger.error("Database query failed", { error, query });
 
 ---
 
-## AI Agent Reference
+## AI Agent Team & Governance
 
-| Agent                | When to Use                              |
-| -------------------- | ---------------------------------------- |
-| **senior-engineer**  | Implementation, debugging, optimization  |
-| **system-architect** | Architecture, data models, system design |
-| **ui-ux-designer**   | UI design, accessibility                 |
-| **design-review**    | MANDATORY after UI implementation        |
-| **code-reviewer**    | Code review, security, patterns          |
-| **orchestrator**     | Complex task coordination                |
+| Agent Role | Responsibility | Core Focus |
+| ---------- | -------------- | ---------- |
+| **`orchestrator`** | Technical Lead & Team Coordinator | Task triage, subagent routing, voting coordination, memory categorization |
+| **`system-architect`** | System & Database Architect | Architecture decisions, database schema, API contracts, scalability |
+| **`ui-ux-designer`** | UI/UX Specialist | Component hierarchy, visual design tokens, interaction flows, accessibility specs |
+| **`senior-engineer`** | Implementation Lead | Clean code execution, feature building, refactoring, local bug fixing |
+| **`code-reviewer`** | Static QA & Security Auditor | Code quality, RLS & security audit, error handling checks, pattern compliance |
+| **`ui-flow-reviewer`** | Visual & User Flow QA Specialist | Live browser testing, visual polish, viewport responsiveness (desktop/tablet/mobile) |
 
-**Critical Workflow for UI**: senior-engineer → design-review → code-reviewer
+---
+
+## Workflow Execution Paths
+
+1. **Low Complexity (Direct Execution)**: Simple bug fix or minor tweak -> `orchestrator` delegates directly to `senior-engineer` or `code-reviewer`.
+2. **Medium Complexity (Linear Pipeline)**: Standard feature module -> `system-architect` / `ui-ux-designer` (spec) → `senior-engineer` (build) → `ui-flow-reviewer` / `code-reviewer` (review).
+3. **High Complexity (Voting & Consult Pattern)**:
+   - **Trigger**: Major architectural choices, multi-domain features, breaking schema changes, or conflicting technical trade-offs.
+   - **Step 1 (Consultation)**: `orchestrator` solicits technical proposals from relevant subagents (`system-architect`, `senior-engineer`, `ui-ux-designer`, `code-reviewer`).
+   - **Step 2 (Voting)**: Each subagent provides a structured vote (`Approve Option A/B/Conditional`, `Rationale`, `Risk Assessment`).
+   - **Step 3 (Synthesis)**: `orchestrator` tallies votes, resolves constraints, updates long-term decision memory, and finalizes execution plan.
+
+---
+
+## Dual Memory System & Lifecycle
+
+- **Long-Term Memory (`.context/memories/`)** *(Tracked in Repo)*:
+  - `architecture.md`: Persistent system architecture, tech stack rules, security boundaries.
+  - `decisions.md`: Architectural Decision Records (ADRs) and voting outcomes.
+  - `domain.md`: Core domain concepts, entity structures, and business rules.
+- **Short-Term Memory (`.agents/scratch/memories/`)** *(Local / Gitignored)*:
+  - `session-context.md`: Multi-step sprint progress, transient debug state, temporary working notes.
+- **Per-Request Evaluation Rule**: For every request, the `orchestrator` decides whether to update **Long-Term Memory**, update **Short-Term Memory**, or **Forget** (no memory stored for isolated 1-step tasks).
 
 ---
 

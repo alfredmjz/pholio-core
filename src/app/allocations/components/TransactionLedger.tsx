@@ -9,6 +9,7 @@ import { Badge } from "@/components/ui/badge";
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
 import { cn } from "@/lib/utils";
 import { formatShortDate, parseLocalDate } from "@/lib/date-utils";
+import { sanitizeDecimalInput } from "@/lib/input-utils";
 import type { AllocationCategory, Transaction } from "../types";
 import type { TransactionType } from "./TransactionTypeIcon";
 import { inferTransactionType, TRANSACTION_TYPE_CONFIG, TransactionTypeIcon } from "./TransactionTypeIcon";
@@ -233,20 +234,20 @@ export function TransactionLedger({
 				<div className="flex items-center gap-3 mb-4 p-3 bg-muted/50 rounded-lg">
 					<span className="text-sm text-primary">Amount:</span>
 					<Input
-						type="number"
+						type="text"
 						inputMode="decimal"
 						placeholder="Min"
 						value={minAmount}
-						onChange={(e) => setMinAmount(e.target.value)}
+						onChange={(e) => setMinAmount(sanitizeDecimalInput(e.target.value, 2))}
 						className="w-24 h-8 text-sm"
 					/>
 					<span className="text-primary">to</span>
 					<Input
-						type="number"
+						type="text"
 						inputMode="decimal"
 						placeholder="Max"
 						value={maxAmount}
-						onChange={(e) => setMaxAmount(e.target.value)}
+						onChange={(e) => setMaxAmount(sanitizeDecimalInput(e.target.value, 2))}
 						className="w-24 h-8 text-sm"
 					/>
 				</div>

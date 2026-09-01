@@ -62,7 +62,9 @@ export function TransactionDialog({
 	const [date, setDate] = useState(defaultDate || getTodayDateString());
 	const [categoryId, setCategoryId] = useState<string>(VIRTUAL_UNCATEGORIZED_ID);
 	const [accountId, setAccountId] = useState<string>("none");
-	const [type, setType] = useState<"income" | "expense">("expense");
+	const [fromAccountId, setFromAccountId] = useState<string>("none");
+	const [toAccountId, setToAccountId] = useState<string>("none");
+	const [type, setType] = useState<"income" | "expense" | "transfer">("expense");
 	const [notes, setNotes] = useState("");
 	const [isDeleting, setIsDeleting] = useState(false);
 
@@ -73,9 +75,12 @@ export function TransactionDialog({
 				setAmount(Math.abs(transaction.amount).toString());
 				setDate(transaction.transaction_date.split("T")[0]);
 				setCategoryId(transaction.category_id || VIRTUAL_UNCATEGORIZED_ID);
-				// Prefer direct account_id if available (from actions), else try linked transaction logic if data structure allows
-				setAccountId(transaction.account_id || transaction.linked_account_transaction?.account_id || "none");
-				setType(transaction.amount >= 0 ? "income" : "expense");
+				const initialAcct = transaction.account_id || transaction.linked_account_transaction?.account_id || "none";
+				setAccountId(initialAcct);
+				setFromAccountId(initialAcct);
+				setToAccountId("none");
+				const isTransfer = transaction.source === "transfer";
+				setType(isTransfer ? "transfer" : transaction.amount >= 0 ? "income" : "expense");
 				setNotes(transaction.notes || "");
 			} else {
 				setName("");
@@ -83,6 +88,8 @@ export function TransactionDialog({
 				setDate(defaultDate || getTodayDateString());
 				setCategoryId(VIRTUAL_UNCATEGORIZED_ID);
 				setAccountId("none");
+				setFromAccountId("none");
+				setToAccountId("none");
 				setType("expense");
 				setNotes("");
 			}
@@ -91,25 +98,39 @@ export function TransactionDialog({
 
 	const handleSubmit = async (e: React.FormEvent) => {
 		e.preventDefault();
-		if (!name || !amount || !date) {
+		if (!amount || !date || (type !== "transfer" && !name)) {
 			toast.error("Please fill in all required fields");
 			return;
+		}
+
+		if (type === "transfer") {
+			if (fromAccountId === "none" || toAccountId === "none") {
+				toast.error("Please select both source and destination accounts");
+				return;
+			}
+			if (fromAccountId === toAccountId) {
+				toast.error("Source and destination accounts must be different");
+				return;
+			}
 		}
 
 		setIsLoading(true);
 
 		try {
 			const numAmount = parseFloat(amount);
-			const finalCategoryId = categoryId === VIRTUAL_UNCATEGORIZED_ID ? null : categoryId;
-			const finalAccountId = accountId === "none" ? null : accountId;
+			const finalCategoryId = type === "transfer" ? null : categoryId === VIRTUAL_UNCATEGORIZED_ID ? null : categoryId;
+			const finalAccountId = type === "transfer" ? (fromAccountId === "none" ? null : fromAccountId) : accountId === "none" ? null : accountId;
+			const finalDescription = name.trim() || (type === "transfer" ? "Transfer" : "");
 
 			if (transaction) {
 				const success = await updateUnifiedTransaction(transaction.id, {
-					description: name,
+					description: finalDescription,
 					amount: numAmount,
 					date,
 					categoryId: finalCategoryId,
 					accountId: finalAccountId,
+					fromAccountId: type === "transfer" ? (fromAccountId === "none" ? null : fromAccountId) : null,
+					toAccountId: type === "transfer" ? (toAccountId === "none" ? null : toAccountId) : null,
 					type,
 					notes,
 				});
@@ -123,19 +144,20 @@ export function TransactionDialog({
 					});
 				}
 			} else {
-				// Fallback or use unified for creation too if we want
 				const result = await createUnifiedTransaction({
-					description: name,
+					description: finalDescription,
 					amount: numAmount,
 					date,
 					categoryId: finalCategoryId,
 					accountId: finalAccountId,
+					fromAccountId: type === "transfer" ? (fromAccountId === "none" ? null : fromAccountId) : null,
+					toAccountId: type === "transfer" ? (toAccountId === "none" ? null : toAccountId) : null,
 					type,
 					notes,
 				});
 
 				if (result.success) {
-					toast.success("Transaction created");
+					toast.success(type === "transfer" ? "Transfer created" : "Transaction created");
 					onOpenChange(false);
 				} else {
 					toast.error("Creation Failed", {
@@ -208,9 +230,15 @@ export function TransactionDialog({
 								icon: "📈",
 								color: "bg-green-100",
 							},
+							{
+								value: "transfer",
+								label: "Transfer",
+								icon: "🔄",
+								color: "bg-blue-100",
+							},
 						]}
 						value={type}
-						onChange={setType}
+						onChange={(val) => setType(val as any)}
 						selectedBorderColor="border-blue-200"
 					/>
 				</FormSection>
@@ -220,72 +248,149 @@ export function TransactionDialog({
 						<Label htmlFor="amount">Amount</Label>
 						<ProminentAmountInput id="amount" value={amount} onChange={setAmount} hasError={false} />
 					</div>
-					<div className="flex flex-row gap-4">
-						<div className="flex-1 space-y-2">
-							<Label htmlFor="date">Date</Label>
-							<DatePicker
-								id="date"
-								value={date}
-								onChange={setDate}
-								placeholder="Select transaction date"
-								minDate={
-									boundaryMonth ? `${boundaryMonth.year}-${String(boundaryMonth.month).padStart(2, "0")}-01` : undefined
-								}
-								maxDate={
-									boundaryMonth
-										? `${boundaryMonth.year}-${String(boundaryMonth.month).padStart(2, "0")}-${new Date(boundaryMonth.year, boundaryMonth.month, 0).getDate()}`
-										: undefined
-								}
-							/>
-						</div>
 
-						<div className="flex-1 space-y-2">
-							<Label htmlFor="category">Category</Label>
-							<Select value={categoryId} onValueChange={setCategoryId}>
-								<SelectTrigger className="h-10">
-									<SelectValue placeholder="Select a category" />
-								</SelectTrigger>
-								<SelectContent>
-									{categories.map((cat) => (
-										<SelectItem key={cat.id} value={cat.id}>
-											{cat.name}
-										</SelectItem>
-									))}
-								</SelectContent>
-							</Select>
-						</div>
-					</div>
+					{type === "transfer" ? (
+						<>
+							<div className="flex flex-row gap-4">
+								<div className="flex-1 space-y-2">
+									<Label htmlFor="date">Date</Label>
+									<DatePicker
+										id="date"
+										value={date}
+										onChange={setDate}
+										placeholder="Select transaction date"
+										minDate={
+											boundaryMonth ? `${boundaryMonth.year}-${String(boundaryMonth.month).padStart(2, "0")}-01` : undefined
+										}
+										maxDate={
+											boundaryMonth
+												? `${boundaryMonth.year}-${String(boundaryMonth.month).padStart(2, "0")}-${new Date(boundaryMonth.year, boundaryMonth.month, 0).getDate()}`
+												: undefined
+										}
+									/>
+								</div>
+								<div className="flex-1 space-y-2">
+									<Label htmlFor="name">Description <span className="text-muted-foreground font-normal">(Optional)</span></Label>
+									<Input
+										id="name"
+										placeholder="e.g. Account Transfer"
+										value={name}
+										onChange={(e) => setName(e.target.value)}
+										className="h-10"
+									/>
+								</div>
+							</div>
 
-					<div className="space-y-2">
-						<Label htmlFor="account">
-							Account <span className="text-muted-foreground font-normal">(Optional)</span>
-						</Label>
-						<Select value={accountId} onValueChange={setAccountId}>
-							<SelectTrigger>
-								<SelectValue placeholder="Select an account" />
-							</SelectTrigger>
-							<SelectContent>
-								<SelectItem value="none">No Account</SelectItem>
-								{sortAccounts(accounts).map((acc) => (
-									<SelectItem key={acc.id} value={acc.id}>
-										{formatAccountDisplayName(acc)}
-									</SelectItem>
-								))}
-							</SelectContent>
-						</Select>
-					</div>
+							<div className="p-3 bg-muted/60 rounded-lg text-xs text-muted-foreground flex items-start gap-2 border">
+								<Info className="h-4 w-4 shrink-0 mt-0.5 text-primary" />
+								<span>Transfers move money directly between accounts and do not require a budget category.</span>
+							</div>
 
-					<div className="space-y-2">
-						<Label htmlFor="name">Description</Label>
-						<Input
-							id="name"
-							placeholder="e.g. Grocery Store"
-							value={name}
-							onChange={(e) => setName(e.target.value)}
-							required
-							className="h-10"
-						/>
-					</div>
+							<div className="grid grid-cols-2 gap-4">
+								<div className="space-y-2">
+									<Label htmlFor="fromAccount">From Account (Source)</Label>
+									<Select value={fromAccountId} onValueChange={setFromAccountId}>
+										<SelectTrigger>
+											<SelectValue placeholder="Select source account" />
+										</SelectTrigger>
+										<SelectContent>
+											{sortAccounts(accounts).map((acc) => (
+												<SelectItem key={acc.id} value={acc.id}>
+													{formatAccountDisplayName(acc)}
+												</SelectItem>
+											))}
+										</SelectContent>
+									</Select>
+								</div>
+								<div className="space-y-2">
+									<Label htmlFor="toAccount">To Account (Destination)</Label>
+									<Select value={toAccountId} onValueChange={setToAccountId}>
+										<SelectTrigger>
+											<SelectValue placeholder="Select destination account" />
+										</SelectTrigger>
+										<SelectContent>
+											{sortAccounts(accounts)
+												.filter((acc) => acc.id !== fromAccountId)
+												.map((acc) => (
+													<SelectItem key={acc.id} value={acc.id}>
+														{formatAccountDisplayName(acc)}
+													</SelectItem>
+												))}
+										</SelectContent>
+									</Select>
+								</div>
+							</div>
+						</>
+					) : (
+						<>
+							<div className="flex flex-row gap-4">
+								<div className="flex-1 space-y-2">
+									<Label htmlFor="date">Date</Label>
+									<DatePicker
+										id="date"
+										value={date}
+										onChange={setDate}
+										placeholder="Select transaction date"
+										minDate={
+											boundaryMonth ? `${boundaryMonth.year}-${String(boundaryMonth.month).padStart(2, "0")}-01` : undefined
+										}
+										maxDate={
+											boundaryMonth
+												? `${boundaryMonth.year}-${String(boundaryMonth.month).padStart(2, "0")}-${new Date(boundaryMonth.year, boundaryMonth.month, 0).getDate()}`
+												: undefined
+										}
+									/>
+								</div>
+
+								<div className="flex-1 space-y-2">
+									<Label htmlFor="category">Category</Label>
+									<Select value={categoryId} onValueChange={setCategoryId}>
+										<SelectTrigger className="h-10">
+											<SelectValue placeholder="Select a category" />
+										</SelectTrigger>
+										<SelectContent>
+											{categories.map((cat) => (
+												<SelectItem key={cat.id} value={cat.id}>
+													{cat.name}
+												</SelectItem>
+											))}
+										</SelectContent>
+									</Select>
+								</div>
+							</div>
+
+							<div className="space-y-2">
+								<Label htmlFor="account">
+									Account <span className="text-muted-foreground font-normal">(Optional)</span>
+								</Label>
+								<Select value={accountId} onValueChange={setAccountId}>
+									<SelectTrigger>
+										<SelectValue placeholder="Select an account" />
+									</SelectTrigger>
+									<SelectContent>
+										<SelectItem value="none">No Account</SelectItem>
+										{sortAccounts(accounts).map((acc) => (
+											<SelectItem key={acc.id} value={acc.id}>
+												{formatAccountDisplayName(acc)}
+											</SelectItem>
+										))}
+									</SelectContent>
+								</Select>
+							</div>
+
+							<div className="space-y-2">
+								<Label htmlFor="name">Description</Label>
+								<Input
+									id="name"
+									placeholder="e.g. Grocery Store"
+									value={name}
+									onChange={(e) => setName(e.target.value)}
+									required
+									className="h-10"
+								/>
+							</div>
+						</>
+					)}
 				</FormSection>
 
 				{notes && (

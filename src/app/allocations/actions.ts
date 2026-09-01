@@ -1395,14 +1395,21 @@ export async function getIncomeVerification(
 
 		const { data: incomeTransactions } = await supabase
 			.from("transactions")
-			.select("amount")
+			.select("amount, source, name, notes")
 			.eq("user_id", user.id)
 			.gte("transaction_date", startDate)
 			.lte("transaction_date", endDate)
 			.gt("amount", 0) // Positive amounts = income
-			.neq("source", "external"); // Exclude one-time / external income
+			.neq("source", "external") // Exclude one-time / external income
+			.neq("source", "transfer"); // Exclude transfers
 
-		const totalIncome = (incomeTransactions || []).reduce((sum, t) => sum + Number(t.amount), 0);
+		const totalIncome = (incomeTransactions || [])
+			.filter((t) => {
+				const name = (t.name || "").toLowerCase();
+				const notes = (t.notes || "").toLowerCase();
+				return !name.includes("transfer") && !notes.includes("transfer");
+			})
+			.reduce((sum, t) => sum + Number(t.amount), 0);
 
 		monthlyActuals.push({ year, month, actual: totalIncome, expected: Number(expected) });
 	}

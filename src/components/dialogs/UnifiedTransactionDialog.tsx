@@ -56,6 +56,8 @@ interface ValidationErrors {
 	amount?: string;
 	date?: string;
 	accountId?: string;
+	fromAccountId?: string;
+	toAccountId?: string;
 }
 
 export function UnifiedTransactionDialog({
@@ -79,12 +81,14 @@ export function UnifiedTransactionDialog({
 	const [isLoading, setIsLoading] = useState(false);
 
 	// Manual Entry State
-	const [type, setType] = useState<"income" | "expense">(defaultType || "expense");
+	const [type, setType] = useState<"income" | "expense" | "transfer">(defaultType || "expense");
 	const [description, setDescription] = useState("");
 	const [amount, setAmount] = useState("");
 	const [date, setDate] = useState(defaultDate || getTodayDateString());
 	const [categoryId, setCategoryId] = useState<string>(defaultCategoryId || VIRTUAL_UNCATEGORIZED_ID);
 	const [accountId, setAccountId] = useState<string>(defaultAccountId || "none");
+	const [fromAccountId, setFromAccountId] = useState<string>("none");
+	const [toAccountId, setToAccountId] = useState<string>("none");
 	const [transactionType, setTransactionType] = useState<string>("deposit");
 	const [incomeSource, setIncomeSource] = useState<string>("salary");
 	const [notes, setNotes] = useState("");
@@ -125,6 +129,8 @@ export function UnifiedTransactionDialog({
 
 			setCategoryId(defaultCategoryId || VIRTUAL_UNCATEGORIZED_ID);
 			setAccountId(defaultAccountId || "none");
+			setFromAccountId(defaultAccountId || "none");
+			setToAccountId("none");
 			setTransactionType(defaultType === "income" ? "deposit" : "withdrawal");
 			setNotes("");
 			setSuggestedAccountInfo(null);
@@ -148,7 +154,7 @@ export function UnifiedTransactionDialog({
 	}, [type]);
 
 	useEffect(() => {
-		if (!categoryId || categoryId === VIRTUAL_UNCATEGORIZED_ID) {
+		if (type === "transfer" || !categoryId || categoryId === VIRTUAL_UNCATEGORIZED_ID) {
 			setSuggestedAccountInfo(null);
 			return;
 		}
@@ -166,12 +172,12 @@ export function UnifiedTransactionDialog({
 			}
 		};
 		loadSuggestedAccount();
-	}, [categoryId]);
+	}, [categoryId, type]);
 
 	const validateForm = (): boolean => {
 		const newErrors: ValidationErrors = {};
 		let isValid = true;
-		if (!description.trim()) {
+		if (!description.trim() && type !== "transfer") {
 			newErrors.description = "Description is required";
 			isValid = false;
 		}
@@ -183,10 +189,25 @@ export function UnifiedTransactionDialog({
 			newErrors.date = "Date is required";
 			isValid = false;
 		}
-		if (accountRequired && (accountId === "none" || !accountId)) {
+
+		if (type === "transfer") {
+			if (!fromAccountId || fromAccountId === "none") {
+				newErrors.fromAccountId = "Source account is required";
+				isValid = false;
+			}
+			if (!toAccountId || toAccountId === "none") {
+				newErrors.toAccountId = "Destination account is required";
+				isValid = false;
+			}
+			if (fromAccountId && toAccountId && fromAccountId !== "none" && fromAccountId === toAccountId) {
+				newErrors.toAccountId = "Source and destination accounts must be different";
+				isValid = false;
+			}
+		} else if (accountRequired && (accountId === "none" || !accountId)) {
 			newErrors.accountId = "Account is required";
 			isValid = false;
 		}
+
 		setErrors(newErrors);
 		if (!isValid)
 			toast.error("Please fill in all required fields", { description: "Check the form for displayed errors." });
@@ -199,20 +220,23 @@ export function UnifiedTransactionDialog({
 		setIsLoading(true);
 		try {
 			const numAmount = parseFloat(amount);
+			const finalDescription = description.trim() || (type === "transfer" ? "Transfer" : "");
 			const input: UnifiedTransactionInput = {
-				description,
+				description: finalDescription,
 				amount: numAmount,
 				date,
 				type,
-				categoryId: categoryId === VIRTUAL_UNCATEGORIZED_ID ? null : categoryId,
-				accountId: accountId === "none" ? null : accountId,
+				categoryId: type === "transfer" ? null : categoryId === VIRTUAL_UNCATEGORIZED_ID ? null : categoryId,
+				accountId: type === "transfer" ? null : accountId === "none" ? null : accountId,
+				fromAccountId: type === "transfer" ? (fromAccountId === "none" ? null : fromAccountId) : null,
+				toAccountId: type === "transfer" ? (toAccountId === "none" ? null : toAccountId) : null,
 				transactionType: transactionType as any,
 				notes: notes || undefined,
-				source: isAllocationsContext && type === "income" ? incomeSource : "manual",
+				source: type === "transfer" ? "transfer" : isAllocationsContext && type === "income" ? incomeSource : "manual",
 			};
 			const result = await createUnifiedTransaction(input);
 			if (result.success) {
-				toast.success("Transaction added");
+				toast.success(type === "transfer" ? "Transfer created" : "Transaction added");
 				onOpenChange(false);
 				onSuccess?.();
 			} else {
@@ -318,23 +342,24 @@ export function UnifiedTransactionDialog({
 						<TabsContent value="manual" className="mt-0">
 							<form onSubmit={handleSubmit} className="flex flex-col gap-6">
 								<FormSection
-									icon={type === "expense" ? <TrendingDown /> : <TrendingUp />}
+									icon={type === "expense" ? <TrendingDown /> : type === "income" ? <TrendingUp /> : <Info />}
 									title="Transaction Type"
 									variant="subtle"
 								>
 									<CardSelector
-										className="grid-cols-1 sm:grid-cols-2"
+										className="grid-cols-1 sm:grid-cols-3"
 										options={[
 											{ value: "expense", label: "Expense", icon: "📉", color: "bg-red-100" },
 											{ value: "income", label: "Income", icon: "📈", color: "bg-green-100" },
+											{ value: "transfer", label: "Transfer", icon: "🔄", color: "bg-blue-100" },
 										]}
 										value={type}
-										onChange={setType}
+										onChange={(val) => setType(val as any)}
 										selectedBorderColor="border-blue-200"
 									/>
 								</FormSection>
 
-								{!isAllocationsContext && (
+								{!isAllocationsContext && type !== "transfer" && (
 									<div className="space-y-2">
 										<Label htmlFor="transactionType">
 											{type === "income" ? "Income Type" : "Expense Type"} (Account)
@@ -418,17 +443,17 @@ export function UnifiedTransactionDialog({
 										</div>
 										<div className="flex-1 space-y-2">
 											<Label htmlFor="description">
-												Description <span className="text-error">*</span>
+												Description{type === "transfer" ? <span className="text-muted-foreground font-normal"> (Optional)</span> : <span className="text-error"> *</span>}
 											</Label>
 											<Input
 												id="description"
-												placeholder="e.g. Grocery Store"
+												placeholder={type === "transfer" ? "e.g. Account Transfer" : "e.g. Grocery Store"}
 												value={description}
 												onChange={(e) => {
 													setDescription(e.target.value);
 													if (errors.description) setErrors({ ...errors, description: undefined });
 												}}
-												required
+												required={type !== "transfer"}
 												className={cn("h-10", errors.description && "border-error")}
 											/>
 											{errors.description && <p className="text-sm text-error">{errors.description}</p>}
@@ -436,70 +461,135 @@ export function UnifiedTransactionDialog({
 									</div>
 								</FormSection>
 
-								<div className="space-y-2">
-									<Label htmlFor="category">
-										Budget Category{categoryRequired && <span className="text-error"> *</span>}
-										{showCategoryBadge && !categoryDisabled && (
-											<span className="ml-2 text-xs text-primary">
-												{selectedCategory?.category_type === "savings_goal" && "(Savings Goal)"}
-												{selectedCategory?.category_type === "debt_payment" && "(Debt Payment)"}
-											</span>
+								{type === "transfer" ? (
+									<>
+										<div className="p-3 bg-muted/60 rounded-lg text-xs text-muted-foreground flex items-start gap-2 border">
+											<Info className="h-4 w-4 shrink-0 mt-0.5 text-primary" />
+											<span>Transfers move money directly between accounts and do not require a budget category.</span>
+										</div>
+
+										<div className="grid grid-cols-2 gap-4">
+											<div className="space-y-2">
+												<Label htmlFor="fromAccount">
+													From Account (Source) <span className="text-error">*</span>
+												</Label>
+												<Select
+													value={fromAccountId}
+													onValueChange={(val) => {
+														setFromAccountId(val);
+														if (errors.fromAccountId) setErrors({ ...errors, fromAccountId: undefined });
+													}}
+												>
+													<SelectTrigger className={cn("h-10", errors.fromAccountId && "border-error")}>
+														<SelectValue placeholder="Select source account" />
+													</SelectTrigger>
+													<SelectContent>
+														{sortAccounts(accounts).map((acc) => (
+															<SelectItem key={acc.id} value={acc.id}>
+																{formatAccountDisplayName(acc)}
+															</SelectItem>
+														))}
+													</SelectContent>
+												</Select>
+												{errors.fromAccountId && <p className="text-sm text-error">{errors.fromAccountId}</p>}
+											</div>
+
+											<div className="space-y-2">
+												<Label htmlFor="toAccount">
+													To Account (Destination) <span className="text-error">*</span>
+												</Label>
+												<Select
+													value={toAccountId}
+													onValueChange={(val) => {
+														setToAccountId(val);
+														if (errors.toAccountId) setErrors({ ...errors, toAccountId: undefined });
+													}}
+												>
+													<SelectTrigger className={cn("h-10", errors.toAccountId && "border-error")}>
+														<SelectValue placeholder="Select destination account" />
+													</SelectTrigger>
+													<SelectContent>
+														{sortAccounts(accounts)
+															.filter((acc) => acc.id !== fromAccountId)
+															.map((acc) => (
+																<SelectItem key={acc.id} value={acc.id}>
+																	{formatAccountDisplayName(acc)}
+																</SelectItem>
+															))}
+													</SelectContent>
+												</Select>
+												{errors.toAccountId && <p className="text-sm text-error">{errors.toAccountId}</p>}
+											</div>
+										</div>
+									</>
+								) : (
+									<>
+										<div className="space-y-2">
+											<Label htmlFor="category">
+												Budget Category{categoryRequired && <span className="text-error"> *</span>}
+												{showCategoryBadge && !categoryDisabled && (
+													<span className="ml-2 text-xs text-primary">
+														{selectedCategory?.category_type === "savings_goal" && "(Savings Goal)"}
+														{selectedCategory?.category_type === "debt_payment" && "(Debt Payment)"}
+													</span>
+												)}
+											</Label>
+											<Select
+												value={categoryDisabled ? VIRTUAL_UNCATEGORIZED_ID : categoryId}
+												onValueChange={setCategoryId}
+												disabled={categoryDisabled}
+											>
+												<SelectTrigger className="h-10">
+													<SelectValue placeholder="Select a category" />
+												</SelectTrigger>
+												<SelectContent>
+													<SelectItem value={VIRTUAL_UNCATEGORIZED_ID}>Uncategorized</SelectItem>
+													{categories
+														.filter((cat) => cat.id !== VIRTUAL_UNCATEGORIZED_ID)
+														.map((cat) => (
+															<SelectItem key={cat.id} value={cat.id}>
+																{cat.name}
+															</SelectItem>
+														))}
+												</SelectContent>
+											</Select>
+										</div>
+
+										<div className="space-y-2">
+											<Label htmlFor="account">
+												Account
+												{accountRequired ? <span className="text-error">*</span> : " (Optional)"}
+											</Label>
+											<Select
+												value={accountId}
+												onValueChange={(val) => {
+													setAccountId(val);
+													if (errors.accountId) setErrors({ ...errors, accountId: undefined });
+												}}
+											>
+												<SelectTrigger className={cn("h-10", errors.accountId && "border-error")}>
+													<SelectValue placeholder={accountRequired ? "Select an account" : "No account selected"} />
+												</SelectTrigger>
+												<SelectContent>
+													{!accountRequired && <SelectItem value="none">No Account</SelectItem>}
+													{sortAccounts(accounts).map((acc) => (
+														<SelectItem key={acc.id} value={acc.id}>
+															{formatAccountDisplayName(acc)}
+														</SelectItem>
+													))}
+												</SelectContent>
+											</Select>
+											{suggestedAccountInfo && <p className="text-xs text-primary">{suggestedAccountInfo}</p>}
+											{errors.accountId && <p className="text-sm text-error">{errors.accountId}</p>}
+										</div>
+
+										{accountId === "none" && categoryId !== VIRTUAL_UNCATEGORIZED_ID && (
+											<p className="text-sm text-primary flex items-start gap-2 p-3 bg-muted rounded-lg">
+												<Info className="h-4 w-4 shrink-0 mt-0.5" />
+												<span>Budget-only transaction: Your budget will update, but no account balance will change.</span>
+											</p>
 										)}
-									</Label>
-									<Select
-										value={categoryDisabled ? VIRTUAL_UNCATEGORIZED_ID : categoryId}
-										onValueChange={setCategoryId}
-										disabled={categoryDisabled}
-									>
-										<SelectTrigger className="h-10">
-											<SelectValue placeholder="Select a category" />
-										</SelectTrigger>
-										<SelectContent>
-											<SelectItem value={VIRTUAL_UNCATEGORIZED_ID}>Uncategorized</SelectItem>
-											{categories
-												.filter((cat) => cat.id !== VIRTUAL_UNCATEGORIZED_ID)
-												.map((cat) => (
-													<SelectItem key={cat.id} value={cat.id}>
-														{cat.name}
-													</SelectItem>
-												))}
-										</SelectContent>
-									</Select>
-								</div>
-
-								<div className="space-y-2">
-									<Label htmlFor="account">
-										Account
-										{accountRequired ? <span className="text-error">*</span> : " (Optional)"}
-									</Label>
-									<Select
-										value={accountId}
-										onValueChange={(val) => {
-											setAccountId(val);
-											if (errors.accountId) setErrors({ ...errors, accountId: undefined });
-										}}
-									>
-										<SelectTrigger className={cn("h-10", errors.accountId && "border-error")}>
-											<SelectValue placeholder={accountRequired ? "Select an account" : "No account selected"} />
-										</SelectTrigger>
-										<SelectContent>
-											{!accountRequired && <SelectItem value="none">No Account</SelectItem>}
-											{sortAccounts(accounts).map((acc) => (
-												<SelectItem key={acc.id} value={acc.id}>
-													{formatAccountDisplayName(acc)}
-												</SelectItem>
-											))}
-										</SelectContent>
-									</Select>
-									{suggestedAccountInfo && <p className="text-xs text-primary">{suggestedAccountInfo}</p>}
-									{errors.accountId && <p className="text-sm text-error">{errors.accountId}</p>}
-								</div>
-
-								{accountId === "none" && categoryId !== VIRTUAL_UNCATEGORIZED_ID && (
-									<p className="text-sm text-primary flex items-start gap-2 p-3 bg-muted rounded-lg">
-										<Info className="h-4 w-4 shrink-0 mt-0.5" />
-										<span>Budget-only transaction: Your budget will update, but no account balance will change.</span>
-									</p>
+									</>
 								)}
 
 								{notes && (

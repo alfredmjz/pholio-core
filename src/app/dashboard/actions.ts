@@ -45,7 +45,7 @@ export async function getDashboardData(): Promise<DashboardData> {
 	const startOfMonth = `${now.getFullYear()}-${String(now.getMonth() + 1).padStart(2, "0")}-01`;
 	const { data: monthlyTxs } = await supabase
 		.from("transactions")
-		.select("amount, transaction_date")
+		.select("amount, transaction_date, source, name, notes")
 		.eq("user_id", user.id)
 		.gte("transaction_date", startOfMonth);
 
@@ -132,6 +132,8 @@ export async function getRecentTransactions(limit: number = 10): Promise<Transac
 			name,
 			amount,
 			transaction_date,
+			source,
+			notes,
 			allocation_categories (
 				name,
 				color
@@ -150,14 +152,17 @@ export async function getRecentTransactions(limit: number = 10): Promise<Transac
 		return [];
 	}
 
-	return transactions.map((t: any) => ({
-		id: t.id,
-		date: t.transaction_date,
-		description: t.name,
-		category: t.allocation_categories?.name || "Uncategorized",
-		amount: Math.abs(t.amount),
-		type: t.amount >= 0 ? ("income" as const) : ("expense" as const),
-	}));
+	return transactions.map((t: any) => {
+		const isTransfer = isTransferTransaction(t);
+		return {
+			id: t.id,
+			date: t.transaction_date,
+			description: t.name,
+			category: t.allocation_categories?.name || "Uncategorized",
+			amount: Math.abs(t.amount),
+			type: t.amount > 0 && !isTransfer ? ("income" as const) : ("expense" as const),
+		};
+	});
 }
 
 // ============================================================================
@@ -183,6 +188,16 @@ interface HistoryRecord {
 interface TransactionRecord {
 	amount: number;
 	transaction_date: string;
+	source?: string;
+	name?: string;
+	notes?: string;
+}
+
+function isTransferTransaction(t: TransactionRecord): boolean {
+	if (t.source === "transfer") return true;
+	const name = (t.name || "").toLowerCase();
+	const notes = (t.notes || "").toLowerCase();
+	return name.includes("transfer") || notes.includes("transfer");
 }
 
 /**
@@ -253,10 +268,12 @@ function computeTrendData(history: HistoryRecord[]): { date: string; value: numb
  * Compute metrics from monthly transactions
  */
 function computeMetrics(transactions: TransactionRecord[], netWorth: number): DashboardData["metrics"] {
-	const monthlyIncome = transactions.filter((t) => t.amount > 0).reduce((sum, t) => sum + Number(t.amount), 0);
+	const monthlyIncome = transactions
+		.filter((t) => t.amount > 0 && !isTransferTransaction(t))
+		.reduce((sum, t) => sum + Number(t.amount), 0);
 
 	const monthlyExpenses = transactions
-		.filter((t) => t.amount < 0)
+		.filter((t) => t.amount < 0 && !isTransferTransaction(t))
 		.reduce((sum, t) => sum + Math.abs(Number(t.amount)), 0);
 
 	const savingsRate = monthlyIncome - monthlyExpenses;
@@ -282,7 +299,7 @@ async function computeCashflowData(
 	const startDate = new Date(now.getFullYear() - 1, now.getMonth(), 1);
 	const { data: transactions } = await supabase
 		.from("transactions")
-		.select("amount, transaction_date")
+		.select("amount, transaction_date, source, name, notes")
 		.eq("user_id", userId)
 		.gte("transaction_date", startDate.toISOString().split("T")[0])
 		.order("transaction_date", { ascending: true });
@@ -301,6 +318,11 @@ function computeCashflowForPeriod(transactions: TransactionRecord[], period: Per
 	const grouped: Record<string, { income: number; expenses: number }> = {};
 
 	for (const tx of transactions) {
+		if (isTransferTransaction(tx)) {
+			// Skip internal transfers from income and expenses totals
+			continue;
+		}
+
 		const date = new Date(tx.transaction_date);
 		let key: string;
 		let label: string;

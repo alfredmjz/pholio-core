@@ -16,13 +16,15 @@ export interface UnifiedTransactionInput {
 	notes?: string;
 
 	// Type classification
-	type: "income" | "expense";
+	type: "income" | "expense" | "transfer";
 
 	// Budget tracking (optional - can be uncategorized)
 	categoryId?: string | null;
 
 	// Account tracking (optional - budget-only transactions allowed)
 	accountId?: string | null;
+	fromAccountId?: string | null; // For transfers (Source)
+	toAccountId?: string | null; // For transfers (Destination)
 	transactionType?: TransactionType; // deposit, withdrawal, payment, etc.
 
 	// Optional source override

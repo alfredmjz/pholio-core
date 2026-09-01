@@ -133,6 +133,8 @@ CREATE TABLE IF NOT EXISTS public.account_transactions (
     created_at TIMESTAMPTZ DEFAULT NOW()
 );
 
+ALTER TABLE public.account_transactions ADD COLUMN IF NOT EXISTS linked_transfer_transaction_id UUID REFERENCES public.account_transactions(id) ON DELETE SET NULL;
+
 ALTER TABLE public.account_transactions ENABLE ROW LEVEL SECURITY;
 DROP POLICY IF EXISTS "Users manage own account transactions" ON public.account_transactions;
 CREATE POLICY "Users manage own account transactions" ON public.account_transactions FOR ALL USING (auth.uid() = user_id);

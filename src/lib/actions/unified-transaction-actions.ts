@@ -37,17 +37,157 @@ export async function createUnifiedTransaction(input: UnifiedTransactionInput): 
 		// Defensive check for Next.js serialization quirk
 		const categoryId = input.categoryId === "$undefined" ? null : (input.categoryId ?? null);
 		const accountId = input.accountId === "$undefined" ? null : (input.accountId ?? null);
+		const fromAccountId = input.fromAccountId === "$undefined" ? null : (input.fromAccountId ?? null);
+		const toAccountId = input.toAccountId === "$undefined" ? null : (input.toAccountId ?? null);
 
 		const normalizedInput = {
 			...input,
 			categoryId,
 			accountId,
+			fromAccountId,
+			toAccountId,
 		};
 
 		let allocationTxId: string | undefined;
 		let accountTxId: string | undefined;
 
-		// Step 1: Create allocation transaction
+		// Handle Transfer Transaction Type
+		if (normalizedInput.type === "transfer") {
+			if (!normalizedInput.fromAccountId || !normalizedInput.toAccountId) {
+				return { success: false, error: "Please select both source and destination accounts for the transfer" };
+			}
+			if (normalizedInput.fromAccountId === normalizedInput.toAccountId) {
+				return { success: false, error: "Source and destination accounts must be different" };
+			}
+
+			// Step 1: Create allocation transaction (source = 'transfer', category = null)
+			const { data: allocTx, error: allocError } = await supabase
+				.from("transactions")
+				.insert({
+					user_id: user.id,
+					category_id: null,
+					name: normalizedInput.description,
+					amount: Math.abs(normalizedInput.amount),
+					transaction_date: normalizedInput.date,
+					notes: normalizedInput.notes || null,
+					source: "transfer",
+				})
+				.select("id")
+				.single();
+
+			if (allocError || !allocTx) {
+				Logger.error("Transfer allocation transaction error", { error: allocError });
+				return { success: false, error: "Failed to create transfer transaction record" };
+			}
+
+			allocationTxId = allocTx.id;
+
+			// Fetch accounts
+			const { data: fromAccount } = await supabase
+				.from("accounts")
+				.select("*, account_type:account_types(*)")
+				.eq("id", normalizedInput.fromAccountId)
+				.single();
+
+			const { data: toAccount } = await supabase
+				.from("accounts")
+				.select("*, account_type:account_types(*)")
+				.eq("id", normalizedInput.toAccountId)
+				.single();
+
+			if (!fromAccount || !toAccount) {
+				await supabase.from("transactions").delete().eq("id", allocationTxId);
+				return { success: false, error: "One or both selected accounts were not found" };
+			}
+
+			const isFromAsset = (fromAccount.account_type as any)?.class === "asset";
+			const isToAsset = (toAccount.account_type as any)?.class === "asset";
+
+			const fromAccountAmount = isFromAsset ? -Math.abs(normalizedInput.amount) : Math.abs(normalizedInput.amount);
+			const toAccountAmount = isToAsset ? Math.abs(normalizedInput.amount) : -Math.abs(normalizedInput.amount);
+
+			// Step 2: Create Source Account Transaction (Withdrawal/Charge)
+			const { data: fromAcctTx, error: fromAcctError } = await supabase
+				.from("account_transactions")
+				.insert({
+					user_id: user.id,
+					account_id: normalizedInput.fromAccountId,
+					amount: fromAccountAmount,
+					transaction_type: "transfer",
+					description: normalizedInput.description || `Transfer to ${toAccount.name}`,
+					transaction_date: normalizedInput.date,
+					linked_allocation_transaction_id: allocationTxId,
+				})
+				.select("id")
+				.single();
+
+			if (fromAcctError || !fromAcctTx) {
+				Logger.error("Source account transfer transaction error", { error: fromAcctError });
+				await supabase.from("transactions").delete().eq("id", allocationTxId);
+				return { success: false, error: "Failed to process transfer from source account" };
+			}
+
+			accountTxId = fromAcctTx.id;
+			await adjustAccountBalance(supabase, normalizedInput.fromAccountId, fromAccountAmount);
+
+			// Step 3: Create Destination Account Transaction (Deposit/Payment)
+			const { data: toAcctTx, error: toAcctError } = await supabase
+				.from("account_transactions")
+				.insert({
+					user_id: user.id,
+					account_id: normalizedInput.toAccountId,
+					amount: toAccountAmount,
+					transaction_type: "transfer",
+					description: normalizedInput.description || `Transfer from ${fromAccount.name}`,
+					transaction_date: normalizedInput.date,
+					linked_allocation_transaction_id: allocationTxId,
+				})
+				.select("id")
+				.single();
+
+			if (toAcctError || !toAcctTx) {
+				Logger.error("Destination account transfer transaction error", { error: toAcctError });
+				// Rollback source account transaction & balance
+				await adjustAccountBalance(supabase, normalizedInput.fromAccountId, -fromAccountAmount);
+				await supabase.from("account_transactions").delete().eq("id", fromAcctTx.id);
+				await supabase.from("transactions").delete().eq("id", allocationTxId);
+				return { success: false, error: "Failed to process transfer to destination account" };
+			}
+
+			await adjustAccountBalance(supabase, normalizedInput.toAccountId, toAccountAmount);
+
+			// Step 4: Link source transaction to destination transaction & link allocation transaction
+			try {
+				await supabase
+					.from("account_transactions")
+					.update({ linked_transfer_transaction_id: toAcctTx.id })
+					.eq("id", fromAcctTx.id);
+
+				await supabase
+					.from("account_transactions")
+					.update({ linked_transfer_transaction_id: fromAcctTx.id })
+					.eq("id", toAcctTx.id);
+			} catch (linkErr) {
+				Logger.warn("Optional transfer linking failed", { error: linkErr });
+			}
+
+			await supabase
+				.from("transactions")
+				.update({ linked_account_transaction_id: fromAcctTx.id })
+				.eq("id", allocationTxId);
+
+			revalidatePath("/allocations");
+			revalidatePath("/balancesheet");
+			revalidatePath("/dashboard");
+
+			return {
+				success: true,
+				allocationTransactionId: allocationTxId,
+				accountTransactionId: fromAcctTx.id,
+			};
+		}
+
+		// Step 1: Create allocation transaction (Income / Expense)
 		const allocAmount = normalizedInput.type === "income" ? normalizedInput.amount : -Math.abs(normalizedInput.amount);
 
 		const { data: allocTx, error: allocError } = await supabase

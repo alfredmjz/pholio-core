@@ -127,6 +127,7 @@ export function inferTransactionType(transaction: {
 	notes?: string;
 	source?: string;
 	recurring_expense_id?: string | null;
+	transaction_type?: string;
 }): TransactionType {
 	if (transaction.recurring_expense_id) {
 		return "recurring";
@@ -136,9 +137,16 @@ export function inferTransactionType(transaction: {
 		return "recurring";
 	}
 
+	if (transaction.source === "transfer" || transaction.transaction_type === "transfer") {
+		return "transfer";
+	}
+
 	const name = transaction.name.toLowerCase();
 	const notes = transaction.notes?.toLowerCase() || "";
 
+	if (name.includes("transfer") || notes.includes("transfer") || name.includes("venmo") || name.includes("zelle")) {
+		return "transfer";
+	}
 	if (name.includes("subscription") || name.includes("netflix") || name.includes("spotify")) {
 		return "subscription";
 	}
@@ -148,17 +156,14 @@ export function inferTransactionType(transaction: {
 	if (name.includes("interest")) {
 		return "interest";
 	}
-	if (name.includes("salary") || name.includes("paycheck") || transaction.amount > 0) {
-		return "income";
-	}
 	if (name.includes("rent") || name.includes("utility") || name.includes("electric") || name.includes("water")) {
 		return "recurring";
 	}
-	if (name.includes("transfer") || name.includes("venmo") || name.includes("zelle")) {
-		return "transfer";
-	}
 	if (name.includes("invest") || name.includes("401k") || name.includes("ira")) {
 		return "investment";
+	}
+	if (name.includes("salary") || name.includes("paycheck") || transaction.amount > 0) {
+		return "income";
 	}
 
 	return "one_time";

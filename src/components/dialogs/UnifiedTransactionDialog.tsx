@@ -10,7 +10,6 @@ import {
 	DialogTitle,
 } from "@/components/ui/dialog";
 import { Button } from "@/components/ui/button";
-import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
 import { Textarea } from "@/components/ui/textarea";
@@ -19,7 +18,11 @@ import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
 import { Calendar } from "@/components/ui/calendar";
 import { toast } from "sonner";
 import { Loader2, TrendingUp, TrendingDown, Info, Settings2, PlusCircle, Trash2 } from "lucide-react";
-import { createUnifiedTransaction, getSuggestedAccountForCategory, getTransactionDescriptions } from "@/lib/actions/unified-transaction-actions";
+import {
+	createUnifiedTransaction,
+	getSuggestedAccountForCategory,
+	getTransactionDescriptions,
+} from "@/lib/actions/unified-transaction-actions";
 import { AutocompleteInput } from "@/components/ui/autocomplete-input";
 import {
 	getTransactionPresets,
@@ -446,7 +449,12 @@ export function UnifiedTransactionDialog({
 										</div>
 										<div className="flex-1 space-y-2">
 											<Label htmlFor="description">
-												Description{type === "transfer" ? <span className="text-muted-foreground font-normal"> (Optional)</span> : <span className="text-error"> *</span>}
+												Description
+												{type === "transfer" ? (
+													<span className="text-muted-foreground font-normal"> (Optional)</span>
+												) : (
+													<span className="text-error"> *</span>
+												)}
 											</Label>
 											<AutocompleteInput
 												id="description"
@@ -590,7 +598,9 @@ export function UnifiedTransactionDialog({
 										{accountId === "none" && categoryId !== VIRTUAL_UNCATEGORIZED_ID && (
 											<p className="text-sm text-primary flex items-start gap-2 p-3 bg-muted rounded-lg">
 												<Info className="h-4 w-4 shrink-0 mt-0.5" />
-												<span>Budget-only transaction: Your budget will update, but no account balance will change.</span>
+												<span>
+													Budget-only transaction: Your budget will update, but no account balance will change.
+												</span>
 											</p>
 										)}
 									</>

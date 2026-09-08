@@ -506,3 +506,71 @@ async function adjustAccountBalance(supabase: any, accountId: string, delta: num
 
 	return { error: updateError };
 }
+
+/**
+ * Get distinct previously used transaction descriptions for autofill suggestions
+ */
+export async function getTransactionDescriptions(): Promise<string[]> {
+	try {
+		const supabase = await createClient();
+		const {
+			data: { user },
+		} = await supabase.auth.getUser();
+
+		if (!user) return [];
+
+		const [allocRes, acctRes, presetRes] = await Promise.all([
+			supabase
+				.from("transactions")
+				.select("name")
+				.eq("user_id", user.id)
+				.not("name", "is", null)
+				.order("created_at", { ascending: false })
+				.limit(100),
+			supabase
+				.from("account_transactions")
+				.select("description")
+				.eq("user_id", user.id)
+				.not("description", "is", null)
+				.order("created_at", { ascending: false })
+				.limit(100),
+			supabase
+				.from("transaction_presets")
+				.select("description")
+				.eq("user_id", user.id)
+				.not("description", "is", null)
+				.limit(50),
+		]);
+
+		const set = new Set<string>();
+
+		if (allocRes.data) {
+			for (const row of allocRes.data) {
+				if (row.name && row.name.trim()) {
+					set.add(row.name.trim());
+				}
+			}
+		}
+
+		if (acctRes.data) {
+			for (const row of acctRes.data) {
+				if (row.description && row.description.trim()) {
+					set.add(row.description.trim());
+				}
+			}
+		}
+
+		if (presetRes.data) {
+			for (const row of presetRes.data) {
+				if (row.description && row.description.trim()) {
+					set.add(row.description.trim());
+				}
+			}
+		}
+
+		return Array.from(set).sort((a, b) => a.localeCompare(b));
+	} catch (error) {
+		Logger.error("Error fetching transaction descriptions", { error });
+		return [];
+	}
+}

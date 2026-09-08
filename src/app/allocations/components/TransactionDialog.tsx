@@ -16,7 +16,9 @@ import {
 	updateUnifiedTransaction,
 	deleteUnifiedTransaction,
 	createUnifiedTransaction,
+	getTransactionDescriptions,
 } from "@/lib/actions/unified-transaction-actions";
+import { AutocompleteInput } from "@/components/ui/autocomplete-input";
 import { VIRTUAL_UNCATEGORIZED_ID } from "../types";
 import type { Transaction, AllocationCategory } from "../types";
 import type { AccountWithType } from "@/app/balancesheet/types";
@@ -67,6 +69,7 @@ export function TransactionDialog({
 	const [type, setType] = useState<"income" | "expense" | "transfer">("expense");
 	const [notes, setNotes] = useState("");
 	const [isDeleting, setIsDeleting] = useState(false);
+	const [descriptions, setDescriptions] = useState<string[]>([]);
 
 	useEffect(() => {
 		if (open) {
@@ -93,6 +96,7 @@ export function TransactionDialog({
 				setType("expense");
 				setNotes("");
 			}
+			getTransactionDescriptions().then(setDescriptions);
 		}
 	}, [open, transaction, defaultDate]);
 
@@ -271,11 +275,12 @@ export function TransactionDialog({
 								</div>
 								<div className="flex-1 space-y-2">
 									<Label htmlFor="name">Description <span className="text-muted-foreground font-normal">(Optional)</span></Label>
-									<Input
+									<AutocompleteInput
 										id="name"
 										placeholder="e.g. Account Transfer"
 										value={name}
-										onChange={(e) => setName(e.target.value)}
+										onChange={setName}
+										suggestions={descriptions}
 										className="h-10"
 									/>
 								</div>
@@ -380,11 +385,12 @@ export function TransactionDialog({
 
 							<div className="space-y-2">
 								<Label htmlFor="name">Description</Label>
-								<Input
+								<AutocompleteInput
 									id="name"
 									placeholder="e.g. Grocery Store"
 									value={name}
-									onChange={(e) => setName(e.target.value)}
+									onChange={setName}
+									suggestions={descriptions}
 									required
 									className="h-10"
 								/>

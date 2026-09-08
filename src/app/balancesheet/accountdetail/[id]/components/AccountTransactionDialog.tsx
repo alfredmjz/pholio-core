@@ -10,6 +10,8 @@ import { DatePicker } from "@/components/ui/date-picker";
 import { Loader2, Info, Trash2 } from "lucide-react";
 import { toast } from "sonner";
 import { updateAccountTransaction, deleteAccountTransaction } from "@/lib/actions/account-transaction-actions";
+import { getTransactionDescriptions } from "@/lib/actions/unified-transaction-actions";
+import { AutocompleteInput } from "@/components/ui/autocomplete-input";
 import type { AccountTransaction } from "@/app/balancesheet/types";
 import { FormSection } from "@/components/FormSection";
 import { ProminentAmountInput } from "@/components/ProminentAmountInput";
@@ -43,12 +45,16 @@ export function AccountTransactionDialog({
 	const [description, setDescription] = useState("");
 	const [amount, setAmount] = useState("");
 	const [date, setDate] = useState("");
+	const [suggestions, setSuggestions] = useState<string[]>([]);
 
 	useEffect(() => {
 		if (open && transaction) {
 			setDescription(transaction.description || "");
 			setAmount(Math.abs(transaction.amount).toString());
 			setDate(transaction.transaction_date.split("T")[0]);
+		}
+		if (open) {
+			getTransactionDescriptions().then(setSuggestions);
 		}
 	}, [open, transaction]);
 
@@ -138,11 +144,13 @@ export function AccountTransactionDialog({
 						<Label htmlFor="description">
 							Description <span className="text-error">*</span>
 						</Label>
-						<Input
+						<AutocompleteInput
 							id="description"
 							placeholder="e.g. Direct Deposit"
 							value={description}
-							onChange={(e) => setDescription(e.target.value)}
+							onChange={setDescription}
+							suggestions={suggestions}
+							required
 							className="h-10"
 						/>
 					</div>

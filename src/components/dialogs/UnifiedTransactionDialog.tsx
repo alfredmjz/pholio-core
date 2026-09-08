@@ -19,7 +19,8 @@ import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
 import { Calendar } from "@/components/ui/calendar";
 import { toast } from "sonner";
 import { Loader2, TrendingUp, TrendingDown, Info, Settings2, PlusCircle, Trash2 } from "lucide-react";
-import { createUnifiedTransaction, getSuggestedAccountForCategory } from "@/lib/actions/unified-transaction-actions";
+import { createUnifiedTransaction, getSuggestedAccountForCategory, getTransactionDescriptions } from "@/lib/actions/unified-transaction-actions";
+import { AutocompleteInput } from "@/components/ui/autocomplete-input";
 import {
 	getTransactionPresets,
 	TransactionPreset,
@@ -95,6 +96,7 @@ export function UnifiedTransactionDialog({
 	const [suggestedAccountInfo, setSuggestedAccountInfo] = useState<string | null>(null);
 	const [errors, setErrors] = useState<ValidationErrors>({});
 	const [activeTab, setActiveTab] = useState("manual");
+	const [descriptionSuggestions, setDescriptionSuggestions] = useState<string[]>([]);
 
 	// Presets State
 	const [presets, setPresets] = useState<TransactionPreset[]>([]);
@@ -138,6 +140,7 @@ export function UnifiedTransactionDialog({
 			setActiveTab("manual");
 			setSelectedDatesMap({});
 			loadPresets();
+			getTransactionDescriptions().then(setDescriptionSuggestions);
 		}
 	}, [open, defaultDate, defaultCategoryId, defaultAccountId, defaultType, boundaryMonth]);
 
@@ -445,14 +448,15 @@ export function UnifiedTransactionDialog({
 											<Label htmlFor="description">
 												Description{type === "transfer" ? <span className="text-muted-foreground font-normal"> (Optional)</span> : <span className="text-error"> *</span>}
 											</Label>
-											<Input
+											<AutocompleteInput
 												id="description"
 												placeholder={type === "transfer" ? "e.g. Account Transfer" : "e.g. Grocery Store"}
 												value={description}
-												onChange={(e) => {
-													setDescription(e.target.value);
+												onChange={(val) => {
+													setDescription(val);
 													if (errors.description) setErrors({ ...errors, description: undefined });
 												}}
+												suggestions={descriptionSuggestions}
 												required={type !== "transfer"}
 												className={cn("h-10", errors.description && "border-error")}
 											/>

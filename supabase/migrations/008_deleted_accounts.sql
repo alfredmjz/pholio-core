@@ -28,7 +28,10 @@ CREATE TABLE IF NOT EXISTS public.deleted_accounts (
     deleted_at TIMESTAMPTZ NOT NULL DEFAULT NOW()
 );
 
--- No RLS policy / GRANT to `authenticated` on purpose: this table is for support only.
+-- Support-only table. RLS is enabled with NO policies, so anon/authenticated get no
+-- access (Supabase grants default privileges on new public tables). The archive trigger
+-- is SECURITY DEFINER and runs as the owner, so it can still write the snapshot.
+ALTER TABLE public.deleted_accounts ENABLE ROW LEVEL SECURITY;
 
 -- ---------------------------------------------------------------------------
 -- 2. Preserve account_transactions when an account is deleted

@@ -199,7 +199,6 @@ export function NetWorthWidget({
 							<DonutChart
 								data={donutData}
 								size={40}
-								strokeWidth={12}
 								centerContent={CenterContent}
 								showTooltip={true}
 							/>

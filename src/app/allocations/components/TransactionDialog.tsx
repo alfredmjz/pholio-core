@@ -2,9 +2,9 @@
 
 import { useState, useEffect } from "react";
 import { Button } from "@/components/ui/button";
+import { Badge } from "@/components/ui/badge";
 import { ControlBasedDialog } from "@/components/dialogWrapper";
 import { DialogFooter } from "@/components/ui/dialog";
-import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
 import { Textarea } from "@/components/ui/textarea";
@@ -27,6 +27,8 @@ import { CardSelector } from "@/components/CardSelector";
 import { ProminentAmountInput } from "@/components/ProminentAmountInput";
 import { getTodayDateString } from "@/lib/date-utils";
 import { formatAccountDisplayName, sortAccounts } from "@/lib/account-utils";
+import { sortAlphabetically } from "@/lib/sort-utils";
+import { checkTransactionCaps } from "@/lib/account-validation-utils";
 import {
 	AlertDialog,
 	AlertDialogAction,
@@ -100,6 +102,23 @@ export function TransactionDialog({
 		}
 	}, [open, transaction, defaultDate]);
 
+	const [allowOverpayment, setAllowOverpayment] = useState(false);
+
+	const capCheck =
+		amount && parseFloat(amount) > 0
+			? checkTransactionCaps({
+					intent: type,
+					amount: parseFloat(amount),
+					account: type === "transfer" ? null : accounts.find((a) => a.id === accountId),
+					fromAccount: type === "transfer" ? accounts.find((a) => a.id === fromAccountId) : null,
+					toAccount: type === "transfer" ? accounts.find((a) => a.id === toAccountId) : null,
+				})
+			: { isValid: true, violations: [] as ReturnType<typeof checkTransactionCaps>["violations"] };
+
+	const firstViolation = capCheck.violations[0];
+	const maxAllowed = firstViolation?.maxAllowed;
+	const overridable = firstViolation?.overridable ?? false;
+
 	const handleSubmit = async (e: React.FormEvent) => {
 		e.preventDefault();
 		if (!amount || !date || (type !== "transfer" && !name)) {
@@ -118,12 +137,24 @@ export function TransactionDialog({
 			}
 		}
 
+		if (!capCheck.isValid && !(allowOverpayment && overridable)) {
+			toast.error("Validation Failed", { description: firstViolation?.message || "Amount exceeds account limit." });
+			return;
+		}
+
 		setIsLoading(true);
 
 		try {
 			const numAmount = parseFloat(amount);
 			const finalCategoryId = type === "transfer" ? null : categoryId === VIRTUAL_UNCATEGORIZED_ID ? null : categoryId;
-			const finalAccountId = type === "transfer" ? (fromAccountId === "none" ? null : fromAccountId) : accountId === "none" ? null : accountId;
+			const finalAccountId =
+				type === "transfer"
+					? fromAccountId === "none"
+						? null
+						: fromAccountId
+					: accountId === "none"
+						? null
+						: accountId;
 			const finalDescription = name.trim() || (type === "transfer" ? "Transfer" : "");
 
 			if (transaction) {
@@ -137,6 +168,7 @@ export function TransactionDialog({
 					toAccountId: type === "transfer" ? (toAccountId === "none" ? null : toAccountId) : null,
 					type,
 					notes,
+					allowOverpayment,
 				});
 
 				if (success) {
@@ -158,6 +190,7 @@ export function TransactionDialog({
 					toAccountId: type === "transfer" ? (toAccountId === "none" ? null : toAccountId) : null,
 					type,
 					notes,
+					allowOverpayment,
 				});
 
 				if (result.success) {
@@ -197,6 +230,11 @@ export function TransactionDialog({
 		}
 	};
 
+	const linkedAccountDeleted =
+		transaction != null &&
+		transaction.linked_account_transaction_id != null &&
+		transaction.linked_account_transaction?.account_id == null;
+
 	return (
 		<ControlBasedDialog
 			open={open}
@@ -207,13 +245,25 @@ export function TransactionDialog({
 			showCloseButton={false}
 		>
 			<form onSubmit={handleSubmit} className="flex flex-col gap-6">
+				{linkedAccountDeleted && (
+					<div className="flex flex-col gap-1.5">
+						<Badge variant="outline" className="self-start whitespace-nowrap border-error text-error">
+							Deleted account
+						</Badge>
+						<span className="text-xs text-muted-foreground">
+							This transaction was recorded against an account that has since been deleted.
+						</span>
+					</div>
+				)}
+
 				{transaction?.is_recurring_stopped && (
 					<div className="flex items-start gap-2.5 p-3 rounded-lg bg-amber-500/10 border border-amber-500/30 text-amber-800 dark:text-amber-300 text-xs">
 						<Ban className="h-4 w-4 text-amber-600 dark:text-amber-400 shrink-0 mt-0.5" />
 						<div>
 							<span className="font-semibold">Recurring Stopped — Final Record</span>
 							<p className="text-amber-700/90 dark:text-amber-400/90 mt-0.5">
-								The recurring bill/subscription for this transaction was paused or deleted. Future transactions will not be generated automatically.
+								The recurring bill/subscription for this transaction was paused or deleted. Future transactions will not
+								be generated automatically.
 							</p>
 						</div>
 					</div>
@@ -253,6 +303,39 @@ export function TransactionDialog({
 						<ProminentAmountInput id="amount" value={amount} onChange={setAmount} hasError={false} />
 					</div>
 
+					{!capCheck.isValid && (
+						<div className="p-2.5 rounded-lg bg-amber-500/10 border border-amber-500/30 text-amber-700 dark:text-amber-400 flex flex-col gap-2">
+							<div className="flex items-start gap-1.5">
+								<Info className="h-4 w-4 shrink-0 mt-0.5 text-amber-600 dark:text-amber-400" />
+								<span className="text-xs">{firstViolation?.message}</span>
+							</div>
+							<div className="flex items-center justify-between pt-1 border-t border-amber-500/20">
+								{maxAllowed !== undefined && (
+									<Button
+										type="button"
+										variant="outline"
+										size="sm"
+										className="h-7 text-xs font-medium border-amber-500/40 hover:bg-amber-500/20 text-amber-800 dark:text-amber-300"
+										onClick={() => setAmount(maxAllowed.toFixed(2))}
+									>
+										Set to Max (${maxAllowed.toFixed(2)})
+									</Button>
+								)}
+								{overridable && (
+									<label className="flex items-center gap-1.5 text-[11px] cursor-pointer font-medium text-amber-800 dark:text-amber-300">
+										<input
+											type="checkbox"
+											checked={allowOverpayment}
+											onChange={(e) => setAllowOverpayment(e.target.checked)}
+											className="rounded border-amber-400 text-amber-600 focus:ring-amber-500"
+										/>
+										Allow Overpayment
+									</label>
+								)}
+							</div>
+						</div>
+					)}
+
 					{type === "transfer" ? (
 						<>
 							<div className="flex flex-row gap-4">
@@ -264,7 +347,9 @@ export function TransactionDialog({
 										onChange={setDate}
 										placeholder="Select transaction date"
 										minDate={
-											boundaryMonth ? `${boundaryMonth.year}-${String(boundaryMonth.month).padStart(2, "0")}-01` : undefined
+											boundaryMonth
+												? `${boundaryMonth.year}-${String(boundaryMonth.month).padStart(2, "0")}-01`
+												: undefined
 										}
 										maxDate={
 											boundaryMonth
@@ -274,7 +359,9 @@ export function TransactionDialog({
 									/>
 								</div>
 								<div className="flex-1 space-y-2">
-									<Label htmlFor="name">Description <span className="text-muted-foreground font-normal">(Optional)</span></Label>
+									<Label htmlFor="name">
+										Description <span className="text-muted-foreground font-normal">(Optional)</span>
+									</Label>
 									<AutocompleteInput
 										id="name"
 										placeholder="e.g. Account Transfer"
@@ -298,17 +385,19 @@ export function TransactionDialog({
 										<SelectTrigger>
 											<SelectValue placeholder="Select source account" />
 										</SelectTrigger>
-										<SelectContent>
-											{sortAccounts(accounts).map((acc) => (
+									<SelectContent>
+										{sortAccounts(accounts)
+											.filter((acc) => acc.id !== toAccountId)
+											.map((acc) => (
 												<SelectItem key={acc.id} value={acc.id}>
 													{formatAccountDisplayName(acc)}
 												</SelectItem>
 											))}
-										</SelectContent>
-									</Select>
-								</div>
-								<div className="space-y-2">
-									<Label htmlFor="toAccount">To Account (Destination)</Label>
+									</SelectContent>
+								</Select>
+							</div>
+							<div className="space-y-2">
+								<Label htmlFor="toAccount">To Account (Destination)</Label>
 									<Select value={toAccountId} onValueChange={setToAccountId}>
 										<SelectTrigger>
 											<SelectValue placeholder="Select destination account" />
@@ -337,7 +426,9 @@ export function TransactionDialog({
 										onChange={setDate}
 										placeholder="Select transaction date"
 										minDate={
-											boundaryMonth ? `${boundaryMonth.year}-${String(boundaryMonth.month).padStart(2, "0")}-01` : undefined
+											boundaryMonth
+												? `${boundaryMonth.year}-${String(boundaryMonth.month).padStart(2, "0")}-01`
+												: undefined
 										}
 										maxDate={
 											boundaryMonth
@@ -354,7 +445,7 @@ export function TransactionDialog({
 											<SelectValue placeholder="Select a category" />
 										</SelectTrigger>
 										<SelectContent>
-											{categories.map((cat) => (
+											{sortAlphabetically(categories, (cat) => cat.name).map((cat) => (
 												<SelectItem key={cat.id} value={cat.id}>
 													{cat.name}
 												</SelectItem>

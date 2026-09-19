@@ -58,3 +58,5 @@ supabase/signing_keys.json
 
 # Claude settings
 .claude/*.local.*
+
+.docs/

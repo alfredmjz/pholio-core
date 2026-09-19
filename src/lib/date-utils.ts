@@ -288,6 +288,18 @@ export function differenceInMonths(later: Date, earlier: Date): number {
 }
 
 /**
+ * Calculate the difference in days between two dates.
+ *
+ * @param later - The later date
+ * @param earlier - The earlier date
+ * @returns Number of whole days between the two dates (can be negative)
+ */
+export function differenceInDays(later: Date, earlier: Date): number {
+	const msPerDay = 1000 * 60 * 60 * 24;
+	return Math.floor((later.getTime() - earlier.getTime()) / msPerDay);
+}
+
+/**
  * Formats a frequency string (e.g. '1:months') into a human-readable string.
  */
 export function formatFrequency(frequency: string): string {

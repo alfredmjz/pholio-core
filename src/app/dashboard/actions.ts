@@ -29,6 +29,12 @@ export async function getDashboardData(): Promise<DashboardData> {
 		.eq("user_id", user.id)
 		.eq("is_active", true);
 
+	// Fetch categories for the dashboard transaction dialog
+	const { data: categories } = await supabase
+		.from("allocation_categories")
+		.select("*")
+		.eq("user_id", user.id);
+
 	// Fetch account history for trend data
 	const { data: history } = await supabase
 		.from("account_history")
@@ -63,6 +69,8 @@ export async function getDashboardData(): Promise<DashboardData> {
 		cashflow,
 		netWorth: netWorthData,
 		recentTransactions,
+		accounts: (accounts as any[]) || [],
+		categories: (categories as any[]) || [],
 	};
 }
 

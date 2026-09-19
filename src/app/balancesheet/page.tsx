@@ -1,4 +1,3 @@
-import { Suspense } from "react";
 import { requireAuth } from "@/lib/auth";
 import { BalanceSheetClient } from "./client";
 import { getBalanceSheetSummary, getAccounts, getRecentActivity } from "./actions";

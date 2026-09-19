@@ -50,7 +50,7 @@ export interface Transaction {
 	linked_account_transaction_id?: string | null;
 	linked_account_transaction?: {
 		id: string;
-		account_id: string;
+		account_id: string | null;
 		amount: number;
 	} | null;
 	account_id?: string; // Derived for easier UI consumption

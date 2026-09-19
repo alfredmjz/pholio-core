@@ -18,6 +18,7 @@ import type {
 	SuggestedAccount,
 } from "@/lib/types/unified-transaction";
 import type { AccountWithType } from "@/app/balancesheet/types";
+import { checkTransactionCaps, calculateSignedDelta } from "@/lib/account-validation-utils";
 import { Logger } from "@/lib/logger";
 
 /**
@@ -60,6 +61,35 @@ export async function createUnifiedTransaction(input: UnifiedTransactionInput): 
 				return { success: false, error: "Source and destination accounts must be different" };
 			}
 
+			// Fetch both accounts first so balance/debt caps can be enforced before any write.
+			const [{ data: fromAccount }, { data: toAccount }] = await Promise.all([
+				supabase
+					.from("accounts")
+					.select("*, account_type:account_types(*)")
+					.eq("id", normalizedInput.fromAccountId)
+					.single(),
+				supabase
+					.from("accounts")
+					.select("*, account_type:account_types(*)")
+					.eq("id", normalizedInput.toAccountId)
+					.single(),
+			]);
+
+			if (!fromAccount || !toAccount) {
+				return { success: false, error: "One or both selected accounts were not found" };
+			}
+
+			const capCheck = checkTransactionCaps({
+				intent: "transfer",
+				amount: Math.abs(normalizedInput.amount),
+				fromAccount: fromAccount as AccountWithType,
+				toAccount: toAccount as AccountWithType,
+				allowOverpayment: normalizedInput.allowOverpayment,
+			});
+			if (!capCheck.isValid) {
+				return { success: false, error: capCheck.violations[0].message };
+			}
+
 			// Step 1: Create allocation transaction (source = 'transfer', category = null)
 			const { data: allocTx, error: allocError } = await supabase
 				.from("transactions")
@@ -82,29 +112,18 @@ export async function createUnifiedTransaction(input: UnifiedTransactionInput): 
 
 			allocationTxId = allocTx.id;
 
-			// Fetch accounts
-			const { data: fromAccount } = await supabase
-				.from("accounts")
-				.select("*, account_type:account_types(*)")
-				.eq("id", normalizedInput.fromAccountId)
-				.single();
-
-			const { data: toAccount } = await supabase
-				.from("accounts")
-				.select("*, account_type:account_types(*)")
-				.eq("id", normalizedInput.toAccountId)
-				.single();
-
-			if (!fromAccount || !toAccount) {
-				await supabase.from("transactions").delete().eq("id", allocationTxId);
-				return { success: false, error: "One or both selected accounts were not found" };
-			}
-
-			const isFromAsset = (fromAccount.account_type as any)?.class === "asset";
-			const isToAsset = (toAccount.account_type as any)?.class === "asset";
-
-			const fromAccountAmount = isFromAsset ? -Math.abs(normalizedInput.amount) : Math.abs(normalizedInput.amount);
-			const toAccountAmount = isToAsset ? Math.abs(normalizedInput.amount) : -Math.abs(normalizedInput.amount);
+			const fromAccountAmount = calculateSignedDelta(
+				fromAccount as AccountWithType,
+				"transfer",
+				undefined,
+				normalizedInput.amount
+			);
+			const toAccountAmount = -calculateSignedDelta(
+				toAccount as AccountWithType,
+				"transfer",
+				undefined,
+				normalizedInput.amount
+			);
 
 			// Step 2: Create Source Account Transaction (Withdrawal/Charge)
 			const { data: fromAcctTx, error: fromAcctError } = await supabase
@@ -187,6 +206,33 @@ export async function createUnifiedTransaction(input: UnifiedTransactionInput): 
 			};
 		}
 
+		// Enforce balance/debt caps before writing anything.
+		let targetAccount: AccountWithType | null = null;
+		if (normalizedInput.accountId) {
+			const { data: accountRow, error: accountError } = await supabase
+				.from("accounts")
+				.select("*, account_type:account_types(*)")
+				.eq("id", normalizedInput.accountId)
+				.single();
+
+			if (accountError || !accountRow) {
+				return { success: false, error: "Account not found" };
+			}
+
+			targetAccount = accountRow as AccountWithType;
+
+			const capCheck = checkTransactionCaps({
+				intent: normalizedInput.type,
+				amount: Math.abs(normalizedInput.amount),
+				account: targetAccount,
+				transactionType: normalizedInput.transactionType,
+				allowOverpayment: normalizedInput.allowOverpayment,
+			});
+			if (!capCheck.isValid) {
+				return { success: false, error: capCheck.violations[0].message };
+			}
+		}
+
 		// Step 1: Create allocation transaction (Income / Expense)
 		const allocAmount = normalizedInput.type === "income" ? normalizedInput.amount : -Math.abs(normalizedInput.amount);
 
@@ -212,19 +258,8 @@ export async function createUnifiedTransaction(input: UnifiedTransactionInput): 
 		allocationTxId = allocTx.id;
 
 		// Step 2: Create account transaction (if account selected)
-		if (normalizedInput.accountId) {
-			// Get account to determine transaction type
-			const { data: account, error: accountError } = await supabase
-				.from("accounts")
-				.select("*, account_type:account_types(*)")
-				.eq("id", normalizedInput.accountId)
-				.single();
-
-			if (accountError || !account) {
-				return { success: false, error: "Account not found" };
-			}
-
-			const { txType, accountAmount } = calculateTransactionDetails(account, normalizedInput);
+		if (targetAccount) {
+			const { txType, accountAmount } = calculateTransactionDetails(targetAccount, normalizedInput);
 
 			// Insert account transaction
 			const { data: acctTx, error: acctError } = await supabase
@@ -253,7 +288,7 @@ export async function createUnifiedTransaction(input: UnifiedTransactionInput): 
 			accountTxId = acctTx.id;
 
 			// Step 3: Update account balance
-			const { error: balanceError } = await adjustAccountBalance(supabase, normalizedInput.accountId, accountAmount);
+			const { error: balanceError } = await adjustAccountBalance(supabase, targetAccount.id, accountAmount);
 
 			if (balanceError) {
 				Logger.error("Balance update error", { error: balanceError });
@@ -275,6 +310,9 @@ export async function createUnifiedTransaction(input: UnifiedTransactionInput): 
 					.eq("id", allocationTxId);
 			}
 		}
+
+		// Promotion progress is recalculated in PostgreSQL by the account_transactions
+		// trigger created in migration 006, so no application-side refresh is needed here.
 
 		// Revalidate relevant pages
 		revalidatePath("/allocations");
@@ -450,42 +488,21 @@ export async function getAccountsForSelector(): Promise<AccountWithType[]> {
 // =============================================================================
 
 /**
- * Calculate transaction type and signed amount based on account and input
+ * Calculate transaction type and signed amount based on account and input.
+ * The sign convention lives in `calculateSignedDelta` so client validation and the write
+ * path can never drift apart.
  */
 function calculateTransactionDetails(
-	account: any,
+	account: AccountWithType,
 	input: Pick<UnifiedTransactionInput, "type" | "amount" | "transactionType">
 ) {
-	const isAsset = (account.account_type as any)?.class === "asset";
-	let txType: string;
+	const isAsset = account.account_type?.class !== "liability";
+	const txType =
+		input.type === "income"
+			? input.transactionType || (isAsset ? "deposit" : "payment")
+			: input.transactionType || (isAsset ? "withdrawal" : "adjustment");
 
-	if (input.type === "income") {
-		txType = input.transactionType || (isAsset ? "deposit" : "payment");
-	} else {
-		txType = input.transactionType || (isAsset ? "withdrawal" : "adjustment");
-	}
-
-	let accountAmount: number;
-	if (isAsset) {
-		// For assets: deposits, contributions, refunds, and interest ADD to the balance
-		if (txType === "deposit" || txType === "contribution" || txType === "refund" || txType === "interest") {
-			accountAmount = Math.abs(input.amount);
-		} else {
-			// Withdrawals and payments SUBTRACT from the balance
-			accountAmount = -Math.abs(input.amount);
-		}
-	} else {
-		// For liabilities (loans, credit cards):
-		// Payments and refunds REDUCE the debt (negative amount)
-		if (txType === "payment" || txType === "refund") {
-			accountAmount = -Math.abs(input.amount);
-		} else {
-			// Charges, withdrawals, interest, fees INCREASE the debt (positive amount)
-			accountAmount = Math.abs(input.amount);
-		}
-	}
-
-	return { txType, accountAmount };
+	return { txType, accountAmount: calculateSignedDelta(account, input.type, txType, input.amount) };
 }
 
 /**
@@ -511,66 +528,95 @@ async function adjustAccountBalance(supabase: any, accountId: string, delta: num
  * Get distinct previously used transaction descriptions for autofill suggestions
  */
 export async function getTransactionDescriptions(): Promise<string[]> {
+	const defaultSuggestions = [
+		"Grocery Store",
+		"Rent Payment",
+		"Electric Bill",
+		"Water Bill",
+		"Internet Subscription",
+		"Restaurant Dinner",
+		"Coffee Shop",
+		"Gas Station",
+		"Uber Ride",
+		"Car Insurance",
+		"Netflix Subscription",
+		"Spotify",
+		"Paycheck",
+	];
+
 	try {
+		const set = new Set<string>();
+
 		const supabase = await createClient();
 		const {
 			data: { user },
 		} = await supabase.auth.getUser();
 
-		if (!user) return [];
+		if (user) {
+			const [allocRes, acctRes, presetRes, recRes] = await Promise.all([
+				supabase
+					.from("transactions")
+					.select("name")
+					.eq("user_id", user.id)
+					.not("name", "is", null)
+					.order("created_at", { ascending: false })
+					.limit(100),
+				supabase
+					.from("account_transactions")
+					.select("description")
+					.eq("user_id", user.id)
+					.not("description", "is", null)
+					.order("created_at", { ascending: false })
+					.limit(100),
+				supabase
+					.from("transaction_presets")
+					.select("description")
+					.eq("user_id", user.id)
+					.not("description", "is", null)
+					.limit(50),
+				supabase.from("recurring_expenses").select("name").eq("user_id", user.id).not("name", "is", null).limit(50),
+			]);
 
-		const [allocRes, acctRes, presetRes] = await Promise.all([
-			supabase
-				.from("transactions")
-				.select("name")
-				.eq("user_id", user.id)
-				.not("name", "is", null)
-				.order("created_at", { ascending: false })
-				.limit(100),
-			supabase
-				.from("account_transactions")
-				.select("description")
-				.eq("user_id", user.id)
-				.not("description", "is", null)
-				.order("created_at", { ascending: false })
-				.limit(100),
-			supabase
-				.from("transaction_presets")
-				.select("description")
-				.eq("user_id", user.id)
-				.not("description", "is", null)
-				.limit(50),
-		]);
+			if (allocRes.data) {
+				for (const row of allocRes.data) {
+					if (row.name && row.name.trim() && row.name.trim().toLowerCase() !== "transfer") {
+						set.add(row.name.trim());
+					}
+				}
+			}
 
-		const set = new Set<string>();
+			if (acctRes.data) {
+				for (const row of acctRes.data) {
+					if (row.description && row.description.trim() && row.description.trim().toLowerCase() !== "transfer") {
+						set.add(row.description.trim());
+					}
+				}
+			}
 
-		if (allocRes.data) {
-			for (const row of allocRes.data) {
-				if (row.name && row.name.trim()) {
-					set.add(row.name.trim());
+			if (presetRes.data) {
+				for (const row of presetRes.data) {
+					if (row.description && row.description.trim()) {
+						set.add(row.description.trim());
+					}
+				}
+			}
+
+			if (recRes.data) {
+				for (const row of recRes.data) {
+					if (row.name && row.name.trim()) {
+						set.add(row.name.trim());
+					}
 				}
 			}
 		}
 
-		if (acctRes.data) {
-			for (const row of acctRes.data) {
-				if (row.description && row.description.trim()) {
-					set.add(row.description.trim());
-				}
-			}
-		}
-
-		if (presetRes.data) {
-			for (const row of presetRes.data) {
-				if (row.description && row.description.trim()) {
-					set.add(row.description.trim());
-				}
-			}
+		if (set.size === 0 || process.env.NEXT_PUBLIC_USE_SAMPLE_DATA === "true") {
+			defaultSuggestions.forEach((item) => set.add(item));
 		}
 
 		return Array.from(set).sort((a, b) => a.localeCompare(b));
 	} catch (error) {
 		Logger.error("Error fetching transaction descriptions", { error });
-		return [];
+		return defaultSuggestions;
 	}
 }

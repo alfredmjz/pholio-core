@@ -1,7 +1,14 @@
 "use client";
 
 import { useState, useEffect } from "react";
-import { Dialog, DialogContent, DialogDescription, DialogFooter, DialogHeader, DialogTitle } from "@/components/ui/dialog";
+import {
+	Dialog,
+	DialogContent,
+	DialogDescription,
+	DialogFooter,
+	DialogHeader,
+	DialogTitle,
+} from "@/components/ui/dialog";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
@@ -11,6 +18,7 @@ import { Loader2, Plus, Edit2, Trash2 } from "lucide-react";
 import type { AllocationCategory } from "@/app/allocations/types";
 import type { AccountWithType } from "@/app/balancesheet/types";
 import { formatAccountDisplayName, sortAccounts } from "@/lib/account-utils";
+import { compareAlphabetically } from "@/lib/sort-utils";
 import { FormSection } from "@/components/FormSection";
 import { CardSelector } from "@/components/CardSelector";
 import { ProminentAmountInput } from "@/components/ProminentAmountInput";
@@ -20,7 +28,7 @@ import {
 	updateTransactionPreset,
 	deleteTransactionPreset,
 	getTransactionPresets,
-	CreateTransactionPresetInput
+	CreateTransactionPresetInput,
 } from "@/app/allocations/preset-actions";
 import { VIRTUAL_UNCATEGORIZED_ID } from "@/app/allocations/types";
 
@@ -96,11 +104,9 @@ export function ManagePresetsDialog({
 		// Resolve category ID by name if it's from another month
 		let resolvedCategoryId = preset.category_id || VIRTUAL_UNCATEGORIZED_ID;
 		setExtraCategory(null);
-		
+
 		if (preset.category_id && preset.category?.name) {
-			const matchingCategory = categories.find(
-				(c) => c.name.toLowerCase() === preset.category?.name?.toLowerCase()
-			);
+			const matchingCategory = categories.find((c) => c.name.toLowerCase() === preset.category?.name?.toLowerCase());
 			if (matchingCategory) {
 				resolvedCategoryId = matchingCategory.id;
 			} else {
@@ -176,7 +182,9 @@ export function ManagePresetsDialog({
 				<DialogHeader>
 					<DialogTitle>{showForm ? (isCreating ? "Create Preset" : "Edit Preset") : "Manage Presets"}</DialogTitle>
 					<DialogDescription>
-						{showForm ? "Enter details for the transaction preset." : "Create templates for frequently used transactions."}
+						{showForm
+							? "Enter details for the transaction preset."
+							: "Create templates for frequently used transactions."}
 					</DialogDescription>
 				</DialogHeader>
 
@@ -198,10 +206,15 @@ export function ManagePresetsDialog({
 						) : (
 							<div className="space-y-2">
 								{presets.map((preset) => (
-									<div key={preset.id} className="flex items-center justify-between p-3 border rounded-lg hover:bg-muted/50 transition-colors">
+									<div
+										key={preset.id}
+										className="flex items-center justify-between p-3 border rounded-lg hover:bg-muted/50 transition-colors"
+									>
 										<div>
 											<p className="font-medium text-sm">{preset.name}</p>
-											<p className="text-xs text-muted-foreground">{preset.description} • ${preset.amount.toFixed(2)}</p>
+											<p className="text-xs text-muted-foreground">
+												{preset.description} • ${preset.amount.toFixed(2)}
+											</p>
 										</div>
 										<div className="flex items-center gap-1">
 											<Button variant="ghost" size="icon" onClick={() => startEditing(preset)}>
@@ -216,14 +229,18 @@ export function ManagePresetsDialog({
 							</div>
 						)}
 						<DialogFooter className="mt-4">
-							<Button variant="outline" onClick={() => onOpenChange(false)}>Close</Button>
+							<Button variant="outline" onClick={() => onOpenChange(false)}>
+								Close
+							</Button>
 						</DialogFooter>
 					</div>
 				) : (
 					<form onSubmit={handleSave} className="flex flex-col gap-6">
 						<div className="space-y-2">
-							<Label>Preset Name <span className="text-error">*</span></Label>
-							<Input value={name} onChange={e => setName(e.target.value)} placeholder="e.g. Metro Fare" required />
+							<Label>
+								Preset Name <span className="text-error">*</span>
+							</Label>
+							<Input value={name} onChange={(e) => setName(e.target.value)} placeholder="e.g. Metro Fare" required />
 						</div>
 
 						<FormSection title="Transaction Details" variant="subtle">
@@ -234,20 +251,24 @@ export function ManagePresetsDialog({
 								]}
 								value={type}
 								onChange={(v) => {
-									setType(v as "income"|"expense");
+									setType(v as "income" | "expense");
 									setTransactionType(v === "income" ? "deposit" : "withdrawal");
 								}}
 							/>
-							
+
 							<div className="space-y-2 mt-4">
-								<Label>Type <span className="text-error">*</span></Label>
+								<Label>
+									Type <span className="text-error">*</span>
+								</Label>
 								<Select value={transactionType} onValueChange={setTransactionType}>
-									<SelectTrigger><SelectValue /></SelectTrigger>
+									<SelectTrigger>
+										<SelectValue />
+									</SelectTrigger>
 									<SelectContent>
 										{type === "expense" ? (
 											<>
-												<SelectItem value="withdrawal">💸 Withdrawal</SelectItem>
 												<SelectItem value="payment">💳 Payment</SelectItem>
+												<SelectItem value="withdrawal">💸 Withdrawal</SelectItem>
 											</>
 										) : (
 											<>
@@ -260,12 +281,16 @@ export function ManagePresetsDialog({
 							</div>
 
 							<div className="space-y-2 mt-4">
-								<Label>Description <span className="text-error">*</span></Label>
-								<Input value={description} onChange={e => setDescription(e.target.value)} required />
+								<Label>
+									Description <span className="text-error">*</span>
+								</Label>
+								<Input value={description} onChange={(e) => setDescription(e.target.value)} required />
 							</div>
 
 							<div className="space-y-2 mt-4">
-								<Label>Amount <span className="text-error">*</span></Label>
+								<Label>
+									Amount <span className="text-error">*</span>
+								</Label>
 								<ProminentAmountInput value={amount} onChange={setAmount} id="preset-amount" />
 							</div>
 						</FormSection>
@@ -273,15 +298,22 @@ export function ManagePresetsDialog({
 						<div className="space-y-2">
 							<Label>Category</Label>
 							<Select value={categoryId} onValueChange={setCategoryId}>
-								<SelectTrigger><SelectValue placeholder="Uncategorized" /></SelectTrigger>
+								<SelectTrigger>
+									<SelectValue placeholder="Uncategorized" />
+								</SelectTrigger>
 								<SelectContent>
 									<SelectItem value={VIRTUAL_UNCATEGORIZED_ID}>Uncategorized</SelectItem>
 									{extraCategory && (
 										<SelectItem value={extraCategory.id}>{extraCategory.name} (Other Month)</SelectItem>
 									)}
 									{categories
-										.filter(c => c.id !== VIRTUAL_UNCATEGORIZED_ID && c.name.toLowerCase() !== "uncategorized")
-										.map(c => <SelectItem key={c.id} value={c.id}>{c.name}</SelectItem>)}
+										.filter((c) => c.id !== VIRTUAL_UNCATEGORIZED_ID && c.name.toLowerCase() !== "uncategorized")
+										.sort((a, b) => compareAlphabetically(a.name, b.name))
+										.map((c) => (
+											<SelectItem key={c.id} value={c.id}>
+												{c.name}
+											</SelectItem>
+										))}
 								</SelectContent>
 							</Select>
 						</div>
@@ -289,7 +321,9 @@ export function ManagePresetsDialog({
 						<div className="space-y-2">
 							<Label>Account</Label>
 							<Select value={accountId} onValueChange={setAccountId}>
-								<SelectTrigger><SelectValue placeholder="No Account" /></SelectTrigger>
+								<SelectTrigger>
+									<SelectValue placeholder="No Account" />
+								</SelectTrigger>
 								<SelectContent>
 									<SelectItem value="none">No Account</SelectItem>
 									{sortAccounts(accounts).map((a) => (
@@ -302,7 +336,17 @@ export function ManagePresetsDialog({
 						</div>
 
 						<DialogFooter>
-							<Button type="button" variant="ghost" onClick={() => { setIsCreating(false); setEditingPreset(null); }} disabled={isSaving}>Cancel</Button>
+							<Button
+								type="button"
+								variant="ghost"
+								onClick={() => {
+									setIsCreating(false);
+									setEditingPreset(null);
+								}}
+								disabled={isSaving}
+							>
+								Cancel
+							</Button>
 							<Button type="submit" disabled={isSaving}>
 								{isSaving && <Loader2 className="mr-2 h-4 w-4 animate-spin" />} Save Preset
 							</Button>

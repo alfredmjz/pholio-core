@@ -16,14 +16,78 @@ import { Logger } from "@/lib/logger";
 import { parseLocalDate, calculateNextDueDate, getTodayDateString, formatDateString, stepDate } from "@/lib/date-utils";
 import { getAllocationSettings, getTimezone } from "@/app/settings/actions";
 
+// ============================================================================
+// Sample-data mode: in-memory allocations so month navigation and "create budget"
+// behave like the real database (keyed by "YYYY-M").
+// ============================================================================
+const sampleAllocationStore = new Map<string, Allocation>();
+
+const sampleAllocationKey = (year: number, month: number) => `${year}-${month}`;
+
+function getSampleAllocation(year: number, month: number): Allocation | null {
+	const seeded = sampleAllocationSummary.allocation;
+	if (year === seeded.year && month === seeded.month) return seeded;
+	return sampleAllocationStore.get(sampleAllocationKey(year, month)) ?? null;
+}
+
+function createSampleAllocation(year: number, month: number, expectedIncome: number): Allocation {
+	const now = new Date().toISOString();
+	const allocation: Allocation = {
+		...sampleAllocationSummary.allocation,
+		id: `sample-allocation-${year}-${month}`,
+		year,
+		month,
+		expected_income: expectedIncome,
+		created_at: now,
+		updated_at: now,
+	};
+	sampleAllocationStore.set(sampleAllocationKey(year, month), allocation);
+	return allocation;
+}
+
+function findSampleAllocationById(allocationId: string): Allocation | null {
+	if (allocationId === sampleAllocationSummary.allocation.id) return sampleAllocationSummary.allocation;
+	const stored = Array.from(sampleAllocationStore.values()).find((allocation) => allocation.id === allocationId);
+	return stored ?? null;
+}
+
+function buildSampleSummary(allocation: Allocation): AllocationSummary {
+	const now = new Date().toISOString();
+	return {
+		allocation,
+		categories: [
+			{
+				id: VIRTUAL_UNCATEGORIZED_ID,
+				allocation_id: allocation.id,
+				user_id: allocation.user_id,
+				name: "Uncategorized",
+				budget_cap: 0,
+				is_recurring: false,
+				display_order: 999,
+				color: "gray",
+				icon: "help-circle",
+				notes: "Transactions without a category",
+				created_at: now,
+				updated_at: now,
+				actual_spend: 0,
+				remaining: 0,
+				utilization_percentage: 0,
+				transaction_count: 0,
+			},
+		],
+		summary: {
+			total_budget_caps: 0,
+			total_actual_spend: 0,
+			unallocated_funds: allocation.expected_income,
+			overall_utilization: 0,
+		},
+	};
+}
+
 export async function getAllocation(year: number, month: number): Promise<Allocation | null> {
 	// Handle sample data mode
 	if (process.env.NEXT_PUBLIC_USE_SAMPLE_DATA === "true") {
-		const now = new Date();
-		if (year === now.getFullYear() && month === now.getMonth() + 1) {
-			return sampleAllocationSummary.allocation;
-		}
-		return null;
+		return getSampleAllocation(year, month);
 	}
 
 	const supabase = await createClient();
@@ -56,7 +120,7 @@ export async function getOrCreateAllocation(
 ): Promise<Allocation | null> {
 	// Handle sample data mode
 	if (process.env.NEXT_PUBLIC_USE_SAMPLE_DATA === "true") {
-		return sampleAllocationSummary.allocation;
+		return getSampleAllocation(year, month) ?? createSampleAllocation(year, month, expectedIncome);
 	}
 
 	const supabase = await createClient();
@@ -588,7 +652,11 @@ async function syncRecurringExpenses(
 export async function getAllocationSummary(allocationId: string): Promise<AllocationSummary | null> {
 	// Handle sample data mode
 	if (process.env.NEXT_PUBLIC_USE_SAMPLE_DATA === "true") {
-		return sampleAllocationSummary;
+		const allocation = findSampleAllocationById(allocationId);
+		if (!allocation) return null;
+		return allocation.id === sampleAllocationSummary.allocation.id
+			? sampleAllocationSummary
+			: buildSampleSummary(allocation);
 	}
 
 	const supabase = await createClient();

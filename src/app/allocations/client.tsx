@@ -4,6 +4,8 @@ import { useState, useEffect } from "react";
 import { useRouter } from "next/navigation";
 import { toast } from "sonner";
 import { useAllocationSync } from "@/hooks/useAllocationSync";
+import { useServerSyncedData } from "@/hooks/useServerSyncedData";
+import { getAccountsForSelector } from "@/lib/actions/unified-transaction-actions";
 import {
 	createCategory,
 	getOrCreateAllocation,
@@ -80,6 +82,8 @@ export function AllocationClient({
 	timezone,
 }: AllocationClientProps) {
 	const router = useRouter();
+
+	const { data: accounts } = useServerSyncedData<AccountWithType[]>(initialAccounts, () => getAccountsForSelector());
 
 	const [currentMonth, setCurrentMonth] = useState<MonthYear>({
 		year: initialYear,
@@ -230,7 +234,7 @@ export function AllocationClient({
 					onSetupBudget={() => setTemplateDialogOpen(true)}
 					onExport={() => setExportDialogOpen(true)}
 					categories={[]}
-					accounts={initialAccounts}
+					accounts={accounts}
 					onTransactionSuccess={() => router.refresh()}
 					monthName={monthName}
 					exportDialogOpen={exportDialogOpen}
@@ -268,7 +272,7 @@ export function AllocationClient({
 				summary={summary}
 				categories={categories}
 				transactions={transactions}
-				accounts={initialAccounts}
+				accounts={accounts}
 				typeFilter={typeFilter}
 				onMonthChange={handleMonthChange}
 				onExport={() => setExportDialogOpen(true)}

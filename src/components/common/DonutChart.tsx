@@ -1,6 +1,7 @@
 "use client";
 
-import { useMemo, useState } from "react";
+import { useMemo } from "react";
+import { PieChart, Pie, Cell, Tooltip } from "recharts";
 import { cn } from "@/lib/utils";
 
 export interface DonutChartData {
@@ -11,135 +12,107 @@ export interface DonutChartData {
 
 interface DonutChartProps {
 	data: DonutChartData[];
-	size?: number; // Radius of the donut
-	strokeWidth?: number;
-	gap?: number;
+	/** Controls the rendered size in pixels (`size * 4`). */
+	size?: number;
 	className?: string;
 	centerContent?: React.ReactNode;
 	showTooltip?: boolean;
+	/**
+	 * Minimum share (percent) granted to any non-zero segment so tiny-but-real values
+	 * stay visible. Larger segments absorb the difference proportionally. 0 disables it.
+	 */
+	minSegmentPercentage?: number;
 }
 
+function formatCurrency(value: number) {
+	return new Intl.NumberFormat("en-US", {
+		style: "currency",
+		currency: "USD",
+		minimumFractionDigits: 0,
+		maximumFractionDigits: 0,
+	}).format(value);
+}
+
+/** Uses magnitudes, and floors tiny non-zero slices so they stay visible. */
+function prepareData(data: DonutChartData[], minSegmentPercentage: number): DonutChartData[] {
+	const positive = data
+		.filter((item) => Math.abs(item.value) > 0)
+		.map((item) => ({ ...item, value: Math.abs(item.value) }));
+
+	if (positive.length === 0) return [];
+
+	const total = positive.reduce((sum, item) => sum + item.value, 0);
+	if (total <= 0 || minSegmentPercentage <= 0) return positive;
+
+	const percentages = positive.map((item) => (item.value / total) * 100);
+	const belowCount = percentages.filter((p) => p < minSegmentPercentage).length;
+	if (belowCount === 0 || minSegmentPercentage * belowCount >= 100) return positive;
+
+	const remaining = 100 - minSegmentPercentage * belowCount;
+	const aboveTotal = percentages.filter((p) => p >= minSegmentPercentage).reduce((sum, p) => sum + p, 0);
+
+	return positive.map((item, index) => ({
+		...item,
+		value:
+			percentages[index] < minSegmentPercentage
+				? minSegmentPercentage
+				: aboveTotal > 0
+					? (percentages[index] / aboveTotal) * remaining
+					: remaining,
+	}));
+}
+
+function DonutTooltip({ active, payload }: any) {
+	if (!active || !payload || !payload.length) return null;
+	const entry = payload[0];
+	return (
+		<div className="bg-card/95 backdrop-blur-sm border border-border/50 rounded-xl shadow-xl p-3 flex flex-col gap-1">
+			<div className="flex items-center gap-2 text-sm">
+				<div className="w-2.5 h-2.5 rounded-full" style={{ backgroundColor: entry.payload.color }} />
+				<span className="font-medium text-muted-foreground">{entry.name}</span>
+			</div>
+			<span className="font-bold text-base">{formatCurrency(entry.value)}</span>
+		</div>
+	);
+}
+
+/**
+ * Shared donut ring. Matches the account detail Insights ring: rounded segment
+ * corners, a small gap between slices, no stroke, and an optional centered label.
+ */
 export function DonutChart({
 	data,
 	size = 40,
-	strokeWidth = 12,
-	gap = 0.5,
 	className,
 	centerContent,
 	showTooltip = false,
+	minSegmentPercentage = 0,
 }: DonutChartProps) {
-	const [hoveredIndex, setHoveredIndex] = useState<number | null>(null);
-
-	const total = useMemo(() => {
-		return data.reduce((acc, curr) => acc + curr.value, 0);
-	}, [data]);
-
-	// Calculate segments
-	const segments = useMemo(() => {
-		const filtered = data.filter((item) => item.value > 0);
-		if (filtered.length === 0 || total === 0) return [];
-
-		let currentAngle = 0;
-		return filtered.map((item, index) => {
-			const percentage = (item.value / total) * 100;
-			const angle = (percentage / 100) * 360;
-			const startAngle = currentAngle;
-			currentAngle += angle;
-
-			return {
-				...item,
-				percentage,
-				startAngle,
-				endAngle: currentAngle,
-				originalIndex: index,
-			};
-		});
-	}, [data, total]);
-
-	// Helper for SVG parsing
-	const polarToCartesian = (centerX: number, centerY: number, radius: number, angleInDegrees: number) => {
-		const angleInRadians = ((angleInDegrees - 90) * Math.PI) / 180.0;
-		return {
-			x: centerX + radius * Math.cos(angleInRadians),
-			y: centerY + radius * Math.sin(angleInRadians),
-		};
-	};
-
-	const describeArc = (x: number, y: number, radius: number, startAngle: number, endAngle: number) => {
-		const start = polarToCartesian(x, y, radius, endAngle);
-		const end = polarToCartesian(x, y, radius, startAngle);
-		const largeArcFlag = endAngle - startAngle <= 180 ? "0" : "1";
-
-		return ["M", start.x, start.y, "A", radius, radius, 0, largeArcFlag, 0, end.x, end.y].join(" ");
-	};
-
-	// Center point for SVG (50, 50 to allow scaling via viewBox)
-	const CX = 50;
-	const CY = 50;
-	// Use 40 as base radius to leave room for stroke
-	const RADIUS = 40;
-	// Scale factor if user wants different sizes, but viewBox keeps it relative
-
-	const formatCurrency = (value: number) => {
-		return new Intl.NumberFormat("en-US", {
-			style: "currency",
-			currency: "USD",
-			minimumFractionDigits: 0,
-			maximumFractionDigits: 0,
-		}).format(value);
-	};
+	const chartData = useMemo(() => prepareData(data, minSegmentPercentage), [data, minSegmentPercentage]);
 
 	return (
 		<div className={cn("relative", className)} style={{ width: size * 4, height: size * 4 }}>
-			<svg viewBox="0 0 100 100" className="w-full h-full -rotate-90">
-				{/* Background circle */}
-				<circle
-					cx={CX}
-					cy={CY}
-					r={RADIUS}
-					fill="none"
-					stroke="currentColor"
-					strokeWidth={strokeWidth}
-					className="text-primary/20"
-				/>
+			<PieChart width={size * 4} height={size * 4}>
+				<Pie
+					data={chartData as any[]}
+					dataKey="value"
+					nameKey="name"
+					innerRadius="63%"
+					outerRadius="82%"
+					paddingAngle={5}
+					cornerRadius={6}
+					stroke="none"
+				>
+					{chartData.map((entry, index) => (
+						<Cell key={index} fill={entry.color} />
+					))}
+				</Pie>
+				{showTooltip && <Tooltip content={<DonutTooltip />} />}
+			</PieChart>
 
-				{/* Data segments */}
-				{segments.map((segment, index) => (
-					<g key={index}>
-						<path
-							d={describeArc(CX, CY, RADIUS, segment.startAngle, segment.endAngle - gap)} // adjustable gap
-							fill="none"
-							stroke={segment.color}
-							strokeWidth={strokeWidth}
-							strokeLinecap="round"
-							className="transition-all duration-300 cursor-pointer hover:opacity-80"
-							onMouseEnter={() => setHoveredIndex(index)}
-							onMouseLeave={() => setHoveredIndex(null)}
-						/>
-					</g>
-				))}
-			</svg>
-
-			{/* Center Content */}
 			{centerContent && (
 				<div className="absolute inset-0 flex flex-col items-center justify-center pointer-events-none">
 					{centerContent}
-				</div>
-			)}
-
-			{/* Tooltip */}
-			{showTooltip && hoveredIndex !== null && segments[hoveredIndex] && (
-				<div
-					className="absolute bg-popover text-popover px-2 py-1 rounded shadow-md text-xs z-50 whitespace-nowrap pointer-events-none border border-border"
-					style={{
-						top: "50%",
-						left: "50%",
-						transform: "translate(-50%, -50%)", // Centered tooltip for donut usually looks best or follow mouse
-					}}
-				>
-					<div className="font-semibold">{segments[hoveredIndex].name}</div>
-					<div>{formatCurrency(segments[hoveredIndex].value)}</div>
-					<div className="text-primary text-[10px]">{segments[hoveredIndex].percentage.toFixed(1)}%</div>
 				</div>
 			)}
 		</div>

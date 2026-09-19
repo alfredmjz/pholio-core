@@ -17,7 +17,7 @@ interface AccountStatsProps {
  * Account statistics section with balance, interest rate, and goal progress.
  */
 export function AccountStats({ account, accountClass, progress, formatCurrency }: AccountStatsProps) {
-	const visibility = getFieldVisibility(account.account_type?.category, account.account_type?.name);
+	const visibility = getFieldVisibility(account.account_type, account.field_visibility);
 
 	// Determine which goal/amount to display
 	const goalLabel = visibility.showOriginalAmount ? "Original Loan" : "Target Goal";

@@ -15,7 +15,7 @@ interface BalanceCardProps {
 }
 
 export function BalanceCard({ account, accountClass, formatCurrency }: BalanceCardProps) {
-	const visibility = getFieldVisibility(account.account_type?.category, account.account_type?.name);
+	const visibility = getFieldVisibility(account.account_type, account.field_visibility);
 
 	const goalValue = visibility.showOriginalAmount ? account.original_amount : account.target_balance;
 	const showGoal = visibility.showOriginalAmount
@@ -134,4 +134,3 @@ export function BalanceCard({ account, accountClass, formatCurrency }: BalanceCa
 		</Card>
 	);
 }
-

@@ -15,11 +15,11 @@ import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
 import { MinimalTiptap } from "@/components/ui/shadcn-io/minimal-tiptap";
 import { updateAccount } from "../../../actions";
-import type { AccountWithType } from "../../../types";
+import type { AccountWithType, AccountFieldConfig } from "../../../types";
 import { sanitizeDecimalInput, sanitizeIntegerInput } from "@/lib/input-utils";
-import { ProminentAmountInput } from "@/components/ProminentAmountInput";
 import { Switch } from "@/components/ui/switch";
 import { getFieldVisibility } from "../../../field-visibility";
+import { AccountFieldConfigurator } from "../../../components/AccountFieldConfigurator";
 
 interface EditAccountDialogProps {
 	open: boolean;
@@ -38,6 +38,7 @@ interface ValidationErrors {
 export function EditAccountDialog({ open, onOpenChange, account, onSuccess }: EditAccountDialogProps) {
 	const [isSubmitting, setIsSubmitting] = useState(false);
 	const [errors, setErrors] = useState<ValidationErrors>({});
+	const [fieldConfig, setFieldConfig] = useState<AccountFieldConfig>(account.field_visibility ?? {});
 	const [formData, setFormData] = useState({
 		name: account.name,
 		institution: account.institution || "",
@@ -54,8 +55,9 @@ export function EditAccountDialog({ open, onOpenChange, account, onSuccess }: Ed
 		annual_contribution_limit: account.annual_contribution_limit?.toString() || "",
 	});
 
-	const category = account.account_type?.category;
-	const visibility = getFieldVisibility(category, account.account_type?.name);
+	// "Other" accounts allow the owner to choose which fields are tracked.
+	const isOtherType = account.account_type?.code === "other";
+	const visibility = getFieldVisibility(account.account_type, isOtherType ? fieldConfig : null);
 
 	const validateForm = (): boolean => {
 		const newErrors: ValidationErrors = {};
@@ -115,6 +117,7 @@ export function EditAccountDialog({ open, onOpenChange, account, onSuccess }: Ed
 				credit_limit: formData.credit_limit ? parseFloat(formData.credit_limit) : null,
 				loan_term_months: formData.loan_term_months ? parseInt(formData.loan_term_months) : null,
 				track_contribution_room: formData.track_contribution_room,
+				field_visibility: isOtherType ? fieldConfig : null,
 				contribution_room: formData.contribution_room ? parseFloat(formData.contribution_room) : null,
 				annual_contribution_limit: formData.annual_contribution_limit
 					? parseFloat(formData.annual_contribution_limit)
@@ -211,6 +214,13 @@ export function EditAccountDialog({ open, onOpenChange, account, onSuccess }: Ed
 							{errors.current_balance && <p className="text-sm text-error">{errors.current_balance}</p>}
 						</div>
 
+						{isOtherType && (
+							<div className="space-y-2">
+								<Label>Fields to track</Label>
+								<AccountFieldConfigurator value={fieldConfig} onChange={setFieldConfig} />
+							</div>
+						)}
+
 						{visibility.showTargetGoal && (
 							<div className="space-y-2">
 								<Label htmlFor="target_balance">Target Goal</Label>
@@ -258,7 +268,9 @@ export function EditAccountDialog({ open, onOpenChange, account, onSuccess }: Ed
 											inputMode="numeric"
 											placeholder="e.g., 21"
 											value={formData.payment_due_date}
-											onChange={(e) => setFormData({ ...formData, payment_due_date: sanitizeIntegerInput(e.target.value) })}
+											onChange={(e) =>
+												setFormData({ ...formData, payment_due_date: sanitizeIntegerInput(e.target.value) })
+											}
 										/>
 									</div>
 								)}
@@ -309,7 +321,9 @@ export function EditAccountDialog({ open, onOpenChange, account, onSuccess }: Ed
 											inputMode="numeric"
 											placeholder="e.g., 60"
 											value={formData.loan_term_months}
-											onChange={(e) => setFormData({ ...formData, loan_term_months: sanitizeIntegerInput(e.target.value) })}
+											onChange={(e) =>
+												setFormData({ ...formData, loan_term_months: sanitizeIntegerInput(e.target.value) })
+											}
 										/>
 									</div>
 								)}
@@ -324,7 +338,9 @@ export function EditAccountDialog({ open, onOpenChange, account, onSuccess }: Ed
 											inputMode="numeric"
 											placeholder="e.g., 15"
 											value={formData.payment_due_date}
-											onChange={(e) => setFormData({ ...formData, payment_due_date: sanitizeIntegerInput(e.target.value) })}
+											onChange={(e) =>
+												setFormData({ ...formData, payment_due_date: sanitizeIntegerInput(e.target.value) })
+											}
 										/>
 									</div>
 								)}
@@ -376,8 +392,8 @@ export function EditAccountDialog({ open, onOpenChange, account, onSuccess }: Ed
 											placeholder="e.g., 95000"
 											value={formData.contribution_room}
 											onChange={(e) => {
-											setFormData({ ...formData, contribution_room: sanitizeDecimalInput(e.target.value, 2) });
-										}}
+												setFormData({ ...formData, contribution_room: sanitizeDecimalInput(e.target.value, 2) });
+											}}
 										/>
 									</div>
 									<div className="space-y-2">
@@ -389,8 +405,11 @@ export function EditAccountDialog({ open, onOpenChange, account, onSuccess }: Ed
 											placeholder="e.g., 7000"
 											value={formData.annual_contribution_limit}
 											onChange={(e) => {
-											setFormData({ ...formData, annual_contribution_limit: sanitizeDecimalInput(e.target.value, 2) });
-										}}
+												setFormData({
+													...formData,
+													annual_contribution_limit: sanitizeDecimalInput(e.target.value, 2),
+												});
+											}}
 										/>
 									</div>
 								</div>

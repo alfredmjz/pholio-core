@@ -16,16 +16,18 @@ import { Popover, PopoverContent, PopoverTrigger } from "@/components/ui/popover
 import { Command, CommandEmpty, CommandGroup, CommandInput, CommandItem, CommandList } from "@/components/ui/command";
 import { MinimalTiptap } from "@/components/ui/shadcn-io/minimal-tiptap";
 import { toast } from "sonner";
-import { Check, ChevronsUpDown, Plus, Wallet, Info } from "lucide-react";
-import { createAccount, getAccountTypes, createAccountType } from "../actions";
-import type { CreateAccountInput, AccountType, AccountClass, AccountWithType } from "../types";
+import { Check, ChevronsUpDown, Wallet, Info } from "lucide-react";
+import { createAccount, getAccountTypes } from "../actions";
+import type { CreateAccountInput, AccountType, AccountClass, AccountWithType, AccountFieldConfig } from "../types";
 import { cn } from "@/lib/utils";
 import { sanitizeDecimalInput, sanitizeIntegerInput } from "@/lib/input-utils";
+import { sortAccountTypes } from "@/lib/account-utils";
 import { FormSection } from "@/components/FormSection";
 import { CardSelector } from "@/components/CardSelector";
 import { ProminentAmountInput } from "@/components/ProminentAmountInput";
 import { Switch } from "@/components/ui/switch";
 import { getFieldVisibility } from "../field-visibility";
+import { AccountFieldConfigurator } from "./AccountFieldConfigurator";
 
 interface AddAccountDialogProps {
 	open: boolean;
@@ -83,7 +85,7 @@ export function AddAccountDialog({ open, onOpenChange, onSuccess }: AddAccountDi
 		if (!formData.account_type_id) return;
 		const type = allAccountTypes.find((t) => t.id === formData.account_type_id);
 		if (!type) return;
-		const vis = getFieldVisibility(type.category, type.name);
+		const vis = getFieldVisibility(type, null);
 		setFormData((prev) => ({
 			...prev,
 			target_balance: vis.showTargetGoal ? prev.target_balance : "",
@@ -100,6 +102,7 @@ export function AddAccountDialog({ open, onOpenChange, onSuccess }: AddAccountDi
 	}, [formData.account_type_id]);
 	const [errors, setErrors] = useState<ValidationErrors>({});
 	const [openCombobox, setOpenCombobox] = useState(false);
+	const [fieldConfig, setFieldConfig] = useState<AccountFieldConfig>({});
 	const [searchValue, setSearchValue] = useState("");
 
 	// Fetch account types on mount
@@ -110,38 +113,6 @@ export function AddAccountDialog({ open, onOpenChange, onSuccess }: AddAccountDi
 		};
 		fetchTypes();
 	}, []);
-
-	const handleCreateType = async () => {
-		if (!searchValue) return;
-		setLoading(true);
-		try {
-			const newType = await createAccountType({
-				name: searchValue,
-				class: accountType,
-				category: "other",
-			});
-
-			if (newType) {
-				setAllAccountTypes((prev) => [...prev, newType]);
-				setFormData({ ...formData, account_type_id: newType.id });
-				setErrors({ ...errors, account_type_id: undefined });
-				setOpenCombobox(false);
-				setSearchValue("");
-				toast.success(`Category "${searchValue}" created`);
-			} else {
-				toast.error("Category Failed", {
-					description: `Failed to create category "${searchValue}".`,
-				});
-			}
-		} catch (err) {
-			const errorMessage = err instanceof Error ? err.message : "An unexpected error occurred.";
-			toast.error("Category Error", {
-				description: errorMessage,
-			});
-		} finally {
-			setLoading(false);
-		}
-	};
 
 	const validateForm = (): boolean => {
 		const newErrors: ValidationErrors = {};
@@ -197,6 +168,7 @@ export function AddAccountDialog({ open, onOpenChange, onSuccess }: AddAccountDi
 				credit_limit: formData.credit_limit ? parseFloat(formData.credit_limit) : null,
 				loan_term_months: formData.loan_term_months ? parseInt(formData.loan_term_months) : null,
 				track_contribution_room: formData.track_contribution_room,
+				field_visibility: isOtherType ? fieldConfig : null,
 				contribution_room: formData.contribution_room ? parseFloat(formData.contribution_room) : null,
 				annual_contribution_limit: formData.annual_contribution_limit
 					? parseFloat(formData.annual_contribution_limit)
@@ -247,7 +219,9 @@ export function AddAccountDialog({ open, onOpenChange, onSuccess }: AddAccountDi
 		(t) => t.class === accountType && t.name.toLowerCase().includes(searchValue.toLowerCase())
 	);
 	const selectedType = (allAccountTypes || []).find((t) => t.id === formData.account_type_id);
-	const visibility = getFieldVisibility(selectedType?.category, selectedType?.name);
+	// "Other" accounts get their field set from the configurator below.
+	const isOtherType = selectedType?.code === "other";
+	const visibility = getFieldVisibility(selectedType, isOtherType ? fieldConfig : null);
 
 	return (
 		<Dialog open={open} onOpenChange={onOpenChange}>
@@ -334,23 +308,14 @@ export function AddAccountDialog({ open, onOpenChange, onSuccess }: AddAccountDi
 									>
 										<Command shouldFilter={false}>
 											<CommandInput
-												placeholder="Search or create category..."
+												placeholder="Search account type..."
 												value={searchValue}
 												onValueChange={setSearchValue}
 											/>
 											<CommandList>
-												<CommandEmpty className="p-0">
-													<Button
-														variant="ghost"
-														className="w-full justify-start rounded-none px-4 py-2 h-auto text-sm"
-														onClick={handleCreateType}
-													>
-														<Plus className="mr-2 h-4 w-4" />
-														Create "{searchValue}"
-													</Button>
-												</CommandEmpty>
+												<CommandEmpty>No account type found.</CommandEmpty>
 												<CommandGroup>
-													{availableTypes.map((type) => (
+													{sortAccountTypes(availableTypes).map((type) => (
 														<CommandItem
 															key={type.id}
 															value={type.id}
@@ -395,6 +360,13 @@ export function AddAccountDialog({ open, onOpenChange, onSuccess }: AddAccountDi
 								{errors.current_balance && <p className="text-sm text-error">{errors.current_balance}</p>}
 							</div>
 
+							{isOtherType && (
+								<div className="space-y-2">
+									<Label>Fields to track</Label>
+									<AccountFieldConfigurator value={fieldConfig} onChange={setFieldConfig} />
+								</div>
+							)}
+
 							{visibility.showTargetGoal && (
 								<div className="space-y-2">
 									<Label htmlFor="target">Target Goal</Label>
@@ -433,7 +405,9 @@ export function AddAccountDialog({ open, onOpenChange, onSuccess }: AddAccountDi
 											inputMode="numeric"
 											placeholder="e.g., 21"
 											value={formData.payment_due_date}
-											onChange={(e) => setFormData({ ...formData, payment_due_date: sanitizeIntegerInput(e.target.value) })}
+											onChange={(e) =>
+												setFormData({ ...formData, payment_due_date: sanitizeIntegerInput(e.target.value) })
+											}
 											className="h-10"
 										/>
 									</div>
@@ -462,7 +436,9 @@ export function AddAccountDialog({ open, onOpenChange, onSuccess }: AddAccountDi
 											inputMode="numeric"
 											placeholder="e.g., 60"
 											value={formData.loan_term_months}
-											onChange={(e) => setFormData({ ...formData, loan_term_months: sanitizeIntegerInput(e.target.value) })}
+											onChange={(e) =>
+												setFormData({ ...formData, loan_term_months: sanitizeIntegerInput(e.target.value) })
+											}
 											className="h-10"
 										/>
 									</div>
@@ -481,7 +457,9 @@ export function AddAccountDialog({ open, onOpenChange, onSuccess }: AddAccountDi
 										inputMode="numeric"
 										placeholder="e.g., 15"
 										value={formData.payment_due_date}
-										onChange={(e) => setFormData({ ...formData, payment_due_date: sanitizeIntegerInput(e.target.value) })}
+										onChange={(e) =>
+											setFormData({ ...formData, payment_due_date: sanitizeIntegerInput(e.target.value) })
+										}
 										className="h-10"
 									/>
 								</div>

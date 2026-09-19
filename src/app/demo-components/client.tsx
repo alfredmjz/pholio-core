@@ -386,8 +386,6 @@ export function DemoComponentsClient() {
 									<DonutChart
 										data={MOCK_DONUT_DATA}
 										size={40}
-										strokeWidth={12}
-										gap={0.5}
 										centerContent={
 											<div className="text-center">
 												<p className="text-xs text-primary">Total</p>

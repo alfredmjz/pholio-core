@@ -22,15 +22,6 @@ export function NetWorthCard({ netWorth, totalAssets, totalLiabilities, previous
 		}).format(amount);
 	};
 
-	const formatFullCurrency = (amount: number) => {
-		return new Intl.NumberFormat("en-US", {
-			style: "currency",
-			currency: "USD",
-			minimumFractionDigits: 0,
-			maximumFractionDigits: 0,
-		}).format(amount);
-	};
-
 	const percentChange = previousNetWorth ? ((netWorth - previousNetWorth) / previousNetWorth) * 100 : 0;
 	const isPositive = percentChange >= 0;
 
@@ -78,7 +69,7 @@ export function NetWorthCard({ netWorth, totalAssets, totalLiabilities, previous
 				</div>
 
 				<div className="flex items-center justify-center pr-2">
-					<DonutChart data={data} size={32} strokeWidth={14} gap={0} className="scale-110" />
+					<DonutChart data={data} size={32} minSegmentPercentage={3} className="scale-110" />
 				</div>
 			</div>
 		</Card>

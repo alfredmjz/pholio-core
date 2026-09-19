@@ -58,7 +58,6 @@ export function AllocationDonutChart({ categories, className }: AllocationDonutC
 					<DonutChart
 						data={chartDataWithColors}
 						size={40}
-						strokeWidth={12}
 						centerContent={CenterContent}
 						showTooltip={false}
 					/>

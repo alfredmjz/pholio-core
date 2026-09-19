@@ -276,6 +276,9 @@ export async function createUnifiedTransaction(input: UnifiedTransactionInput): 
 			}
 		}
 
+		// Promotion progress is recalculated in PostgreSQL by the account_transactions
+		// trigger created in migration 006, so no application-side refresh is needed here.
+
 		// Revalidate relevant pages
 		revalidatePath("/allocations");
 		revalidatePath("/balancesheet");
@@ -511,66 +514,95 @@ async function adjustAccountBalance(supabase: any, accountId: string, delta: num
  * Get distinct previously used transaction descriptions for autofill suggestions
  */
 export async function getTransactionDescriptions(): Promise<string[]> {
+	const defaultSuggestions = [
+		"Grocery Store",
+		"Rent Payment",
+		"Electric Bill",
+		"Water Bill",
+		"Internet Subscription",
+		"Restaurant Dinner",
+		"Coffee Shop",
+		"Gas Station",
+		"Uber Ride",
+		"Car Insurance",
+		"Netflix Subscription",
+		"Spotify",
+		"Paycheck",
+	];
+
 	try {
+		const set = new Set<string>();
+
 		const supabase = await createClient();
 		const {
 			data: { user },
 		} = await supabase.auth.getUser();
 
-		if (!user) return [];
+		if (user) {
+			const [allocRes, acctRes, presetRes, recRes] = await Promise.all([
+				supabase
+					.from("transactions")
+					.select("name")
+					.eq("user_id", user.id)
+					.not("name", "is", null)
+					.order("created_at", { ascending: false })
+					.limit(100),
+				supabase
+					.from("account_transactions")
+					.select("description")
+					.eq("user_id", user.id)
+					.not("description", "is", null)
+					.order("created_at", { ascending: false })
+					.limit(100),
+				supabase
+					.from("transaction_presets")
+					.select("description")
+					.eq("user_id", user.id)
+					.not("description", "is", null)
+					.limit(50),
+				supabase.from("recurring_expenses").select("name").eq("user_id", user.id).not("name", "is", null).limit(50),
+			]);
 
-		const [allocRes, acctRes, presetRes] = await Promise.all([
-			supabase
-				.from("transactions")
-				.select("name")
-				.eq("user_id", user.id)
-				.not("name", "is", null)
-				.order("created_at", { ascending: false })
-				.limit(100),
-			supabase
-				.from("account_transactions")
-				.select("description")
-				.eq("user_id", user.id)
-				.not("description", "is", null)
-				.order("created_at", { ascending: false })
-				.limit(100),
-			supabase
-				.from("transaction_presets")
-				.select("description")
-				.eq("user_id", user.id)
-				.not("description", "is", null)
-				.limit(50),
-		]);
+			if (allocRes.data) {
+				for (const row of allocRes.data) {
+					if (row.name && row.name.trim() && row.name.trim().toLowerCase() !== "transfer") {
+						set.add(row.name.trim());
+					}
+				}
+			}
 
-		const set = new Set<string>();
+			if (acctRes.data) {
+				for (const row of acctRes.data) {
+					if (row.description && row.description.trim() && row.description.trim().toLowerCase() !== "transfer") {
+						set.add(row.description.trim());
+					}
+				}
+			}
 
-		if (allocRes.data) {
-			for (const row of allocRes.data) {
-				if (row.name && row.name.trim()) {
-					set.add(row.name.trim());
+			if (presetRes.data) {
+				for (const row of presetRes.data) {
+					if (row.description && row.description.trim()) {
+						set.add(row.description.trim());
+					}
+				}
+			}
+
+			if (recRes.data) {
+				for (const row of recRes.data) {
+					if (row.name && row.name.trim()) {
+						set.add(row.name.trim());
+					}
 				}
 			}
 		}
 
-		if (acctRes.data) {
-			for (const row of acctRes.data) {
-				if (row.description && row.description.trim()) {
-					set.add(row.description.trim());
-				}
-			}
-		}
-
-		if (presetRes.data) {
-			for (const row of presetRes.data) {
-				if (row.description && row.description.trim()) {
-					set.add(row.description.trim());
-				}
-			}
+		if (set.size === 0 || process.env.NEXT_PUBLIC_USE_SAMPLE_DATA === "true") {
+			defaultSuggestions.forEach((item) => set.add(item));
 		}
 
 		return Array.from(set).sort((a, b) => a.localeCompare(b));
 	} catch (error) {
 		Logger.error("Error fetching transaction descriptions", { error });
-		return [];
+		return defaultSuggestions;
 	}
 }

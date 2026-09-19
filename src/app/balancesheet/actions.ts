@@ -1,4 +1,4 @@
-"use server";
+﻿"use server";
 
 import { createClient } from "@/lib/supabase/server";
 import { revalidatePath } from "next/cache";
@@ -6,7 +6,6 @@ import {
 	sampleAccounts,
 	sampleAccountTypes,
 	sampleAccountTransactions,
-	sampleBalanceSheetSummary,
 	sampleAccountHistory,
 } from "@/mock-data/balancesheet";
 import { Logger } from "@/lib/logger";
@@ -21,7 +20,9 @@ import type {
 	CreateAccountInput,
 	UpdateAccountInput,
 	RecordTransactionInput,
-	CreateAccountTypeInput,
+	AccountTypeCode,
+	AccountTypeMigrationItem,
+	AccountTypeMigrationUpdate,
 } from "./types";
 
 /**
@@ -52,35 +53,94 @@ export async function getAccountTypes(): Promise<AccountType[]> {
 }
 
 /**
- * Create a custom account type
+ * Accounts whose type was retired by migration 006 (or never received a stable `code`).
+ * These need the owner to pick a new type through the guided migration dialog.
+ *
+ * TODO(#99-cleanup): delete along with the banner/dialog once the result set is empty.
  */
-export async function createAccountType(input: CreateAccountTypeInput): Promise<AccountType | null> {
+export async function getAccountsNeedingTypeMigration(): Promise<AccountTypeMigrationItem[]> {
+	if (process.env.NEXT_PUBLIC_USE_SAMPLE_DATA === "true") return [];
+
 	const supabase = await createClient();
 	const {
 		data: { user },
 	} = await supabase.auth.getUser();
 
-	if (!user) {
-		throw new Error("Unauthorized");
-	}
+	if (!user) return [];
 
 	const { data, error } = await supabase
-		.from("account_types")
-		.insert({
-			user_id: user.id,
-			...input,
-			is_system: false,
-		})
-		.select()
-		.single();
+		.from("accounts")
+		.select("*, account_type:account_types(*)")
+		.eq("user_id", user.id)
+		.eq("is_active", true);
 
 	if (error) {
-		Logger.error("Error creating account type", { error });
-		return null;
+		Logger.error("Error fetching accounts needing type migration", { error });
+		return [];
+	}
+
+	return (data || [])
+		.filter((account) => !account.account_type?.is_active || !account.account_type?.code)
+		.map((account) => ({
+			account,
+			suggestedCode: suggestCodeForLegacyCategory(account.account_type?.category),
+		}));
+}
+
+/**
+ * Suggestion only - derived from the retired type's stored category, never from its name.
+ */
+function suggestCodeForLegacyCategory(category?: string | null): AccountTypeCode {
+	switch (category) {
+		case "investment":
+		case "retirement":
+			return "investment";
+		case "credit":
+			return "credit_card";
+		case "debt":
+			return "loan";
+		case "other":
+		case "property":
+			return "other";
+		default:
+			return "chequing";
+	}
+}
+
+/**
+ * Applies the owner's type choices. Nothing is changed automatically - the UI always sends
+ * an explicit selection per account.
+ */
+export async function migrateAccountTypes(updates: AccountTypeMigrationUpdate[]): Promise<boolean> {
+	if (process.env.NEXT_PUBLIC_USE_SAMPLE_DATA === "true") return false;
+	if (updates.length === 0) return true;
+
+	const supabase = await createClient();
+	const {
+		data: { user },
+	} = await supabase.auth.getUser();
+
+	if (!user) return false;
+
+	for (const update of updates) {
+		const { error } = await supabase
+			.from("accounts")
+			.update({
+				account_type_id: update.typeId,
+				field_visibility: update.fieldVisibility ?? null,
+			})
+			.eq("id", update.accountId)
+			.eq("user_id", user.id);
+
+		if (error) {
+			Logger.error("Error migrating account type", { error, accountId: update.accountId });
+			return false;
+		}
 	}
 
 	revalidatePath("/balancesheet");
-	return data;
+	revalidatePath("/dashboard");
+	return true;
 }
 
 /**
@@ -257,6 +317,10 @@ export async function getBalanceSheetSummary(): Promise<BalanceSheetSummary> {
 }
 
 export async function createAccount(input: CreateAccountInput): Promise<AccountWithType | null> {
+	if (process.env.NEXT_PUBLIC_USE_SAMPLE_DATA === "true") {
+		return buildSampleAccount(input);
+	}
+
 	const supabase = await createClient();
 	const {
 		data: { user },
@@ -290,9 +354,56 @@ export async function createAccount(input: CreateAccountInput): Promise<AccountW
 }
 
 /**
+ * Builds a mock account for sample-data mode so the create/edit flows can be exercised
+ * without touching the database.
+ */
+function buildSampleAccount(input: CreateAccountInput, id = `account-sample-${Date.now()}`): AccountWithType {
+	const accountType = sampleAccountTypes.find((type) => type.id === input.account_type_id) ?? sampleAccountTypes[0];
+	const now = new Date().toISOString();
+
+	return {
+		id,
+		user_id: "sample-user",
+		name: input.name,
+		account_type_id: accountType.id,
+		institution: input.institution ?? null,
+		account_number_last4: input.account_number_last4 ?? null,
+		current_balance: input.current_balance,
+		currency: input.currency ?? "USD",
+		credit_limit: input.credit_limit ?? null,
+		original_amount: input.original_amount ?? null,
+		interest_rate: input.interest_rate ?? null,
+		interest_type: input.interest_type ?? null,
+		loan_start_date: input.loan_start_date ?? null,
+		loan_term_months: input.loan_term_months ?? null,
+		payment_due_date: input.payment_due_date ?? null,
+		target_balance: input.target_balance ?? null,
+		field_visibility: input.field_visibility ?? null,
+		track_contribution_room: input.track_contribution_room ?? false,
+		contribution_room: input.contribution_room ?? null,
+		annual_contribution_limit: input.annual_contribution_limit ?? null,
+		notes: input.notes ?? null,
+		color: input.color ?? null,
+		icon: input.icon ?? null,
+		display_order: sampleAccounts.length,
+		is_active: true,
+		external_account_id: null,
+		created_at: now,
+		updated_at: now,
+		account_type: accountType,
+	};
+}
+
+/**
  * Update an existing account
  */
 export async function updateAccount(id: string, input: UpdateAccountInput): Promise<Account | null> {
+	if (process.env.NEXT_PUBLIC_USE_SAMPLE_DATA === "true") {
+		const existing = sampleAccounts.find((account) => account.id === id);
+		if (!existing) return null;
+		return { ...existing, ...input, updated_at: new Date().toISOString() };
+	}
+
 	const supabase = await createClient();
 	const {
 		data: { user },

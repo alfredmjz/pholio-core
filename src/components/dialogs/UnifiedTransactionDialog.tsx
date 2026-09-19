@@ -10,7 +10,6 @@ import {
 	DialogTitle,
 } from "@/components/ui/dialog";
 import { Button } from "@/components/ui/button";
-import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
 import { Textarea } from "@/components/ui/textarea";
@@ -19,7 +18,11 @@ import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
 import { Calendar } from "@/components/ui/calendar";
 import { toast } from "sonner";
 import { Loader2, TrendingUp, TrendingDown, Info, Settings2, PlusCircle, Trash2 } from "lucide-react";
-import { createUnifiedTransaction, getSuggestedAccountForCategory, getTransactionDescriptions } from "@/lib/actions/unified-transaction-actions";
+import {
+	createUnifiedTransaction,
+	getSuggestedAccountForCategory,
+	getTransactionDescriptions,
+} from "@/lib/actions/unified-transaction-actions";
 import { AutocompleteInput } from "@/components/ui/autocomplete-input";
 import {
 	getTransactionPresets,
@@ -36,7 +39,13 @@ import { cn } from "@/lib/utils";
 import { getTodayDateString, parseLocalDate, formatDateString } from "@/lib/date-utils";
 import { VIRTUAL_UNCATEGORIZED_ID } from "@/app/allocations/types";
 import { formatAccountDisplayName, sortAccounts } from "@/lib/account-utils";
+import { compareAlphabetically, sortAlphabetically } from "@/lib/sort-utils";
 import { ManagePresetsDialog } from "./ManagePresetsDialog";
+import {
+	calculateAccountStanding,
+	validateTransactionAmount,
+	isInvestmentAccount,
+} from "@/lib/account-validation-utils";
 
 interface UnifiedTransactionDialogProps {
 	open: boolean;
@@ -46,7 +55,12 @@ interface UnifiedTransactionDialogProps {
 	defaultDate?: string;
 	defaultCategoryId?: string;
 	defaultAccountId?: string;
-	defaultType?: "income" | "expense";
+	/** Pre-filled amount, used by the Pay Remaining flow. */
+	defaultAmount?: number;
+	/** Pre-selected transfer source/destination, used by the Pay Remaining flow. */
+	defaultFromAccountId?: string;
+	defaultToAccountId?: string;
+	defaultType?: "income" | "expense" | "transfer";
 	onSuccess?: () => void;
 	context?: "balancesheet" | "allocations";
 	boundaryMonth?: { year: number; month: number };
@@ -69,6 +83,9 @@ export function UnifiedTransactionDialog({
 	defaultDate,
 	defaultCategoryId,
 	defaultAccountId,
+	defaultAmount,
+	defaultFromAccountId,
+	defaultToAccountId,
 	defaultType,
 	onSuccess,
 	context,
@@ -131,8 +148,11 @@ export function UnifiedTransactionDialog({
 
 			setCategoryId(defaultCategoryId || VIRTUAL_UNCATEGORIZED_ID);
 			setAccountId(defaultAccountId || "none");
-			setFromAccountId(defaultAccountId || "none");
-			setToAccountId("none");
+			setFromAccountId(defaultFromAccountId || defaultAccountId || "none");
+			setToAccountId(defaultToAccountId || "none");
+			if (defaultAmount && defaultAmount > 0) {
+				setAmount(defaultAmount.toFixed(2));
+			}
 			setTransactionType(defaultType === "income" ? "deposit" : "withdrawal");
 			setNotes("");
 			setSuggestedAccountInfo(null);
@@ -142,7 +162,17 @@ export function UnifiedTransactionDialog({
 			loadPresets();
 			getTransactionDescriptions().then(setDescriptionSuggestions);
 		}
-	}, [open, defaultDate, defaultCategoryId, defaultAccountId, defaultType, boundaryMonth]);
+	}, [
+		open,
+		defaultDate,
+		defaultCategoryId,
+		defaultAccountId,
+		defaultAmount,
+		defaultFromAccountId,
+		defaultToAccountId,
+		defaultType,
+		boundaryMonth,
+	]);
 
 	useEffect(() => {
 		setSelectedDatesMap({});
@@ -177,6 +207,20 @@ export function UnifiedTransactionDialog({
 		loadSuggestedAccount();
 	}, [categoryId, type]);
 
+	const [allowOverpayment, setAllowOverpayment] = useState(false);
+
+	const selectedTargetAccount =
+		type === "transfer" ? accounts.find((a) => a.id === fromAccountId) : accounts.find((a) => a.id === accountId);
+
+	const selectedAccountStanding = selectedTargetAccount
+		? calculateAccountStanding(selectedTargetAccount, undefined, date)
+		: null;
+
+	const validationResult =
+		selectedTargetAccount && amount && parseFloat(amount) > 0 && selectedAccountStanding
+			? validateTransactionAmount(selectedTargetAccount, parseFloat(amount), type, selectedAccountStanding)
+			: { isValid: true };
+
 	const validateForm = (): boolean => {
 		const newErrors: ValidationErrors = {};
 		let isValid = true;
@@ -208,6 +252,11 @@ export function UnifiedTransactionDialog({
 			}
 		} else if (accountRequired && (accountId === "none" || !accountId)) {
 			newErrors.accountId = "Account is required";
+			isValid = false;
+		}
+
+		if (!validationResult.isValid && !allowOverpayment) {
+			newErrors.amount = validationResult.warning || "Amount exceeds account limit";
 			isValid = false;
 		}
 
@@ -374,15 +423,15 @@ export function UnifiedTransactionDialog({
 											<SelectContent>
 												{type === "income" ? (
 													<>
-														<SelectItem value="deposit">💰 Deposit</SelectItem>
 														<SelectItem value="contribution">➕ Contribution</SelectItem>
+														<SelectItem value="deposit">💰 Deposit</SelectItem>
 														<SelectItem value="refund">🔄 Refund</SelectItem>
 													</>
 												) : (
 													<>
-														<SelectItem value="withdrawal">💸 Withdrawal</SelectItem>
-														<SelectItem value="payment">💳 Payment</SelectItem>
 														<SelectItem value="interest">📈 Interest</SelectItem>
+														<SelectItem value="payment">💳 Payment</SelectItem>
+														<SelectItem value="withdrawal">💸 Withdrawal</SelectItem>
 													</>
 												)}
 											</SelectContent>
@@ -398,8 +447,8 @@ export function UnifiedTransactionDialog({
 												<SelectValue placeholder="Select source" />
 											</SelectTrigger>
 											<SelectContent>
-												<SelectItem value="salary">💼 Salary / Expected</SelectItem>
 												<SelectItem value="external">🎁 External / One-time</SelectItem>
+												<SelectItem value="salary">💼 Salary / Expected</SelectItem>
 											</SelectContent>
 										</Select>
 									</div>
@@ -419,6 +468,63 @@ export function UnifiedTransactionDialog({
 											id="amount"
 											hasError={!!errors.amount}
 										/>
+										{selectedTargetAccount &&
+											!isInvestmentAccount(selectedTargetAccount) &&
+											selectedAccountStanding && (
+												<div className="mt-2 text-xs rounded-lg p-2.5 bg-muted/60 border border-border/60 flex flex-col gap-1.5">
+													<div className="flex items-center justify-between font-medium">
+														{selectedAccountStanding.accountClass === "liability" ? (
+															<>
+																<span className="text-muted-foreground">💳 Remaining Debt (as of today):</span>
+																<span className="font-bold text-red-600 dark:text-red-400">
+																	${selectedAccountStanding.remainingDebt.toFixed(2)}
+																</span>
+															</>
+														) : (
+															<>
+																<span className="text-muted-foreground">🏦 Available Balance:</span>
+																<span className="font-bold text-primary">
+																	${selectedAccountStanding.availableBalance.toFixed(2)}
+																</span>
+															</>
+														)}
+													</div>
+
+													{!validationResult.isValid && (
+														<div className="mt-1 p-2.5 rounded-lg bg-amber-500/10 border border-amber-500/30 text-amber-700 dark:text-amber-400 flex flex-col gap-2">
+															<div className="flex items-start gap-1.5">
+																<Info className="h-4 w-4 shrink-0 mt-0.5 text-amber-600 dark:text-amber-400" />
+																<span className="text-xs">{validationResult.warning}</span>
+															</div>
+															<div className="flex items-center justify-between pt-1 border-t border-amber-500/20">
+																{validationResult.maxAllowed !== undefined && (
+																	<Button
+																		type="button"
+																		variant="outline"
+																		size="sm"
+																		className="h-7 text-xs font-medium border-amber-500/40 hover:bg-amber-500/20 text-amber-800 dark:text-amber-300"
+																		onClick={() => {
+																			setAmount(validationResult.maxAllowed!.toFixed(2));
+																			if (errors.amount) setErrors({ ...errors, amount: undefined });
+																		}}
+																	>
+																		Set to Max (${validationResult.maxAllowed.toFixed(2)})
+																	</Button>
+																)}
+																<label className="flex items-center gap-1.5 text-[11px] cursor-pointer font-medium text-amber-800 dark:text-amber-300">
+																	<input
+																		type="checkbox"
+																		checked={allowOverpayment}
+																		onChange={(e) => setAllowOverpayment(e.target.checked)}
+																		className="rounded border-amber-400 text-amber-600 focus:ring-amber-500"
+																	/>
+																	Allow Overpayment
+																</label>
+															</div>
+														</div>
+													)}
+												</div>
+											)}
 										{errors.amount && <p className="text-sm text-error">{errors.amount}</p>}
 									</div>
 
@@ -446,7 +552,12 @@ export function UnifiedTransactionDialog({
 										</div>
 										<div className="flex-1 space-y-2">
 											<Label htmlFor="description">
-												Description{type === "transfer" ? <span className="text-muted-foreground font-normal"> (Optional)</span> : <span className="text-error"> *</span>}
+												Description
+												{type === "transfer" ? (
+													<span className="text-muted-foreground font-normal"> (Optional)</span>
+												) : (
+													<span className="text-error"> *</span>
+												)}
 											</Label>
 											<AutocompleteInput
 												id="description"
@@ -550,6 +661,7 @@ export function UnifiedTransactionDialog({
 													<SelectItem value={VIRTUAL_UNCATEGORIZED_ID}>Uncategorized</SelectItem>
 													{categories
 														.filter((cat) => cat.id !== VIRTUAL_UNCATEGORIZED_ID)
+														.sort((a, b) => compareAlphabetically(a.name, b.name))
 														.map((cat) => (
 															<SelectItem key={cat.id} value={cat.id}>
 																{cat.name}
@@ -590,7 +702,9 @@ export function UnifiedTransactionDialog({
 										{accountId === "none" && categoryId !== VIRTUAL_UNCATEGORIZED_ID && (
 											<p className="text-sm text-primary flex items-start gap-2 p-3 bg-muted rounded-lg">
 												<Info className="h-4 w-4 shrink-0 mt-0.5" />
-												<span>Budget-only transaction: Your budget will update, but no account balance will change.</span>
+												<span>
+													Budget-only transaction: Your budget will update, but no account balance will change.
+												</span>
 											</p>
 										)}
 									</>
@@ -651,7 +765,7 @@ export function UnifiedTransactionDialog({
 											<SelectValue placeholder="Choose a transaction preset" />
 										</SelectTrigger>
 										<SelectContent>
-											{presets.map((p) => (
+											{sortAlphabetically(presets, (p) => p.name).map((p) => (
 												<SelectItem key={p.id} value={p.id}>
 													{p.name} (${p.amount.toFixed(2)})
 												</SelectItem>

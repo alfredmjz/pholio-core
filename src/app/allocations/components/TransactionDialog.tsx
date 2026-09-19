@@ -4,7 +4,6 @@ import { useState, useEffect } from "react";
 import { Button } from "@/components/ui/button";
 import { ControlBasedDialog } from "@/components/dialogWrapper";
 import { DialogFooter } from "@/components/ui/dialog";
-import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
 import { Textarea } from "@/components/ui/textarea";
@@ -27,6 +26,8 @@ import { CardSelector } from "@/components/CardSelector";
 import { ProminentAmountInput } from "@/components/ProminentAmountInput";
 import { getTodayDateString } from "@/lib/date-utils";
 import { formatAccountDisplayName, sortAccounts } from "@/lib/account-utils";
+import { sortAlphabetically } from "@/lib/sort-utils";
+import { calculateAccountStanding, validateTransactionAmount } from "@/lib/account-validation-utils";
 import {
 	AlertDialog,
 	AlertDialogAction,
@@ -100,6 +101,20 @@ export function TransactionDialog({
 		}
 	}, [open, transaction, defaultDate]);
 
+	const [allowOverpayment, setAllowOverpayment] = useState(false);
+
+	const selectedTargetAccount =
+		type === "transfer" ? accounts.find((a) => a.id === fromAccountId) : accounts.find((a) => a.id === accountId);
+
+	const selectedAccountStanding = selectedTargetAccount
+		? calculateAccountStanding(selectedTargetAccount, undefined, date)
+		: null;
+
+	const validationResult =
+		selectedTargetAccount && amount && parseFloat(amount) > 0 && selectedAccountStanding
+			? validateTransactionAmount(selectedTargetAccount, parseFloat(amount), type, selectedAccountStanding)
+			: { isValid: true };
+
 	const handleSubmit = async (e: React.FormEvent) => {
 		e.preventDefault();
 		if (!amount || !date || (type !== "transfer" && !name)) {
@@ -118,12 +133,24 @@ export function TransactionDialog({
 			}
 		}
 
+		if (!validationResult.isValid && !allowOverpayment) {
+			toast.error("Validation Failed", { description: validationResult.warning || "Amount exceeds account limit." });
+			return;
+		}
+
 		setIsLoading(true);
 
 		try {
 			const numAmount = parseFloat(amount);
 			const finalCategoryId = type === "transfer" ? null : categoryId === VIRTUAL_UNCATEGORIZED_ID ? null : categoryId;
-			const finalAccountId = type === "transfer" ? (fromAccountId === "none" ? null : fromAccountId) : accountId === "none" ? null : accountId;
+			const finalAccountId =
+				type === "transfer"
+					? fromAccountId === "none"
+						? null
+						: fromAccountId
+					: accountId === "none"
+						? null
+						: accountId;
 			const finalDescription = name.trim() || (type === "transfer" ? "Transfer" : "");
 
 			if (transaction) {
@@ -213,7 +240,8 @@ export function TransactionDialog({
 						<div>
 							<span className="font-semibold">Recurring Stopped — Final Record</span>
 							<p className="text-amber-700/90 dark:text-amber-400/90 mt-0.5">
-								The recurring bill/subscription for this transaction was paused or deleted. Future transactions will not be generated automatically.
+								The recurring bill/subscription for this transaction was paused or deleted. Future transactions will not
+								be generated automatically.
 							</p>
 						</div>
 					</div>
@@ -264,7 +292,9 @@ export function TransactionDialog({
 										onChange={setDate}
 										placeholder="Select transaction date"
 										minDate={
-											boundaryMonth ? `${boundaryMonth.year}-${String(boundaryMonth.month).padStart(2, "0")}-01` : undefined
+											boundaryMonth
+												? `${boundaryMonth.year}-${String(boundaryMonth.month).padStart(2, "0")}-01`
+												: undefined
 										}
 										maxDate={
 											boundaryMonth
@@ -274,7 +304,9 @@ export function TransactionDialog({
 									/>
 								</div>
 								<div className="flex-1 space-y-2">
-									<Label htmlFor="name">Description <span className="text-muted-foreground font-normal">(Optional)</span></Label>
+									<Label htmlFor="name">
+										Description <span className="text-muted-foreground font-normal">(Optional)</span>
+									</Label>
 									<AutocompleteInput
 										id="name"
 										placeholder="e.g. Account Transfer"
@@ -337,7 +369,9 @@ export function TransactionDialog({
 										onChange={setDate}
 										placeholder="Select transaction date"
 										minDate={
-											boundaryMonth ? `${boundaryMonth.year}-${String(boundaryMonth.month).padStart(2, "0")}-01` : undefined
+											boundaryMonth
+												? `${boundaryMonth.year}-${String(boundaryMonth.month).padStart(2, "0")}-01`
+												: undefined
 										}
 										maxDate={
 											boundaryMonth
@@ -354,7 +388,7 @@ export function TransactionDialog({
 											<SelectValue placeholder="Select a category" />
 										</SelectTrigger>
 										<SelectContent>
-											{categories.map((cat) => (
+											{sortAlphabetically(categories, (cat) => cat.name).map((cat) => (
 												<SelectItem key={cat.id} value={cat.id}>
 													{cat.name}
 												</SelectItem>

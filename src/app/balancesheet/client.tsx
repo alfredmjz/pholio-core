@@ -19,6 +19,7 @@ import { getAccountTransactions, type RecentActivityItem, reorderAccounts } from
 import type { AllocationCategory } from "@/app/allocations/types";
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
 import { PageShell, PageHeader, PageContent } from "@/components/layout/page-shell";
+import { AccountTypeMigrationNotice } from "./components/AccountTypeMigrationNotice";
 import {
 	DndContext,
 	closestCenter,
@@ -35,7 +36,7 @@ import {
 	verticalListSortingStrategy,
 } from "@dnd-kit/sortable";
 import { toast } from "sonner";
-import { restrictToVerticalAxis, restrictToParentElement } from "@dnd-kit/modifiers";
+import { restrictToVerticalAxis } from "@dnd-kit/modifiers";
 
 interface BalanceSheetClientProps {
 	initialAccounts: AccountWithType[];
@@ -245,6 +246,7 @@ export function BalanceSheetClient({
 
 			<PageContent>
 				<div className="flex flex-col gap-6">
+					<AccountTypeMigrationNotice />
 					{/* Top Cards Row */}
 					<div className="grid grid-cols-1 md:grid-cols-3 gap-6">
 						<NetWorthCard

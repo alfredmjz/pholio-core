@@ -15,9 +15,12 @@ interface InsightsCardProps {
 }
 
 export function InsightsCard({ account, transactions, accountClass, formatCurrency }: InsightsCardProps) {
-	const visibility = getFieldVisibility(account.account_type?.category, account.account_type?.name);
+	const visibility = getFieldVisibility(account.account_type, account.field_visibility);
 	const category = account.account_type?.category;
-	const isInvestment = category === "investment" || category === "retirement";
+	const isInvestment =
+		account.account_type?.code === "investment" ||
+		category === "investment" ||
+		(category as string | undefined) === "retirement";
 	const isLiability = accountClass === "liability";
 
 	const goalValue = visibility.showOriginalAmount ? account.original_amount : account.target_balance;
@@ -316,4 +319,4 @@ function LoanComposition({ account, transactions, goalValue, formatCurrency }: a
 			</div>
 		</Card>
 	);
-}
+}

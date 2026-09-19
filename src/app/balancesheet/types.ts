@@ -6,12 +6,45 @@
 
 export type AccountClass = "asset" | "liability";
 
-export type AccountCategory = "banking" | "investment" | "retirement" | "property" | "credit" | "debt" | "other";
+/**
+ * Final category set for issue #99. `property` and `retirement` were removed when the
+ * catalogue was reduced to seven core account types plus "Other".
+ */
+export type AccountCategory = "banking" | "investment" | "credit" | "debt" | "other";
+
+/**
+ * Stable machine key for an account type. Never branch on `AccountType.name` - the name
+ * is only a display label. `null` marks a legacy or user-created type retired by
+ * migration 006 that the owner has not re-selected yet.
+ */
+export type AccountTypeCode =
+	| "chequing"
+	| "savings"
+	| "investment"
+	| "credit_card"
+	| "line_of_credit"
+	| "mortgage"
+	| "loan"
+	| "other";
+
+/**
+ * Per-account field configuration, used by the fully-customisable "Other" account type.
+ */
+export interface AccountFieldConfig {
+	showTargetGoal?: boolean;
+	showCreditLimit?: boolean;
+	showOriginalAmount?: boolean;
+	showInterestRate?: boolean;
+	showLoanTerm?: boolean;
+	showDueDate?: boolean;
+	showContributionRoom?: boolean;
+}
 
 export interface AccountType {
 	id: string;
 	user_id: string | null; // NULL = system default
 	name: string;
+	code?: AccountTypeCode | null;
 	class: AccountClass;
 	category: AccountCategory;
 	is_tax_advantaged: boolean;
@@ -55,6 +88,8 @@ export interface Account {
 	loan_term_months: number | null;
 	payment_due_date: number | null;
 	target_balance: number | null;
+	// Field visibility chosen by the owner (only meaningful for the "Other" type)
+	field_visibility?: AccountFieldConfig | null;
 	// Contribution room tracking (user choice)
 	track_contribution_room: boolean;
 	contribution_room: number | null;
@@ -103,6 +138,70 @@ export interface AccountTransaction {
 }
 
 // ============================================================================
+// Account Promotions & Welcome Bonuses
+// ============================================================================
+
+export type PromotionType = "spend_threshold" | "deposit_threshold" | "maintaining_balance";
+
+export interface AccountPromotion {
+	id: string;
+	account_id: string;
+	user_id: string;
+	title: string;
+	promotion_type: PromotionType;
+	target_amount: number;
+	current_amount: number;
+	reward_description: string;
+	start_date: string;
+	end_date: string;
+	is_completed: boolean;
+	notes?: string | null;
+	created_at: string;
+	updated_at: string;
+}
+
+export interface CreatePromotionInput {
+	account_id: string;
+	title: string;
+	promotion_type: PromotionType;
+	target_amount: number;
+	reward_description: string;
+	start_date?: string;
+	end_date: string;
+	notes?: string | null;
+}
+
+export interface UpdatePromotionInput {
+	title?: string;
+	promotion_type?: PromotionType;
+	target_amount?: number;
+	current_amount?: number;
+	reward_description?: string;
+	start_date?: string;
+	end_date?: string;
+	is_completed?: boolean;
+	notes?: string | null;
+}
+
+// ============================================================================
+// Account type migration (issue #99 cleanup)
+// ============================================================================
+// TODO(#99-cleanup): remove these types, the migration actions, the banner/dialog and the
+// legacy category bridge in field-visibility.ts once no account_types row has code IS NULL.
+
+export interface AccountTypeMigrationUpdate {
+	accountId: string;
+	typeId: string;
+	fieldVisibility?: AccountFieldConfig | null;
+}
+
+export interface AccountTypeMigrationItem {
+	account: AccountWithType;
+	/** Category-derived suggestion only - the owner always confirms the final choice. */
+	suggestedCode: AccountTypeCode;
+}
+
+// ============================================================================
 // Summary Types
 // ============================================================================
 
@@ -141,6 +240,7 @@ export interface CreateAccountInput {
 	interest_rate?: number | null;
 	interest_type?: InterestType | null;
 	loan_start_date?: string | null;
+	field_visibility?: AccountFieldConfig | null;
 	loan_term_months?: number | null;
 	payment_due_date?: number | null;
 	target_balance?: number | null;
@@ -169,6 +269,7 @@ export interface UpdateAccountInput {
 	notes?: string | null;
 	color?: string | null;
 	icon?: string | null;
+	field_visibility?: AccountFieldConfig | null;
 	display_order?: number;
 	is_active?: boolean;
 }
@@ -179,12 +280,4 @@ export interface RecordTransactionInput {
 	transaction_type: TransactionType;
 	description: string;
 	transaction_date?: string;
-}
-
-export interface CreateAccountTypeInput {
-	name: string;
-	class: AccountClass;
-	category: AccountCategory;
-	is_tax_advantaged?: boolean;
-	icon?: string | null;
 }

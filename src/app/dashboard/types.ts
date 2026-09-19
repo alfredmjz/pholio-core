@@ -3,6 +3,9 @@
  * Defines all TypeScript interfaces for dashboard data structures
  */
 
+import type { AccountWithType } from "@/app/balancesheet/types";
+import type { AllocationCategory } from "@/app/allocations/types";
+
 export type Period = "month" | "quarter" | "year";
 
 export type ChartType = "donut" | "trend";
@@ -95,4 +98,7 @@ export interface DashboardData {
 	cashflow: AllCashflowData;
 	netWorth: NetWorthData;
 	recentTransactions: Transaction[];
+	/** Raw account/category lists for the dashboard's transaction dialog. */
+	accounts?: AccountWithType[];
+	categories?: AllocationCategory[];
 }

@@ -1,12 +1,12 @@
 "use client";
 
-import { useState, useEffect, useRef, useMemo } from "react";
+import { useState, useMemo } from "react";
 import { useRouter } from "next/navigation";
 import { Card } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Plus, Search } from "lucide-react";
-import { AccountWithType, AccountTransaction, BalanceSheetSummary } from "./types";
+import { AccountWithType, BalanceSheetSummary } from "./types";
 import { NetWorthCard } from "./components/NetWorthCard";
 import { DebtRundownCard } from "./components/DebtRundownCard";
 import { AssetGrowthCard } from "./components/AssetGrowthCard";
@@ -15,7 +15,8 @@ import { AccountCard } from "./components/AccountCard";
 import { AddAccountDialog } from "./components/AddAccountDialog";
 import { UnifiedTransactionDialog } from "@/components/dialogs/UnifiedTransactionDialog";
 import { AccountAdjustmentDialog } from "./components/AccountAdjustmentDialog";
-import { getAccountTransactions, type RecentActivityItem, reorderAccounts } from "./actions";
+import { type RecentActivityItem, reorderAccounts, getAccounts, getRecentActivity } from "./actions";
+import { useServerSyncedData } from "@/hooks/useServerSyncedData";
 import type { AllocationCategory } from "@/app/allocations/types";
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
 import { PageShell, PageHeader, PageContent } from "@/components/layout/page-shell";
@@ -51,11 +52,10 @@ export function BalanceSheetClient({
 	initialActivity,
 	initialSummary,
 }: BalanceSheetClientProps) {
-	const [accounts, setAccounts] = useState<AccountWithType[]>(initialAccounts);
+	const { data: accounts, setData: setAccounts } = useServerSyncedData<AccountWithType[]>(initialAccounts, () => getAccounts());
+	const { data: activity } = useServerSyncedData<RecentActivityItem[]>(initialActivity, () => getRecentActivity());
 	const router = useRouter();
 	const [selectedAccount, setSelectedAccount] = useState<AccountWithType | null>(initialAccounts[0] || null);
-	const [transactions, setTransactions] = useState<AccountTransaction[]>([]);
-	const [isLoadingTransactions, setIsLoadingTransactions] = useState(!!(initialAccounts && initialAccounts.length > 0));
 	const [searchQuery, setSearchQuery] = useState("");
 	const [addDialogOpen, setAddDialogOpen] = useState(false);
 	const [transactionDialogOpen, setTransactionDialogOpen] = useState(false);
@@ -72,7 +72,6 @@ export function BalanceSheetClient({
 		})
 	);
 
-	const transactionCache = useRef<Map<string, AccountTransaction[]>>(new Map());
 	const assetAccounts = accounts.filter((acc) => acc.account_type?.class === "asset");
 	const liabilityAccounts = accounts.filter((acc) => acc.account_type?.class === "liability");
 	const [filterType, setFilterType] = useState<"all" | "assets" | "liabilities">("all");
@@ -85,50 +84,6 @@ export function BalanceSheetClient({
 			(filterType === "liabilities" && acc.account_type?.class === "liability");
 		return matchesSearch && matchesType;
 	});
-
-	const loadingRef = useRef<Set<string>>(new Set());
-
-	// Load transactions when account is selected
-	useEffect(() => {
-		if (selectedAccount) {
-			const accountId = selectedAccount.id;
-
-			// Prevent duplicate loads from Strict Mode
-			if (loadingRef.current.has(accountId)) {
-				return;
-			}
-
-			const cachedTransactions = transactionCache.current.get(accountId);
-
-			if (cachedTransactions) {
-				// If cached, show immediately without loading state
-				setTransactions(cachedTransactions);
-				setIsLoadingTransactions(false);
-				// Don't auto-refresh on initial load - only refresh on explicit user action
-			} else {
-				// No cache: show loading state and fetch
-				loadingRef.current.add(accountId);
-				setTransactions([]);
-				loadTransactions(accountId);
-			}
-		}
-	}, [selectedAccount]);
-
-	const loadTransactions = async (accountId: string) => {
-		console.log("Loading transactions:", accountId);
-		setIsLoadingTransactions(true);
-		try {
-			const txns = await getAccountTransactions(accountId);
-			setTransactions(txns);
-			// Update cache
-			transactionCache.current.set(accountId, txns);
-		} catch (error) {
-			console.error("Failed to load transactions:", error);
-			setTransactions([]);
-		} finally {
-			setIsLoadingTransactions(false);
-		}
-	};
 
 	const handleAccountSuccess = (newAccount: AccountWithType) => {
 		// Optimistically add the new account to the list
@@ -163,11 +118,6 @@ export function BalanceSheetClient({
 				return { ...acc, current_balance: newBalance };
 			})
 		);
-
-		// Reload transactions for the current account
-		if (selectedAccount) {
-			loadTransactions(selectedAccount.id);
-		}
 
 		// Revalidate in background
 		router.refresh();
@@ -326,7 +276,7 @@ export function BalanceSheetClient({
 
 						{/* Recent Activity Feed */}
 						<div className="lg:col-span-1">
-							<RecentActivity activity={initialActivity} />
+							<RecentActivity activity={activity} />
 						</div>
 					</div>
 				</div>

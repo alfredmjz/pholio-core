@@ -144,11 +144,21 @@ export function useAllocationSync(
 			})
 			.subscribe();
 
+		// Refetch when the tab regains focus so changes made elsewhere (for example
+		// deleting an account, which nulls the linked account transaction) show up.
+		const handleFocus = () => {
+			if (document.visibilityState === "visible") scheduleRefetch();
+		};
+		window.addEventListener("focus", handleFocus);
+		document.addEventListener("visibilitychange", handleFocus);
+
 		// Cleanup function
 		return () => {
 			if (refetchTimeoutRef.current) {
 				clearTimeout(refetchTimeoutRef.current);
 			}
+			window.removeEventListener("focus", handleFocus);
+			document.removeEventListener("visibilitychange", handleFocus);
 			supabase.removeChannel(categoriesChannel);
 			supabase.removeChannel(transactionsChannel);
 			supabase.removeChannel(connectionChannel);

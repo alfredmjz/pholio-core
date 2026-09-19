@@ -1,6 +1,6 @@
 "use client";
 
-import { useState } from "react";
+import { useState, useEffect } from "react";
 import Link from "next/link";
 import { useRouter } from "next/navigation";
 import { ArrowLeft, Trash2 } from "lucide-react";
@@ -24,6 +24,7 @@ import { EditAccountDialog } from "./components/EditAccountDialog";
 import { AccountTransactionDialog } from "./components/AccountTransactionDialog";
 
 import { deleteAccount, getAccountTransactions, getAccountById } from "../../actions";
+import { useServerSyncedData } from "@/hooks/useServerSyncedData";
 import type { AccountWithType, AccountTransaction } from "../../types";
 
 interface AccountDetailClientProps {
@@ -38,8 +39,15 @@ export function AccountDetailClient({
 	otherAccounts,
 }: AccountDetailClientProps) {
 	const router = useRouter();
-	const [account, setAccount] = useState(initialAccount);
-	const [transactions, setTransactions] = useState(initialTransactions);
+
+	const { data: account, setData: setAccount } = useServerSyncedData<AccountWithType | null>(
+		initialAccount,
+		() => getAccountById(initialAccount.id)
+	);
+	const { data: transactions, setData: setTransactions } = useServerSyncedData<AccountTransaction[]>(
+		initialTransactions,
+		() => getAccountTransactions(initialAccount.id)
+	);
 	const [isLoadingTransactions, setIsLoadingTransactions] = useState(false);
 
 	// Dialog states
@@ -51,6 +59,13 @@ export function AccountDetailClient({
 	const [payRemainingAmount, setPayRemainingAmount] = useState<number | null>(null);
 	const [editTransactionDialogOpen, setEditTransactionDialogOpen] = useState(false);
 	const [editingTransaction, setEditingTransaction] = useState<AccountTransaction | null>(null);
+
+	// If the account was deleted (here or in another tab), go back to the balance sheet.
+	useEffect(() => {
+		if (account === null) router.replace("/balancesheet");
+	}, [account, router]);
+
+	if (!account) return null;
 
 	const accountClass = account.account_type?.class;
 
@@ -202,7 +217,7 @@ export function AccountDetailClient({
 						<NotesCard account={account} onAccountUpdated={handleAccountUpdated} />
 
 						{/* Other Accounts */}
-						<OtherAccountsCard accounts={otherAccounts} currentAccountClass={accountClass} />
+						<OtherAccountsCard accounts={otherAccounts} />
 					</div>
 				</div>
 			</PageContent>

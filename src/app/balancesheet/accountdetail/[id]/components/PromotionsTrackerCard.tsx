@@ -1,16 +1,20 @@
 "use client";
 
-import { useState, useEffect } from "react";
+import { useState } from "react";
 import { Card } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
 import { Badge } from "@/components/ui/badge";
 import { Progress } from "@/components/ui/progress";
+import { Skeleton } from "@/components/ui/skeleton";
 import { Gift, Trophy, CheckCircle2, Clock, Plus, Edit2, Trash2, Sparkles } from "lucide-react";
 import { toast } from "sonner";
 import { getAccountPromotions, updateAccountPromotion, deleteAccountPromotion } from "@/lib/actions/promotion-actions";
 import type { AccountPromotion } from "@/app/balancesheet/types";
 import { PromotionDialog } from "./PromotionDialog";
 import { parseLocalDate, differenceInDays } from "@/lib/date-utils";
+import { useServerSyncedData } from "@/hooks/useServerSyncedData";
+
+const EMPTY_PROMOTIONS: AccountPromotion[] = [];
 
 interface PromotionsTrackerCardProps {
 	accountId: string;
@@ -18,31 +22,20 @@ interface PromotionsTrackerCardProps {
 }
 
 export function PromotionsTrackerCard({ accountId, formatCurrency }: PromotionsTrackerCardProps) {
-	const [promotions, setPromotions] = useState<AccountPromotion[]>([]);
-	const [isLoading, setIsLoading] = useState(true);
+	const { data: promotions, refresh, isRefreshing } = useServerSyncedData<AccountPromotion[]>(
+		EMPTY_PROMOTIONS,
+		() => getAccountPromotions(accountId),
+		{ fetchOnMount: true }
+	);
 	const [dialogOpen, setDialogOpen] = useState(false);
 	const [editingPromotion, setEditingPromotion] = useState<AccountPromotion | null>(null);
-
-	const loadPromotions = async () => {
-		setIsLoading(true);
-		try {
-			const data = await getAccountPromotions(accountId);
-			setPromotions(data);
-		} finally {
-			setIsLoading(false);
-		}
-	};
-
-	useEffect(() => {
-		loadPromotions();
-	}, [accountId]);
 
 	const handleToggleCompleted = async (promo: AccountPromotion) => {
 		const newStatus = !promo.is_completed;
 		const success = await updateAccountPromotion(promo.id, { is_completed: newStatus });
 		if (success) {
 			toast.success(newStatus ? "Promotion marked as completed! 🎉" : "Promotion reopened");
-			loadPromotions();
+			void refresh();
 		}
 	};
 
@@ -50,7 +43,7 @@ export function PromotionsTrackerCard({ accountId, formatCurrency }: PromotionsT
 		const success = await deleteAccountPromotion(id);
 		if (success) {
 			toast.success("Promotion deleted");
-			loadPromotions();
+			void refresh();
 		}
 	};
 
@@ -89,13 +82,17 @@ export function PromotionsTrackerCard({ accountId, formatCurrency }: PromotionsT
 
 				{/* Promotions List */}
 				{promotions.length === 0 ? (
-					<div className="p-4 text-center rounded-xl bg-background/60 border border-dashed border-border/60">
-						<Sparkles className="h-6 w-6 text-purple-400 mx-auto mb-1.5 opacity-80" />
-						<p className="text-xs font-medium text-primary">No active promotions on this account</p>
-						<p className="text-[11px] text-muted-foreground mt-0.5">
-							Track sign-up bonuses, minimum spend thresholds, and transfer rewards.
-						</p>
-					</div>
+					isRefreshing ? (
+						<Skeleton className="h-32 w-full rounded-xl" />
+					) : (
+						<div className="p-4 text-center rounded-xl bg-background/60 border border-dashed border-border/60">
+							<Sparkles className="h-6 w-6 text-purple-400 mx-auto mb-1.5 opacity-80" />
+							<p className="text-xs font-medium text-primary">No active promotions on this account</p>
+							<p className="text-[11px] text-muted-foreground mt-0.5">
+								Track sign-up bonuses, minimum spend thresholds, and transfer rewards.
+							</p>
+						</div>
+					)
 				) : (
 					<div className="flex flex-col gap-3">
 						{promotions.map((promo) => {
@@ -199,7 +196,7 @@ export function PromotionsTrackerCard({ accountId, formatCurrency }: PromotionsT
 				onOpenChange={setDialogOpen}
 				accountId={accountId}
 				promotion={editingPromotion}
-				onSuccess={loadPromotions}
+				onSuccess={refresh}
 			/>
 		</Card>
 	);

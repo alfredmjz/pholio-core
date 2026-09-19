@@ -10,6 +10,8 @@ import { AddAccountDialog } from "@/app/balancesheet/components/AddAccountDialog
 import { UnifiedTransactionDialog } from "@/components/dialogs/UnifiedTransactionDialog";
 import { TrendingUp, Wallet, CreditCard, PiggyBank } from "lucide-react";
 import type { DashboardData, Period, ChartType } from "./types";
+import { getDashboardData } from "./actions";
+import { useServerSyncedData } from "@/hooks/useServerSyncedData";
 
 interface DashboardClientProps {
 	initialData: DashboardData;
@@ -17,6 +19,9 @@ interface DashboardClientProps {
 
 export function DashboardClient({ initialData }: DashboardClientProps) {
 	const router = useRouter();
+
+	const { data } = useServerSyncedData<DashboardData>(initialData, () => getDashboardData());
+
 	const [cashflowPeriod, setCashflowPeriod] = useState<Period>("month");
 	const [netWorthChartType, setNetWorthChartType] = useState<ChartType>("donut");
 
@@ -24,13 +29,10 @@ export function DashboardClient({ initialData }: DashboardClientProps) {
 	const [addAccountOpen, setAddAccountOpen] = useState(false);
 	const [addTransactionOpen, setAddTransactionOpen] = useState(false);
 
-	// Initialize with the month data, but we have all data available in initialData.cashflow
-	const [cashflowData, setCashflowData] = useState(initialData.cashflow.month);
+	const cashflowData = data.cashflow[cashflowPeriod];
 
 	const handlePeriodChange = (period: Period) => {
 		setCashflowPeriod(period);
-		// Instantly switch data from the pre-fetched object
-		setCashflowData(initialData.cashflow[period]);
 	};
 
 	const handleViewAllTransactions = () => {
@@ -61,31 +63,31 @@ export function DashboardClient({ initialData }: DashboardClientProps) {
 			<div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-4">
 				<MetricCard
 					label="Net Worth"
-					value={initialData.metrics.netWorth.value}
-					trend={initialData.metrics.netWorth.trend}
+					value={data.metrics.netWorth.value}
+					trend={data.metrics.netWorth.trend}
 					icon={<TrendingUp className="h-4 w-4" />}
 					variant="success"
 				/>
 				<MetricCard
 					label="Monthly Income"
-					value={initialData.metrics.monthlyIncome.value}
-					trend={initialData.metrics.monthlyIncome.trend}
+					value={data.metrics.monthlyIncome.value}
+					trend={data.metrics.monthlyIncome.trend}
 					icon={<Wallet className="h-4 w-4" />}
 					variant="info"
 				/>
 				<MetricCard
 					label="Monthly Expenses"
-					value={initialData.metrics.monthlyExpenses.value}
-					trend={initialData.metrics.monthlyExpenses.trend}
+					value={data.metrics.monthlyExpenses.value}
+					trend={data.metrics.monthlyExpenses.trend}
 					icon={<CreditCard className="h-4 w-4" />}
 					variant="error"
 				/>
 				<MetricCard
 					label="Monthly Savings"
-					value={initialData.metrics.savingsRate.value}
-					trend={initialData.metrics.savingsRate.trend}
+					value={data.metrics.savingsRate.value}
+					trend={data.metrics.savingsRate.trend}
 					icon={<PiggyBank className="h-4 w-4" />}
-					variant={initialData.metrics.savingsRate.value >= 0 ? "success" : "warning"}
+					variant={data.metrics.savingsRate.value >= 0 ? "success" : "warning"}
 				/>
 			</div>
 
@@ -101,13 +103,13 @@ export function DashboardClient({ initialData }: DashboardClientProps) {
 					onAddTransaction={() => setAddTransactionOpen(true)}
 				/>
 				<NetWorthWidget
-					netWorth={initialData.netWorth.netWorth}
-					totalAssets={initialData.netWorth.totalAssets}
-					totalLiabilities={initialData.netWorth.totalLiabilities}
-					trend={initialData.netWorth.trend}
-					assetBreakdown={initialData.netWorth.assetBreakdown}
-					liabilityBreakdown={initialData.netWorth.liabilityBreakdown}
-					trendData={initialData.netWorth.trendData}
+					netWorth={data.netWorth.netWorth}
+					totalAssets={data.netWorth.totalAssets}
+					totalLiabilities={data.netWorth.totalLiabilities}
+					trend={data.netWorth.trend}
+					assetBreakdown={data.netWorth.assetBreakdown}
+					liabilityBreakdown={data.netWorth.liabilityBreakdown}
+					trendData={data.netWorth.trendData}
 					chartType={netWorthChartType}
 					onChartTypeChange={setNetWorthChartType}
 					onAddAccount={() => setAddAccountOpen(true)}
@@ -115,15 +117,15 @@ export function DashboardClient({ initialData }: DashboardClientProps) {
 			</div>
 
 			{/* Recent Transactions */}
-			<RecentTransactions transactions={initialData.recentTransactions} onViewAll={handleViewAllTransactions} />
+			<RecentTransactions transactions={data.recentTransactions} onViewAll={handleViewAllTransactions} />
 
 			{/* Dialogs for empty state actions */}
 			<AddAccountDialog open={addAccountOpen} onOpenChange={setAddAccountOpen} onSuccess={handleAddAccountSuccess} />
 			<UnifiedTransactionDialog
 				open={addTransactionOpen}
 				onOpenChange={setAddTransactionOpen}
-				categories={[]}
-				accounts={[]}
+				categories={data.categories ?? []}
+				accounts={data.accounts ?? []}
 				onSuccess={handleAddTransactionSuccess}
 			/>
 		</>

@@ -434,6 +434,10 @@ export async function updateAccount(id: string, input: UpdateAccountInput): Prom
  * Soft delete an account (set is_active = false)
  */
 export async function deleteAccount(id: string): Promise<boolean> {
+	if (process.env.NEXT_PUBLIC_USE_SAMPLE_DATA === "true") {
+		return true;
+	}
+
 	const supabase = await createClient();
 	const {
 		data: { user },
@@ -443,14 +447,18 @@ export async function deleteAccount(id: string): Promise<boolean> {
 		throw new Error("Unauthorized");
 	}
 
-	const { error } = await supabase.from("accounts").update({ is_active: false }).eq("id", id).eq("user_id", user.id);
+	// Hard-delete. A BEFORE DELETE trigger on `accounts` snapshots the row into
+	// `deleted_accounts`, and ledger rows keep account_id = NULL so history survives.
+	const { data, error } = await supabase.from("accounts").delete().eq("id", id).eq("user_id", user.id).select("id");
 
-	if (error) {
+	if (error || !data || data.length === 0) {
 		Logger.error("Error deleting account", { error });
 		return false;
 	}
 
 	revalidatePath("/balancesheet");
+	revalidatePath("/allocations");
+	revalidatePath("/dashboard");
 	return true;
 }
 

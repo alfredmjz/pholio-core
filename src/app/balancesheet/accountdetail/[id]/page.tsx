@@ -1,4 +1,4 @@
-import { notFound } from "next/navigation";
+import { redirect } from "next/navigation";
 import { getAccountById, getAccountTransactions, getAccounts } from "../../actions";
 import { AccountDetailClient } from "./AccountDetailClient";
 
@@ -16,7 +16,8 @@ export default async function AccountDetailPage({ params }: AccountDetailPagePro
 	]);
 
 	if (!account) {
-		notFound();
+		// Account was deleted (or never existed) — send the user back to the parent page.
+		redirect("/balancesheet");
 	}
 
 	// Filter out current account from "other accounts"

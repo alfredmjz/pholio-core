@@ -26,6 +26,8 @@ import { CardSelector } from "@/components/CardSelector";
 import { ProminentAmountInput } from "@/components/ProminentAmountInput";
 import { getTodayDateString } from "@/lib/date-utils";
 import { formatAccountDisplayName, sortAccounts } from "@/lib/account-utils";
+import { sortAlphabetically } from "@/lib/sort-utils";
+import { calculateAccountStanding, validateTransactionAmount } from "@/lib/account-validation-utils";
 import {
 	AlertDialog,
 	AlertDialogAction,
@@ -99,6 +101,20 @@ export function TransactionDialog({
 		}
 	}, [open, transaction, defaultDate]);
 
+	const [allowOverpayment, setAllowOverpayment] = useState(false);
+
+	const selectedTargetAccount =
+		type === "transfer" ? accounts.find((a) => a.id === fromAccountId) : accounts.find((a) => a.id === accountId);
+
+	const selectedAccountStanding = selectedTargetAccount
+		? calculateAccountStanding(selectedTargetAccount, undefined, date)
+		: null;
+
+	const validationResult =
+		selectedTargetAccount && amount && parseFloat(amount) > 0 && selectedAccountStanding
+			? validateTransactionAmount(selectedTargetAccount, parseFloat(amount), type, selectedAccountStanding)
+			: { isValid: true };
+
 	const handleSubmit = async (e: React.FormEvent) => {
 		e.preventDefault();
 		if (!amount || !date || (type !== "transfer" && !name)) {
@@ -115,6 +131,11 @@ export function TransactionDialog({
 				toast.error("Source and destination accounts must be different");
 				return;
 			}
+		}
+
+		if (!validationResult.isValid && !allowOverpayment) {
+			toast.error("Validation Failed", { description: validationResult.warning || "Amount exceeds account limit." });
+			return;
 		}
 
 		setIsLoading(true);
@@ -367,7 +388,7 @@ export function TransactionDialog({
 											<SelectValue placeholder="Select a category" />
 										</SelectTrigger>
 										<SelectContent>
-											{categories.map((cat) => (
+											{sortAlphabetically(categories, (cat) => cat.name).map((cat) => (
 												<SelectItem key={cat.id} value={cat.id}>
 													{cat.name}
 												</SelectItem>

@@ -8,6 +8,7 @@ import { Badge } from "@/components/ui/badge";
 import { useSortable } from "@dnd-kit/sortable";
 import { CSS } from "@dnd-kit/utilities";
 import { getFieldVisibility } from "../field-visibility";
+import { isInvestmentAccount } from "@/lib/account-validation-utils";
 
 interface AccountCardProps {
 	account: AccountWithType;
@@ -39,7 +40,7 @@ export function AccountCard({ account, onClick }: AccountCardProps) {
 	const category = account.account_type?.category;
 
 	const getAccountIcon = () => {
-		switch (category) {
+		switch (category as string | undefined) {
 			case "banking":
 				return <Landmark className="h-5 w-5" />;
 			case "investment":
@@ -82,20 +83,11 @@ export function AccountCard({ account, onClick }: AccountCardProps) {
 
 	const progress = getProgressPercentage();
 
-	const getAccountTypeLabel = () => {
-		const typeName = account.account_type.name.toLowerCase();
-		if (typeName.includes("investment")) return "Investment";
-		if (typeName.includes("brokerage")) return "Brokerage";
-		if (typeName.includes("savings")) return "Savings";
-		if (typeName.includes("credit card")) return "Credit Card";
-		if (typeName.includes("loan")) return "Loan";
-		if (category === "retirement") return "Retirement";
-		return account.account_type.name;
-	};
+	const getAccountTypeLabel = () => account.account_type.name;
 
 	const getProgressLabel = () => {
 		if (accountClass === "asset") return "Goal Progress";
-		const vis = getFieldVisibility(category, account.account_type?.name);
+		const vis = getFieldVisibility(account.account_type, account.field_visibility);
 		if (vis.showCreditLimit) return "Credit Usage";
 		return "Paid Off";
 	};
@@ -158,6 +150,9 @@ export function AccountCard({ account, onClick }: AccountCardProps) {
 							{accountClass === "liability" && "-"}
 							{formatCurrency(account.current_balance)}
 						</div>
+						{accountClass === "liability" && !isInvestmentAccount(account) && (
+							<div className="text-[10px] text-muted-foreground font-medium mt-0.5">Remaining Debt to Date</div>
+						)}
 					</div>
 				</div>
 

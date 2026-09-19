@@ -3,7 +3,7 @@
 import { useState } from "react";
 import Link from "next/link";
 import { useRouter } from "next/navigation";
-import { ArrowLeft, Edit, Trash2 } from "lucide-react";
+import { ArrowLeft, Trash2 } from "lucide-react";
 import { toast } from "sonner";
 
 import { Button } from "@/components/ui/button";
@@ -12,6 +12,8 @@ import { DeleteConfirmDialog } from "@/components/dialogs/DeleteConfirmDialog";
 import { UnifiedTransactionDialog } from "@/components/dialogs/UnifiedTransactionDialog";
 
 import { BalanceCard } from "./components/BalanceCard";
+import { AccountStandingCard } from "./components/AccountStandingCard";
+import { PromotionsTrackerCard } from "./components/PromotionsTrackerCard";
 import { QuickActionsCard } from "./components/QuickActionsCard";
 import { InsightsCard } from "./components/InsightsCard";
 import { PerformanceCard } from "./components/PerformanceCard";
@@ -45,6 +47,8 @@ export function AccountDetailClient({
 	const [deleteDialogOpen, setDeleteDialogOpen] = useState(false);
 	const [transactionDialogOpen, setTransactionDialogOpen] = useState(false);
 	const [transactionType, setTransactionType] = useState<"deposit" | "withdrawal">("deposit");
+	// When set, the transaction dialog opens as a transfer that settles this liability's debt
+	const [payRemainingAmount, setPayRemainingAmount] = useState<number | null>(null);
 	const [editTransactionDialogOpen, setEditTransactionDialogOpen] = useState(false);
 	const [editingTransaction, setEditingTransaction] = useState<AccountTransaction | null>(null);
 
@@ -68,11 +72,13 @@ export function AccountDetailClient({
 	};
 
 	const handleRecordDeposit = () => {
+		setPayRemainingAmount(null);
 		setTransactionType("deposit");
 		setTransactionDialogOpen(true);
 	};
 
 	const handleRecordWithdrawal = () => {
+		setPayRemainingAmount(null);
 		setTransactionType("withdrawal");
 		setTransactionDialogOpen(true);
 	};
@@ -147,6 +153,22 @@ export function AccountDetailClient({
 						{/* Balance Card */}
 						<BalanceCard account={account} accountClass={accountClass} formatCurrency={formatCurrency} />
 
+						{/* Account Standing Card (Debt & Payment validation summary) */}
+						<AccountStandingCard
+							account={account}
+							transactions={transactions}
+							formatCurrency={formatCurrency}
+							onPayRemaining={(amount) => {
+								// Settle the debt as a transfer from a source account into this
+								// liability account, pre-filled with the outstanding amount.
+								setPayRemainingAmount(amount);
+								setTransactionDialogOpen(true);
+							}}
+						/>
+
+						{/* Welcome Bonuses & Promotions Tracker */}
+						<PromotionsTrackerCard accountId={account.id} formatCurrency={formatCurrency} />
+
 						{/* Insights Card */}
 						<InsightsCard
 							account={account}
@@ -203,11 +225,16 @@ export function AccountDetailClient({
 
 			<UnifiedTransactionDialog
 				open={transactionDialogOpen}
-				onOpenChange={setTransactionDialogOpen}
+				onOpenChange={(open) => {
+					setTransactionDialogOpen(open);
+					if (!open) setPayRemainingAmount(null);
+				}}
 				categories={[]}
-				accounts={[account]}
+				accounts={payRemainingAmount !== null ? [account, ...otherAccounts] : [account]}
 				defaultAccountId={account.id}
-				defaultType={transactionType === "deposit" ? "income" : "expense"}
+				defaultToAccountId={payRemainingAmount !== null ? account.id : undefined}
+				defaultAmount={payRemainingAmount ?? undefined}
+				defaultType={payRemainingAmount !== null ? "transfer" : transactionType === "deposit" ? "income" : "expense"}
 				onSuccess={handleTransactionSuccess}
 				context="balancesheet"
 			/>

@@ -147,6 +147,10 @@ ALTER TABLE public.transactions DROP CONSTRAINT IF EXISTS transactions_linked_ac
 ALTER TABLE public.transactions ADD CONSTRAINT fk_linked_account_tx FOREIGN KEY (linked_account_transaction_id) REFERENCES public.account_transactions(id) ON DELETE SET NULL;
 
 
+-- Backfill columns that may be missing on databases deployed before they were added.
+-- (CREATE TABLE IF NOT EXISTS is a no-op on existing tables, so we use ALTER TABLE guards.)
+ALTER TABLE public.account_transactions ADD COLUMN IF NOT EXISTS recurring_transfer_id UUID REFERENCES public.recurring_transfers(id) ON DELETE SET NULL;
+
 -- Indexes
 CREATE INDEX IF NOT EXISTS transactions_date_idx ON public.transactions(transaction_date DESC);
 CREATE INDEX IF NOT EXISTS idx_account_txn_account ON public.account_transactions(account_id, transaction_date DESC);

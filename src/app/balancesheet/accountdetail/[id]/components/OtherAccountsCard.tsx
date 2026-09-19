@@ -7,10 +7,9 @@ import type { AccountWithType } from "../../../types";
 
 interface OtherAccountsCardProps {
 	accounts: AccountWithType[];
-	currentAccountClass: "asset" | "liability" | undefined;
 }
 
-export function OtherAccountsCard({ accounts, currentAccountClass }: OtherAccountsCardProps) {
+export function OtherAccountsCard({ accounts }: OtherAccountsCardProps) {
 	// Show max 3 accounts
 	const displayAccounts = accounts.slice(0, 3);
 

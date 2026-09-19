@@ -52,7 +52,8 @@ export function AssetPerformance({ account, transactions, formatCurrency }: Asse
 			.reduce((sum, t) => sum + Math.abs(t.amount), 0);
 
 		const isInvestment =
-			account.account_type?.category === "investment" || account.account_type?.category === "retirement";
+			account.account_type?.category === "investment" ||
+			(account.account_type?.category as string | undefined) === "retirement";
 
 		/** Contribution limit warnings for investment/retirement accounts. */
 		let annualLimitWarning: "approaching" | "exceeded" | null = null;
@@ -186,4 +187,3 @@ export function AssetPerformance({ account, transactions, formatCurrency }: Asse
 		</Card>
 	);
 }
-

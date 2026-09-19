@@ -146,6 +146,23 @@ UI-affecting work additionally needs manual browser verification at **mobile (37
 **desktop (1440px)**. `bun run dev:mock` is the fastest way to exercise UI without a database.
 There is no automated regression suite; `docs/regression-test-spec.md` is an unfinished checklist.
 
+### Always produce a manual verification guide
+
+After every feature or change, always give the user a step-by-step guide to verify the work
+by hand in the running app. Put it in your reply (not a new file) unless asked otherwise.
+
+- Simple, direct wording. No buzzwords or filler.
+- One action per step, followed by the exact result to expect.
+- Name the page and the button or field the user must click.
+- Cover the changed behavior, including edge cases and the failure path.
+- Note which mode to use: `bun run dev` (real database) or `bun run dev:mock` (sample data).
+- If a step needs a migration or setup first, say so at the top.
+
+Example shape:
+
+1. Open Balance Sheet, then click the account. Expect the account detail page.
+2. Click Record Withdrawal, enter 50, submit. Expect a success toast and the balance drops by 50.
+
 ---
 
 ## 6. Coding Conventions
@@ -254,7 +271,9 @@ Keep components focused; extract form sections and sub-components. Existing file
 
 - `class` is `asset` or `liability` and is derived from the account type.
 - Investment accounts (`code = "investment"`, legacy `category = investment/retirement`) are
-  exempt from debt/balance caps (`isInvestmentAccount()`); they track contribution room instead.
+  assets and are capped like any other asset — withdrawals/expenses cannot exceed the available
+  balance. `isInvestmentAccount()` only distinguishes them so they can track contribution room
+  instead of debt.
 - Asset withdrawals/expenses/transfers-out are capped by available balance; liability
   payments/transfer-out are capped by remaining debt.
 - A transaction affects an account only when it is tagged to that account.
@@ -390,22 +409,22 @@ still follow the same routing logic.
 
 ## 13. Commit & Release Conventions
 
-Semantic-release (`.github/workflows/release.yml`, `release.config.js`) publishes versions
-from commit messages. Use conventional commits:
+**Commits (only when the user says "commit"):**
 
-| Type | Version impact | Example |
-| ---- | -------------- | ------- |
-| `feat` | minor | `feat(auth): add guest login` |
-| `fix` | patch | `fix(ui): sidebar alignment` |
-| `perf` | patch | `perf: optimize queries` |
-| `chore` | none | `chore: update deps` |
-| `docs` | none | `docs: update readme` |
-| `refactor` | none | `refactor: logging cleanup` |
+- Write small, meaningful messages. One concern per commit.
+- Do **not** use conventional-commit prefixes on commit messages. Plain short text only.
+- Bundle the files that belong to one message; split unrelated changes into their own commit.
+- Do **not** commit docs or agent files (e.g. `AGENTS.md`, `docs/`, `OPENCode_HANDOFF.md`)
+  unless the user explicitly says to.
 
-PRs target `main`/`development`, follow `.context/development-principles.md`, and should
-describe functional + file changes. Expected workflow for a feature: spec in
-`docs/<feature>-spec.md`, implementation, type-check + build, manual UI verification at
-375px/1440px, review, PR.
+**Pull requests:**
+
+- Title must start with `feat:` or `fix:` — the release pipeline reads it.
+- Description must contain a **Summary** and a **Key changes** section.
+- Base branch: `main` or `development`.
+
+Expected workflow for a feature: spec in `docs/<feature>-spec.md`, implementation,
+type-check + build, manual UI verification at 375px/1440px, review, PR.
 
 ---
 

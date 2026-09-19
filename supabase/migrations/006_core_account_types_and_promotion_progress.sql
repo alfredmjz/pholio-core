@@ -90,11 +90,23 @@ GRANT ALL ON public.account_promotions TO authenticated;
 -- Recomputes current_amount / is_completed for every open promotion on an account.
 -- Early-exits when the account has no open promotions, so ordinary ledger writes
 -- cost effectively nothing.
-CREATE OR REPLACE FUNCTION public.recalculate_account_promotions(p_account_id UUID) RETURNS VOID AS $$
+--
+-- Thresholds are direction-aware. The sign of account_transactions.amount depends on
+-- the account class, so "money in" and "money out" are decided per class:
+--   * asset     : money in = amount > 0 ; money out = amount < 0
+--   * liability : money in = amount < 0 (debt paid down); money out = amount > 0
+-- This keeps spend and deposit thresholds mutually exclusive.
+CREATE OR REPLACE FUNCTION public.recalculate_account_promotions(p_account_id UUID)
+RETURNS VOID
+LANGUAGE plpgsql
+SECURITY DEFINER
+SET search_path = public
+AS $$
 DECLARE
     v_promo RECORD;
     v_progress DECIMAL(15, 2);
     v_balance DECIMAL(15, 2);
+    v_is_asset BOOLEAN := true;
 BEGIN
     IF NOT EXISTS (
         SELECT 1 FROM public.account_promotions
@@ -103,7 +115,14 @@ BEGIN
         RETURN;
     END IF;
 
-    SELECT COALESCE(MAX(current_balance), 0) INTO v_balance FROM public.accounts WHERE id = p_account_id;
+    SELECT COALESCE(MAX(current_balance), 0) INTO v_balance
+    FROM public.accounts
+    WHERE id = p_account_id;
+
+    SELECT (at.class = 'asset') INTO v_is_asset
+    FROM public.accounts a
+    JOIN public.account_types at ON at.id = a.account_type_id
+    WHERE a.id = p_account_id;
 
     FOR v_promo IN
         SELECT id, promotion_type, target_amount, start_date, end_date
@@ -118,14 +137,14 @@ BEGIN
             WHERE account_id = p_account_id
               AND transaction_date >= v_promo.start_date
               AND transaction_date <= v_promo.end_date
-              AND (transaction_type IN ('deposit', 'contribution') OR amount > 0);
+              AND ((v_is_asset AND amount > 0) OR (NOT v_is_asset AND amount < 0));
         ELSE
             SELECT COALESCE(SUM(ABS(amount)), 0) INTO v_progress
             FROM public.account_transactions
             WHERE account_id = p_account_id
               AND transaction_date >= v_promo.start_date
               AND transaction_date <= v_promo.end_date
-              AND (transaction_type IN ('withdrawal', 'adjustment') OR amount > 0);
+              AND ((v_is_asset AND amount < 0) OR (NOT v_is_asset AND amount > 0));
         END IF;
 
         UPDATE public.account_promotions
@@ -135,14 +154,14 @@ BEGIN
         WHERE id = v_promo.id;
     END LOOP;
 END;
-$$ LANGUAGE plpgsql SECURITY DEFINER;
+$$;
 
 CREATE OR REPLACE FUNCTION public.trg_account_promotions_recalc() RETURNS TRIGGER AS $$
 BEGIN
     PERFORM public.recalculate_account_promotions(COALESCE(NEW.account_id, OLD.account_id));
     RETURN NULL;
 END;
-$$ LANGUAGE plpgsql SECURITY DEFINER;
+$$ LANGUAGE plpgsql SECURITY DEFINER SET search_path = public;
 
 DROP TRIGGER IF EXISTS account_transactions_recalc_promotions ON public.account_transactions;
 CREATE TRIGGER account_transactions_recalc_promotions

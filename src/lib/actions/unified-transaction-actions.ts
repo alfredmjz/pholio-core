@@ -276,6 +276,9 @@ export async function createUnifiedTransaction(input: UnifiedTransactionInput): 
 			}
 		}
 
+		// Promotion progress is recalculated in PostgreSQL by the account_transactions
+		// trigger created in migration 006, so no application-side refresh is needed here.
+
 		// Revalidate relevant pages
 		revalidatePath("/allocations");
 		revalidatePath("/balancesheet");
@@ -557,12 +560,7 @@ export async function getTransactionDescriptions(): Promise<string[]> {
 					.eq("user_id", user.id)
 					.not("description", "is", null)
 					.limit(50),
-				supabase
-					.from("recurring_expenses")
-					.select("name")
-					.eq("user_id", user.id)
-					.not("name", "is", null)
-					.limit(50),
+				supabase.from("recurring_expenses").select("name").eq("user_id", user.id).not("name", "is", null).limit(50),
 			]);
 
 			if (allocRes.data) {
@@ -608,4 +606,3 @@ export async function getTransactionDescriptions(): Promise<string[]> {
 		return defaultSuggestions;
 	}
 }
-

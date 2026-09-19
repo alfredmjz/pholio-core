@@ -226,8 +226,8 @@ export function EditRecurringDialog({
 								<SelectValue />
 							</SelectTrigger>
 							<SelectContent>
-								<SelectItem value="subscription">Subscription</SelectItem>
 								<SelectItem value="bill">Bill</SelectItem>
+								<SelectItem value="subscription">Subscription</SelectItem>
 							</SelectContent>
 						</Select>
 					</div>

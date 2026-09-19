@@ -3,6 +3,7 @@
 import { useState, useRef, useEffect, useId } from "react";
 import { Input } from "@/components/ui/input";
 import { cn } from "@/lib/utils";
+import { sortAlphabetically } from "@/lib/sort-utils";
 
 interface AutocompleteInputProps {
 	id?: string;
@@ -31,7 +32,7 @@ export function AutocompleteInput({
 	const [highlightedIndex, setHighlightedIndex] = useState(-1);
 	const containerRef = useRef<HTMLDivElement>(null);
 
-	const uniqueSuggestions = Array.from(new Set(suggestions.filter(Boolean)));
+	const uniqueSuggestions = sortAlphabetically(Array.from(new Set(suggestions.filter(Boolean))), (s) => s);
 
 	// Filter suggestions based on user input
 	const filteredSuggestions = value.trim()

@@ -2,6 +2,8 @@
  * Utility functions for consistent account display and sorting across dialogs and selectors.
  */
 
+import { compareAlphabetically, sortAlphabetically } from "@/lib/sort-utils";
+
 export interface AccountLike {
 	id: string;
 	name: string;
@@ -32,14 +34,33 @@ export function formatAccountDisplayName(account: AccountLike): string {
 	return `${inst} - ${name}`;
 }
 
+export interface AccountTypeLike {
+	name: string;
+	code?: string | null;
+}
+
 /**
- * Sort accounts consistently by institution name, then account name.
+ * Sort account types alphabetically while always keeping the customisable "Other"
+ * type last, so it reads as the escape hatch instead of an alphabetical entry.
+ */
+export function sortAccountTypes<T extends AccountTypeLike>(types: T[]): T[] {
+	const core = sortAlphabetically(
+		types.filter((type) => type.code !== "other"),
+		(type) => type.name
+	);
+	const other = sortAlphabetically(
+		types.filter((type) => type.code === "other"),
+		(type) => type.name
+	);
+	return [...core, ...other];
+}
+
+/**
+ * Sort accounts alphabetically by the same label the dropdowns display
+ * ("Institution - Name" when an institution is set, otherwise the account name).
  */
 export function sortAccounts<T extends AccountLike>(accounts: T[]): T[] {
-	return [...accounts].sort((a, b) => {
-		const aInst = a.institution || "";
-		const bInst = b.institution || "";
-		if (aInst !== bInst) return aInst.localeCompare(bInst);
-		return a.name.localeCompare(b.name);
-	});
+	// Sorting by the formatted label keeps every account selector in an identical,
+	// alphabetical order regardless of whether an account has an institution.
+	return [...accounts].sort((a, b) => compareAlphabetically(formatAccountDisplayName(a), formatAccountDisplayName(b)));
 }

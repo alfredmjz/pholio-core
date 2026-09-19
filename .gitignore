@@ -60,4 +60,3 @@ supabase/signing_keys.json
 .claude/*.local.*
 
 .docs/
-/docs/

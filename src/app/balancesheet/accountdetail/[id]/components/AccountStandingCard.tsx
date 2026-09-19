@@ -4,7 +4,7 @@ import { useMemo } from "react";
 import { Card } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
 import { Badge } from "@/components/ui/badge";
-import { CreditCard, Landmark, ArrowRight, AlertCircle, ShieldCheck, CheckCircle2 } from "lucide-react";
+import { CreditCard, Landmark, ArrowRight, AlertCircle, CheckCircle2 } from "lucide-react";
 import type { AccountWithType, AccountTransaction } from "../../../types";
 import { calculateAccountStanding } from "@/lib/account-validation-utils";
 
@@ -24,27 +24,6 @@ export function AccountStandingCard({
 	const standing = useMemo(() => {
 		return calculateAccountStanding(account, transactions);
 	}, [account, transactions]);
-
-	if (standing.isExempt) {
-		return (
-			<Card className="p-5 border-blue-200/50 bg-blue-50/20 dark:bg-blue-950/10 dark:border-blue-900/40">
-				<div className="flex items-center justify-between">
-					<div className="flex items-center gap-3">
-						<div className="p-2 rounded-lg bg-blue-100 dark:bg-blue-900/40 text-blue-600 dark:text-blue-400">
-							<ShieldCheck className="h-5 w-5" />
-						</div>
-						<div>
-							<h3 className="text-sm font-semibold text-primary">Investment Account</h3>
-							<p className="text-xs text-muted-foreground">Exempt from standard debt and cash balance constraints.</p>
-						</div>
-					</div>
-					<Badge variant="outline" className="text-blue-600 border-blue-300 dark:text-blue-400">
-						Exempt
-					</Badge>
-				</div>
-			</Card>
-		);
-	}
 
 	if (standing.accountClass === "liability") {
 		const isFullyPaid = standing.remainingDebt <= 0;
@@ -84,7 +63,7 @@ export function AccountStandingCard({
 						<div className="flex flex-col gap-0.5 border-x border-border/50 px-2">
 							<span className="text-[11px] font-medium text-muted-foreground">Payments Made</span>
 							<span className="text-sm font-bold text-green-600 dark:text-green-400">
-								-{formatCurrency(standing.totalPayments)}
+								{formatCurrency(standing.totalPayments)}
 							</span>
 						</div>
 						<div className="flex flex-col gap-0.5">

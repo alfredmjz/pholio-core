@@ -2,6 +2,7 @@
 
 import { useState, useEffect } from "react";
 import { Button } from "@/components/ui/button";
+import { Badge } from "@/components/ui/badge";
 import { ControlBasedDialog } from "@/components/dialogWrapper";
 import { DialogFooter } from "@/components/ui/dialog";
 import { Label } from "@/components/ui/label";
@@ -27,7 +28,7 @@ import { ProminentAmountInput } from "@/components/ProminentAmountInput";
 import { getTodayDateString } from "@/lib/date-utils";
 import { formatAccountDisplayName, sortAccounts } from "@/lib/account-utils";
 import { sortAlphabetically } from "@/lib/sort-utils";
-import { calculateAccountStanding, validateTransactionAmount } from "@/lib/account-validation-utils";
+import { checkTransactionCaps } from "@/lib/account-validation-utils";
 import {
 	AlertDialog,
 	AlertDialogAction,
@@ -103,17 +104,20 @@ export function TransactionDialog({
 
 	const [allowOverpayment, setAllowOverpayment] = useState(false);
 
-	const selectedTargetAccount =
-		type === "transfer" ? accounts.find((a) => a.id === fromAccountId) : accounts.find((a) => a.id === accountId);
+	const capCheck =
+		amount && parseFloat(amount) > 0
+			? checkTransactionCaps({
+					intent: type,
+					amount: parseFloat(amount),
+					account: type === "transfer" ? null : accounts.find((a) => a.id === accountId),
+					fromAccount: type === "transfer" ? accounts.find((a) => a.id === fromAccountId) : null,
+					toAccount: type === "transfer" ? accounts.find((a) => a.id === toAccountId) : null,
+				})
+			: { isValid: true, violations: [] as ReturnType<typeof checkTransactionCaps>["violations"] };
 
-	const selectedAccountStanding = selectedTargetAccount
-		? calculateAccountStanding(selectedTargetAccount, undefined, date)
-		: null;
-
-	const validationResult =
-		selectedTargetAccount && amount && parseFloat(amount) > 0 && selectedAccountStanding
-			? validateTransactionAmount(selectedTargetAccount, parseFloat(amount), type, selectedAccountStanding)
-			: { isValid: true };
+	const firstViolation = capCheck.violations[0];
+	const maxAllowed = firstViolation?.maxAllowed;
+	const overridable = firstViolation?.overridable ?? false;
 
 	const handleSubmit = async (e: React.FormEvent) => {
 		e.preventDefault();
@@ -133,8 +137,8 @@ export function TransactionDialog({
 			}
 		}
 
-		if (!validationResult.isValid && !allowOverpayment) {
-			toast.error("Validation Failed", { description: validationResult.warning || "Amount exceeds account limit." });
+		if (!capCheck.isValid && !(allowOverpayment && overridable)) {
+			toast.error("Validation Failed", { description: firstViolation?.message || "Amount exceeds account limit." });
 			return;
 		}
 
@@ -164,6 +168,7 @@ export function TransactionDialog({
 					toAccountId: type === "transfer" ? (toAccountId === "none" ? null : toAccountId) : null,
 					type,
 					notes,
+					allowOverpayment,
 				});
 
 				if (success) {
@@ -185,6 +190,7 @@ export function TransactionDialog({
 					toAccountId: type === "transfer" ? (toAccountId === "none" ? null : toAccountId) : null,
 					type,
 					notes,
+					allowOverpayment,
 				});
 
 				if (result.success) {
@@ -224,6 +230,11 @@ export function TransactionDialog({
 		}
 	};
 
+	const linkedAccountDeleted =
+		transaction != null &&
+		transaction.linked_account_transaction_id != null &&
+		transaction.linked_account_transaction?.account_id == null;
+
 	return (
 		<ControlBasedDialog
 			open={open}
@@ -234,6 +245,17 @@ export function TransactionDialog({
 			showCloseButton={false}
 		>
 			<form onSubmit={handleSubmit} className="flex flex-col gap-6">
+				{linkedAccountDeleted && (
+					<div className="flex flex-col gap-1.5">
+						<Badge variant="outline" className="self-start whitespace-nowrap border-error text-error">
+							Deleted account
+						</Badge>
+						<span className="text-xs text-muted-foreground">
+							This transaction was recorded against an account that has since been deleted.
+						</span>
+					</div>
+				)}
+
 				{transaction?.is_recurring_stopped && (
 					<div className="flex items-start gap-2.5 p-3 rounded-lg bg-amber-500/10 border border-amber-500/30 text-amber-800 dark:text-amber-300 text-xs">
 						<Ban className="h-4 w-4 text-amber-600 dark:text-amber-400 shrink-0 mt-0.5" />
@@ -280,6 +302,39 @@ export function TransactionDialog({
 						<Label htmlFor="amount">Amount</Label>
 						<ProminentAmountInput id="amount" value={amount} onChange={setAmount} hasError={false} />
 					</div>
+
+					{!capCheck.isValid && (
+						<div className="p-2.5 rounded-lg bg-amber-500/10 border border-amber-500/30 text-amber-700 dark:text-amber-400 flex flex-col gap-2">
+							<div className="flex items-start gap-1.5">
+								<Info className="h-4 w-4 shrink-0 mt-0.5 text-amber-600 dark:text-amber-400" />
+								<span className="text-xs">{firstViolation?.message}</span>
+							</div>
+							<div className="flex items-center justify-between pt-1 border-t border-amber-500/20">
+								{maxAllowed !== undefined && (
+									<Button
+										type="button"
+										variant="outline"
+										size="sm"
+										className="h-7 text-xs font-medium border-amber-500/40 hover:bg-amber-500/20 text-amber-800 dark:text-amber-300"
+										onClick={() => setAmount(maxAllowed.toFixed(2))}
+									>
+										Set to Max (${maxAllowed.toFixed(2)})
+									</Button>
+								)}
+								{overridable && (
+									<label className="flex items-center gap-1.5 text-[11px] cursor-pointer font-medium text-amber-800 dark:text-amber-300">
+										<input
+											type="checkbox"
+											checked={allowOverpayment}
+											onChange={(e) => setAllowOverpayment(e.target.checked)}
+											className="rounded border-amber-400 text-amber-600 focus:ring-amber-500"
+										/>
+										Allow Overpayment
+									</label>
+								)}
+							</div>
+						</div>
+					)}
 
 					{type === "transfer" ? (
 						<>
@@ -330,17 +385,19 @@ export function TransactionDialog({
 										<SelectTrigger>
 											<SelectValue placeholder="Select source account" />
 										</SelectTrigger>
-										<SelectContent>
-											{sortAccounts(accounts).map((acc) => (
+									<SelectContent>
+										{sortAccounts(accounts)
+											.filter((acc) => acc.id !== toAccountId)
+											.map((acc) => (
 												<SelectItem key={acc.id} value={acc.id}>
 													{formatAccountDisplayName(acc)}
 												</SelectItem>
 											))}
-										</SelectContent>
-									</Select>
-								</div>
-								<div className="space-y-2">
-									<Label htmlFor="toAccount">To Account (Destination)</Label>
+									</SelectContent>
+								</Select>
+							</div>
+							<div className="space-y-2">
+								<Label htmlFor="toAccount">To Account (Destination)</Label>
 									<Select value={toAccountId} onValueChange={setToAccountId}>
 										<SelectTrigger>
 											<SelectValue placeholder="Select destination account" />

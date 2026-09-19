@@ -43,8 +43,7 @@ import { compareAlphabetically, sortAlphabetically } from "@/lib/sort-utils";
 import { ManagePresetsDialog } from "./ManagePresetsDialog";
 import {
 	calculateAccountStanding,
-	validateTransactionAmount,
-	isInvestmentAccount,
+	checkTransactionCaps,
 } from "@/lib/account-validation-utils";
 
 interface UnifiedTransactionDialogProps {
@@ -148,7 +147,7 @@ export function UnifiedTransactionDialog({
 
 			setCategoryId(defaultCategoryId || VIRTUAL_UNCATEGORIZED_ID);
 			setAccountId(defaultAccountId || "none");
-			setFromAccountId(defaultFromAccountId || defaultAccountId || "none");
+			setFromAccountId(defaultFromAccountId || "none");
 			setToAccountId(defaultToAccountId || "none");
 			if (defaultAmount && defaultAmount > 0) {
 				setAmount(defaultAmount.toFixed(2));
@@ -212,14 +211,33 @@ export function UnifiedTransactionDialog({
 	const selectedTargetAccount =
 		type === "transfer" ? accounts.find((a) => a.id === fromAccountId) : accounts.find((a) => a.id === accountId);
 
-	const selectedAccountStanding = selectedTargetAccount
-		? calculateAccountStanding(selectedTargetAccount, undefined, date)
-		: null;
+	const selectedAccountStanding = selectedTargetAccount ? calculateAccountStanding(selectedTargetAccount) : null;
 
-	const validationResult =
-		selectedTargetAccount && amount && parseFloat(amount) > 0 && selectedAccountStanding
-			? validateTransactionAmount(selectedTargetAccount, parseFloat(amount), type, selectedAccountStanding)
-			: { isValid: true };
+	const fromAccount = type === "transfer" ? accounts.find((a) => a.id === fromAccountId) : null;
+	const toAccount = type === "transfer" ? accounts.find((a) => a.id === toAccountId) : null;
+
+	// Validate every account the transaction touches. `allowOverpayment` is intentionally
+	// NOT applied here so the warning stays visible while the opt-in is ticked; the submit
+	// handler decides whether the override clears the (overridable) violation.
+	const capCheck =
+		amount && parseFloat(amount) > 0
+			? checkTransactionCaps({
+					intent: type,
+					amount: parseFloat(amount),
+					account: type === "transfer" ? null : accounts.find((a) => a.id === accountId),
+					fromAccount,
+					toAccount,
+					transactionType,
+				})
+			: { isValid: true, violations: [] as ReturnType<typeof checkTransactionCaps>["violations"] };
+
+	const firstViolation = capCheck.violations[0];
+	const validationResult = {
+		isValid: capCheck.isValid,
+		warning: firstViolation?.message,
+		maxAllowed: firstViolation?.maxAllowed,
+		overridable: firstViolation?.overridable ?? false,
+	};
 
 	const validateForm = (): boolean => {
 		const newErrors: ValidationErrors = {};
@@ -255,7 +273,7 @@ export function UnifiedTransactionDialog({
 			isValid = false;
 		}
 
-		if (!validationResult.isValid && !allowOverpayment) {
+		if (!validationResult.isValid && !(allowOverpayment && validationResult.overridable)) {
 			newErrors.amount = validationResult.warning || "Amount exceeds account limit";
 			isValid = false;
 		}
@@ -284,6 +302,7 @@ export function UnifiedTransactionDialog({
 				toAccountId: type === "transfer" ? (toAccountId === "none" ? null : toAccountId) : null,
 				transactionType: transactionType as any,
 				notes: notes || undefined,
+				allowOverpayment,
 				source: type === "transfer" ? "transfer" : isAllocationsContext && type === "income" ? incomeSource : "manual",
 			};
 			const result = await createUnifiedTransaction(input);
@@ -468,9 +487,7 @@ export function UnifiedTransactionDialog({
 											id="amount"
 											hasError={!!errors.amount}
 										/>
-										{selectedTargetAccount &&
-											!isInvestmentAccount(selectedTargetAccount) &&
-											selectedAccountStanding && (
+										{selectedTargetAccount && selectedAccountStanding && (
 												<div className="mt-2 text-xs rounded-lg p-2.5 bg-muted/60 border border-border/60 flex flex-col gap-1.5">
 													<div className="flex items-center justify-between font-medium">
 														{selectedAccountStanding.accountClass === "liability" ? (
@@ -511,15 +528,17 @@ export function UnifiedTransactionDialog({
 																		Set to Max (${validationResult.maxAllowed.toFixed(2)})
 																	</Button>
 																)}
-																<label className="flex items-center gap-1.5 text-[11px] cursor-pointer font-medium text-amber-800 dark:text-amber-300">
-																	<input
-																		type="checkbox"
-																		checked={allowOverpayment}
-																		onChange={(e) => setAllowOverpayment(e.target.checked)}
-																		className="rounded border-amber-400 text-amber-600 focus:ring-amber-500"
-																	/>
-																	Allow Overpayment
-																</label>
+																{validationResult.overridable && (
+																	<label className="flex items-center gap-1.5 text-[11px] cursor-pointer font-medium text-amber-800 dark:text-amber-300">
+																		<input
+																			type="checkbox"
+																			checked={allowOverpayment}
+																			onChange={(e) => setAllowOverpayment(e.target.checked)}
+																			className="rounded border-amber-400 text-amber-600 focus:ring-amber-500"
+																		/>
+																		Allow Overpayment
+																	</label>
+																)}
 															</div>
 														</div>
 													)}
@@ -599,11 +618,13 @@ export function UnifiedTransactionDialog({
 														<SelectValue placeholder="Select source account" />
 													</SelectTrigger>
 													<SelectContent>
-														{sortAccounts(accounts).map((acc) => (
-															<SelectItem key={acc.id} value={acc.id}>
-																{formatAccountDisplayName(acc)}
-															</SelectItem>
-														))}
+														{sortAccounts(accounts)
+															.filter((acc) => acc.id !== toAccountId)
+															.map((acc) => (
+																<SelectItem key={acc.id} value={acc.id}>
+																	{formatAccountDisplayName(acc)}
+																</SelectItem>
+															))}
 													</SelectContent>
 												</Select>
 												{errors.fromAccountId && <p className="text-sm text-error">{errors.fromAccountId}</p>}

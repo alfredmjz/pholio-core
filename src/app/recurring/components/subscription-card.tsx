@@ -2,7 +2,7 @@
 
 import { RecurringExpense, toggleSubscription, deleteRecurringExpense } from "../actions";
 import { Switch } from "@/components/ui/switch";
-import { MoreVertical, PauseCircle } from "lucide-react";
+import { AlertTriangle, MoreVertical, PauseCircle } from "lucide-react";
 import { cn } from "@/lib/utils";
 import { formatShortDate, parseLocalDate, formatFrequency } from "@/lib/date-utils";
 import { useState } from "react";
@@ -122,6 +122,12 @@ export function SubscriptionCard({ subscription, onDelete, onUpdate }: Subscript
 									Paused — no future payments
 								</div>
 							)}
+							{subscription.deleted_auto_payments ? (
+								<div className="flex items-center gap-1 text-amber-600 dark:text-amber-400 text-[10px] font-semibold uppercase tracking-wide mt-0.5">
+									<AlertTriangle className="h-3 w-3" />
+									Previous auto-paid deleted — will not re-record
+								</div>
+							) : null}
 						</div>
 					</div>
 

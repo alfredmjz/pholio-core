@@ -207,7 +207,19 @@ async function syncRecurringExpenses(
 		.lte("transaction_date", endDate)
 		.not("recurring_expense_id", "is", null);
 
-	const existingRecurringIds = new Set((existingTransactions || []).map((t) => t.recurring_expense_id));
+	// Occurrences that have already been recorded (with the amount at record time).
+	// Auto-pay must never rewrite or re-create these, even after the transaction is
+	// edited or deleted.
+	const { data: recordedOccurrences } = await supabase
+		.from("recurring_recorded_occurrences")
+		.select("recurring_expense_id, occurrence_date, amount")
+		.eq("user_id", userId);
+
+	const recordedAmountByKey = new Map<string, number>();
+	for (const marker of recordedOccurrences || []) {
+		const markerDateStr = marker.occurrence_date ? marker.occurrence_date.split("T")[0] : "";
+		recordedAmountByKey.set(`${marker.recurring_expense_id}:${markerDateStr}`, Number(marker.amount));
+	}
 
 	const hasBills = allRecurring.some((r) => r.category === "bill" && r.is_active);
 	const hasSubscriptions = allRecurring.some((r) => r.category === "subscription" && r.is_active);
@@ -257,7 +269,12 @@ async function syncRecurringExpenses(
 		}
 
 		if (occurrences.length > 0) {
-			const totalAmount = Number(expense.amount) * occurrences.length;
+			// Use the amount captured when the occurrence was recorded, so editing a
+			// bill never retroactively changes the budget cap of a past month.
+			const totalAmount = occurrences.reduce((sum, occurrenceDate) => {
+				const recordedAmount = recordedAmountByKey.get(`${expense.id}:${formatDateString(occurrenceDate)}`);
+				return sum + (recordedAmount !== undefined ? Math.abs(recordedAmount) : Math.abs(Number(expense.amount)));
+			}, 0);
 			applicableExpenses.push({ expense, dates: occurrences });
 
 			if (expense.category === "bill") {
@@ -402,12 +419,6 @@ async function syncRecurringExpenses(
 		notes: string;
 	}> = [];
 
-	const transactionsToUpdate: Array<{
-		id: string;
-		amount: number;
-		name: string;
-	}> = [];
-
 	const existingTransactionMap = new Map(
 		(existingTransactions || []).map((t) => {
 			const dateStr = t.transaction_date ? t.transaction_date.split("T")[0] : "";
@@ -423,21 +434,9 @@ async function syncRecurringExpenses(
 			const dateStr = formatDateString(dateObj);
 			const key = `${expense.id}:${dateStr}`;
 
-			const expectedAmount = -Math.abs(Number(expense.amount));
-			const expectedName = expense.name;
-			const categoryId = categoryIdMap[expense.category] || null;
-
-			const existingTx = existingTransactionMap.get(key);
-			if (existingTx) {
-				if (Number(existingTx.amount) !== expectedAmount || existingTx.name !== expectedName) {
-					transactionsToUpdate.push({
-						id: existingTx.id,
-						amount: expectedAmount,
-						name: expectedName,
-					});
-				}
-				continue;
-			}
+			// A recorded occurrence is never rewritten or re-created. Edits to a
+			// recurring expense only apply from the next unrecorded occurrence.
+			if (existingTransactionMap.has(key) || recordedAmountByKey.has(key)) continue;
 
 			if (!expense.is_active) continue;
 
@@ -452,10 +451,10 @@ async function syncRecurringExpenses(
 
 			transactionsToCreate.push({
 				user_id: userId,
-				name: expectedName,
-				amount: expectedAmount,
+				name: expense.name,
+				amount: -Math.abs(Number(expense.amount)),
 				transaction_date: dateStr,
-				category_id: categoryId,
+				category_id: categoryIdMap[expense.category] || null,
 				source: "recurring",
 				recurring_expense_id: expense.id,
 				notes: `Auto-created from recurring ${expense.category}`,
@@ -467,19 +466,6 @@ async function syncRecurringExpenses(
 		const { error } = await supabase.from("transactions").insert(transactionsToCreate);
 		if (error) {
 			Logger.error("Error creating recurring transactions", { error });
-		}
-	}
-
-	if (transactionsToUpdate.length > 0) {
-		// Supabase RPC or batch update might be better, but loop is fine for a few updates
-		for (const tx of transactionsToUpdate) {
-			const { error } = await supabase
-				.from("transactions")
-				.update({ amount: tx.amount, name: tx.name })
-				.eq("id", tx.id);
-			if (error) {
-				Logger.error("Error updating recurring transaction amount", { error, txId: tx.id });
-			}
 		}
 	}
 
@@ -509,11 +495,15 @@ async function syncRecurringExpenses(
 			const dateStr = formatDateString(currentDue);
 
 			// Skip occurrences that belong to the target month (already handled above)
+			// and any occurrence that was already recorded (even if its transaction
+			// was later deleted).
 			if (occYear !== targetYear || occMonth !== targetMonth) {
-				if (!missedByMonth[monthKey]) {
-					missedByMonth[monthKey] = [];
+				if (!recordedAmountByKey.has(`${expense.id}:${dateStr}`)) {
+					if (!missedByMonth[monthKey]) {
+						missedByMonth[monthKey] = [];
+					}
+					missedByMonth[monthKey].push({ expense, dateStr });
 				}
-				missedByMonth[monthKey].push({ expense, dateStr });
 			}
 
 			currentDue = calculateNextDueDate(currentDue, expense.billing_period);

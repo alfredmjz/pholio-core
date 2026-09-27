@@ -6,7 +6,7 @@ import { Database } from "@/lib/database.types";
 import { MOCK_RECURRING_EXPENSES } from "@/mock-data/recurring";
 import { MOCK_TRANSACTIONS } from "@/mock-data/transactions";
 import { Logger } from "@/lib/logger";
-import { calculateNextDueDate } from "@/lib/date-utils";
+import { calculateNextDueDate, formatDateString, parseLocalDate } from "@/lib/date-utils";
 import { getAllocation, autoCreateAllocationWithDefaults } from "../allocations/actions";
 
 export type RecurringExpenseStatus = "paid" | "partial" | "unpaid" | "overpaid" | "upcoming" | "overdue" | "due_today";
@@ -16,6 +16,9 @@ export type RecurringExpense = Database["public"]["Tables"]["recurring_expenses"
 	paid_amount?: number;
 	paid_count?: number;
 	occurrences_count?: number;
+	deleted_auto_payments?: number;
+	next_amount_change?: { from: number; to: number };
+	next_due_change?: { from: string; to: string };
 };
 export type NewRecurringExpense = Database["public"]["Tables"]["recurring_expenses"]["Insert"];
 
@@ -28,6 +31,7 @@ export async function getRecurringExpenses(): Promise<RecurringExpense[]> {
 
 	let expenses: RecurringExpense[] = [];
 	let transactions: any[] = [];
+	let recordedOccurrences: any[] = [];
 
 	if (process.env.NEXT_PUBLIC_USE_SAMPLE_DATA === "true") {
 		expenses = MOCK_RECURRING_EXPENSES;
@@ -58,6 +62,17 @@ export async function getRecurringExpenses(): Promise<RecurringExpense[]> {
 			.lte("transaction_date", endOfMonth);
 
 		transactions = dbTransactions || [];
+
+		// Recorded occurrences let us show an occurrence as "not paid" after its
+		// auto-created transaction is deleted, without auto-pay re-recording it.
+		const { data: dbRecorded } = await supabase
+			.from("recurring_recorded_occurrences")
+			.select("recurring_expense_id, occurrence_date, amount")
+			.eq("user_id", user.id)
+			.gte("occurrence_date", startOfMonth)
+			.lte("occurrence_date", endOfMonth);
+
+		recordedOccurrences = dbRecorded || [];
 	}
 
 	if (!expenses.length) return [];
@@ -107,6 +122,12 @@ export async function getRecurringExpenses(): Promise<RecurringExpense[]> {
 		// Set of dates already paid for this expense
 		const paidDates = new Set(paidTransactions.map((t) => toDateStr(t.transaction_date)));
 
+		// Recorded occurrences for this expense in the current month. An occurrence
+		// whose transaction was deleted still counts as an occurrence (0 of 1 paid).
+		const monthMarkers = recordedOccurrences.filter((m) => m.recurring_expense_id === expense.id);
+		const markerDates = new Set(monthMarkers.map((m) => toDateStr(m.occurrence_date)));
+		const deletedAutoPaymentCount = monthMarkers.filter((m) => !paidDates.has(toDateStr(m.occurrence_date))).length;
+
 		let futureCount = 0;
 		let tempDate = new Date(expense.next_due_date);
 
@@ -117,17 +138,22 @@ export async function getRecurringExpenses(): Promise<RecurringExpense[]> {
 		while (tempDate <= endOfMonthDate) {
 			const tempDateStr = toDateStr(tempDate);
 
-			// Only count if this specific date hasn't been paid yet
-			if (!paidDates.has(tempDateStr)) {
+			// Only count if this specific date hasn't been paid or recorded yet
+			if (!paidDates.has(tempDateStr) && !markerDates.has(tempDateStr)) {
 				futureCount++;
 			}
 
 			tempDate = calculateNextDueDate(tempDate, expense.billing_period);
 		}
 
-		const totalOccurrences = paidCount + futureCount;
+		const totalOccurrences = paidCount + futureCount + deletedAutoPaymentCount;
 
-		if (paidAmount >= Number(expense.amount) && futureCount === 0) {
+		// Compare against the amount captured when the occurrence was recorded so an
+		// edit to next month's amount doesn't turn a paid month into "partial".
+		const recordedExpectedAmount = monthMarkers.reduce((sum, m) => sum + Math.abs(Number(m.amount)), 0);
+		const expectedAmount = recordedExpectedAmount > 0 ? recordedExpectedAmount : Number(expense.amount);
+
+		if (paidAmount > 0 && paidAmount >= expectedAmount && futureCount === 0) {
 			status = "paid";
 		} else if (paidAmount > 0) {
 			status = "partial";
@@ -145,6 +171,32 @@ export async function getRecurringExpenses(): Promise<RecurringExpense[]> {
 			displayDueDate = calculateNextDueDate(new Date(expense.next_due_date), expense.billing_period).toISOString();
 		}
 
+		// Detect changes scheduled for the next cycle so the card can distinguish the
+		// upcoming amount/date from what was actually paid this cycle.
+		let nextAmountChange: RecurringExpense["next_amount_change"];
+		let nextDueChange: RecurringExpense["next_due_change"];
+
+		if (monthMarkers.length > 0) {
+			const latestMarker = [...monthMarkers].sort((a, b) =>
+				toDateStr(b.occurrence_date).localeCompare(toDateStr(a.occurrence_date))
+			)[0];
+			const latestDateStr = toDateStr(latestMarker.occurrence_date);
+			const recordedAmount = Math.abs(Number(latestMarker.amount));
+			const currentAmount = Number(expense.amount);
+
+			if (recordedAmount !== currentAmount) {
+				nextAmountChange = { from: recordedAmount, to: currentAmount };
+			}
+
+			const naturalNextDue = formatDateString(
+				calculateNextDueDate(parseLocalDate(latestDateStr), expense.billing_period)
+			);
+			const actualNextDue = displayDueDate ? displayDueDate.split("T")[0] : toDateStr(expense.next_due_date);
+			if (naturalNextDue !== actualNextDue) {
+				nextDueChange = { from: naturalNextDue, to: actualNextDue };
+			}
+		}
+
 		return {
 			...expense,
 			next_due_date: displayDueDate,
@@ -152,6 +204,9 @@ export async function getRecurringExpenses(): Promise<RecurringExpense[]> {
 			paid_amount: paidAmount,
 			paid_count: paidCount,
 			occurrences_count: totalOccurrences,
+			deleted_auto_payments: deletedAutoPaymentCount,
+			next_amount_change: nextAmountChange,
+			next_due_change: nextDueChange,
 		};
 	});
 

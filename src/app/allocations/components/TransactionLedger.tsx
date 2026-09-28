@@ -1,7 +1,7 @@
 "use client";
 
 import { useState, useMemo } from "react";
-import { Search, Filter, X, ArrowUpDown, ChevronUp, ChevronDown, Ban } from "lucide-react";
+import { Search, Filter, X, ArrowUpDown, ChevronUp, ChevronDown, Ban, RotateCcw } from "lucide-react";
 import { Card } from "@/components/ui/card";
 import { Input } from "@/components/ui/input";
 import { Button } from "@/components/ui/button";
@@ -10,6 +10,10 @@ import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@
 import { cn } from "@/lib/utils";
 import { formatShortDate, parseLocalDate } from "@/lib/date-utils";
 import { sanitizeDecimalInput } from "@/lib/input-utils";
+import { formatAccountDisplayName } from "@/lib/account-utils";
+import { SHORTCUTS, ShortcutId } from "@/lib/keyboard-shortcuts";
+import { ShortcutHint } from "@/components/common/shortcut-hint";
+import type { AccountWithType } from "@/app/balancesheet/types";
 import type { AllocationCategory, Transaction } from "../types";
 import type { TransactionType } from "./TransactionTypeIcon";
 import { inferTransactionType, TRANSACTION_TYPE_CONFIG, TransactionTypeIcon } from "./TransactionTypeIcon";
@@ -19,15 +23,80 @@ import { TransactionDialog } from "./TransactionDialog";
 interface TransactionLedgerProps {
 	transactions: Transaction[];
 	categories: AllocationCategory[];
-	accounts?: import("@/app/balancesheet/types").AccountWithType[];
+	accounts?: AccountWithType[];
 	externalTypeFilter?: TransactionType | null;
 	onClearExternalFilter?: () => void;
 	onTransactionSuccess?: () => void;
 	currentMonth?: { year: number; month: number };
 }
 
-type SortField = "date" | "name" | "amount" | "category" | "type";
+type SortField = "date" | "name" | "amount" | "category" | "account" | "type";
 type SortDirection = "asc" | "desc";
+
+interface SortCriterion {
+	field: SortField;
+	direction: SortDirection;
+}
+
+const TEXT_SORT_FIELDS: SortField[] = ["name", "category", "account", "type"];
+
+function defaultSortDirection(field: SortField): SortDirection {
+	return TEXT_SORT_FIELDS.includes(field) ? "asc" : "desc";
+}
+
+/**
+ * Resolve the account label shown in the ledger's "Accounts" column.
+ * Transfers show "source → destination"; any side that cannot be matched to a
+ * tracked account is rendered as "External". Non-transfers show their single
+ * account, or an em dash when the transaction is not tagged to an account.
+ */
+function resolveAccountLabel(transaction: Transaction, accounts: AccountWithType[]): string {
+	const accountName = (accountId?: string | null): string | null => {
+		if (!accountId) return null;
+		const account = accounts.find((a) => a.id === accountId);
+		return account ? formatAccountDisplayName(account) : null;
+	};
+
+	if (transaction.source === "transfer") {
+		const linked = transaction.linked_account_transactions ?? [];
+		const sourceTxId = transaction.linked_account_transaction?.id;
+		const sourceId = transaction.linked_account_transaction?.account_id ?? transaction.account_id ?? null;
+		const destinationId =
+			linked.find((entry) => entry.id !== sourceTxId && entry.account_id !== sourceId)?.account_id ?? null;
+
+		const from = accountName(sourceId) ?? "External";
+		const to = accountName(destinationId) ?? "External";
+		return `${from} → ${to}`;
+	}
+
+	return accountName(transaction.account_id ?? transaction.linked_account_transaction?.account_id ?? null) ?? "—";
+}
+
+function compareTransactions(
+	a: Transaction,
+	b: Transaction,
+	field: SortField,
+	accounts: AccountWithType[]
+): number {
+	switch (field) {
+		case "name":
+			return a.name.localeCompare(b.name);
+		case "amount":
+			return Math.abs(a.amount) - Math.abs(b.amount);
+		case "date":
+			return new Date(a.transaction_date).getTime() - new Date(b.transaction_date).getTime();
+		case "category":
+			return (a.category_name || "").localeCompare(b.category_name || "");
+		case "account":
+			return resolveAccountLabel(a, accounts).localeCompare(resolveAccountLabel(b, accounts));
+		case "type":
+			return inferTransactionType(a).localeCompare(inferTransactionType(b));
+		default:
+			return 0;
+	}
+}
+
+const LEGEND_SHORTCUTS = [ShortcutId.SortColumn, ShortcutId.SecondarySort];
 
 export function TransactionLedger({
 	transactions,
@@ -41,8 +110,7 @@ export function TransactionLedger({
 	const [searchQuery, setSearchQuery] = useState("");
 	const [categoryFilter, setCategoryFilter] = useState<string>("all");
 	const [typeFilter, setTypeFilter] = useState<TransactionType | "all">("all");
-	const [sortField, setSortField] = useState<SortField>("date");
-	const [sortDirection, setSortDirection] = useState<SortDirection>("desc");
+	const [sorts, setSorts] = useState<SortCriterion[]>([{ field: "date", direction: "desc" }]);
 	const [showFilters, setShowFilters] = useState(false);
 
 	const [minAmount, setMinAmount] = useState<string>("");
@@ -89,67 +157,101 @@ export function TransactionLedger({
 		}
 
 		filtered = [...filtered].sort((a, b) => {
-			let comparison = 0;
-
-			switch (sortField) {
-				case "name":
-					comparison = a.name.localeCompare(b.name);
-					break;
-				case "amount":
-					comparison = Math.abs(a.amount) - Math.abs(b.amount);
-					break;
-				case "date":
-					comparison = new Date(a.transaction_date).getTime() - new Date(b.transaction_date).getTime();
-					break;
-				case "category":
-					comparison = (a.category_name || "").localeCompare(b.category_name || "");
-					break;
-				case "type":
-					comparison = inferTransactionType(a).localeCompare(inferTransactionType(b));
-					break;
+			for (const { field, direction } of sorts) {
+				const comparison = compareTransactions(a, b, field, accounts);
+				if (comparison !== 0) {
+					return direction === "asc" ? comparison : -comparison;
+				}
 			}
 
-			return sortDirection === "asc" ? comparison : -comparison;
+			// Stable tie-breaker so equal rows keep a deterministic, newest-first order.
+			return new Date(b.transaction_date).getTime() - new Date(a.transaction_date).getTime();
 		});
 
 		return filtered;
-	}, [transactions, searchQuery, categoryFilter, effectiveTypeFilter, sortField, sortDirection, minAmount, maxAmount]);
+	}, [
+		transactions,
+		accounts,
+		searchQuery,
+		categoryFilter,
+		effectiveTypeFilter,
+		sorts,
+		minAmount,
+		maxAmount,
+	]);
 
-	const toggleSort = (field: SortField) => {
-		if (sortField === field) {
-			setSortDirection(sortDirection === "asc" ? "desc" : "asc");
-		} else {
-			setSortField(field);
-			setSortDirection("desc");
-		}
+	const toggleSort = (field: SortField, additive: boolean) => {
+		setSorts((prev) => {
+			const existingIndex = prev.findIndex((criterion) => criterion.field === field);
+
+			if (!additive) {
+				// Plain click: a fresh single-column sort, or toggle if already the primary.
+				if (prev.length === 1 && existingIndex === 0) {
+					return [{ field, direction: prev[0].direction === "asc" ? "desc" : "asc" }];
+				}
+				return [{ field, direction: defaultSortDirection(field) }];
+			}
+
+			// Shift+click: add a secondary sort, cycle its direction, or remove it.
+			if (existingIndex === -1) {
+				return [...prev, { field, direction: defaultSortDirection(field) }];
+			}
+
+			const next = [...prev];
+			const current = next[existingIndex];
+			if (current.direction === "asc") {
+				next[existingIndex] = { ...current, direction: "desc" };
+			} else {
+				next.splice(existingIndex, 1);
+			}
+
+			return next.length > 0 ? next : [{ field: "date", direction: "desc" }];
+		});
 	};
 
-	const clearAllFilters = () => {
+	const getSortIndex = (field: SortField) => sorts.findIndex((criterion) => criterion.field === field);
+
+	const handleReset = () => {
 		setSearchQuery("");
 		setCategoryFilter("all");
 		setTypeFilter("all");
 		setMinAmount("");
 		setMaxAmount("");
 		onClearExternalFilter?.();
+		setSorts([{ field: "date", direction: "desc" }]);
 	};
 
 	const hasActiveFilters =
 		searchQuery || categoryFilter !== "all" || typeFilter !== "all" || externalTypeFilter || minAmount || maxAmount;
 
-	const SortButton = ({ field, children }: { field: SortField; children: React.ReactNode }) => (
-		<button onClick={() => toggleSort(field)} className="flex items-center gap-1 hover:text-primary transition-colors">
-			{children}
-			{sortField === field ? (
-				sortDirection === "asc" ? (
-					<ChevronUp className="h-3.5 w-3.5 text-info" />
+	const SortButton = ({ field, children }: { field: SortField; children: React.ReactNode }) => {
+		const index = getSortIndex(field);
+		const isActive = index !== -1;
+
+		return (
+			<button
+				type="button"
+				onClick={(event) => toggleSort(field, event.shiftKey)}
+				className="flex items-center gap-1 hover:text-primary transition-colors"
+			>
+				{children}
+				{isActive ? (
+					sorts[index].direction === "asc" ? (
+						<ChevronUp className="h-3.5 w-3.5 text-info" />
+					) : (
+						<ChevronDown className="h-3.5 w-3.5 text-info" />
+					)
 				) : (
-					<ChevronDown className="h-3.5 w-3.5 text-info" />
-				)
-			) : (
-				<ArrowUpDown className="h-3.5 w-3.5 text-primary" />
-			)}
-		</button>
-	);
+					<ArrowUpDown className="h-3.5 w-3.5 text-primary" />
+				)}
+				{sorts.length > 1 && isActive && (
+					<span className="ml-0.5 inline-flex h-4 w-4 items-center justify-center rounded-full bg-info/15 text-[10px] font-semibold text-info">
+						{index + 1}
+					</span>
+				)}
+			</button>
+		);
+	};
 
 	return (
 		<Card className="p-6">
@@ -222,12 +324,15 @@ export function TransactionLedger({
 					<Filter className="h-4 w-4" />
 				</Button>
 
-				{hasActiveFilters && (
-					<Button variant="ghost" size="sm" onClick={clearAllFilters} className="text-primary hover:text-primary">
-						<X className="h-4 w-4 mr-1" />
-						Clear
-					</Button>
-				)}
+				<Button
+					variant="ghost"
+					size="sm"
+					onClick={handleReset}
+					className="ml-auto text-muted-foreground hover:text-primary"
+				>
+					<RotateCcw className="h-4 w-4 mr-1" />
+					Reset
+				</Button>
 			</div>
 
 			{showFilters && (
@@ -272,6 +377,18 @@ export function TransactionLedger({
 				</div>
 			)}
 
+			<div className="mb-2 text-xs text-primary/50">
+				<span className="font-medium text-primary/60">Legend:</span>
+				<div className="mt-2 flex flex-col gap-1.5">
+					{LEGEND_SHORTCUTS.map((id) => (
+						<div key={id} className="flex items-center gap-2.5">
+							<span>{SHORTCUTS[id].label}</span>
+							<ShortcutHint keys={SHORTCUTS[id].keys} size="md" variant="plain" />
+						</div>
+					))}
+				</div>
+			</div>
+
 			<div className="border border-border rounded-lg overflow-hidden shadow-sm">
 				<div className="overflow-x-auto">
 					<table className="w-full">
@@ -286,6 +403,9 @@ export function TransactionLedger({
 								<th className="px-4 py-3 text-left text-xs font-semibold text-primary uppercase tracking-wider w-[180px]">
 									<SortButton field="category">Category</SortButton>
 								</th>
+								<th className="px-4 py-3 text-left text-xs font-semibold text-primary uppercase tracking-wider w-[200px]">
+									<SortButton field="account">Accounts</SortButton>
+								</th>
 								<th className="px-4 py-3 text-left text-xs font-semibold text-primary uppercase tracking-wider w-[160px]">
 									<SortButton field="type">Type</SortButton>
 								</th>
@@ -297,7 +417,7 @@ export function TransactionLedger({
 						<tbody className="divide-y divide-border bg-card">
 							{filteredTransactions.length === 0 ? (
 								<tr>
-									<td colSpan={5} className="px-4 py-12 text-center text-primary">
+									<td colSpan={6} className="px-4 py-12 text-center text-primary">
 										{hasActiveFilters ? "No transactions match your filters" : "No transactions for this month"}
 									</td>
 								</tr>
@@ -312,8 +432,16 @@ export function TransactionLedger({
 									return (
 										<tr
 											key={transaction.id}
-											className="hover:bg-muted/30 transition-colors cursor-pointer group"
+											tabIndex={0}
+											data-shortcut-scope="transaction-row"
+											className="hover:bg-muted/30 focus-visible:bg-muted/40 focus-visible:outline-none focus-visible:ring-1 focus-visible:ring-inset focus-visible:ring-primary/40 transition-colors cursor-pointer group"
 											onClick={() => handleEditTransaction(transaction)}
+											onKeyDown={(event) => {
+												if (event.shiftKey && event.key === "Enter") {
+													event.preventDefault();
+													handleEditTransaction(transaction);
+												}
+											}}
 										>
 											<td className="px-4 py-3 whitespace-nowrap">
 												<span className="text-sm text-primary">
@@ -354,6 +482,11 @@ export function TransactionLedger({
 												) : (
 													<span className="text-xs text-primary">Uncategorized</span>
 												)}
+											</td>
+											<td className="px-4 py-3">
+												<span className="text-sm text-primary">
+													{resolveAccountLabel(transaction, accounts)}
+												</span>
 											</td>
 											<td className="px-4 py-3">
 												<TransactionTypeIcon type={txType} size="sm" showLabel />

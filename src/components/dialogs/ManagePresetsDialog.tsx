@@ -10,6 +10,7 @@ import {
 	DialogTitle,
 } from "@/components/ui/dialog";
 import { Button } from "@/components/ui/button";
+import { CancelShortcut, SubmitShortcut } from "@/components/common/dialog-shortcuts";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
@@ -346,9 +347,11 @@ export function ManagePresetsDialog({
 								disabled={isSaving}
 							>
 								Cancel
+								<CancelShortcut />
 							</Button>
 							<Button type="submit" disabled={isSaving}>
 								{isSaving && <Loader2 className="mr-2 h-4 w-4 animate-spin" />} Save Preset
+								<SubmitShortcut />
 							</Button>
 						</DialogFooter>
 					</form>

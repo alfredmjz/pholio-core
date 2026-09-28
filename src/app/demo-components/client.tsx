@@ -41,7 +41,6 @@ import { ToggleGroup, ToggleGroupItem } from "@/components/ui/toggle-group";
 import { Avatar, AvatarFallback, AvatarImage } from "@/components/ui/avatar";
 import { Skeleton } from "@/components/ui/skeleton";
 import { Separator } from "@/components/ui/separator";
-import { Calendar } from "@/components/ui/calendar";
 import { Popover, PopoverContent, PopoverTrigger } from "@/components/ui/popover";
 import {
 	DropdownMenu,
@@ -53,14 +52,10 @@ import {
 } from "@/components/ui/dropdown-menu";
 import {
 	Loader2,
-	ArrowRight,
 	TrendingUp,
-	TrendingDown,
 	Wallet,
 	CreditCard,
 	PiggyBank,
-	Check,
-	AlertTriangle,
 	Info,
 } from "lucide-react";
 
@@ -68,7 +63,6 @@ import { ProminentAmountInput } from "@/components/ProminentAmountInput";
 import { FloatingLabelInput } from "@/components/floating-label-input";
 import { MonthPicker } from "@/components/month-picker";
 import { CardSelector } from "@/components/CardSelector";
-import { FormSection } from "@/components/FormSection";
 import { DonutChart } from "@/components/common/DonutChart";
 import { EmojiPicker } from "@/components/emoji-picker";
 import { ThemeToggle } from "@/components/theme-toggle";
@@ -79,15 +73,13 @@ import { WelcomeCelebration } from "@/components/welcome-celebration";
 import { MetricCard } from "@/app/dashboard/components/MetricCard";
 import { AccountCard } from "@/app/balancesheet/components/AccountCard";
 import { BudgetSummaryCards } from "@/app/allocations/components/BudgetSummaryCards";
-import { SettingsNav, SettingsNavMobile } from "@/app/settings/components/settings-nav";
+import { SettingsNav } from "@/app/settings/components/settings-nav";
 import { ServiceLogo } from "@/components/service-logo";
 import { ServiceAutocomplete } from "@/components/service-autocomplete";
 import { StatusBadge } from "@/components/ui/status-badge";
 
 import {
-	MOCK_SERVICE_SUGGESTIONS,
 	MOCK_DONUT_DATA,
-	MOCK_METRIC_CARD_DATA,
 	MOCK_BUDGET_SUMMARY_DATA,
 	MOCK_ACCOUNT_DATA,
 	MOCK_ACCOUNT_LIABILITY,

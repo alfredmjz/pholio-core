@@ -4,6 +4,9 @@ import { useState } from "react";
 import { Button } from "@/components/ui/button";
 import { Plus } from "lucide-react";
 import { UnifiedTransactionDialog } from "@/components/dialogs/UnifiedTransactionDialog";
+import { ShortcutHint } from "@/components/common/shortcut-hint";
+import { SHORTCUTS, ShortcutId } from "@/lib/keyboard-shortcuts";
+import { useKeyboardShortcut } from "@/hooks/use-keyboard-shortcut";
 import type { AllocationCategory } from "../types";
 import type { AccountWithType } from "@/app/balancesheet/types";
 import { cn } from "@/lib/utils";
@@ -29,6 +32,10 @@ export function AddTransactionButton({
 }: AddTransactionButtonProps) {
 	const [open, setOpen] = useState(false);
 
+	useKeyboardShortcut(SHORTCUTS[ShortcutId.OpenTransaction].keys, () => setOpen(true), {
+		ignoreTransactionRows: true,
+	});
+
 	return (
 		<>
 			<Button
@@ -37,8 +44,13 @@ export function AddTransactionButton({
 				variant={variant}
 				size={size}
 			>
-				<Plus className="h-4 w-4" />
+				<Plus className="h-4 w-4 md:hidden" />
 				Add Transaction
+				<ShortcutHint
+					keys={SHORTCUTS[ShortcutId.OpenTransaction].keys}
+					className="hidden md:inline-flex"
+					keyClassName="border-current bg-transparent text-current"
+				/>
 			</Button>
 
 			<UnifiedTransactionDialog

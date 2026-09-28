@@ -25,6 +25,8 @@ import type { AccountWithType } from "@/app/balancesheet/types";
 import { FormSection } from "@/components/FormSection";
 import { CardSelector } from "@/components/CardSelector";
 import { ProminentAmountInput } from "@/components/ProminentAmountInput";
+import { ShortcutHint } from "@/components/common/shortcut-hint";
+import { ShortcutKey } from "@/lib/keyboard-shortcuts";
 import { getTodayDateString } from "@/lib/date-utils";
 import { formatAccountDisplayName, sortAccounts } from "@/lib/account-utils";
 import { sortAlphabetically } from "@/lib/sort-utils";
@@ -537,10 +539,12 @@ export function TransactionDialog({
 					<div className="flex gap-2">
 						<Button type="button" variant="outline" onClick={() => onOpenChange(false)} disabled={isLoading}>
 							Cancel
+							<ShortcutHint keys={[ShortcutKey.Escape]} />
 						</Button>
 						<Button type="submit" disabled={isLoading}>
 							{isLoading && <Loader2 className="mr-2 h-4 w-4 animate-spin" />}
 							{transaction ? "Save Changes" : "Create Transaction"}
+							<ShortcutHint keys={[ShortcutKey.Enter]} keyClassName="border-current bg-transparent text-current" />
 						</Button>
 					</div>
 				</DialogFooter>

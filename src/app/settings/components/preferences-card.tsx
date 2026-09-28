@@ -2,12 +2,11 @@
 
 import { useEffect, useState, useMemo } from "react";
 import { useTheme } from "next-themes";
-import { Monitor, Moon, Sun, Globe, ChevronsUpDown, Check, Wallet, Bell } from "lucide-react";
+import { Monitor, Moon, Sun, Globe, ChevronsUpDown, Check, Bell } from "lucide-react";
 
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card";
 import { Label } from "@/components/ui/label";
 import { Switch } from "@/components/ui/switch";
-import { Input } from "@/components/ui/input";
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
 import { ToggleGroup, ToggleGroupItem } from "@/components/ui/toggle-group";
 import { Popover, PopoverContent, PopoverTrigger } from "@/components/ui/popover";

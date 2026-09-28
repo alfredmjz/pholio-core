@@ -1,10 +1,7 @@
 "use client";
 
-import { useState, useMemo } from "react";
 import { LayoutDashboard, PieChart, Repeat, ScrollText } from "lucide-react";
 import {
-	NavigationMenu,
-	NavigationMenuContent,
 	NavigationMenuItem,
 	NavigationMenuLink,
 	navigationMenuTriggerStyle,

@@ -35,6 +35,8 @@ import type { UnifiedTransactionInput } from "@/lib/types/unified-transaction";
 import { FormSection } from "@/components/FormSection";
 import { ProminentAmountInput } from "@/components/ProminentAmountInput";
 import { CardSelector } from "@/components/CardSelector";
+import { ShortcutHint } from "@/components/common/shortcut-hint";
+import { ShortcutKey } from "@/lib/keyboard-shortcuts";
 import { cn } from "@/lib/utils";
 import { getTodayDateString, parseLocalDate, formatDateString } from "@/lib/date-utils";
 import { VIRTUAL_UNCATEGORIZED_ID } from "@/app/allocations/types";
@@ -394,6 +396,29 @@ export function UnifiedTransactionDialog({
 	const showCategoryBadge = selectedCategory?.category_type && selectedCategory.category_type !== "regular";
 
 	const selectedPreset = presets.find((p) => p.id === selectedPresetId);
+
+	// Preset date selection is locked to a single month (the allocation month being
+	// viewed, or the current month otherwise), so overflowing days are disabled.
+	const presetMonth = boundaryMonth ?? { year: new Date().getFullYear(), month: new Date().getMonth() + 1 };
+	const presetMonthStart = new Date(presetMonth.year, presetMonth.month - 1, 1);
+	const presetMonthEnd = new Date(presetMonth.year, presetMonth.month, 0);
+	const presetMonthStartStr = formatDateString(presetMonthStart);
+	const presetMonthEndStr = formatDateString(presetMonthEnd);
+
+	// Counting/bucket sort by day-of-month (O(n + 31)), newest-first.
+	const selectedDateEntries = (() => {
+		const buckets: Array<Array<[string, number]>> = Array.from({ length: 31 }, () => []);
+		for (const [dateStr, count] of Object.entries(selectedDatesMap)) {
+			if (count <= 0) continue;
+			const day = Number(dateStr.slice(-2));
+			if (day >= 1 && day <= 31) buckets[day - 1].push([dateStr, count]);
+		}
+		const ordered: Array<[string, number]> = [];
+		for (let day = 30; day >= 0; day -= 1) {
+			if (buckets[day].length) ordered.push(...buckets[day]);
+		}
+		return ordered;
+	})();
 
 	return (
 		<>
@@ -756,9 +781,14 @@ export function UnifiedTransactionDialog({
 										disabled={isLoading}
 									>
 										Cancel
+										<ShortcutHint keys={[ShortcutKey.Escape]} />
 									</Button>
 									<Button type="submit" className="w-full sm:w-auto" disabled={isLoading}>
 										{isLoading && <Loader2 className="mr-2 h-4 w-4 animate-spin" />} Add Transaction
+										<ShortcutHint
+											keys={[ShortcutKey.Enter]}
+											keyClassName="border-current bg-transparent text-current"
+										/>
 									</Button>
 								</DialogFooter>
 							</form>
@@ -833,13 +863,15 @@ export function UnifiedTransactionDialog({
 												const newMap: Record<string, number> = {};
 												dates.forEach((d) => {
 													const dateStr = formatDateString(d);
+													if (dateStr < presetMonthStartStr || dateStr > presetMonthEndStr) return;
 													newMap[dateStr] = selectedDatesMap[dateStr] || 1;
 												});
 												setSelectedDatesMap(newMap);
 											}}
-											defaultMonth={boundaryMonth ? new Date(boundaryMonth.year, boundaryMonth.month - 1) : undefined}
-											month={boundaryMonth ? new Date(boundaryMonth.year, boundaryMonth.month - 1) : undefined}
-											disableNavigation={!!boundaryMonth}
+											defaultMonth={presetMonthStart}
+											month={presetMonthStart}
+											disableNavigation
+											disabled={[{ before: presetMonthStart }, { after: presetMonthEnd }]}
 										/>
 									</div>
 
@@ -849,54 +881,52 @@ export function UnifiedTransactionDialog({
 											<p className="text-xs font-semibold text-muted-foreground uppercase tracking-wider px-1">
 												Selected Days
 											</p>
-											{Object.entries(selectedDatesMap)
-												.filter(([_, count]) => count > 0)
-												.map(([dateStr, count]) => {
-													const subtotal = selectedPreset.amount * count;
-													return (
-														<div
-															key={dateStr}
-															className="flex justify-between items-center bg-background border p-2 rounded-md text-xs"
-														>
-															<div className="flex flex-col gap-0.5">
-																<span className="font-medium">{formatDisplayDate(dateStr)}</span>
-																<span className="text-muted-foreground">
-																	{count} x ${selectedPreset.amount.toFixed(2)} = ${subtotal.toFixed(2)}
-																</span>
-															</div>
-															<div className="flex items-center gap-1">
-																<Button
-																	type="button"
-																	variant="outline"
-																	size="icon"
-																	className="h-6 w-6 text-xs font-bold"
-																	onClick={() => decrementDateCount(dateStr)}
-																>
-																	-
-																</Button>
-																<span className="w-5 text-center font-semibold text-xs">{count}</span>
-																<Button
-																	type="button"
-																	variant="outline"
-																	size="icon"
-																	className="h-6 w-6 text-xs font-bold"
-																	onClick={() => incrementDateCount(dateStr)}
-																>
-																	+
-																</Button>
-																<Button
-																	type="button"
-																	variant="ghost"
-																	size="icon"
-																	className="h-6 w-6 text-error/80 hover:text-error hover:bg-error/10 ml-1"
-																	onClick={() => removeDateEntry(dateStr)}
-																>
-																	<Trash2 className="h-3.5 w-3.5" />
-																</Button>
-															</div>
+											{selectedDateEntries.map(([dateStr, count]) => {
+												const subtotal = selectedPreset.amount * count;
+												return (
+													<div
+														key={dateStr}
+														className="flex justify-between items-center bg-background border p-2 rounded-md text-xs"
+													>
+														<div className="flex flex-col gap-0.5">
+															<span className="font-medium">{formatDisplayDate(dateStr)}</span>
+															<span className="text-muted-foreground">
+																{count} x ${selectedPreset.amount.toFixed(2)} = ${subtotal.toFixed(2)}
+															</span>
 														</div>
-													);
-												})}
+														<div className="flex items-center gap-1">
+															<Button
+																type="button"
+																variant="outline"
+																size="icon"
+																className="h-6 w-6 text-xs font-bold"
+																onClick={() => decrementDateCount(dateStr)}
+															>
+																-
+															</Button>
+															<span className="w-5 text-center font-semibold text-xs">{count}</span>
+															<Button
+																type="button"
+																variant="outline"
+																size="icon"
+																className="h-6 w-6 text-xs font-bold"
+																onClick={() => incrementDateCount(dateStr)}
+															>
+																+
+															</Button>
+															<Button
+																type="button"
+																variant="ghost"
+																size="icon"
+																className="h-6 w-6 text-error/80 hover:text-error hover:bg-error/10 ml-1"
+																onClick={() => removeDateEntry(dateStr)}
+															>
+																<Trash2 className="h-3.5 w-3.5" />
+															</Button>
+														</div>
+													</div>
+												);
+											})}
 										</div>
 									)}
 

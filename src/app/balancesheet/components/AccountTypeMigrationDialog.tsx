@@ -3,6 +3,7 @@
 import { useEffect, useState } from "react";
 import { ControlBasedDialog } from "@/components/dialogWrapper";
 import { DialogFooter } from "@/components/ui/dialog";
+import { CancelShortcut, SubmitShortcut } from "@/components/common/dialog-shortcuts";
 import { Button } from "@/components/ui/button";
 import { Label } from "@/components/ui/label";
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
@@ -129,6 +130,7 @@ export function AccountTypeMigrationDialog({ open, onOpenChange, items, onComple
 			onOpenChange={onOpenChange}
 			title="Update your account types"
 			description="We replaced the old account-type list with seven core types plus a fully customisable Other. Choose a class and a type for each account below."
+			onEnterSubmit={handleSave}
 		>
 			<div className="flex flex-col gap-4 py-2">
 				<div className="flex max-h-[55vh] flex-col divide-y divide-border/60 overflow-y-auto rounded-lg border border-border/60">
@@ -200,10 +202,12 @@ export function AccountTypeMigrationDialog({ open, onOpenChange, items, onComple
 				<DialogFooter className="pt-2">
 					<Button type="button" variant="outline" onClick={() => onOpenChange(false)} disabled={isSaving}>
 						Later
+						<CancelShortcut />
 					</Button>
 					<Button type="button" onClick={handleSave} disabled={isSaving || !isValid} className="gap-2">
 						{isSaving && <Loader2 className="h-4 w-4 animate-spin" />}
 						Save types
+						<SubmitShortcut />
 					</Button>
 				</DialogFooter>
 			</div>

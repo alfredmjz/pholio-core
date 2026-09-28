@@ -139,9 +139,12 @@ const createTx = (
 	amount: number,
 	day: number,
 	categoryId?: string,
-	type: TransactionType = "one_time"
+	type: TransactionType = "one_time",
+	accountId?: string,
+	transferToAccountId?: string
 ): Transaction => {
 	const categoryName = categoryId ? sampleCategories.find((c) => c.id === categoryId)?.name : undefined;
+	const isTransfer = type === "transfer";
 
 	return {
 		id,
@@ -151,32 +154,44 @@ const createTx = (
 		name,
 		amount,
 		transaction_date: new Date(CURRENT_YEAR, CURRENT_MONTH - 1, day).toISOString(),
-		source: "manual",
+		source: isTransfer ? "transfer" : "manual",
+		account_id: accountId,
+		linked_account_transaction:
+			isTransfer && accountId ? { id: `${id}-from`, account_id: accountId, amount: -Math.abs(amount) } : null,
+		linked_account_transactions:
+			isTransfer && accountId
+				? [
+						{ id: `${id}-from`, account_id: accountId },
+						{ id: `${id}-to`, account_id: transferToAccountId ?? null },
+					]
+				: accountId
+					? [{ id: `${id}-acct`, account_id: accountId }]
+					: [],
 		created_at: new Date().toISOString(),
 		updated_at: new Date().toISOString(),
 	};
 };
 
 export const sampleTransactions: Transaction[] = [
-	createTx("tx-1", "Rent Payment", 2000, 1, "cat-housing", "recurring"),
-	createTx("tx-2", "Electric Bill", 150, 5, "cat-utilities", "recurring"),
-	createTx("tx-3", "Water Bill", 50, 12, "cat-utilities", "recurring"),
-	createTx("tx-4", "Internet Subscription", 80, 15, "cat-utilities", "subscription"),
-	createTx("tx-5", "Grocery Store", 150, 2, "cat-food"),
-	createTx("tx-6", "Restaurant Dinner", 85, 4, "cat-food"),
-	createTx("tx-7", "Coffee Shop", 15, 6, "cat-food"),
-	createTx("tx-8", "Grocery Run", 200, 10, "cat-food"),
-	createTx("tx-9", "Gas Station", 60, 3, "cat-transport"),
-	createTx("tx-10", "Uber Ride", 25, 8, "cat-transport"),
-	createTx("tx-11", "Car Insurance", 100, 15, "cat-transport"),
-	createTx("tx-12", "Netflix Subscription", 15, 1, "cat-entertainment", "subscription"),
-	createTx("tx-13", "Spotify", 10, 1, "cat-entertainment", "subscription"),
-	createTx("tx-14", "Movie Tickets", 40, 20, "cat-entertainment"),
-	createTx("tx-15", "Concert Tickets", 150, 22, "cat-entertainment"),
-	createTx("tx-16", "Student Loan", 300, 1, undefined, "loan"),
-	createTx("tx-17", "Savings Transfer", 500, 1, undefined, "transfer"),
-	createTx("tx-18", "Paycheck", 2500, 15, undefined, "income"),
-	createTx("tx-19", "Paycheck", 2500, 30, undefined, "income"),
+	createTx("tx-1", "Rent Payment", 2000, 1, "cat-housing", "recurring", "acc-1"),
+	createTx("tx-2", "Electric Bill", 150, 5, "cat-utilities", "recurring", "acc-1"),
+	createTx("tx-3", "Water Bill", 50, 12, "cat-utilities", "recurring", "acc-1"),
+	createTx("tx-4", "Internet Subscription", 80, 15, "cat-utilities", "subscription", "acc-4"),
+	createTx("tx-5", "Grocery Store", 150, 2, "cat-food", "one_time", "acc-4"),
+	createTx("tx-6", "Restaurant Dinner", 85, 4, "cat-food", "one_time", "acc-4"),
+	createTx("tx-7", "Coffee Shop", 15, 6, "cat-food", "one_time", "acc-4"),
+	createTx("tx-8", "Grocery Run", 200, 10, "cat-food", "one_time", "acc-4"),
+	createTx("tx-9", "Gas Station", 60, 3, "cat-transport", "one_time", "acc-4"),
+	createTx("tx-10", "Uber Ride", 25, 8, "cat-transport", "one_time", "acc-4"),
+	createTx("tx-11", "Car Insurance", 100, 15, "cat-transport", "one_time", "acc-1"),
+	createTx("tx-12", "Netflix Subscription", 15, 1, "cat-entertainment", "subscription", "acc-4"),
+	createTx("tx-13", "Spotify", 10, 1, "cat-entertainment", "subscription", "acc-4"),
+	createTx("tx-14", "Movie Tickets", 40, 20, "cat-entertainment", "one_time", "acc-4"),
+	createTx("tx-15", "Concert Tickets", 150, 22, "cat-entertainment", "one_time", "acc-4"),
+	createTx("tx-16", "Student Loan", 300, 1, undefined, "loan", "acc-5"),
+	createTx("tx-17", "Savings Transfer", 500, 1, undefined, "transfer", "acc-1", "acc-3"),
+	createTx("tx-18", "Paycheck", 2500, 15, undefined, "income", "acc-1"),
+	createTx("tx-19", "Paycheck", 2500, 30, undefined, "income", "acc-1"),
 ];
 
 // Helper to deep copy and modify dates

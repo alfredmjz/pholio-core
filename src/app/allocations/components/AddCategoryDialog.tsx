@@ -3,6 +3,7 @@
 import { useState, useEffect } from "react";
 import { ControlBasedDialog } from "@/components/dialogWrapper";
 import { DialogFooter } from "@/components/ui/dialog";
+import { CancelShortcut, SubmitShortcut } from "@/components/common/dialog-shortcuts";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
@@ -228,9 +229,11 @@ export function AddCategoryDialog({
 				<DialogFooter>
 					<Button type="button" variant="outline" onClick={() => onOpenChange(false)}>
 						Cancel
+						<CancelShortcut />
 					</Button>
 					<Button type="submit" disabled={!isFormValid}>
 						Add Category
+						<SubmitShortcut />
 					</Button>
 				</DialogFooter>
 			</form>

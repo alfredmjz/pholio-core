@@ -1,7 +1,6 @@
 // Unified Transaction System Types
 // Shared types for creating transactions that update both budget and accounts
 
-import type { CategoryType } from "@/app/allocations/types";
 import type { TransactionType, AccountWithType } from "@/app/balancesheet/types";
 
 /**

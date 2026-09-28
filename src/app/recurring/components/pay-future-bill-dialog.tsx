@@ -8,6 +8,8 @@ import {
 	DialogTitle,
 } from "@/components/ui/dialog";
 import { Button } from "@/components/ui/button";
+import { CancelShortcut, SubmitShortcut } from "@/components/common/dialog-shortcuts";
+import { handleEnterSubmit } from "@/lib/enter-submit";
 import { RecurringExpense, payRecurringExpense } from "../actions";
 import { formatFullDate, calculateNextDueDate, getTodayDateString, parseLocalDate } from "@/lib/date-utils";
 import { toast } from "sonner";
@@ -106,7 +108,7 @@ export function PayFutureBillDialog({
 
 	return (
 		<Dialog open={open} onOpenChange={onOpenChange}>
-			<DialogContent className="sm:max-w-[425px]">
+			<DialogContent className="sm:max-w-[425px]" onKeyDown={(event) => handleEnterSubmit(event, handlePay)}>
 				<DialogHeader>
 					<DialogTitle>Pay Future Bills</DialogTitle>
 					<DialogDescription>Select upcoming bills to pay in advance.</DialogDescription>
@@ -177,10 +179,12 @@ export function PayFutureBillDialog({
 				<DialogFooter>
 					<Button variant="outline" onClick={() => onOpenChange(false)} disabled={isSubmitting}>
 						Cancel
+						<CancelShortcut />
 					</Button>
 					<Button onClick={handlePay} disabled={selectedCount === 0 || isSubmitting}>
 						{isSubmitting && <Loader2 className="mr-2 h-4 w-4 animate-spin" />}
 						Pay {selectedCount > 0 && `$${totalAmount.toFixed(2)}`}
+						<SubmitShortcut />
 					</Button>
 				</DialogFooter>
 			</DialogContent>

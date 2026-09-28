@@ -5,13 +5,11 @@ import { Button } from "@/components/ui/button";
 import {
 	Dialog,
 	DialogContent,
-	DialogDescription,
-	DialogHeader,
-	DialogTitle,
 	DialogTrigger,
 	DialogFooter,
 } from "@/components/ui/dialog";
 import { Input } from "@/components/ui/input";
+import { CancelShortcut, SubmitShortcut } from "@/components/common/dialog-shortcuts";
 import { Label } from "@/components/ui/label";
 import { toast } from "sonner";
 import { Lock, KeyRound } from "lucide-react";
@@ -134,9 +132,11 @@ export default function PasswordChangeCard() {
 						<DialogFooter className="pt-6">
 							<Button type="button" variant="outline" onClick={handleCancel} disabled={isPending}>
 								Cancel
+								<CancelShortcut />
 							</Button>
 							<Button type="submit" disabled={isPending}>
 								{isPending ? "Updating..." : "Update Password"}
+								<SubmitShortcut />
 							</Button>
 						</DialogFooter>
 					</form>

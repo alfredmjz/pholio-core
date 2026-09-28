@@ -411,9 +411,10 @@ still follow the same routing logic.
 
 **Commits (only when the user says "commit"):**
 
-- Write small, meaningful messages. One concern per commit.
+- Bundle commits by relevancy: keep related files together and split unrelated changes into
+  their own commit.
+- Messages must be accurate and relevant, under 50 words.
 - Do **not** use conventional-commit prefixes on commit messages. Plain short text only.
-- Bundle the files that belong to one message; split unrelated changes into their own commit.
 - Do **not** commit docs or agent files (e.g. `AGENTS.md`, `docs/`, `OPENCode_HANDOFF.md`)
   unless the user explicitly says to.
 

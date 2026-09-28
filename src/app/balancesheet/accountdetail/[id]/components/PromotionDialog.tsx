@@ -3,6 +3,7 @@
 import { useState, useEffect } from "react";
 import { ControlBasedDialog } from "@/components/dialogWrapper";
 import { DialogFooter } from "@/components/ui/dialog";
+import { CancelShortcut, SubmitShortcut } from "@/components/common/dialog-shortcuts";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
@@ -214,10 +215,12 @@ export function PromotionDialog({ open, onOpenChange, accountId, promotion, onSu
 				<DialogFooter className="pt-4">
 					<Button type="button" variant="outline" onClick={() => onOpenChange(false)}>
 						Cancel
+						<CancelShortcut />
 					</Button>
 					<Button type="submit" disabled={isLoading} className="gap-2">
 						{isLoading && <Loader2 className="h-4 w-4 animate-spin" />}
 						{promotion ? "Save Changes" : "Create Promotion"}
+						<SubmitShortcut />
 					</Button>
 				</DialogFooter>
 			</form>

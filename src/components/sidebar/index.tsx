@@ -7,7 +7,6 @@ import { SidebarNavigation } from "./SidebarNavigation";
 import { SidebarFooter } from "./SidebarFooter";
 import { signOut } from "@/app/(auth-pages)/login/actions";
 import { useRouter } from "next/navigation";
-import { cn } from "@/lib/utils";
 
 interface SideBarComponentProps {
 	userProfile: UserProfile | null;

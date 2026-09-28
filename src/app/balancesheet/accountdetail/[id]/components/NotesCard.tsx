@@ -10,6 +10,8 @@ import type { AccountWithType } from "../../../types";
 
 import { Maximize2 } from "lucide-react";
 import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogFooter } from "@/components/ui/dialog";
+import { CancelShortcut, SubmitShortcut } from "@/components/common/dialog-shortcuts";
+import { handleEnterSubmit } from "@/lib/enter-submit";
 
 interface NotesCardProps {
 	account: AccountWithType;
@@ -103,7 +105,10 @@ export function NotesCard({ account, onAccountUpdated }: NotesCardProps) {
 			</Card>
 
 			<Dialog open={isDialogOpen} onOpenChange={setIsDialogOpen}>
-				<DialogContent className="max-w-3xl h-[80vh] flex flex-col">
+				<DialogContent
+					className="max-w-3xl h-[80vh] flex flex-col"
+					onKeyDown={(event) => handleEnterSubmit(event, handleSave)}
+				>
 					<DialogHeader>
 						<DialogTitle>Edit Notes</DialogTitle>
 					</DialogHeader>
@@ -118,9 +123,11 @@ export function NotesCard({ account, onAccountUpdated }: NotesCardProps) {
 					<DialogFooter>
 						<Button variant="outline" onClick={handleCancel}>
 							Cancel
+							<CancelShortcut />
 						</Button>
 						<Button onClick={handleSave} disabled={isSaving}>
 							{isSaving ? "Saving..." : "Save Changes"}
+							<SubmitShortcut />
 						</Button>
 					</DialogFooter>
 				</DialogContent>

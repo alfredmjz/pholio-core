@@ -10,6 +10,7 @@ import {
 	DialogTitle,
 } from "@/components/ui/dialog";
 import { Button } from "@/components/ui/button";
+import { CancelShortcut, SubmitShortcut } from "@/components/common/dialog-shortcuts";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
 import { Popover, PopoverContent, PopoverTrigger } from "@/components/ui/popover";
@@ -592,9 +593,11 @@ export function AddAccountDialog({ open, onOpenChange, onSuccess }: AddAccountDi
 					<DialogFooter className="pt-6">
 						<Button type="button" variant="outline" onClick={() => onOpenChange(false)} disabled={loading}>
 							Cancel
+							<CancelShortcut />
 						</Button>
 						<Button type="submit" disabled={loading}>
 							{loading ? "Creating..." : "Create Account"}
+							<SubmitShortcut />
 						</Button>
 					</DialogFooter>
 				</form>

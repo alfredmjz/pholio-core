@@ -4,6 +4,7 @@ import { useState, useEffect } from "react";
 import { Button } from "@/components/ui/button";
 import { ControlBasedDialog } from "@/components/dialogWrapper";
 import { DialogFooter } from "@/components/ui/dialog";
+import { CancelShortcut, SubmitShortcut } from "@/components/common/dialog-shortcuts";
 import { Label } from "@/components/ui/label";
 import { DatePicker } from "@/components/ui/date-picker";
 import { Loader2, Info, Trash2 } from "lucide-react";
@@ -190,10 +191,12 @@ export function AccountTransactionDialog({
 					<div className="flex gap-2">
 						<Button type="button" variant="outline" onClick={() => onOpenChange(false)} disabled={isLoading}>
 							Cancel
+							<CancelShortcut />
 						</Button>
 						<Button type="submit" disabled={isLoading}>
 							{isLoading && <Loader2 className="mr-2 h-4 w-4 animate-spin" />}
 							Save Changes
+							<SubmitShortcut />
 						</Button>
 					</div>
 				</DialogFooter>

@@ -2,7 +2,6 @@
 
 import { useMemo } from "react";
 import { Card } from "@/components/ui/card";
-import { cn } from "@/lib/utils";
 import { parseLocalDate } from "@/lib/date-utils";
 import type { AccountWithType, AccountTransaction } from "../../../types";
 

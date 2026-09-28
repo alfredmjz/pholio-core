@@ -29,7 +29,7 @@ export function PageHeader({ children, className, isSticky = true, ...props }: P
 			className={cn(
 				"bg-background pb-6 mb-4",
 				// Unified sticky logic
-				isSticky && "sticky top-0 z-20",
+				isSticky && "sticky top-0 z-30",
 				// Negative margin hack for desktop integration with parent layout
 				!isMobile && "-mt-8 pt-8",
 				// Mobile specific adjustments if needed (currently minimal)

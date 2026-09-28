@@ -11,6 +11,7 @@ import {
 	DialogFooter,
 } from "@/components/ui/dialog";
 import { Button } from "@/components/ui/button";
+import { CancelShortcut, SubmitShortcut } from "@/components/common/dialog-shortcuts";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
 import { MinimalTiptap } from "@/components/ui/shadcn-io/minimal-tiptap";
@@ -451,9 +452,11 @@ export function EditAccountDialog({ open, onOpenChange, account, onSuccess }: Ed
 					<DialogFooter className="flex gap-2">
 						<Button type="button" variant="outline" onClick={() => onOpenChange(false)} disabled={isSubmitting}>
 							Cancel
+							<CancelShortcut />
 						</Button>
 						<Button type="submit" disabled={isSubmitting}>
 							{isSubmitting ? "Saving..." : "Save Changes"}
+							<SubmitShortcut />
 						</Button>
 					</DialogFooter>
 				</form>

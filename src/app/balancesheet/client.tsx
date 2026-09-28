@@ -17,6 +17,9 @@ import { UnifiedTransactionDialog } from "@/components/dialogs/UnifiedTransactio
 import { AccountAdjustmentDialog } from "./components/AccountAdjustmentDialog";
 import { type RecentActivityItem, reorderAccounts, getAccounts, getRecentActivity } from "./actions";
 import { useServerSyncedData } from "@/hooks/useServerSyncedData";
+import { useKeyboardShortcut } from "@/hooks/use-keyboard-shortcut";
+import { ShortcutHint } from "@/components/common/shortcut-hint";
+import { SHORTCUTS, ShortcutId } from "@/lib/keyboard-shortcuts";
 import type { AllocationCategory } from "@/app/allocations/types";
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
 import { PageShell, PageHeader, PageContent } from "@/components/layout/page-shell";
@@ -58,6 +61,8 @@ export function BalanceSheetClient({
 	const [selectedAccount, setSelectedAccount] = useState<AccountWithType | null>(initialAccounts[0] || null);
 	const [searchQuery, setSearchQuery] = useState("");
 	const [addDialogOpen, setAddDialogOpen] = useState(false);
+
+	useKeyboardShortcut(SHORTCUTS[ShortcutId.AddAccount].keys, () => setAddDialogOpen(true));
 	const [transactionDialogOpen, setTransactionDialogOpen] = useState(false);
 	const [adjustmentDialogOpen, setAdjustmentDialogOpen] = useState(false);
 
@@ -188,9 +193,17 @@ export function BalanceSheetClient({
 					<h1 className="text-3xl font-bold tracking-tight">Balance Sheet</h1>
 					<p className="text-sm text-primary">Track your assets and liabilities</p>
 				</div>
-				<Button onClick={() => setAddDialogOpen(true)} className="bg-green-600 hover:bg-green-700 text-white">
-					<Plus className="h-4 w-4 mr-2" />
+				<Button
+					onClick={() => setAddDialogOpen(true)}
+					className="gap-2 bg-green-600 hover:bg-green-700 text-white"
+				>
+					<Plus className="h-4 w-4 md:hidden" />
 					Add Account
+					<ShortcutHint
+						keys={SHORTCUTS[ShortcutId.AddAccount].keys}
+						className="hidden md:inline-flex"
+						keyClassName="border-current bg-transparent text-current"
+					/>
 				</Button>
 			</PageHeader>
 

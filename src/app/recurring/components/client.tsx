@@ -11,6 +11,9 @@ import { BillCard } from "./bill-card";
 import { AddRecurringDialog } from "./add-recurring-dialog";
 import { PageShell, PageHeader, PageContent } from "@/components/layout/page-shell";
 import { useOptimisticRecurring } from "@/hooks/useOptimisticRecurring";
+import { ShortcutHint } from "@/components/common/shortcut-hint";
+import { SHORTCUTS, ShortcutId } from "@/lib/keyboard-shortcuts";
+import { useKeyboardShortcut } from "@/hooks/use-keyboard-shortcut";
 
 interface RecurringClientProps {
 	initialExpenses: RecurringExpense[];
@@ -21,6 +24,8 @@ export function RecurringClient({ initialExpenses, timezone }: RecurringClientPr
 	const { expenses, optimisticallyAdd, optimisticallyDelete, optimisticallyUpdate } =
 		useOptimisticRecurring(initialExpenses);
 	const [isAddOpen, setIsAddOpen] = useState(false);
+
+	useKeyboardShortcut(SHORTCUTS[ShortcutId.AddRecurring].keys, () => setIsAddOpen(true));
 
 	const subscriptions = expenses.filter((e) => e.category === "subscription");
 	const bills = expenses
@@ -47,8 +52,13 @@ export function RecurringClient({ initialExpenses, timezone }: RecurringClientPr
 					<h1 className="text-3xl font-bold tracking-tight">Recurring</h1>
 					<p className="text-primary">Manage your subscriptions and recurring bills.</p>
 				</div>
-				<Button onClick={() => setIsAddOpen(true)} className="bg-green-600 hover:bg-green-700 text-white">
-					<Plus className="mr-2 h-4 w-4" /> Add Recurring
+				<Button onClick={() => setIsAddOpen(true)} className="gap-2 bg-green-600 hover:bg-green-700 text-white">
+					<Plus className="h-4 w-4 md:hidden" /> Add Recurring
+					<ShortcutHint
+						keys={SHORTCUTS[ShortcutId.AddRecurring].keys}
+						className="hidden md:inline-flex"
+						keyClassName="border-current bg-transparent text-current"
+					/>
 				</Button>
 			</PageHeader>
 

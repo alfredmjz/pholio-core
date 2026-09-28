@@ -11,6 +11,7 @@ import {
 	DialogTrigger,
 } from "@/components/ui/dialog";
 import { Input } from "@/components/ui/input";
+import { CancelShortcut, SubmitShortcut } from "@/components/common/dialog-shortcuts";
 import { Label } from "@/components/ui/label";
 
 interface GuestConvertDialogProps {
@@ -114,9 +115,11 @@ export function GuestConvertDialog({ children }: GuestConvertDialogProps) {
 						<div className="flex justify-end gap-3 pt-4">
 							<Button type="button" variant="outline" onClick={() => setOpen(false)} disabled={isLoading}>
 								Cancel
+								<CancelShortcut />
 							</Button>
 							<Button type="submit" disabled={isLoading}>
 								{isLoading ? "Creating Account..." : "Create Account"}
+								<SubmitShortcut />
 							</Button>
 						</div>
 					</form>

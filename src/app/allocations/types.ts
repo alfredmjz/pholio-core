@@ -53,6 +53,7 @@ export interface Transaction {
 		account_id: string | null;
 		amount: number;
 	} | null;
+	linked_account_transactions?: Array<{ id: string; account_id: string | null }> | null;
 	account_id?: string; // Derived for easier UI consumption
 	created_at: string;
 	updated_at: string;

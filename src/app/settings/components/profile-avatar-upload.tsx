@@ -12,9 +12,11 @@ import {
 	DialogTitle,
 } from "@/components/ui/dialog";
 import { Slider } from "@/components/ui/slider";
+import { CancelShortcut, SubmitShortcut } from "@/components/common/dialog-shortcuts";
+import { handleEnterSubmit } from "@/lib/enter-submit";
 import { toast } from "sonner";
 import { uploadProfileAvatar } from "../actions";
-import { Loader2, Upload, ZoomIn, ZoomOut, Image as ImageIcon } from "lucide-react";
+import { Loader2, Upload, ZoomIn, ZoomOut } from "lucide-react";
 
 interface ProfileAvatarUploadProps {
 	currentAvatarUrl: string | null;
@@ -187,7 +189,7 @@ export default function ProfileAvatarUpload({ currentAvatarUrl, currentInitials,
 			</div>
 
 			<Dialog open={isDialogOpen} onOpenChange={(open) => !isUploading && setIsDialogOpen(open)}>
-				<DialogContent className="sm:max-w-md">
+				<DialogContent className="sm:max-w-md" onKeyDown={(event) => handleEnterSubmit(event, handleSave)}>
 					<DialogHeader>
 						<DialogTitle>Update Profile Picture</DialogTitle>
 						<DialogDescription>Drag to reposition. Use the slider to zoom.</DialogDescription>
@@ -225,10 +227,12 @@ export default function ProfileAvatarUpload({ currentAvatarUrl, currentInitials,
 					<DialogFooter>
 						<Button variant="outline" onClick={() => setIsDialogOpen(false)} disabled={isUploading}>
 							Cancel
+							<CancelShortcut />
 						</Button>
 						<Button onClick={handleSave} disabled={isUploading}>
 							{isUploading && <Loader2 className="w-4 h-4 mr-2 animate-spin" />}
 							Save Picture
+							<SubmitShortcut />
 						</Button>
 					</DialogFooter>
 				</DialogContent>

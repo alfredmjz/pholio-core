@@ -10,7 +10,7 @@
 import { createClient } from "@/lib/supabase/server";
 import { revalidatePath } from "next/cache";
 import { Logger } from "@/lib/logger";
-import type { AccountTransaction, TransactionType } from "@/app/balancesheet/types";
+import type { TransactionType } from "@/app/balancesheet/types";
 
 export interface UpdateAccountTransactionInput {
 	description?: string;

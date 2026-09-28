@@ -2,6 +2,7 @@
 
 import { useState } from "react";
 import { ControlBasedDialog } from "@/components/dialogWrapper";
+import { CancelShortcut, SubmitShortcut } from "@/components/common/dialog-shortcuts";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
@@ -128,10 +129,12 @@ export function AccountAdjustmentDialog({ open, onOpenChange, account, onSuccess
 				<div className="flex justify-end gap-2 pt-4">
 					<Button type="button" variant="outline" onClick={() => onOpenChange(false)} disabled={isLoading}>
 						Cancel
+						<CancelShortcut />
 					</Button>
 					<Button type="submit" disabled={isLoading}>
 						{isLoading && <Loader2 className="mr-2 h-4 w-4 animate-spin" />}
 						Adjust Balance
+						<SubmitShortcut />
 					</Button>
 				</div>
 			</form>

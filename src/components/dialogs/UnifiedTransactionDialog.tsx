@@ -35,6 +35,8 @@ import type { UnifiedTransactionInput } from "@/lib/types/unified-transaction";
 import { FormSection } from "@/components/FormSection";
 import { ProminentAmountInput } from "@/components/ProminentAmountInput";
 import { CardSelector } from "@/components/CardSelector";
+import { ShortcutHint } from "@/components/common/shortcut-hint";
+import { ShortcutKey } from "@/lib/keyboard-shortcuts";
 import { cn } from "@/lib/utils";
 import { getTodayDateString, parseLocalDate, formatDateString } from "@/lib/date-utils";
 import { VIRTUAL_UNCATEGORIZED_ID } from "@/app/allocations/types";
@@ -779,9 +781,14 @@ export function UnifiedTransactionDialog({
 										disabled={isLoading}
 									>
 										Cancel
+										<ShortcutHint keys={[ShortcutKey.Escape]} />
 									</Button>
 									<Button type="submit" className="w-full sm:w-auto" disabled={isLoading}>
 										{isLoading && <Loader2 className="mr-2 h-4 w-4 animate-spin" />} Add Transaction
+										<ShortcutHint
+											keys={[ShortcutKey.Enter]}
+											keyClassName="border-current bg-transparent text-current"
+										/>
 									</Button>
 								</DialogFooter>
 							</form>

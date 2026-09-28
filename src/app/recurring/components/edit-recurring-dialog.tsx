@@ -4,6 +4,7 @@ import { useState, useEffect } from "react";
 import { updateRecurringExpense, RecurringExpense } from "../actions";
 import { ControlBasedDialog } from "@/components/dialogWrapper";
 import { DialogFooter } from "@/components/ui/dialog";
+import { CancelShortcut, SubmitShortcut } from "@/components/common/dialog-shortcuts";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
@@ -164,6 +165,7 @@ export function EditRecurringDialog({
 			title="Edit Recurring Expense"
 			description="Update the details for this recurring expense."
 			className="sm:max-w-[500px]"
+			onEnterSubmit={handleSubmit}
 		>
 			<div className="space-y-4 py-4">
 				<div className="space-y-2">
@@ -282,9 +284,11 @@ export function EditRecurringDialog({
 			<DialogFooter>
 				<Button variant="outline" onClick={() => onOpenChange(false)} disabled={isSubmitting}>
 					Cancel
+					<CancelShortcut />
 				</Button>
 				<Button onClick={handleSubmit} disabled={isSubmitting}>
 					{isSubmitting ? "Saving..." : "Save Changes"}
+					<SubmitShortcut />
 				</Button>
 			</DialogFooter>
 		</ControlBasedDialog>

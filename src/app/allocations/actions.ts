@@ -974,8 +974,35 @@ export async function getTransactionsForMonth(year: number, month: number): Prom
 		return [];
 	}
 
+	const rows = data as any[];
+
+	// Fetch every account transaction linked to these allocation transactions so
+	// transfers can resolve both the source and destination accounts. The
+	// linked_account_transaction FK only points at one side (the source).
+	const linkedAccountTxMap = new Map<string, Array<{ id: string; account_id: string | null }>>();
+
+	if (rows.length > 0) {
+		const txIds = rows.map((t) => t.id);
+
+		const { data: linkedAccountTxs, error: linkedError } = await supabase
+			.from("account_transactions")
+			.select("id, account_id, linked_allocation_transaction_id")
+			.in("linked_allocation_transaction_id", txIds);
+
+		if (linkedError) {
+			Logger.error("Error fetching linked account transactions", { error: linkedError });
+		} else {
+			for (const accountTx of linkedAccountTxs || []) {
+				const key = accountTx.linked_allocation_transaction_id as string;
+				const list = linkedAccountTxMap.get(key) ?? [];
+				list.push({ id: accountTx.id, account_id: accountTx.account_id });
+				linkedAccountTxMap.set(key, list);
+			}
+		}
+	}
+
 	// Flatten the category name and calculate recurring stopped status
-	return (data as any[]).map((t) => {
+	return rows.map((t) => {
 		const isRecurringStopped =
 			(t.recurring_expense && t.recurring_expense.is_active === false) ||
 			(t.source === "recurring" && !t.recurring_expense_id);
@@ -987,6 +1014,7 @@ export async function getTransactionsForMonth(year: number, month: number): Prom
 			recurring_expense: undefined,
 			is_recurring_stopped: isRecurringStopped,
 			account_id: t.linked_account_transaction?.account_id,
+			linked_account_transactions: linkedAccountTxMap.get(t.id) ?? [],
 		};
 	}) as Transaction[];
 }

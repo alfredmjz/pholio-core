@@ -13,6 +13,8 @@ import {
 	DialogHeader,
 	DialogTitle,
 } from "@/components/ui/dialog";
+import { CancelShortcut, SubmitShortcut } from "@/components/common/dialog-shortcuts";
+import { handleEnterSubmit } from "@/lib/enter-submit";
 
 export function MfaCard() {
 	const [isEnabled, setIsEnabled] = useState(false);
@@ -74,7 +76,7 @@ export function MfaCard() {
 				)}
 
 				<Dialog open={isOpen} onOpenChange={setIsOpen}>
-					<DialogContent>
+					<DialogContent onKeyDown={(event) => handleEnterSubmit(event, handleEnable)}>
 						<DialogHeader>
 							<DialogTitle>Set up Two-Factor Authentication</DialogTitle>
 							<DialogDescription>Scan the QR code below with your authenticator app to enable 2FA.</DialogDescription>
@@ -110,8 +112,12 @@ export function MfaCard() {
 						<DialogFooter>
 							<Button variant="outline" onClick={() => setIsOpen(false)}>
 								Cancel
+								<CancelShortcut />
 							</Button>
-							<Button onClick={handleEnable}>Verify & Enable</Button>
+							<Button onClick={handleEnable}>
+								Verify & Enable
+								<SubmitShortcut />
+							</Button>
 						</DialogFooter>
 					</DialogContent>
 				</Dialog>

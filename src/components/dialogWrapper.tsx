@@ -9,6 +9,7 @@ import {
 	DialogTitle,
 	DialogTrigger,
 } from "@/components/ui/dialog";
+import { handleEnterSubmit } from "@/lib/enter-submit";
 
 interface TriggerBasedDialogProps {
 	title?: React.ReactNode;
@@ -60,6 +61,10 @@ interface ControlBasedDialogProps {
 	children: React.ReactNode;
 	className?: string;
 	showCloseButton?: boolean;
+	/** When provided, pressing Enter (outside text fields) triggers the primary action. */
+	onEnterSubmit?: () => void;
+	/** Intercept the Escape key (call preventDefault to stop the dialog closing). */
+	onEscapeKeyDown?: (event: KeyboardEvent) => void;
 }
 
 export function ControlBasedDialog({
@@ -70,10 +75,17 @@ export function ControlBasedDialog({
 	children,
 	className = "sm:max-w-md",
 	showCloseButton = true,
+	onEnterSubmit,
+	onEscapeKeyDown,
 }: ControlBasedDialogProps) {
 	return (
 		<Dialog open={open} onOpenChange={onOpenChange}>
-			<DialogContent className={className} showCloseButton={showCloseButton}>
+			<DialogContent
+				className={className}
+				showCloseButton={showCloseButton}
+				onEscapeKeyDown={onEscapeKeyDown}
+				onKeyDown={onEnterSubmit ? (event) => handleEnterSubmit(event, onEnterSubmit) : undefined}
+			>
 				<DialogHeader>
 					<DialogTitle>{title}</DialogTitle>
 					{description && <DialogDescription>{description}</DialogDescription>}

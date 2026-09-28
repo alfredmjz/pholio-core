@@ -3,7 +3,7 @@
 import { useState } from "react";
 import { addRecurringExpense, RecurringExpense } from "../actions";
 import { ControlBasedDialog } from "@/components/dialogWrapper";
-import { CardSelector } from "@/components/CardSelector";
+import { CancelShortcut, SubmitShortcut } from "@/components/common/dialog-shortcuts";
 import { DialogFooter } from "@/components/ui/dialog";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
@@ -190,6 +190,13 @@ export function AddRecurringDialog({ open, onOpenChange, onSuccess }: AddRecurri
 			title="Add Recurring Expense"
 			description={step === 1 ? "Select a service provider or create custom." : "Enter expense details."}
 			className="sm:max-w-[500px]"
+			onEnterSubmit={step === 2 ? handleSubmit : undefined}
+			onEscapeKeyDown={(event) => {
+				if (step === 2) {
+					event.preventDefault();
+					setStep(1);
+				}
+			}}
 		>
 			{step === 1 && (
 				<div className="grid grid-cols-2 gap-4 py-4">
@@ -343,11 +350,13 @@ export function AddRecurringDialog({ open, onOpenChange, onSuccess }: AddRecurri
 				{step === 2 && (
 					<Button variant="outline" onClick={() => setStep(1)} disabled={isSubmitting}>
 						Back
+						<CancelShortcut />
 					</Button>
 				)}
 				{step === 2 && (
 					<Button onClick={handleSubmit} disabled={isSubmitting}>
 						{isSubmitting ? "Adding..." : "Add Expense"}
+						<SubmitShortcut />
 					</Button>
 				)}
 			</DialogFooter>

@@ -19,6 +19,8 @@ export interface AllocationCategory {
 	user_id: string;
 	name: string;
 	budget_cap: number;
+	/** System-managed recurring contribution; effective budget = budget_cap + recurring_budget_cap. */
+	recurring_budget_cap?: number;
 	is_recurring: boolean;
 	display_order: number;
 	color?: string;

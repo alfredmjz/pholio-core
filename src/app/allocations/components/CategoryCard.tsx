@@ -50,9 +50,12 @@ export function CategoryCard({ category, usedColors, usedNames }: CategoryCardPr
 	};
 
 	const actualSpend = category.actual_spend || 0;
-	const utilization = category.budget_cap > 0 ? (actualSpend / category.budget_cap) * 100 : 0;
+	// Effective budget folds in the system-managed recurring contribution. The
+	// user-editable budget stays category.budget_cap.
+	const effectiveBudget = category.budget_cap + (category.recurring_budget_cap ?? 0);
+	const utilization = effectiveBudget > 0 ? (actualSpend / effectiveBudget) * 100 : 0;
 	const isOverBudget = utilization > 100;
-	const amountRemainingOrOver = Math.abs(category.budget_cap - actualSpend);
+	const amountRemainingOrOver = Math.abs(effectiveBudget - actualSpend);
 
 	const color = getCategoryColor(category.id, category.color, category.display_order);
 
@@ -248,7 +251,7 @@ export function CategoryCard({ category, usedColors, usedNames }: CategoryCardPr
 										</span>
 										{!isUncategorized && (
 											<span className="text-[10px] text-muted-foreground leading-none">
-												/ {formatCurrency(category.budget_cap)}
+												/ {formatCurrency(effectiveBudget)}
 											</span>
 										)}
 									</div>
@@ -361,7 +364,7 @@ export function CategoryCard({ category, usedColors, usedNames }: CategoryCardPr
 										<span className="text-sm font-bold text-foreground">{formatCurrency(actualSpend)}</span>
 										{!isUncategorized && (
 											<span className="text-[10px] text-muted-foreground mt-0.5">
-												of {formatCurrency(category.budget_cap)}
+												of {formatCurrency(effectiveBudget)}
 											</span>
 										)}
 									</>

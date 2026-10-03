@@ -23,9 +23,10 @@ interface SubscriptionCardProps {
 	subscription: RecurringExpense;
 	onDelete?: (id: string) => void;
 	onUpdate?: (id: string, updates: Partial<RecurringExpense>) => void;
+	categoryOptions?: string[];
 }
 
-export function SubscriptionCard({ subscription, onDelete, onUpdate }: SubscriptionCardProps) {
+export function SubscriptionCard({ subscription, onDelete, onUpdate, categoryOptions = [] }: SubscriptionCardProps) {
 	const [isActive, setIsActive] = useState(subscription.is_active ?? true);
 	const [isLoading, setIsLoading] = useState(false);
 	const [isDeleting, setIsDeleting] = useState(false);
@@ -184,6 +185,7 @@ export function SubscriptionCard({ subscription, onDelete, onUpdate }: Subscript
 				expense={subscription}
 				onSuccess={handleEditSuccess}
 				forceActiveOnSave={isReactivating}
+				categoryOptions={categoryOptions}
 			/>
 		</>
 	);

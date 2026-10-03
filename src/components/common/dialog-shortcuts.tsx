@@ -5,7 +5,7 @@ import { ShortcutKey } from "@/lib/keyboard-shortcuts";
 
 /** Esc key hint to place inside a dialog's cancel/dismiss button. */
 export function CancelShortcut() {
-	return <ShortcutHint keys={[ShortcutKey.Escape]} />;
+	return <ShortcutHint keys={[ShortcutKey.Escape]} hintRole="dismiss" />;
 }
 
 /**
@@ -13,5 +13,11 @@ export function CancelShortcut() {
  * Uses the button's own text colour so it never camouflages.
  */
 export function SubmitShortcut() {
-	return <ShortcutHint keys={[ShortcutKey.Enter]} keyClassName="border-current bg-transparent text-current" />;
+	return (
+		<ShortcutHint
+			keys={[ShortcutKey.Enter]}
+			keyClassName="border-current bg-transparent text-current"
+			hintRole="submit"
+		/>
+	);
 }

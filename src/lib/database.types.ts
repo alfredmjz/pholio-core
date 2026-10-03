@@ -98,6 +98,7 @@ export interface Database {
 					billing_period: string;
 					next_due_date: string;
 					category: string;
+					budget_category: string | null;
 					is_active: boolean | null;
 					service_provider: string | null;
 					plaid_stream_id: string | null;
@@ -114,6 +115,7 @@ export interface Database {
 					billing_period: string;
 					next_due_date: string;
 					category: string;
+					budget_category?: string | null;
 					is_active?: boolean | null;
 					service_provider?: string | null;
 					plaid_stream_id?: string | null;
@@ -130,6 +132,7 @@ export interface Database {
 					billing_period?: string;
 					next_due_date?: string;
 					category?: string;
+					budget_category?: string | null;
 					is_active?: boolean | null;
 					service_provider?: string | null;
 					plaid_stream_id?: string | null;

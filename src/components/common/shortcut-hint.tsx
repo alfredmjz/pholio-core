@@ -15,6 +15,11 @@ interface ShortcutHintProps {
 	size?: ShortcutHintSize;
 	/** "keycap" draws a bordered key box; "plain" shows the bare glyph/icon. */
 	variant?: ShortcutHintVariant;
+	/**
+	 * Marks the button this hint sits inside so Enter-to-submit can defer to the
+	 * button's native activation instead of also submitting.
+	 */
+	hintRole?: "submit" | "dismiss";
 }
 
 const KEYCAP_SIZE: Record<ShortcutHintSize, string> = {
@@ -102,13 +107,18 @@ export function ShortcutHint({
 	keyClassName,
 	size = "sm",
 	variant = "keycap",
+	hintRole,
 }: ShortcutHintProps) {
 	// Keyboard chords (e.g. ⇧ ↵) render as adjacent keys; only a mouse action
 	// is joined with a "+" so the pointer step is unambiguous.
 	const usesMouse = keys.includes(ShortcutKey.LeftClick);
 
 	return (
-		<span className={cn("inline-flex items-center gap-1", className)}>
+		<span
+			className={cn("inline-flex items-center gap-1", className)}
+			data-dialog-submit={hintRole === "submit" ? "" : undefined}
+			data-dialog-dismiss={hintRole === "dismiss" ? "" : undefined}
+		>
 			{keys.map((token, index) => (
 				<span key={`${token}-${index}`} className="inline-flex items-center gap-1">
 					{index > 0 && usesMouse && <span className="opacity-70">+</span>}

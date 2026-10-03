@@ -18,9 +18,10 @@ interface BillCardProps {
 	onDelete?: (id: string) => void;
 	onUpdate?: (id: string, updates: Partial<RecurringExpense>) => void;
 	timezone?: string | null;
+	categoryOptions?: string[];
 }
 
-export function BillCard({ bill, onDelete, onUpdate, timezone }: BillCardProps) {
+export function BillCard({ bill, onDelete, onUpdate, timezone, categoryOptions = [] }: BillCardProps) {
 	const router = useRouter();
 	const [isDeleting, setIsDeleting] = useState(false);
 	const [isEditOpen, setIsEditOpen] = useState(false);
@@ -226,6 +227,7 @@ export function BillCard({ bill, onDelete, onUpdate, timezone }: BillCardProps) 
 				onOpenChange={setIsEditOpen}
 				expense={bill}
 				onSuccess={handleEditSuccess}
+				categoryOptions={categoryOptions}
 			/>
 
 			<PayFutureBillDialog

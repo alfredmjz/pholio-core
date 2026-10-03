@@ -94,14 +94,14 @@ export function matchesShortcut(event: KeyboardEvent, keys: ShortcutKey[]): bool
 	return SHORTCUT_EVENT_KEY[nonModifiers[0]] === event.key;
 }
 
-/** True when focus is inside a text field, so shortcuts should be ignored. */
+/**
+ * True when focus is inside a multi-line editing surface, so keyboard shortcuts
+ * should be ignored. Single-line inputs and selects are intentionally allowed:
+ * Shift+Enter carries no native meaning there, and users expect the global
+ * gestures (e.g. open a dialog) to work from a search/filter field.
+ */
 export function isTypingTarget(target: EventTarget | null): boolean {
 	const element = target as HTMLElement | null;
 	if (!element) return false;
-	return (
-		element.tagName === "INPUT" ||
-		element.tagName === "TEXTAREA" ||
-		element.tagName === "SELECT" ||
-		element.isContentEditable
-	);
+	return element.tagName === "TEXTAREA" || element.isContentEditable;
 }

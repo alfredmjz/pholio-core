@@ -35,6 +35,9 @@ export function useKeyboardShortcut(
 			if (isTypingTarget(event.target)) return;
 
 			const target = event.target as HTMLElement | null;
+			// Never let a global "open a dialog" gesture fire from inside an open
+			// dialog, otherwise typing in a dialog field would stack another one.
+			if (target?.closest?.('[role="dialog"]')) return;
 			if (ignoreTransactionRows && target?.closest?.(TRANSACTION_ROW_SELECTOR)) return;
 
 			event.preventDefault();

@@ -35,10 +35,10 @@ import type { UnifiedTransactionInput } from "@/lib/types/unified-transaction";
 import { FormSection } from "@/components/FormSection";
 import { ProminentAmountInput } from "@/components/ProminentAmountInput";
 import { CardSelector } from "@/components/CardSelector";
-import { ShortcutHint } from "@/components/common/shortcut-hint";
-import { ShortcutKey } from "@/lib/keyboard-shortcuts";
+import { CancelShortcut, SubmitShortcut } from "@/components/common/dialog-shortcuts";
 import { cn } from "@/lib/utils";
 import { getTodayDateString, parseLocalDate, formatDateString } from "@/lib/date-utils";
+import { handleEnterSubmit } from "@/lib/enter-submit";
 import { VIRTUAL_UNCATEGORIZED_ID } from "@/app/allocations/types";
 import { formatAccountDisplayName, sortAccounts } from "@/lib/account-utils";
 import { compareAlphabetically, sortAlphabetically } from "@/lib/sort-utils";
@@ -286,8 +286,7 @@ export function UnifiedTransactionDialog({
 		return isValid;
 	};
 
-	const handleSubmit = async (e: React.FormEvent) => {
-		e.preventDefault();
+	const submitTransaction = async () => {
 		if (!validateForm()) return;
 		setIsLoading(true);
 		try {
@@ -320,6 +319,11 @@ export function UnifiedTransactionDialog({
 		} finally {
 			setIsLoading(false);
 		}
+	};
+
+	const handleSubmit = async (e: React.FormEvent) => {
+		e.preventDefault();
+		await submitTransaction();
 	};
 
 	const incrementDateCount = (dateStr: string) => {
@@ -423,7 +427,15 @@ export function UnifiedTransactionDialog({
 	return (
 		<>
 			<Dialog open={open} onOpenChange={onOpenChange}>
-				<DialogContent className="sm:max-w-[560px] max-h-[calc(100dvh-2rem)] overflow-y-auto" showCloseButton={false}>
+				<DialogContent
+					className="sm:max-w-[560px] max-h-[calc(100dvh-2rem)] overflow-y-auto"
+					showCloseButton={false}
+					onKeyDown={(event) => {
+						// Only the manual form submits; the preset tab has its own action.
+						if (activeTab !== "manual") return;
+						handleEnterSubmit(event, submitTransaction);
+					}}
+				>
 					<DialogHeader>
 						<DialogTitle>Add Transaction</DialogTitle>
 						<DialogDescription>Enter transaction details to update your budget and account balance.</DialogDescription>
@@ -544,6 +556,7 @@ export function UnifiedTransactionDialog({
 																		type="button"
 																		variant="outline"
 																		size="sm"
+																		data-dialog-ignore-enter=""
 																		className="h-7 text-xs font-medium border-amber-500/40 hover:bg-amber-500/20 text-amber-800 dark:text-amber-300"
 																		onClick={() => {
 																			setAmount(validationResult.maxAllowed!.toFixed(2));
@@ -781,14 +794,11 @@ export function UnifiedTransactionDialog({
 										disabled={isLoading}
 									>
 										Cancel
-										<ShortcutHint keys={[ShortcutKey.Escape]} />
+										<CancelShortcut />
 									</Button>
 									<Button type="submit" className="w-full sm:w-auto" disabled={isLoading}>
 										{isLoading && <Loader2 className="mr-2 h-4 w-4 animate-spin" />} Add Transaction
-										<ShortcutHint
-											keys={[ShortcutKey.Enter]}
-											keyClassName="border-current bg-transparent text-current"
-										/>
+										<SubmitShortcut />
 									</Button>
 								</DialogFooter>
 							</form>

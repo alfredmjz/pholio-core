@@ -10,6 +10,7 @@ export const MOCK_RECURRING_EXPENSES: RecurringExpense[] = [
         billing_period: "monthly",
         next_due_date: new Date(new Date().getFullYear(), new Date().getMonth(), 15).toISOString(), // 15th of this month
         category: "subscription",
+        budget_category: null,
         is_active: true,
         service_provider: "netflix",
         plaid_stream_id: null,
@@ -26,6 +27,7 @@ export const MOCK_RECURRING_EXPENSES: RecurringExpense[] = [
         billing_period: "monthly",
         next_due_date: new Date(new Date().getFullYear(), new Date().getMonth(), 28).toISOString(), // 28th of this month
         category: "subscription",
+        budget_category: null,
         is_active: true,
         service_provider: "spotify",
         plaid_stream_id: null,
@@ -42,6 +44,7 @@ export const MOCK_RECURRING_EXPENSES: RecurringExpense[] = [
         billing_period: "monthly",
         next_due_date: new Date(new Date().getFullYear(), new Date().getMonth(), 1).toISOString(), // 1st of this month
         category: "subscription",
+        budget_category: null,
         is_active: true,
         service_provider: null,
         plaid_stream_id: null,
@@ -58,6 +61,7 @@ export const MOCK_RECURRING_EXPENSES: RecurringExpense[] = [
         billing_period: "monthly",
         next_due_date: new Date(new Date().getFullYear(), new Date().getMonth(), 1).toISOString(), // 1st of this month
         category: "bill",
+        budget_category: null,
         is_active: true,
         service_provider: "rent",
         plaid_stream_id: null,
@@ -74,6 +78,7 @@ export const MOCK_RECURRING_EXPENSES: RecurringExpense[] = [
         billing_period: "monthly",
         next_due_date: new Date(new Date().getFullYear(), new Date().getMonth(), 20).toISOString(), // 20th of this month
         category: "bill",
+        budget_category: null,
         is_active: true,
         service_provider: null,
         plaid_stream_id: null,
@@ -90,6 +95,7 @@ export const MOCK_RECURRING_EXPENSES: RecurringExpense[] = [
         billing_period: "yearly",
         next_due_date: new Date(new Date().getFullYear() + 1, 5, 15).toISOString(), // Next year, June 15th
         category: "subscription",
+        budget_category: null,
         is_active: true,
         service_provider: "amazon",
         plaid_stream_id: null,
@@ -108,6 +114,7 @@ export const MOCK_RECURRING_EXPENSES: RecurringExpense[] = [
         billing_period: "monthly",
         next_due_date: new Date(new Date().getFullYear(), new Date().getMonth(), 10).toISOString(),
         category: "subscription",
+        budget_category: null,
         is_active: true,
         service_provider: "adobe", // Using provider for logo lookup
         plaid_stream_id: null,
@@ -124,6 +131,7 @@ export const MOCK_RECURRING_EXPENSES: RecurringExpense[] = [
         billing_period: "monthly",
         next_due_date: new Date(new Date().getFullYear(), new Date().getMonth(), 5).toISOString(),
         category: "subscription",
+        budget_category: null,
         is_active: true,
         service_provider: "dropbox",
         plaid_stream_id: null,
@@ -140,6 +148,7 @@ export const MOCK_RECURRING_EXPENSES: RecurringExpense[] = [
         billing_period: "monthly",
         next_due_date: new Date(new Date().getFullYear(), new Date().getMonth(), 12).toISOString(),
         category: "subscription",
+        budget_category: null,
         is_active: true,
         service_provider: "slack",
         plaid_stream_id: null,
@@ -156,6 +165,7 @@ export const MOCK_RECURRING_EXPENSES: RecurringExpense[] = [
         billing_period: "monthly",
         next_due_date: new Date(new Date().getFullYear(), new Date().getMonth(), 8).toISOString(),
         category: "subscription",
+        budget_category: null,
         is_active: false, // Testing inactive subscription
         service_provider: "github",
         plaid_stream_id: null,
@@ -172,6 +182,7 @@ export const MOCK_RECURRING_EXPENSES: RecurringExpense[] = [
         billing_period: "monthly",
         next_due_date: new Date(new Date().getFullYear(), new Date().getMonth(), 22).toISOString(),
         category: "subscription",
+        budget_category: null,
         is_active: true,
         service_provider: "disneyplus",
         plaid_stream_id: null,
@@ -188,6 +199,7 @@ export const MOCK_RECURRING_EXPENSES: RecurringExpense[] = [
         billing_period: "monthly",
         next_due_date: new Date(new Date().getFullYear(), new Date().getMonth(), 18).toISOString(),
         category: "bill",
+        budget_category: null,
         is_active: true,
         service_provider: "comcast",
         plaid_stream_id: null,

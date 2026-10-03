@@ -24,6 +24,8 @@ interface AddRecurringDialogProps {
 	open: boolean;
 	onOpenChange: (open: boolean) => void;
 	onSuccess?: (expense: RecurringExpense) => void;
+	/** Allocation category names to choose from; empty falls back to Subscriptions/Bills. */
+	categoryOptions?: string[];
 }
 
 const PRESET_PROVIDERS = [
@@ -53,7 +55,7 @@ const PRESET_PROVIDERS = [
 	},
 ];
 
-export function AddRecurringDialog({ open, onOpenChange, onSuccess }: AddRecurringDialogProps) {
+export function AddRecurringDialog({ open, onOpenChange, onSuccess, categoryOptions = [] }: AddRecurringDialogProps) {
 	const [step, setStep] = useState(1);
 	const [formData, setFormData] = useState({
 		name: "",
@@ -62,6 +64,7 @@ export function AddRecurringDialog({ open, onOpenChange, onSuccess }: AddRecurri
 		frequency_unit: "months",
 		next_due_date: new Date(),
 		category: "subscription",
+		budget_category: "__default__",
 		service_provider: "",
 		isCustom: false,
 		is_automated: true,
@@ -140,6 +143,7 @@ export function AddRecurringDialog({ open, onOpenChange, onSuccess }: AddRecurri
 				billing_period: `${formData.frequency_value}:${formData.frequency_unit}`,
 				next_due_date: formatDateString(formData.next_due_date),
 				category: formData.category,
+				budget_category: formData.budget_category === "__default__" ? null : formData.budget_category,
 				service_provider: serviceProvider,
 				is_active: true,
 				currency: "USD",
@@ -163,6 +167,7 @@ export function AddRecurringDialog({ open, onOpenChange, onSuccess }: AddRecurri
 					frequency_unit: "months",
 					next_due_date: new Date(),
 					category: "subscription",
+					budget_category: "__default__",
 					service_provider: "",
 					isCustom: false,
 					is_automated: true,
@@ -327,6 +332,30 @@ export function AddRecurringDialog({ open, onOpenChange, onSuccess }: AddRecurri
 								/>
 							</PopoverContent>
 						</Popover>
+					</div>
+					<div className="space-y-2">
+						<Label>Budget category</Label>
+						<Select
+							value={formData.budget_category}
+							onValueChange={(v) => setFormData({ ...formData, budget_category: v })}
+						>
+							<SelectTrigger className="h-10">
+								<SelectValue />
+							</SelectTrigger>
+							<SelectContent>
+								<SelectItem value="__default__">
+									Default ({formData.category === "bill" ? "Bills" : "Subscriptions"})
+								</SelectItem>
+								{categoryOptions.map((name) => (
+									<SelectItem key={name} value={name}>
+										{name}
+									</SelectItem>
+								))}
+							</SelectContent>
+						</Select>
+						<p className="text-xs text-muted-foreground">
+							Which budget category this recurring expense is added to.
+						</p>
 					</div>
 					{formData.category === "bill" && (
 						<div className="flex items-center justify-between space-x-2 pt-2">

@@ -7,7 +7,20 @@ import { MOCK_RECURRING_EXPENSES } from "@/mock-data/recurring";
 import { MOCK_TRANSACTIONS } from "@/mock-data/transactions";
 import { Logger } from "@/lib/logger";
 import { calculateNextDueDate, formatDateString, parseLocalDate } from "@/lib/date-utils";
+import { compareAlphabetically } from "@/lib/sort-utils";
+import { sampleAllocationSummary } from "@/mock-data/allocations";
 import { getAllocation, autoCreateAllocationWithDefaults } from "../allocations/actions";
+
+/**
+ * The allocation category NAME a recurring expense is bundled into. A user-chosen
+ * `budget_category` wins; otherwise subscriptions fall back to "Subscriptions" and
+ * bills to "Bills" (the legacy behavior).
+ */
+function resolveRecurringCategoryName(expense: { category: string; budget_category?: string | null }): string {
+	const custom = expense.budget_category?.trim();
+	if (custom) return custom;
+	return expense.category === "bill" ? "Bills" : "Subscriptions";
+}
 
 export type RecurringExpenseStatus = "paid" | "partial" | "unpaid" | "overpaid" | "upcoming" | "overdue" | "due_today";
 
@@ -305,7 +318,7 @@ async function getCategoryIdForExpense(
 	supabase: any,
 	userId: string,
 	dateStr: string,
-	type: "bill" | "subscription"
+	categoryName: string
 ): Promise<string | null> {
 	const date = new Date(dateStr);
 	const year = date.getFullYear();
@@ -321,15 +334,60 @@ async function getCategoryIdForExpense(
 
 	if (!allocation) return null;
 
-	const catName = type === "bill" ? "Bills" : "Subscriptions";
-	const { data: category } = await supabase
+	// Match by name, case-insensitively (category names are user-editable).
+	const { data: categories } = await supabase
 		.from("allocation_categories")
+		.select("id, name")
+		.eq("allocation_id", allocation.id);
+
+	const match = (categories || []).find(
+		(c: { name: string }) => c.name.toLowerCase() === categoryName.toLowerCase()
+	);
+
+	return match?.id || null;
+}
+
+/**
+ * Current month's allocation category names, used to populate the recurring
+ * "Budget category" picker. The auto-managed "Bills"/"Subscriptions" buckets are
+ * excluded because the "Default" option already targets them. Sorted
+ * alphabetically (ADR-003).
+ */
+export async function getRecurringCategoryOptions(): Promise<string[]> {
+	// The "Default" picker option already resolves to these buckets.
+	const hidden = new Set(["bills", "subscriptions"]);
+	const clean = (names: string[]) =>
+		Array.from(new Set(names))
+			.filter((name) => !hidden.has(name.toLowerCase()))
+			.sort((a, b) => compareAlphabetically(a, b));
+
+	if (process.env.NEXT_PUBLIC_USE_SAMPLE_DATA === "true") {
+		return clean(sampleAllocationSummary.categories.map((c) => c.name));
+	}
+
+	const supabase = await createClient();
+	const {
+		data: { user },
+	} = await supabase.auth.getUser();
+	if (!user) return [];
+
+	const now = new Date();
+	const { data: allocation } = await supabase
+		.from("allocations")
 		.select("id")
-		.eq("allocation_id", allocation.id)
-		.eq("name", catName)
+		.eq("user_id", user.id)
+		.eq("year", now.getFullYear())
+		.eq("month", now.getMonth() + 1)
 		.single();
 
-	return category?.id || null;
+	if (!allocation) return [];
+
+	const { data: categories } = await supabase
+		.from("allocation_categories")
+		.select("name")
+		.eq("allocation_id", allocation.id);
+
+	return clean((categories || []).map((c: { name: string }) => c.name));
 }
 
 export async function markAsPaid(expenseId: string): Promise<boolean> {
@@ -421,7 +479,7 @@ async function createRecurringTransaction(
 		supabase,
 		userId,
 		dueDateStr,
-		expense.category as "bill" | "subscription"
+		resolveRecurringCategoryName(expense)
 	);
 
 	const { error: txError } = await supabase.from("transactions").insert({

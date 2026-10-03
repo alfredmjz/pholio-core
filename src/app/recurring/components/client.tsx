@@ -18,9 +18,10 @@ import { useKeyboardShortcut } from "@/hooks/use-keyboard-shortcut";
 interface RecurringClientProps {
 	initialExpenses: RecurringExpense[];
 	timezone: string | null;
+	categoryOptions?: string[];
 }
 
-export function RecurringClient({ initialExpenses, timezone }: RecurringClientProps) {
+export function RecurringClient({ initialExpenses, timezone, categoryOptions = [] }: RecurringClientProps) {
 	const { expenses, optimisticallyAdd, optimisticallyDelete, optimisticallyUpdate } =
 		useOptimisticRecurring(initialExpenses);
 	const [isAddOpen, setIsAddOpen] = useState(false);
@@ -108,6 +109,7 @@ export function RecurringClient({ initialExpenses, timezone }: RecurringClientPr
 										subscription={sub}
 										onDelete={optimisticallyDelete}
 										onUpdate={optimisticallyUpdate}
+										categoryOptions={categoryOptions}
 									/>
 								))}
 							</div>
@@ -125,6 +127,7 @@ export function RecurringClient({ initialExpenses, timezone }: RecurringClientPr
 										onDelete={optimisticallyDelete}
 										onUpdate={optimisticallyUpdate}
 										timezone={timezone}
+										categoryOptions={categoryOptions}
 									/>
 								))}
 							</div>
@@ -133,7 +136,12 @@ export function RecurringClient({ initialExpenses, timezone }: RecurringClientPr
 				</Tabs>
 			</PageContent>
 
-			<AddRecurringDialog open={isAddOpen} onOpenChange={setIsAddOpen} onSuccess={optimisticallyAdd} />
+			<AddRecurringDialog
+				open={isAddOpen}
+				onOpenChange={setIsAddOpen}
+				onSuccess={optimisticallyAdd}
+				categoryOptions={categoryOptions}
+			/>
 		</PageShell>
 	);
 }

@@ -183,6 +183,23 @@ export async function autoCreateAllocationWithDefaults(year: number, month: numb
 	return allocation;
 }
 
+/**
+ * The allocation category NAME a recurring expense should be bundled into.
+ * An explicit `budget_category` wins; otherwise subscriptions fall back to the
+ * auto-managed "Subscriptions" category and bills to "Bills".
+ */
+function resolveRecurringCategoryName(expense: { category: string; budget_category?: string | null }): string {
+	const custom = expense.budget_category?.trim();
+	if (custom) return custom;
+	return expense.category === "bill" ? "Bills" : "Subscriptions";
+}
+
+/** Explicit user-chosen category name, or null when the expense uses the default bucket. */
+function customRecurringCategoryName(expense: { budget_category?: string | null }): string | null {
+	const custom = expense.budget_category?.trim();
+	return custom ? custom : null;
+}
+
 async function syncRecurringExpenses(
 	allocationId: string,
 	userId: string,
@@ -221,11 +238,18 @@ async function syncRecurringExpenses(
 		recordedAmountByKey.set(`${marker.recurring_expense_id}:${markerDateStr}`, Number(marker.amount));
 	}
 
-	const hasBills = allRecurring.some((r) => r.category === "bill" && r.is_active);
-	const hasSubscriptions = allRecurring.some((r) => r.category === "subscription" && r.is_active);
+	const hasBills = allRecurring.some(
+		(r) => r.category === "bill" && r.is_active && !customRecurringCategoryName(r)
+	);
+	const hasSubscriptions = allRecurring.some(
+		(r) => r.category === "subscription" && r.is_active && !customRecurringCategoryName(r)
+	);
 
 	let totalBills = 0;
 	let totalSubscriptions = 0;
+
+	// Active expenses with an explicit budget category, grouped by lowercase name.
+	const customTotals = new Map<string, { name: string; total: number }>();
 
 	const applicableExpenses: Array<{ expense: (typeof allRecurring)[0]; dates: Date[] }> = [];
 
@@ -277,13 +301,27 @@ async function syncRecurringExpenses(
 			}, 0);
 			applicableExpenses.push({ expense, dates: occurrences });
 
-			if (expense.category === "bill") {
+			const customName = customRecurringCategoryName(expense);
+			if (customName) {
+				const key = customName.toLowerCase();
+				const existing = customTotals.get(key) ?? { name: customName, total: 0 };
+				existing.total += totalAmount;
+				customTotals.set(key, existing);
+			} else if (expense.category === "bill") {
 				totalBills += totalAmount;
 			} else {
 				totalSubscriptions += totalAmount;
 			}
 		}
 	}
+
+	// Recurring contributions are recomputed on every sync, so clear any stale
+	// values before loading categories (only rows that actually had one are touched).
+	await supabase
+		.from("allocation_categories")
+		.update({ recurring_budget_cap: 0 })
+		.eq("allocation_id", allocationId)
+		.gt("recurring_budget_cap", 0);
 
 	const { data: allCategories } = await supabase
 		.from("allocation_categories")
@@ -292,6 +330,9 @@ async function syncRecurringExpenses(
 
 	const categoryMap = new Map((allCategories || []).map((c) => [c.name.toLowerCase(), c]));
 	const categoryIdMap: Record<string, string> = {};
+	// Resolved by allocation category NAME (lowercase) for both the default
+	// Bills/Subscriptions buckets and any user-chosen budget categories.
+	const categoryIdByName = new Map<string, string>();
 
 	const billsCategory = categoryMap.get("bills");
 
@@ -327,7 +368,7 @@ async function syncRecurringExpenses(
 			.select("id", { count: "exact", head: true })
 			.eq("category_id", billsCategory.id);
 
-		if (!hasBills && (!txCount || txCount === 0)) {
+		if (!hasBills && !customTotals.has("bills") && (!txCount || txCount === 0)) {
 			const { error } = await supabase.from("allocation_categories").delete().eq("id", billsCategory.id);
 			if (error) {
 				Logger.warn("Failed to delete empty Bills category", { error, categoryId: billsCategory.id });
@@ -381,7 +422,7 @@ async function syncRecurringExpenses(
 			.select("id", { count: "exact", head: true })
 			.eq("category_id", subsCategory.id);
 
-		if (!hasSubscriptions && (!txCount || txCount === 0)) {
+		if (!hasSubscriptions && !customTotals.has("subscriptions") && (!txCount || txCount === 0)) {
 			const { error } = await supabase.from("allocation_categories").delete().eq("id", subsCategory.id);
 			if (error) {
 				Logger.warn("Failed to delete empty Subscriptions category", { error, categoryId: subsCategory.id });
@@ -406,6 +447,43 @@ async function syncRecurringExpenses(
 				}
 			}
 		}
+	}
+
+	// Map the default buckets to their resolved category ids.
+	if (categoryIdMap["bill"]) categoryIdByName.set("bills", categoryIdMap["bill"]);
+	if (categoryIdMap["subscription"]) categoryIdByName.set("subscriptions", categoryIdMap["subscription"]);
+
+	// User-chosen categories: fold the recurring total into recurring_budget_cap.
+	// The user-editable budget_cap (manual budget) is left untouched.
+	for (const [key, entry] of Array.from(customTotals.entries())) {
+		let customCategory = categoryMap.get(key);
+		if (!customCategory) {
+			const { data: newCat } = await supabase
+				.from("allocation_categories")
+				.insert({
+					allocation_id: allocationId,
+					user_id: userId,
+					name: entry.name,
+					budget_cap: 0,
+					recurring_budget_cap: entry.total,
+					is_recurring: false,
+					display_order: 2,
+					color: "blue",
+				})
+				.select()
+				.single();
+			if (newCat) {
+				categoryMap.set(key, newCat);
+				customCategory = newCat;
+			}
+		} else if (Number(customCategory.recurring_budget_cap) !== entry.total) {
+			await supabase
+				.from("allocation_categories")
+				.update({ recurring_budget_cap: entry.total })
+				.eq("id", customCategory.id);
+			customCategory = { ...customCategory, recurring_budget_cap: entry.total };
+		}
+		if (customCategory) categoryIdByName.set(key, customCategory.id);
 	}
 
 	const transactionsToCreate: Array<{
@@ -454,7 +532,7 @@ async function syncRecurringExpenses(
 				name: expense.name,
 				amount: -Math.abs(Number(expense.amount)),
 				transaction_date: dateStr,
-				category_id: categoryIdMap[expense.category] || null,
+				category_id: categoryIdByName.get(resolveRecurringCategoryName(expense).toLowerCase()) ?? null,
 				source: "recurring",
 				recurring_expense_id: expense.id,
 				notes: `Auto-created from recurring ${expense.category}`,
@@ -558,47 +636,57 @@ async function syncRecurringExpenses(
 			missedAllocationId = newAlloc.id;
 		}
 
-		// Resolve category IDs for this month's allocation
+		// Resolve category IDs for this month's allocation by name.
 		const { data: missedCategories } = await supabase
 			.from("allocation_categories")
 			.select("id, name")
 			.eq("allocation_id", missedAllocationId);
 
-		const missedCategoryMap: Record<string, string> = {};
+		const missedCategoryIdByName = new Map<string, string>();
 		for (const cat of missedCategories || []) {
-			if (cat.name === "Bills") missedCategoryMap["bill"] = cat.id;
-			if (cat.name === "Subscriptions") missedCategoryMap["subscription"] = cat.id;
+			missedCategoryIdByName.set(String(cat.name).toLowerCase(), cat.id);
 		}
 
-		// Create missing categories for this month's allocation if needed
-		const neededTypes = new Set(items.map((i: MissedOccurrence) => i.expense.category));
-		const catDefs: Array<{ type: string; name: string; color: string }> = [
-			{ type: "bill", name: "Bills", color: "orange" },
-			{ type: "subscription", name: "Subscriptions", color: "purple" },
-		];
+		// Group the missed items by the category name they resolve to and create
+		// any category that doesn't exist yet.
+		const missedNeeded = new Map<
+			string,
+			{ name: string; total: number; isDefault: boolean; defaultType: "bill" | "subscription" | null }
+		>();
+		for (const item of items) {
+			const custom = customRecurringCategoryName(item.expense);
+			const name = custom ?? (item.expense.category === "bill" ? "Bills" : "Subscriptions");
+			const key = name.toLowerCase();
+			const entry =
+				missedNeeded.get(key) ??
+				{
+					name,
+					total: 0,
+					isDefault: !custom,
+					defaultType: custom ? null : (item.expense.category as "bill" | "subscription"),
+				};
+			entry.total += Math.abs(Number(item.expense.amount));
+			missedNeeded.set(key, entry);
+		}
 
-		for (const def of catDefs) {
-			if (neededTypes.has(def.type) && !missedCategoryMap[def.type]) {
-				const totalAmount = items
-					.filter((i: MissedOccurrence) => i.expense.category === def.type)
-					.reduce((sum: number, i: MissedOccurrence) => sum + Math.abs(Number(i.expense.amount)), 0);
+		for (const [key, entry] of Array.from(missedNeeded.entries())) {
+			if (missedCategoryIdByName.has(key)) continue;
+			const { data: newCat } = await supabase
+				.from("allocation_categories")
+				.insert({
+					allocation_id: missedAllocationId,
+					user_id: userId,
+					name: entry.name,
+					budget_cap: entry.isDefault ? entry.total : 0,
+					recurring_budget_cap: entry.isDefault ? 0 : entry.total,
+					is_recurring: entry.isDefault,
+					display_order: entry.isDefault ? (entry.defaultType === "bill" ? 0 : 1) : 2,
+					color: entry.isDefault ? (entry.defaultType === "bill" ? "orange" : "purple") : "blue",
+				})
+				.select("id")
+				.single();
 
-				const { data: newCat } = await supabase
-					.from("allocation_categories")
-					.insert({
-						allocation_id: missedAllocationId,
-						user_id: userId,
-						name: def.name,
-						budget_cap: totalAmount,
-						is_recurring: true,
-						display_order: def.type === "bill" ? 0 : 1,
-						color: def.color,
-					})
-					.select("id")
-					.single();
-
-				if (newCat) missedCategoryMap[def.type] = newCat.id;
-			}
+			if (newCat) missedCategoryIdByName.set(key, newCat.id);
 		}
 
 		// Check existing transactions for this month to dedup
@@ -624,7 +712,8 @@ async function syncRecurringExpenses(
 				name: item.expense.name,
 				amount: -Math.abs(Number(item.expense.amount)),
 				transaction_date: item.dateStr,
-				category_id: missedCategoryMap[item.expense.category] || null,
+				category_id:
+					missedCategoryIdByName.get(resolveRecurringCategoryName(item.expense).toLowerCase()) ?? null,
 				source: "recurring",
 				recurring_expense_id: item.expense.id,
 				notes: `Auto-created from recurring ${item.expense.category}`,

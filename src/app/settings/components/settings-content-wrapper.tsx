@@ -33,8 +33,8 @@ export function SettingsContentWrapper({ title, description, children, className
 		<div className={cn("space-y-6", className)}>
 			{/* Page Header */}
 			<div className="space-y-1">
-				<h2 className="text-2xl font-bold tracking-tight">{title}</h2>
-				{description && <p className="text-primary">{description}</p>}
+				<h2 className="type-h2">{title}</h2>
+				{description && <p className="type-body-sm text-muted-foreground">{description}</p>}
 			</div>
 
 			{/* Content Area - Auto-divides direct children */}

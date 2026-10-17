@@ -143,6 +143,7 @@ export function CategoryPerformance({
 			</div>
 
 			<DndContext
+				id="allocation-category-performance"
 				sensors={sensors}
 				collisionDetection={closestCenter}
 				onDragStart={handleDragStart}

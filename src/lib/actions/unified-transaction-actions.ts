@@ -21,6 +21,7 @@ import type { AccountWithType } from "@/app/balancesheet/types";
 import { sampleAccounts } from "@/mock-data/balancesheet";
 import { checkTransactionCaps, calculateSignedDelta } from "@/lib/account-validation-utils";
 import { Logger } from "@/lib/logger";
+import { isSampleDataMode } from "@/lib/demo-mode.server";
 
 /**
  * Create a unified transaction that updates both budget and account balance
@@ -462,7 +463,7 @@ export async function getSuggestedAccountForCategory(categoryId: string): Promis
  * Get all accounts for account selector dropdown
  */
 export async function getAccountsForSelector(): Promise<AccountWithType[]> {
-	if (process.env.NEXT_PUBLIC_USE_SAMPLE_DATA === "true") {
+	if (await isSampleDataMode()) {
 		return sampleAccounts;
 	}
 
@@ -615,7 +616,7 @@ export async function getTransactionDescriptions(): Promise<string[]> {
 			}
 		}
 
-		if (set.size === 0 || process.env.NEXT_PUBLIC_USE_SAMPLE_DATA === "true") {
+		if (set.size === 0 || (await isSampleDataMode())) {
 			defaultSuggestions.forEach((item) => set.add(item));
 		}
 

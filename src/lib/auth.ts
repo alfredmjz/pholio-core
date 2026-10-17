@@ -4,6 +4,7 @@ import { createClient } from "@/lib/supabase/server";
 import type { User } from "@supabase/supabase-js";
 import type { UserProfile } from "@/lib/getUserProfile";
 import { sampleProfile } from "@/mock-data/profile";
+import { isSampleDataMode } from "@/lib/demo-mode.server";
 
 /**
  * Result of authentication check
@@ -41,8 +42,8 @@ const mockUser: User = {
  * ```
  */
 export async function requireAuth(): Promise<AuthResult> {
-	// Early return for sample data mode
-	if (process.env.NEXT_PUBLIC_USE_SAMPLE_DATA === "true") {
+	// Early return for sample data / demo mode
+	if (await isSampleDataMode()) {
 		return {
 			user: mockUser,
 			profile: sampleProfile as UserProfile,
@@ -96,8 +97,8 @@ export async function requireAuth(): Promise<AuthResult> {
  * ```
  */
 export async function getAuth(): Promise<AuthResult | null> {
-	// Early return for sample data mode
-	if (process.env.NEXT_PUBLIC_USE_SAMPLE_DATA === "true") {
+	// Early return for sample data / demo mode
+	if (await isSampleDataMode()) {
 		return {
 			user: mockUser,
 			profile: sampleProfile as UserProfile,
@@ -127,14 +128,4 @@ export async function getAuth(): Promise<AuthResult | null> {
 		Logger.error("Error getting auth", { error });
 		return null;
 	}
-}
-
-/**
- * Checks if the current user is a guest account.
- *
- * @returns True if user is authenticated and is a guest, false otherwise
- */
-export async function isGuestUser(): Promise<boolean> {
-	const auth = await getAuth();
-	return auth?.profile.is_guest ?? false;
 }

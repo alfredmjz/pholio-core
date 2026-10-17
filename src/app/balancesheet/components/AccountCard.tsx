@@ -102,8 +102,8 @@ export function AccountCard({ account, onClick }: AccountCardProps) {
 	const { base: baseProgress, contribution: contributionProgress } = getProgressBreakdown();
 
 	const cardClasses = cn(
-		"block w-full text-left px-6 transition-all duration-200 bg-card hover:bg-accent relative hover:z-10 hover:shadow-[0_4px_24px_rgba(0,0,0,0.06)] dark:hover:shadow-[0_4px_24px_rgba(255,255,255,0.06)] min-h-[140px] flex flex-col justify-center group",
-		isDragging && "opacity-50 ring-2 ring-primary ring-offset-2 z-50 bg-accent shadow-xl scale-[1.02]"
+		"block w-full text-left px-6 transition-colors duration-200 bg-card relative z-10 min-h-[140px] flex flex-col justify-center group row-interactive",
+		isDragging && "opacity-50 ring-2 ring-primary/40 ring-offset-2 z-50 bg-card shadow-card scale-[1.02]"
 	);
 
 	const Content = (

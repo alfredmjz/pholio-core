@@ -67,7 +67,6 @@ import { DonutChart } from "@/components/common/DonutChart";
 import { EmojiPicker } from "@/components/emoji-picker";
 import { ThemeToggle } from "@/components/theme-toggle";
 import { Banner, BannerClose, BannerIcon, BannerTitle } from "@/components/ui/banner";
-import { GuestLogoutAlert } from "@/components/guest-logout-alert";
 import { DeleteConfirmDialog } from "@/components/dialogs/DeleteConfirmDialog";
 import { WelcomeCelebration } from "@/components/welcome-celebration";
 import { MetricCard } from "@/app/dashboard/components/MetricCard";
@@ -707,16 +706,12 @@ function BannerDemo() {
 }
 
 function DialogsDemo() {
-	const [guestAlertOpen, setGuestAlertOpen] = React.useState(false);
 	const [deleteConfirmOpen, setDeleteConfirmOpen] = React.useState(false);
 	const [welcomeOpen, setWelcomeOpen] = React.useState(false);
 
 	return (
 		<div className="space-y-4">
 			<div className="flex flex-wrap items-center gap-4">
-				<Button variant="outline" onClick={() => setGuestAlertOpen(true)}>
-					Guest Logout Alert
-				</Button>
 				<Button variant="destructive" onClick={() => setDeleteConfirmOpen(true)}>
 					Delete Confirmation
 				</Button>
@@ -724,15 +719,6 @@ function DialogsDemo() {
 					🎉 Welcome Celebration
 				</Button>
 			</div>
-
-			<GuestLogoutAlert
-				open={guestAlertOpen}
-				onOpenChange={setGuestAlertOpen}
-				onConfirm={() => {
-					toast.success("Logged out (demo)");
-					setGuestAlertOpen(false);
-				}}
-			/>
 
 			<DeleteConfirmDialog
 				open={deleteConfirmOpen}

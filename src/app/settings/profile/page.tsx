@@ -2,13 +2,13 @@ import { requireAuth } from "@/lib/auth";
 import { sampleUser } from "@/mock-data/user";
 import { sampleProfile } from "@/mock-data/profile";
 import ProfileInformationSection from "../components/profile-information-section";
-import GuestUpgradeCard from "../components/guest-upgrade-card";
 import { SettingsContentWrapper } from "../components/settings-content-wrapper";
+import { isSampleDataMode } from "@/lib/demo-mode.server";
 
 export default async function ProfilePage() {
 	let user, profile;
 
-	if (process.env.NEXT_PUBLIC_USE_SAMPLE_DATA === "true") {
+	if (await isSampleDataMode()) {
 		user = sampleUser;
 		profile = sampleProfile;
 	} else {
@@ -20,9 +20,6 @@ export default async function ProfilePage() {
 
 	return (
 		<SettingsContentWrapper title="Profile" description="Manage your account information and preferences">
-			{/* Guest-specific components */}
-			{profile?.is_guest && <GuestUpgradeCard />}
-
 			{/* Profile Information Section */}
 			<ProfileInformationSection profile={profile} userEmail={user.email || ""} />
 		</SettingsContentWrapper>

@@ -121,9 +121,7 @@ export function AutocompleteInput({
 							onMouseEnter={() => setHighlightedIndex(index)}
 							className={cn(
 								"w-full px-3 py-2 text-sm cursor-pointer select-none transition-colors text-left first:rounded-t-md last:rounded-b-md",
-								index === highlightedIndex
-									? "bg-accent text-accent-foreground font-medium"
-									: "hover:bg-accent hover:text-accent-foreground"
+								index === highlightedIndex ? "bg-hover text-primary font-medium" : "hover:bg-hover hover:text-primary"
 							)}
 						>
 							{suggestion}

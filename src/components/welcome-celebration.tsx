@@ -66,7 +66,7 @@ export function WelcomeCelebration({ forceOpen = false, redirectUrl }: WelcomeCe
 	if (!open) return null;
 
 	return (
-		<div className="fixed inset-0 z-50 flex items-center justify-center bg-black/80 backdrop-blur-sm animate-in fade-in duration-300">
+		<div className="fixed inset-0 z-50 flex items-center justify-center bg-overlay/80 backdrop-blur-sm animate-in fade-in duration-300">
 			{/* Wrapper for Card and Balloons - Relative container to hold them together */}
 			<div className="relative w-full max-w-md mx-4 animate-in zoom-in-95 duration-300">
 				{/* Balloons - Layer 0 (Behind Card) */}
@@ -104,14 +104,18 @@ export function WelcomeCelebration({ forceOpen = false, redirectUrl }: WelcomeCe
 						</div>
 
 						<div className="space-y-2">
-							<h2 className="text-2xl font-bold tracking-tight">Welcome to Pholio!</h2>
-							<div className="text-primary space-y-1">
+							<h2 className="type-h2">Welcome to Pholio!</h2>
+							<div className="type-body-sm text-muted-foreground space-y-1">
 								<p>Your account has been verified successfully.</p>
 								<p>You're all set to look professional.</p>
 							</div>
 						</div>
 
-						<Button onClick={handleClose} className="w-full h-12 text-base font-medium relative overflow-hidden group">
+						<Button
+							onClick={handleClose}
+							className="w-full h-12 text-base relative overflow-hidden
+ group"
+						>
 							<span className="absolute inset-0 bg-success -translate-x-full group-hover:translate-x-0 transition-transform duration-300 ease-out" />
 							<span className="relative flex items-center justify-center">
 								Let's get started <ArrowRight className="ml-2 h-6 w-6 transition-transform group-hover:translate-x-1" />

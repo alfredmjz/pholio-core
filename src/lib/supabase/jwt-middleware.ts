@@ -108,6 +108,21 @@ export async function verifySupabaseJWT(
 export function getAccessTokenFromRequest(request: NextRequest): { token: string | null; staleCookieNames: string[] } {
 	const allCookies = request.cookies.getAll();
 
+	// Only consider cookies for the currently configured Supabase project. This prevents
+	// stale sessions from a different project (e.g. after switching from a cloud project
+	// to the local stack) from being picked up and failing JWKS verification.
+	const supabaseUrl = process.env.NEXT_PUBLIC_SUPABASE_URL;
+	let expectedBase: string | null = null;
+	if (supabaseUrl) {
+		try {
+			expectedBase = `sb-${new URL(supabaseUrl).hostname.split(".")[0]}-auth-token`;
+		} catch {
+			expectedBase = null;
+		}
+	}
+	const isRelevantCookie = (name: string) =>
+		!expectedBase || name === expectedBase || name.startsWith(`${expectedBase}.`);
+
 	// Helper to extract access_token from a raw cookie string (might be JSON or encoded)
 	const extractToken = (val: string): string | null => {
 		let processed = val;
@@ -142,7 +157,9 @@ export function getAccessTokenFromRequest(request: NextRequest): { token: string
 	const items: Array<{ token: string; cookies: string[]; isValid: boolean }> = [];
 
 	// 1. Check for single auth token cookies
-	const singleCookies = allCookies.filter((c) => c.name.startsWith("sb-") && c.name.endsWith("-auth-token"));
+	const singleCookies = allCookies.filter(
+		(c) => c.name.startsWith("sb-") && c.name.endsWith("-auth-token") && isRelevantCookie(c.name)
+	);
 	for (const cookie of singleCookies) {
 		const token = extractToken(cookie.value);
 		if (token) {
@@ -157,6 +174,7 @@ export function getAccessTokenFromRequest(request: NextRequest): { token: string
 	// 2. Check for chunked cookies
 	const chunks: Map<string, Array<{ name: string; value: string }>> = new Map();
 	for (const cookie of allCookies) {
+		if (!isRelevantCookie(cookie.name)) continue;
 		const match = cookie.name.match(/^(sb-.*-auth-token)\.(\d+)$/);
 		if (match) {
 			const baseName = match[1];
@@ -209,14 +227,6 @@ export function getAccessTokenFromRequest(request: NextRequest): { token: string
  * Check if route is public (doesn't require auth)
  */
 export function isPublicRoute(pathname: string): boolean {
-	const publicRoutes = [
-		"/login",
-		"/signup",
-		"/forgot-password",
-		"/reset-password",
-		"/auth/callback",
-		"/api/auth",
-		"/api/cron",
-	];
+	const publicRoutes = ["/login", "/confirm", "/welcome", "/error", "/auth/callback", "/api/auth", "/api/cron"];
 	return publicRoutes.some((route) => pathname.startsWith(route));
 }

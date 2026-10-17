@@ -135,7 +135,7 @@ export function ExportDialog({ open, onOpenChange, currentYear, currentMonth }: 
 		try {
 			if (isGuest) {
 				const confirmed = window.confirm(
-					"You need to be registered user with Google Account connected to export to Google Sheets. Proceed to register?"
+					"You need an account with Google connected to export to Google Sheets. Continue to sign in?"
 				);
 
 				if (!confirmed) {
@@ -143,9 +143,9 @@ export function ExportDialog({ open, onOpenChange, currentYear, currentMonth }: 
 					return;
 				}
 
-				// Redirect to signup
+				// Redirect to the magic-link sign-in, which also creates accounts.
 				localStorage.setItem("pendingGoogleExport", "true");
-				router.push("/signup");
+				router.push("/login");
 				return;
 			}
 

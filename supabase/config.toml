@@ -57,10 +57,11 @@ schema_paths = []
 
 [db.seed]
 # If enabled, seeds the database after migrations during a db reset.
-enabled = true
+# Disabled: there is no seed file; sample data is applied manually via sample_data.sql.
+enabled = false
 # Specifies an ordered list of seed files to load during db reset.
 # Supports glob patterns relative to supabase directory: "./seeds/*.sql"
-sql_paths = ["./seed.sql"]
+sql_paths = []
 
 [db.network_restrictions]
 # Enable management of network restrictions.
@@ -147,7 +148,18 @@ enabled = true
 # in emails.
 site_url = "http://127.0.0.1:3000"
 # A list of *exact* URLs that auth providers are permitted to redirect to post authentication.
-additional_redirect_urls = ["https://127.0.0.1:3000", "http://127.0.0.1:3000", "http://localhost:3000", "http://localhost:3000/auth/callback", "http://127.0.0.1:3000/auth/callback"]
+additional_redirect_urls = [
+  "https://127.0.0.1:3000",
+  "http://127.0.0.1:3000/**",
+  "http://localhost:3000/**",
+  "http://localhost:3000/auth/callback",
+  "http://127.0.0.1:3000/auth/callback",
+  "http://localhost:3000/confirm",
+  "http://127.0.0.1:3000/confirm",
+  "https://pholio.ca/**",
+  "https://pholio.ca/confirm",
+  "https://pholio.ca/auth/callback",
+]
 # How long tokens are valid for, in seconds. Defaults to 3600 (1 hour), maximum 604,800 (1 week).
 jwt_expiry = 3600
 # Allow/force a specific algorithm.
@@ -218,9 +230,12 @@ content_path = "./supabase/templates/confirmation.html"
 [auth.email.template.recovery]
 content_path = "./supabase/templates/recovery.html"
 
-# Use Resend for production-ready SMTP
+# Local development uses the CLI's built-in Mailpit SMTP (http://127.0.0.1:54324).
+# Production SMTP (Resend) is configured in the Supabase dashboard, not in this file.
+# Enabling this block locally requires a valid RESEND_API_KEY or GoTrue returns
+# `535 Authentication credentials invalid` when sending magic links.
 [auth.email.smtp]
-enabled = true
+enabled = false
 host = "smtp.resend.com"
 port = 465
 user = "resend"

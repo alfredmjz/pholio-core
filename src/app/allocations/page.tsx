@@ -13,6 +13,7 @@ import {
 import { getAccountsForSelector } from "@/lib/actions/unified-transaction-actions";
 import { getAllocationSettings, getTimezone } from "@/app/settings/actions";
 import { AllocationsLoadingSkeleton } from "./components/allocations-loading-skeleton";
+import { isSampleDataMode } from "@/lib/demo-mode.server";
 
 export default async function AllocationsPage({
 	searchParams,
@@ -36,7 +37,9 @@ export default async function AllocationsPage({
 }
 
 async function AllocationsLoader({ year, month }: { year: number; month: number }) {
-	if (process.env.NEXT_PUBLIC_USE_SAMPLE_DATA !== "true") {
+	const sampleMode = await isSampleDataMode();
+
+	if (!sampleMode) {
 		await requireAuth();
 	}
 
@@ -55,7 +58,7 @@ async function AllocationsLoader({ year, month }: { year: number; month: number 
 		getTimezone(),
 	]);
 
-	if (process.env.NEXT_PUBLIC_USE_SAMPLE_DATA === "true") {
+	if (sampleMode) {
 		await new Promise((resolve) => setTimeout(resolve, 2000));
 
 		const mockData = require("@/mock-data/allocations").getSmartMockData(year, month);

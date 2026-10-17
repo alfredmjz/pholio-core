@@ -7,8 +7,18 @@ const config: Config = {
 		extend: {
 			colors: {
 				background: "hsl(var(--background))",
-				border: "hsl(var(--border))",
+				border: {
+					DEFAULT: "hsl(var(--border))",
+					strong: "hsl(var(--border-strong))",
+				},
 				ring: "hsl(var(--ring))",
+				overlay: "hsl(var(--overlay))",
+				field: {
+					DEFAULT: "hsl(var(--field-bg))",
+					border: "hsl(var(--field-border))",
+					placeholder: "hsl(var(--field-placeholder))",
+					focus: "hsl(var(--field-focus))",
+				},
 				text: {
 					DEFAULT: "hsl(var(--text-primary))",
 					muted: "hsl(var(--text-muted))",
@@ -77,7 +87,79 @@ const config: Config = {
 				sm: "calc(var(--radius) - 4px)",
 			},
 			fontFamily: {
-				sans: ["Geist", "serif"],
+				sans: ["Instrument Sans", "Geist", "ui-sans-serif", "system-ui", "sans-serif"],
+			},
+			fontSize: {
+				display: [
+					"var(--type-display-size)",
+					{
+						lineHeight: "var(--type-display-leading)",
+						letterSpacing: "var(--type-display-tracking)",
+						fontWeight: "var(--type-display-weight)",
+					},
+				],
+				h1: [
+					"var(--type-h1-size)",
+					{
+						lineHeight: "var(--type-h1-leading)",
+						letterSpacing: "var(--type-h1-tracking)",
+						fontWeight: "var(--type-h1-weight)",
+					},
+				],
+				h2: [
+					"var(--type-h2-size)",
+					{
+						lineHeight: "var(--type-h2-leading)",
+						letterSpacing: "var(--type-h2-tracking)",
+						fontWeight: "var(--type-h2-weight)",
+					},
+				],
+				h3: [
+					"var(--type-h3-size)",
+					{
+						lineHeight: "var(--type-h3-leading)",
+						letterSpacing: "var(--type-h3-tracking)",
+						fontWeight: "var(--type-h3-weight)",
+					},
+				],
+				h4: [
+					"var(--type-h4-size)",
+					{
+						lineHeight: "var(--type-h4-leading)",
+						letterSpacing: "var(--type-h4-tracking)",
+						fontWeight: "var(--type-h4-weight)",
+					},
+				],
+				"body-lg": ["var(--type-body-lg-size)", { lineHeight: "var(--type-body-lg-leading)" }],
+				body: ["var(--type-body-size)", { lineHeight: "var(--type-body-leading)" }],
+				"body-sm": ["var(--type-body-sm-size)", { lineHeight: "var(--type-body-sm-leading)" }],
+				"body-xs": ["var(--type-body-xs-size)", { lineHeight: "var(--type-body-xs-leading)" }],
+				label: [
+					"var(--type-label-size)",
+					{
+						lineHeight: "var(--type-label-leading)",
+						letterSpacing: "var(--type-label-tracking)",
+						fontWeight: "var(--type-label-weight)",
+					},
+				],
+				caption: ["var(--type-caption-size)", { lineHeight: "var(--type-caption-leading)" }],
+				control: [
+					"var(--type-control-size)",
+					{ lineHeight: "var(--type-control-leading)", fontWeight: "var(--type-control-weight)" },
+				],
+				value: ["var(--type-value-size)", { lineHeight: "var(--type-control-leading)" }],
+				stat: [
+					"var(--type-stat-size)",
+					{
+						lineHeight: "var(--type-stat-leading)",
+						letterSpacing: "var(--type-stat-tracking)",
+						fontWeight: "var(--type-stat-weight)",
+					},
+				],
+			},
+			boxShadow: {
+				card: "var(--shadow-card)",
+				raised: "var(--shadow-raised)",
 			},
 		},
 	},
@@ -85,4 +167,3 @@ const config: Config = {
 };
 
 export default config;
-

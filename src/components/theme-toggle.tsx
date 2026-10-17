@@ -33,7 +33,7 @@ export function ThemeToggle({ isCollapsed }: ThemeToggleProps) {
 					<Button
 						variant="ghost"
 						size="icon"
-						className="w-8 h-8 rounded-md bg-transparent hover:bg-accent hover:text-accent-foreground transition-colors"
+						className="w-8 h-8 rounded-md bg-transparent hover:bg-background hover:text-primary transition-colors"
 						aria-label="Toggle theme"
 					>
 						<ThemeIcon className="h-4 w-4" />
@@ -46,7 +46,7 @@ export function ThemeToggle({ isCollapsed }: ThemeToggleProps) {
 							variant="ghost"
 							size="sm"
 							onClick={() => setTheme("light")}
-							className={cn("justify-start gap-2 h-8 px-2 w-full", theme === "light" && "bg-accent text-primary")}
+							className={cn("justify-start gap-2 h-8 px-2 w-full", theme === "light" && "bg-secondary text-primary")}
 						>
 							<Sun className="h-4 w-4" />
 							<span>Light</span>
@@ -55,7 +55,7 @@ export function ThemeToggle({ isCollapsed }: ThemeToggleProps) {
 							variant="ghost"
 							size="sm"
 							onClick={() => setTheme("dark")}
-							className={cn("justify-start gap-2 h-8 px-2 w-full", theme === "dark" && "bg-accent text-primary")}
+							className={cn("justify-start gap-2 h-8 px-2 w-full", theme === "dark" && "bg-secondary text-primary")}
 						>
 							<Moon className="h-4 w-4" />
 							<span>Dark</span>
@@ -64,7 +64,7 @@ export function ThemeToggle({ isCollapsed }: ThemeToggleProps) {
 							variant="ghost"
 							size="sm"
 							onClick={() => setTheme("system")}
-							className={cn("justify-start gap-2 h-8 px-2 w-full", theme === "system" && "bg-accent text-primary")}
+							className={cn("justify-start gap-2 h-8 px-2 w-full", theme === "system" && "bg-secondary text-primary")}
 						>
 							<Monitor className="h-4 w-4" />
 							<span>System</span>
@@ -83,8 +83,8 @@ export function ThemeToggle({ isCollapsed }: ThemeToggleProps) {
 				type="button"
 				onClick={() => setTheme("light")}
 				className={cn(
-					"relative h-auto w-auto p-1.5 rounded-full text-primary transition-all duration-200 hover:bg-accent hover:text-accent-foreground",
-					theme === "light" && "bg-background shadow-sm ring-1 ring-black/5"
+					"relative h-auto w-auto p-1.5 rounded-full text-primary transition-all duration-200 hover:bg-card hover:text-primary",
+					theme === "light" && "bg-background shadow-sm ring-1 ring-border/60"
 				)}
 				aria-label="Light theme"
 			>
@@ -96,8 +96,8 @@ export function ThemeToggle({ isCollapsed }: ThemeToggleProps) {
 				type="button"
 				onClick={() => setTheme("dark")}
 				className={cn(
-					"relative h-auto w-auto p-1.5 rounded-full text-primary transition-all duration-200 hover:bg-accent hover:text-accent-foreground",
-					theme === "dark" && "bg-background shadow-sm ring-1 ring-black/5"
+					"relative h-auto w-auto p-1.5 rounded-full text-primary transition-all duration-200 hover:bg-card hover:text-primary",
+					theme === "dark" && "bg-background shadow-sm ring-1 ring-border/60"
 				)}
 				aria-label="Dark theme"
 			>
@@ -109,8 +109,8 @@ export function ThemeToggle({ isCollapsed }: ThemeToggleProps) {
 				type="button"
 				onClick={() => setTheme("system")}
 				className={cn(
-					"relative h-auto w-auto p-1.5 rounded-full text-primary transition-all duration-200 hover:bg-accent hover:text-accent-foreground",
-					theme === "system" && "bg-background shadow-sm ring-1 ring-black/5"
+					"relative h-auto w-auto p-1.5 rounded-full text-primary transition-all duration-200 hover:bg-card hover:text-primary",
+					theme === "system" && "bg-background shadow-sm ring-1 ring-border/60"
 				)}
 				aria-label="System theme"
 			>

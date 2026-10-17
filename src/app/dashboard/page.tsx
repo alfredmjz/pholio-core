@@ -1,6 +1,7 @@
 import { getDashboardData } from "./actions";
 import { DashboardClient } from "./client";
-import { sampleDashboardData } from "@/mock-data/dashboard";
+import { getSampleDashboardData } from "@/mock-data/dashboard";
+import { isSampleDataMode } from "@/lib/demo-mode.server";
 
 export const metadata = {
 	title: "Dashboard | Pholio",
@@ -9,8 +10,8 @@ export const metadata = {
 
 export default async function DashboardPage() {
 	let dashboardData;
-	if (process.env.NEXT_PUBLIC_USE_SAMPLE_DATA === "true") {
-		dashboardData = sampleDashboardData;
+	if (await isSampleDataMode()) {
+		dashboardData = getSampleDashboardData();
 	} else {
 		dashboardData = await getDashboardData();
 	}

@@ -3,6 +3,7 @@
 import { createClient } from "@/lib/supabase/server";
 import { revalidatePath } from "next/cache";
 import { Logger } from "@/lib/logger";
+import { isSampleDataMode } from "@/lib/demo-mode.server";
 import type { AccountPromotion, CreatePromotionInput, UpdatePromotionInput } from "@/app/balancesheet/types";
 import { getTodayDateString } from "@/lib/date-utils";
 
@@ -32,7 +33,7 @@ let samplePromotionsStore: Record<string, AccountPromotion[]> = {
  * Fetch promotions for a specific account
  */
 export async function getAccountPromotions(accountId: string): Promise<AccountPromotion[]> {
-	if (process.env.NEXT_PUBLIC_USE_SAMPLE_DATA === "true") {
+	if (await isSampleDataMode()) {
 		return samplePromotionsStore[accountId] || [];
 	}
 
@@ -69,7 +70,7 @@ export async function getAccountPromotions(accountId: string): Promise<AccountPr
 export async function createAccountPromotion(input: CreatePromotionInput): Promise<AccountPromotion | null> {
 	const startDate = input.start_date || getTodayDateString();
 
-	if (process.env.NEXT_PUBLIC_USE_SAMPLE_DATA === "true") {
+	if (await isSampleDataMode()) {
 		const newPromo: AccountPromotion = {
 			id: `promo-${Date.now()}`,
 			account_id: input.account_id,
@@ -137,7 +138,7 @@ export async function createAccountPromotion(input: CreatePromotionInput): Promi
  * Update an existing promotion
  */
 export async function updateAccountPromotion(id: string, input: UpdatePromotionInput): Promise<boolean> {
-	if (process.env.NEXT_PUBLIC_USE_SAMPLE_DATA === "true") {
+	if (await isSampleDataMode()) {
 		Object.keys(samplePromotionsStore).forEach((accId) => {
 			samplePromotionsStore[accId] = samplePromotionsStore[accId].map((p) => {
 				if (p.id === id) {
@@ -177,7 +178,7 @@ export async function updateAccountPromotion(id: string, input: UpdatePromotionI
  * Delete a promotion
  */
 export async function deleteAccountPromotion(id: string): Promise<boolean> {
-	if (process.env.NEXT_PUBLIC_USE_SAMPLE_DATA === "true") {
+	if (await isSampleDataMode()) {
 		Object.keys(samplePromotionsStore).forEach((accId) => {
 			samplePromotionsStore[accId] = samplePromotionsStore[accId].filter((p) => p.id !== id);
 		});
@@ -216,7 +217,7 @@ export async function deleteAccountPromotion(id: string): Promise<boolean> {
  * after a promotion definition changes (dates, target or type).
  */
 export async function refreshAccountPromotions(accountId: string): Promise<void> {
-	if (process.env.NEXT_PUBLIC_USE_SAMPLE_DATA === "true") return;
+	if (await isSampleDataMode()) return;
 
 	try {
 		const supabase = await createClient();

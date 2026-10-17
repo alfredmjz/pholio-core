@@ -5,10 +5,11 @@ import { revalidatePath } from "next/cache";
 import {
 	sampleAccounts,
 	sampleAccountTypes,
-	sampleAccountTransactions,
-	sampleAccountHistory,
+	getSampleAccountTransactions,
+	getSampleAccountHistory,
 } from "@/mock-data/balancesheet";
 import { Logger } from "@/lib/logger";
+import { isSampleDataMode } from "@/lib/demo-mode.server";
 
 import type {
 	Account,
@@ -29,7 +30,7 @@ import type {
  * Get all available account types (system + user-created)
  */
 export async function getAccountTypes(): Promise<AccountType[]> {
-	if (process.env.NEXT_PUBLIC_USE_SAMPLE_DATA === "true") {
+	if (await isSampleDataMode()) {
 		return sampleAccountTypes;
 	}
 	const supabase = await createClient();
@@ -59,7 +60,7 @@ export async function getAccountTypes(): Promise<AccountType[]> {
  * TODO(#99-cleanup): delete along with the banner/dialog once the result set is empty.
  */
 export async function getAccountsNeedingTypeMigration(): Promise<AccountTypeMigrationItem[]> {
-	if (process.env.NEXT_PUBLIC_USE_SAMPLE_DATA === "true") return [];
+	if (await isSampleDataMode()) return [];
 
 	const supabase = await createClient();
 	const {
@@ -112,7 +113,7 @@ function suggestCodeForLegacyCategory(category?: string | null): AccountTypeCode
  * an explicit selection per account.
  */
 export async function migrateAccountTypes(updates: AccountTypeMigrationUpdate[]): Promise<boolean> {
-	if (process.env.NEXT_PUBLIC_USE_SAMPLE_DATA === "true") return false;
+	if (await isSampleDataMode()) return false;
 	if (updates.length === 0) return true;
 
 	const supabase = await createClient();
@@ -147,7 +148,7 @@ export async function migrateAccountTypes(updates: AccountTypeMigrationUpdate[])
  * Get all active accounts with their types
  */
 export async function getAccounts(): Promise<AccountWithType[]> {
-	if (process.env.NEXT_PUBLIC_USE_SAMPLE_DATA === "true") {
+	if (await isSampleDataMode()) {
 		return sampleAccounts;
 	}
 	const supabase = await createClient();
@@ -184,7 +185,7 @@ export async function getAccounts(): Promise<AccountWithType[]> {
  * Get a single account by ID with its type
  */
 export async function getAccountById(id: string): Promise<AccountWithType | null> {
-	if (process.env.NEXT_PUBLIC_USE_SAMPLE_DATA === "true") {
+	if (await isSampleDataMode()) {
 		return sampleAccounts.find((acc) => acc.id === id) || null;
 	}
 	const supabase = await createClient();
@@ -317,7 +318,7 @@ export async function getBalanceSheetSummary(): Promise<BalanceSheetSummary> {
 }
 
 export async function createAccount(input: CreateAccountInput): Promise<AccountWithType | null> {
-	if (process.env.NEXT_PUBLIC_USE_SAMPLE_DATA === "true") {
+	if (await isSampleDataMode()) {
 		return buildSampleAccount(input);
 	}
 
@@ -398,7 +399,7 @@ function buildSampleAccount(input: CreateAccountInput, id = `account-sample-${Da
  * Update an existing account
  */
 export async function updateAccount(id: string, input: UpdateAccountInput): Promise<Account | null> {
-	if (process.env.NEXT_PUBLIC_USE_SAMPLE_DATA === "true") {
+	if (await isSampleDataMode()) {
 		const existing = sampleAccounts.find((account) => account.id === id);
 		if (!existing) return null;
 		return { ...existing, ...input, updated_at: new Date().toISOString() };
@@ -434,7 +435,7 @@ export async function updateAccount(id: string, input: UpdateAccountInput): Prom
  * Soft delete an account (set is_active = false)
  */
 export async function deleteAccount(id: string): Promise<boolean> {
-	if (process.env.NEXT_PUBLIC_USE_SAMPLE_DATA === "true") {
+	if (await isSampleDataMode()) {
 		return true;
 	}
 
@@ -467,7 +468,7 @@ export async function deleteAccount(id: string): Promise<boolean> {
  */
 export async function reorderAccounts(accountOrders: { id: string; display_order: number }[]): Promise<boolean> {
 	// Handle sample data mode
-	if (process.env.NEXT_PUBLIC_USE_SAMPLE_DATA === "true") {
+	if (await isSampleDataMode()) {
 		return true;
 	}
 
@@ -593,8 +594,8 @@ export async function recordTransaction(input: RecordTransactionInput): Promise<
  * Get transactions for an account
  */
 export async function getAccountTransactions(accountId: string, limit: number = 50): Promise<AccountTransaction[]> {
-	if (process.env.NEXT_PUBLIC_USE_SAMPLE_DATA === "true") {
-		return sampleAccountTransactions[accountId] || [];
+	if (await isSampleDataMode()) {
+		return getSampleAccountTransactions()[accountId] || [];
 	}
 
 	const supabase = await createClient();
@@ -627,8 +628,8 @@ export async function getAccountTransactions(accountId: string, limit: number = 
  * Get account history for charting
  */
 export async function getAccountHistory(accountId: string, limit: number = 30): Promise<AccountHistory[]> {
-	if (process.env.NEXT_PUBLIC_USE_SAMPLE_DATA === "true") {
-		return sampleAccountHistory[accountId] || [];
+	if (await isSampleDataMode()) {
+		return getSampleAccountHistory()[accountId] || [];
 	}
 	const supabase = await createClient();
 	const {
@@ -777,7 +778,7 @@ export interface RecentActivityItem {
  * Get recent activity across all accounts (transactions + account creations)
  */
 export async function getRecentActivity(limit: number = 10): Promise<RecentActivityItem[]> {
-	if (process.env.NEXT_PUBLIC_USE_SAMPLE_DATA === "true") {
+	if (await isSampleDataMode()) {
 		return [];
 	}
 

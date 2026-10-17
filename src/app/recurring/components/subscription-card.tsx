@@ -96,7 +96,7 @@ export function SubscriptionCard({ subscription, onDelete, onUpdate, categoryOpt
 
 	return (
 		<>
-			<Card className="group relative transition-all duration-200 hover:shadow-md hover:border-primary hover:ring-1 hover:ring-primary border-border/60">
+			<Card className="group relative card-interactive">
 				<CardContent className="p-6 flex flex-col sm:flex-row sm:items-center justify-between gap-6">
 					<div className="flex items-center gap-5">
 						<div className="h-14 w-14 flex-shrink-0 shadow-md rounded-full overflow-hidden ">
@@ -143,7 +143,7 @@ export function SubscriptionCard({ subscription, onDelete, onUpdate, categoryOpt
 								checked={isActive}
 								onCheckedChange={handleToggle}
 								disabled={isLoading || isDeleting}
-								className={cn("data-[state=checked]:bg-green-500", (isLoading || isDeleting) && "opacity-50")}
+								className={cn((isLoading || isDeleting) && "opacity-50")}
 							/>
 
 							<DropdownMenu>

@@ -115,7 +115,7 @@ export default function ProfileInformationCard({ profile, userEmail }: ProfileIn
 						<div
 							className={cn(
 								"flex items-center justify-between p-3 rounded-md border bg-card transition-colors group",
-								profile?.is_guest ? "opacity-60 cursor-not-allowed" : "hover:bg-accent/50"
+								profile?.is_guest ? "opacity-60 cursor-not-allowed" : "hover:bg-hover"
 							)}
 						>
 							<div>

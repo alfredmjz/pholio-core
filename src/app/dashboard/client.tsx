@@ -1,6 +1,6 @@
 "use client";
 
-import { useState } from "react";
+import { useState, useEffect } from "react";
 import { useRouter } from "next/navigation";
 import { MetricCard } from "./components/MetricCard";
 import { CashflowWidget } from "./components/CashflowWidget";
@@ -12,6 +12,8 @@ import { TrendingUp, Wallet, CreditCard, PiggyBank } from "lucide-react";
 import type { DashboardData, Period, ChartType } from "./types";
 import { getDashboardData } from "./actions";
 import { useServerSyncedData } from "@/hooks/useServerSyncedData";
+import { isDemoModeActive } from "@/lib/demo-mode";
+import { useDemoStore } from "@/lib/demo-store";
 
 interface DashboardClientProps {
 	initialData: DashboardData;
@@ -24,6 +26,14 @@ export function DashboardClient({ initialData }: DashboardClientProps) {
 
 	const [cashflowPeriod, setCashflowPeriod] = useState<Period>("month");
 	const [netWorthChartType, setNetWorthChartType] = useState<ChartType>("donut");
+
+	const [isDemo, setIsDemo] = useState(false);
+	const demoTransactions = useDemoStore((state) => state.transactions);
+	const recentTransactions = isDemo ? demoTransactions : data.recentTransactions;
+
+	useEffect(() => {
+		setIsDemo(isDemoModeActive());
+	}, []);
 
 	// Dialog states for empty state actions
 	const [addAccountOpen, setAddAccountOpen] = useState(false);
@@ -54,8 +64,8 @@ export function DashboardClient({ initialData }: DashboardClientProps) {
 			{/* Page Header */}
 			<div className="flex items-center justify-between">
 				<div>
-					<h1 className="text-3xl font-bold tracking-tight text-primary">Dashboard</h1>
-					<p className="text-sm text-primary mt-1">Your financial overview at a glance</p>
+					<h1 className="type-h1 text-primary">Dashboard</h1>
+					<p className="type-body-sm mt-1 text-muted-foreground">Your financial overview at a glance</p>
 				</div>
 			</div>
 
@@ -117,7 +127,7 @@ export function DashboardClient({ initialData }: DashboardClientProps) {
 			</div>
 
 			{/* Recent Transactions */}
-			<RecentTransactions transactions={data.recentTransactions} onViewAll={handleViewAllTransactions} />
+			<RecentTransactions transactions={recentTransactions} onViewAll={handleViewAllTransactions} />
 
 			{/* Dialogs for empty state actions */}
 			<AddAccountDialog open={addAccountOpen} onOpenChange={setAddAccountOpen} onSuccess={handleAddAccountSuccess} />

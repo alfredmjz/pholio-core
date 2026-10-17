@@ -3,6 +3,7 @@
 import { createClient } from "@/lib/supabase/server";
 import { revalidatePath } from "next/cache";
 import { Logger } from "@/lib/logger";
+import { isSampleDataMode } from "@/lib/demo-mode.server";
 import { UnifiedTransactionInput } from "@/lib/types/unified-transaction";
 import { createUnifiedTransaction } from "@/lib/actions/unified-transaction-actions";
 
@@ -42,7 +43,7 @@ let mockPresets: TransactionPreset[] = [
  * Get all presets for the current user
  */
 export async function getTransactionPresets(): Promise<{ success: boolean; data?: TransactionPreset[]; error?: string }> {
-	if (process.env.NEXT_PUBLIC_USE_SAMPLE_DATA === "true") {
+	if (await isSampleDataMode()) {
 		return { success: true, data: mockPresets };
 	}
 
@@ -84,7 +85,7 @@ export async function getTransactionPresets(): Promise<{ success: boolean; data?
  * Create a new preset
  */
 export async function createTransactionPreset(input: CreateTransactionPresetInput): Promise<{ success: boolean; data?: TransactionPreset; error?: string }> {
-	if (process.env.NEXT_PUBLIC_USE_SAMPLE_DATA === "true") {
+	if (await isSampleDataMode()) {
 		const newPreset: TransactionPreset = {
 			...input,
 			id: `mock-preset-${Date.now()}`,
@@ -134,7 +135,7 @@ export async function createTransactionPreset(input: CreateTransactionPresetInpu
  * Update a preset
  */
 export async function updateTransactionPreset(id: string, input: CreateTransactionPresetInput): Promise<{ success: boolean; data?: TransactionPreset; error?: string }> {
-	if (process.env.NEXT_PUBLIC_USE_SAMPLE_DATA === "true") {
+	if (await isSampleDataMode()) {
 		mockPresets = mockPresets.map((p) => (p.id === id ? { ...p, ...input, updated_at: new Date().toISOString() } : p));
 		revalidatePath("/allocations");
 		return { success: true };
@@ -176,7 +177,7 @@ export async function updateTransactionPreset(id: string, input: CreateTransacti
  * Delete a preset
  */
 export async function deleteTransactionPreset(id: string): Promise<{ success: boolean; error?: string }> {
-	if (process.env.NEXT_PUBLIC_USE_SAMPLE_DATA === "true") {
+	if (await isSampleDataMode()) {
 		mockPresets = mockPresets.filter((p) => p.id !== id);
 		revalidatePath("/allocations");
 		return { success: true };

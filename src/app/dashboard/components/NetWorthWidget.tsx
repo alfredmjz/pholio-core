@@ -5,6 +5,7 @@ import { Card } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
 import { ToggleGroup, ToggleGroupItem } from "@/components/ui/toggle-group";
 import { cn } from "@/lib/utils";
+import { formatCompactCurrency } from "@/lib/format-utils";
 import { formatCurrency } from "@/app/dashboard/utils";
 import {
 	TrendingUp,
@@ -159,20 +160,13 @@ export function NetWorthWidget({
 					type="single"
 					value={chartType}
 					onValueChange={(value) => value && onChartTypeChange(value as ChartType)}
-					className="bg-muted rounded-lg p-1"
+					variant="segmented"
+					className="rounded-lg border border-border/60 bg-background p-1"
 				>
-					<ToggleGroupItem
-						value="donut"
-						className="p-2 data-[state=on]:bg-card data-[state=on]:shadow-sm"
-						title="Breakdown view"
-					>
+					<ToggleGroupItem value="donut" className="p-2" title="Breakdown view">
 						<PieChart className="h-4 w-4" />
 					</ToggleGroupItem>
-					<ToggleGroupItem
-						value="trend"
-						className="p-2 data-[state=on]:bg-card data-[state=on]:shadow-sm"
-						title="Trend view"
-					>
+					<ToggleGroupItem value="trend" className="p-2" title="Trend view">
 						<LineChart className="h-4 w-4" />
 					</ToggleGroupItem>
 				</ToggleGroup>
@@ -196,12 +190,7 @@ export function NetWorthWidget({
 					{/* Chart Area */}
 					{chartType === "donut" ? (
 						<div className="h-56 flex items-center justify-center">
-							<DonutChart
-								data={donutData}
-								size={40}
-								centerContent={CenterContent}
-								showTooltip={true}
-							/>
+							<DonutChart data={donutData} size={40} centerContent={CenterContent} showTooltip={true} />
 						</div>
 					) : (
 						<TrendChart data={trendData || []} />
@@ -258,15 +247,6 @@ export function NetWorthWidget({
 }
 
 function TrendChart({ data }: { data: { date: string; value: number }[] }) {
-	const formatCompactCurrency = (value: number) => {
-		return new Intl.NumberFormat("en-US", {
-			style: "currency",
-			currency: "USD",
-			notation: "compact",
-			maximumFractionDigits: 1,
-		}).format(value);
-	};
-
 	if (data.length === 0) {
 		return (
 			<div className="h-56 flex flex-col items-center justify-center text-center">
@@ -428,7 +408,7 @@ function EmptyState({ onAddAccount }: { onAddAccount?: () => void }) {
 			<p className="text-sm text-primary mb-4 max-w-sm">
 				Add your assets and liabilities to track your financial health
 			</p>
-			<Button size="sm" className="gap-2 bg-green-600 hover:bg-green-700 text-white" onClick={onAddAccount}>
+			<Button size="sm" className="gap-2" onClick={onAddAccount}>
 				<Plus className="h-4 w-4" />
 				Add Account
 			</Button>

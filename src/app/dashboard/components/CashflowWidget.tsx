@@ -106,24 +106,16 @@ export function CashflowWidget({
 					type="single"
 					value={selectedPeriod}
 					onValueChange={(value) => value && onPeriodChange(value as Period)}
-					className="bg-muted rounded-lg p-1"
+					variant="segmented"
+					className="rounded-lg border border-border/60 bg-background p-1"
 				>
-					<ToggleGroupItem
-						value="month"
-						className="text-xs px-3 py-1.5 data-[state=on]:bg-card data-[state=on]:shadow-sm"
-					>
+					<ToggleGroupItem value="month" className="px-3 py-1.5 text-xs">
 						Month
 					</ToggleGroupItem>
-					<ToggleGroupItem
-						value="quarter"
-						className="text-xs px-3 py-1.5 data-[state=on]:bg-card data-[state=on]:shadow-sm"
-					>
+					<ToggleGroupItem value="quarter" className="px-3 py-1.5 text-xs">
 						Quarter
 					</ToggleGroupItem>
-					<ToggleGroupItem
-						value="year"
-						className="text-xs px-3 py-1.5 data-[state=on]:bg-card data-[state=on]:shadow-sm"
-					>
+					<ToggleGroupItem value="year" className="px-3 py-1.5 text-xs">
 						Year
 					</ToggleGroupItem>
 				</ToggleGroup>
@@ -200,7 +192,7 @@ function EmptyState({ onAddTransaction }: { onAddTransaction?: () => void }) {
 			<p className="text-sm text-primary mb-4 max-w-sm">
 				Start tracking your income and expenses to see your cashflow trends
 			</p>
-			<Button size="sm" className="gap-2 bg-green-600 hover:bg-green-700 text-white" onClick={onAddTransaction}>
+			<Button size="sm" className="gap-2" onClick={onAddTransaction}>
 				<Plus className="h-4 w-4" />
 				Add Transaction
 			</Button>

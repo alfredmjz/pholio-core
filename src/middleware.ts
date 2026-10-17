@@ -1,5 +1,6 @@
 import { NextResponse, type NextRequest } from "next/server";
 import { updateSession } from "@/lib/supabase/middleware";
+import { DEMO_COOKIE } from "@/lib/demo-mode";
 
 /*
  * Server Components can't write cookies, this refresh expired Auth tokens and store them
@@ -7,6 +8,11 @@ import { updateSession } from "@/lib/supabase/middleware";
 export async function middleware(request: NextRequest) {
 	// Skip auth session update if using sample data to avoid fetch errors when offline/unconfigured
 	if (process.env.NEXT_PUBLIC_USE_SAMPLE_DATA === "true") {
+		return NextResponse.next({ request });
+	}
+
+	// Demo mode: allow unauthenticated visitors to browse with prefilled data.
+	if (request.cookies.get(DEMO_COOKIE)?.value === "1") {
 		return NextResponse.next({ request });
 	}
 

@@ -7,6 +7,7 @@ import type {
 	AccountHistory,
 } from "@/app/balancesheet/types";
 import type { RecentActivityItem } from "@/app/balancesheet/actions";
+import { getDemoNow, daysBefore, toDateOnly } from "./demo-date";
 
 // Sample account types (mimicking system defaults)
 export const sampleAccountTypes: AccountType[] = [
@@ -298,10 +299,9 @@ export const sampleAccounts: AccountWithType[] = [
 	},
 ];
 
-// Helper to generate mock historical data for last 30 days
-const generateHistoricalData = (startValue: number, endValue: number, variance: number = 0.01) => {
+// Helper to generate mock historical data for the last 30 days
+const generateHistoricalData = (startValue: number, endValue: number, variance: number = 0.01, now: Date = getDemoNow()) => {
 	const points: HistoricalDataPoint[] = [];
-	const now = new Date();
 	const steps = 30;
 
 	for (let i = steps; i >= 0; i--) {
@@ -314,7 +314,7 @@ const generateHistoricalData = (startValue: number, endValue: number, variance: 
 		const noise = baseValue * (Math.random() * variance * 2 - variance);
 
 		points.push({
-			date: date.toISOString().split("T")[0],
+			date: toDateOnly(date),
 			value: Math.round(baseValue + noise),
 			hasActivity: Math.random() > 0.8, // Simulate activity on ~20% of days
 		});
@@ -322,173 +322,153 @@ const generateHistoricalData = (startValue: number, endValue: number, variance: 
 	return points;
 };
 
-export const sampleBalanceSheetSummary: BalanceSheetSummary = {
-	totalAssets: 85600,
-	totalLiabilities: 20950,
-	netWorth: 64650,
-	previousTotalAssets: 82500,
-	previousTotalLiabilities: 21200,
-	previousNetWorth: 61300,
-	historicalAssets: generateHistoricalData(81000, 85600, 0.005),
-	historicalLiabilities: generateHistoricalData(21500, 20950, 0.003),
-	assetAccounts: sampleAccounts.filter((acc) => acc.account_type?.class === "asset"),
-	liabilityAccounts: sampleAccounts.filter((acc) => acc.account_type?.class === "liability"),
-};
+export function getSampleBalanceSheetSummary(now: Date = getDemoNow()): BalanceSheetSummary {
+	return {
+		totalAssets: 85600,
+		totalLiabilities: 20950,
+		netWorth: 64650,
+		previousTotalAssets: 82500,
+		previousTotalLiabilities: 21200,
+		previousNetWorth: 61300,
+		historicalAssets: generateHistoricalData(81000, 85600, 0.005, now),
+		historicalLiabilities: generateHistoricalData(21500, 20950, 0.003, now),
+		assetAccounts: sampleAccounts.filter((acc) => acc.account_type?.class === "asset"),
+		liabilityAccounts: sampleAccounts.filter((acc) => acc.account_type?.class === "liability"),
+	};
+}
 
-export const sampleAccountTransactions: Record<string, AccountTransaction[]> = {
-	"acc-1": [
-		{
-			id: "txn-1",
-			account_id: "acc-1",
-			user_id: "sample-user",
-			amount: 500,
-			transaction_type: "deposit",
-			description: "Monthly savings",
-			transaction_date: "2024-12-15",
-			linked_allocation_transaction_id: "tx-linked-savings",
-			created_at: "2024-12-15T10:00:00Z",
-		},
-		{
-			id: "txn-2",
-			account_id: "acc-1",
-			user_id: "sample-user",
-			amount: 14.22,
-			transaction_type: "interest",
-			description: "Monthly compound interest",
-			transaction_date: "2024-12-01",
-			linked_allocation_transaction_id: null,
-			created_at: "2024-12-01T00:00:00Z",
-		},
-	],
-	"acc-3": [
-		{
-			id: "txn-3",
-			account_id: "acc-3",
-			user_id: "sample-user",
-			amount: 500,
-			transaction_type: "contribution",
-			description: "Monthly TFSA contribution",
-			transaction_date: "2024-12-01",
-			linked_allocation_transaction_id: null,
-			created_at: "2024-12-01T10:00:00Z",
-		},
-	],
-	"acc-4": [
-		{
-			id: "txn-4",
-			account_id: "acc-4",
-			user_id: "sample-user",
-			amount: 300,
-			transaction_type: "payment",
-			description: "Payment",
-			transaction_date: "2024-12-10",
-			linked_allocation_transaction_id: "tx-linked-debt",
-			created_at: "2024-12-10T10:00:00Z",
-		},
-	],
-};
+export function getSampleAccountTransactions(now: Date = getDemoNow()): Record<string, AccountTransaction[]> {
+	const at = (daysAgo: number) => ({
+		transaction_date: toDateOnly(daysBefore(now, daysAgo)),
+		created_at: daysBefore(now, daysAgo).toISOString(),
+	});
 
-export const sampleAccountHistory: Record<string, AccountHistory[]> = {
-	"acc-1": generateHistoricalData(7500, 8500, 0.005).map((p, i) => ({
-		id: `h-1-${i}`,
-		account_id: "acc-1",
-		user_id: "sample-user",
-		balance: p.value,
-		recorded_at: p.date,
-		source: "auto",
-		created_at: p.date,
-	})),
-	"acc-2": generateHistoricalData(28000, 32100, 0.01).map((p, i) => ({
-		id: `h-2-${i}`,
-		account_id: "acc-2",
-		user_id: "sample-user",
-		balance: p.value,
-		recorded_at: p.date,
-		source: "auto",
-		created_at: p.date,
-	})),
-	"acc-3": generateHistoricalData(40000, 45000, 0.002).map((p, i) => ({
-		id: `h-3-${i}`,
-		account_id: "acc-3",
-		user_id: "sample-user",
-		balance: p.value,
-		recorded_at: p.date,
-		source: "auto",
-		created_at: p.date,
-	})),
-	"acc-4": generateHistoricalData(3000, 2450, 0.003).map((p, i) => ({
-		id: `h-4-${i}`,
-		account_id: "acc-4",
-		user_id: "sample-user",
-		balance: p.value,
-		recorded_at: p.date,
-		source: "auto",
-		created_at: p.date,
-	})),
-	"acc-5": generateHistoricalData(20000, 18500, 0.001).map((p, i) => ({
-		id: `h-5-${i}`,
-		account_id: "acc-5",
-		user_id: "sample-user",
-		balance: p.value,
-		recorded_at: p.date,
-		source: "auto",
-		created_at: p.date,
-	})),
-};
+	return {
+		"acc-1": [
+			{
+				id: "txn-1",
+				account_id: "acc-1",
+				user_id: "sample-user",
+				amount: 500,
+				transaction_type: "deposit",
+				description: "Monthly savings",
+				...at(2),
+				linked_allocation_transaction_id: "tx-linked-savings",
+			},
+			{
+				id: "txn-2",
+				account_id: "acc-1",
+				user_id: "sample-user",
+				amount: 14.22,
+				transaction_type: "interest",
+				description: "Monthly compound interest",
+				...at(16),
+				linked_allocation_transaction_id: null,
+			},
+		],
+		"acc-3": [
+			{
+				id: "txn-3",
+				account_id: "acc-3",
+				user_id: "sample-user",
+				amount: 500,
+				transaction_type: "contribution",
+				description: "Monthly TFSA contribution",
+				...at(16),
+				linked_allocation_transaction_id: null,
+			},
+		],
+		"acc-4": [
+			{
+				id: "txn-4",
+				account_id: "acc-4",
+				user_id: "sample-user",
+				amount: 300,
+				transaction_type: "payment",
+				description: "Payment",
+				...at(7),
+				linked_allocation_transaction_id: "tx-linked-debt",
+			},
+		],
+	};
+}
+
+export function getSampleAccountHistory(now: Date = getDemoNow()): Record<string, AccountHistory[]> {
+	const build = (accountId: string, startValue: number, endValue: number, variance: number): AccountHistory[] =>
+		generateHistoricalData(startValue, endValue, variance, now).map((p, i) => ({
+			id: `h-${accountId}-${i}`,
+			account_id: accountId,
+			user_id: "sample-user",
+			balance: p.value,
+			recorded_at: p.date,
+			source: "auto",
+			created_at: p.date,
+		}));
+
+	return {
+		"acc-1": build("acc-1", 7500, 8500, 0.005),
+		"acc-2": build("acc-2", 28000, 32100, 0.01),
+		"acc-3": build("acc-3", 40000, 45000, 0.002),
+		"acc-4": build("acc-4", 3000, 2450, 0.003),
+		"acc-5": build("acc-5", 20000, 18500, 0.001),
+	};
+}
 
 // Helper to generate recent timestamps for mock activity
-const getRecentTimestamp = (minutesAgo: number): string => {
-	const date = new Date();
+const getRecentTimestamp = (now: Date, minutesAgo: number): string => {
+	const date = new Date(now);
 	date.setMinutes(date.getMinutes() - minutesAgo);
 	return date.toISOString();
 };
 
-export const sampleRecentActivity: RecentActivityItem[] = [
-	{
-		id: "activity-1",
-		accountId: "acc-1",
-		accountName: "Emergency Fund",
-		type: "transaction",
-		transactionType: "deposit",
-		amount: 500,
-		description: "Monthly savings deposit",
-		timestamp: getRecentTimestamp(15), // 15 minutes ago
-	},
-	{
-		id: "activity-2",
-		accountId: "acc-2",
-		accountName: "Robinhood",
-		type: "transaction",
-		transactionType: "adjustment",
-		amount: 1247.5,
-		description: "Portfolio value increased",
-		timestamp: getRecentTimestamp(120), // 2 hours ago
-	},
-	{
-		id: "activity-3",
-		accountId: "acc-3",
-		accountName: "TFSA",
-		type: "account_created",
-		timestamp: getRecentTimestamp(60 * 24), // Yesterday
-	},
-	{
-		id: "activity-4",
-		accountId: "acc-5",
-		accountName: "Student Loans",
-		type: "transaction",
-		transactionType: "payment",
-		amount: 450,
-		description: "Monthly payment processed",
-		timestamp: getRecentTimestamp(60 * 26), // Yesterday
-	},
-	{
-		id: "activity-5",
-		accountId: "acc-4",
-		accountName: "Chase Sapphire Reserve",
-		type: "transaction",
-		transactionType: "payment",
-		amount: 300,
-		description: "Statement payment",
-		timestamp: getRecentTimestamp(60 * 48), // 2 days ago
-	},
-];
+export function getSampleRecentActivity(now: Date = getDemoNow()): RecentActivityItem[] {
+	return [
+		{
+			id: "activity-1",
+			accountId: "acc-1",
+			accountName: "Emergency Fund",
+			type: "transaction",
+			transactionType: "deposit",
+			amount: 500,
+			description: "Monthly savings deposit",
+			timestamp: getRecentTimestamp(now, 15), // 15 minutes ago
+		},
+		{
+			id: "activity-2",
+			accountId: "acc-2",
+			accountName: "Robinhood",
+			type: "transaction",
+			transactionType: "adjustment",
+			amount: 1247.5,
+			description: "Portfolio value increased",
+			timestamp: getRecentTimestamp(now, 120), // 2 hours ago
+		},
+		{
+			id: "activity-3",
+			accountId: "acc-3",
+			accountName: "TFSA",
+			type: "account_created",
+			timestamp: getRecentTimestamp(now, 60 * 24), // Yesterday
+		},
+		{
+			id: "activity-4",
+			accountId: "acc-5",
+			accountName: "Student Loans",
+			type: "transaction",
+			transactionType: "payment",
+			amount: 450,
+			description: "Monthly payment processed",
+			timestamp: getRecentTimestamp(now, 60 * 26), // Yesterday
+		},
+		{
+			id: "activity-5",
+			accountId: "acc-4",
+			accountName: "Chase Sapphire Reserve",
+			type: "transaction",
+			transactionType: "payment",
+			amount: 300,
+			description: "Statement payment",
+			timestamp: getRecentTimestamp(now, 60 * 48), // 2 days ago
+		},
+	];
+}

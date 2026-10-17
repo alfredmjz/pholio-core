@@ -4,6 +4,7 @@ import { Card } from "@/components/ui/card";
 import { Info, TrendingUp, TrendingDown } from "lucide-react";
 import { DonutChart } from "@/components/common/DonutChart";
 import { cn } from "@/lib/utils";
+import { formatCompactCurrency } from "@/lib/format-utils";
 
 interface NetWorthCardProps {
 	netWorth: number;
@@ -13,15 +14,6 @@ interface NetWorthCardProps {
 }
 
 export function NetWorthCard({ netWorth, totalAssets, totalLiabilities, previousNetWorth }: NetWorthCardProps) {
-	const formatCurrency = (amount: number) => {
-		return new Intl.NumberFormat("en-US", {
-			style: "currency",
-			currency: "USD",
-			notation: "compact",
-			maximumFractionDigits: 1,
-		}).format(amount);
-	};
-
 	const percentChange = previousNetWorth ? ((netWorth - previousNetWorth) / previousNetWorth) * 100 : 0;
 	const isPositive = percentChange >= 0;
 
@@ -39,7 +31,7 @@ export function NetWorthCard({ netWorth, totalAssets, totalLiabilities, previous
 
 			<div className="flex items-start justify-between flex-1">
 				<div className="space-y-1 flex flex-col justify-center h-full">
-					<div className="text-4xl font-bold tracking-tight">{formatCurrency(netWorth)}</div>
+					<div className="text-4xl font-bold tracking-tight">{formatCompactCurrency(netWorth)}</div>
 					<div
 						className={cn(
 							"flex items-center gap-1 text-sm font-medium",
@@ -56,14 +48,14 @@ export function NetWorthCard({ netWorth, totalAssets, totalLiabilities, previous
 								<div className="w-1 h-3 rounded-full bg-green-500" />
 								<span className="text-[10px] text-primary uppercase font-bold tracking-wider">Assets</span>
 							</div>
-							<div className="text-sm font-bold">{formatCurrency(totalAssets)}</div>
+							<div className="text-sm font-bold">{formatCompactCurrency(totalAssets)}</div>
 						</div>
 						<div className="space-y-0.5">
 							<div className="flex items-center gap-2">
 								<div className="w-1 h-3 rounded-full bg-red-500" />
 								<span className="text-[10px] text-primary uppercase font-bold tracking-wider">Liabilities</span>
 							</div>
-							<div className="text-sm font-bold">{formatCurrency(totalLiabilities)}</div>
+							<div className="text-sm font-bold">{formatCompactCurrency(totalLiabilities)}</div>
 						</div>
 					</div>
 				</div>

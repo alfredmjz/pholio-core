@@ -4,6 +4,7 @@ import { Card } from "@/components/ui/card";
 import { Info, TrendingUp, TrendingDown } from "lucide-react";
 import { BarChart, Bar, Cell, Tooltip } from "recharts";
 import { cn } from "@/lib/utils";
+import { formatCompactCurrency } from "@/lib/format-utils";
 import { HistoricalDataPoint } from "../types";
 import { ChartContainer } from "@/components/common/ChartContainer";
 
@@ -14,15 +15,6 @@ interface AssetGrowthCardProps {
 }
 
 export function AssetGrowthCard({ totalAssets, previousTotalAssets, historicalData }: AssetGrowthCardProps) {
-	const formatCurrency = (amount: number) => {
-		return new Intl.NumberFormat("en-US", {
-			style: "currency",
-			currency: "USD",
-			notation: "compact",
-			maximumFractionDigits: 1,
-		}).format(amount);
-	};
-
 	const formatFullCurrency = (amount: number) => {
 		return new Intl.NumberFormat("en-US", {
 			style: "currency",
@@ -54,7 +46,7 @@ export function AssetGrowthCard({ totalAssets, previousTotalAssets, historicalDa
 			</div>
 
 			<div className="space-y-1">
-				<div className="text-4xl font-bold tracking-tight">{formatCurrency(totalAssets)}</div>
+				<div className="text-4xl font-bold tracking-tight">{formatCompactCurrency(totalAssets)}</div>
 				<div
 					className={cn("flex items-center gap-1 text-sm font-medium", isPositive ? "text-green-500" : "text-red-500")}
 				>

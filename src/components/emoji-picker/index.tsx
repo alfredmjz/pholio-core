@@ -4,12 +4,7 @@ import { useState, useEffect } from "react";
 import { Button } from "@/components/ui/button";
 import { Popover, PopoverContent, PopoverTrigger } from "@/components/ui/popover";
 import { cn } from "@/lib/utils";
-import {
-	Carousel,
-	CarouselContent,
-	CarouselItem,
-	type CarouselApi,
-} from "@/components/ui/carousel";
+import { Carousel, CarouselContent, CarouselItem, type CarouselApi } from "@/components/ui/carousel";
 import { ChevronLeft, ChevronRight } from "lucide-react";
 
 interface EmojiPickerProps {
@@ -141,8 +136,8 @@ export function EmojiPicker({
 													variant="ghost"
 													size="sm"
 													className={cn(
-														"h-10 w-10 p-0 text-xl hover:bg-accent hover:scale-110 transition-transform",
-														value === emoji && "bg-accent ring-2 ring-primary/20 scale-100"
+														"h-10 w-10 p-0 text-xl hover:bg-hover hover:scale-110 transition-transform",
+														value === emoji && "bg-secondary ring-2 ring-primary/20 scale-100"
 													)}
 													onClick={() => handleSelect(emoji)}
 												>

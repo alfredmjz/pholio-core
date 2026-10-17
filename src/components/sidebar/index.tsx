@@ -7,6 +7,7 @@ import { SidebarNavigation } from "./SidebarNavigation";
 import { SidebarFooter } from "./SidebarFooter";
 import { signOut } from "@/app/(auth-pages)/login/actions";
 import { useRouter } from "next/navigation";
+import { clearDemoModeCookie } from "@/lib/demo-mode";
 
 interface SideBarComponentProps {
 	userProfile: UserProfile | null;
@@ -90,6 +91,7 @@ export function SideBarComponent({ userProfile }: SideBarComponentProps) {
 	const handleSignOut = React.useCallback(async () => {
 		localStorage.removeItem("sidebarWidth");
 		localStorage.removeItem("sidebarCollapsed");
+		clearDemoModeCookie();
 		await signOut();
 		router.push("/login");
 	}, [router]);
@@ -137,7 +139,7 @@ export function SideBarComponent({ userProfile }: SideBarComponentProps) {
 	return (
 		<aside
 			ref={contentRef}
-			className="relative flex flex-col bg-background border-r border-border h-screen shrink-0"
+			className="relative hidden h-dvh shrink-0 flex-col border-r border-border bg-background lg:flex"
 			style={{ width: isCollapsed ? `${SIDEBAR_DEFAULTS.COLLAPSED_WIDTH}rem` : `${sidebarWidth}rem` }}
 		>
 			<SidebarHeader

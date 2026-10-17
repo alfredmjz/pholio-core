@@ -43,6 +43,8 @@ import { VIRTUAL_UNCATEGORIZED_ID } from "@/app/allocations/types";
 import { formatAccountDisplayName, sortAccounts } from "@/lib/account-utils";
 import { compareAlphabetically, sortAlphabetically } from "@/lib/sort-utils";
 import { ManagePresetsDialog } from "./ManagePresetsDialog";
+import { isDemoModeActive } from "@/lib/demo-mode";
+import { useDemoStore } from "@/lib/demo-store";
 import {
 	calculateAccountStanding,
 	checkTransactionCaps,
@@ -306,6 +308,27 @@ export function UnifiedTransactionDialog({
 				allowOverpayment,
 				source: type === "transfer" ? "transfer" : isAllocationsContext && type === "income" ? incomeSource : "manual",
 			};
+
+			// Demo mode: record in-memory instead of persisting to the server.
+			if (isDemoModeActive()) {
+				const categoryName =
+					type === "transfer" ? "Transfer" : categories.find((c) => c.id === categoryId)?.name || "Uncategorized";
+				const accountName = accounts.find((a) => a.id === accountId)?.name;
+				useDemoStore.getState().addTransaction({
+					id: `demo-${Date.now()}-${Math.random().toString(36).slice(2, 8)}`,
+					date,
+					description: finalDescription,
+					category: categoryName,
+					amount: numAmount,
+					type: type === "transfer" ? "expense" : type,
+					account: accountName,
+				});
+				toast.success(type === "transfer" ? "Transfer created" : "Transaction added");
+				onOpenChange(false);
+				onSuccess?.();
+				return;
+			}
+
 			const result = await createUnifiedTransaction(input);
 			if (result.success) {
 				toast.success(type === "transfer" ? "Transfer created" : "Transaction added");

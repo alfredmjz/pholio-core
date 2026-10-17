@@ -1,6 +1,6 @@
 "use client";
 
-import { useState, useMemo } from "react";
+import { useState, useEffect, useMemo } from "react";
 import { useRouter } from "next/navigation";
 import { Card } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
@@ -41,6 +41,8 @@ import {
 } from "@dnd-kit/sortable";
 import { toast } from "sonner";
 import { restrictToVerticalAxis } from "@dnd-kit/modifiers";
+import { isDemoModeActive } from "@/lib/demo-mode";
+import { useDemoStore } from "@/lib/demo-store";
 
 interface BalanceSheetClientProps {
 	initialAccounts: AccountWithType[];
@@ -55,9 +57,20 @@ export function BalanceSheetClient({
 	initialActivity,
 	initialSummary,
 }: BalanceSheetClientProps) {
-	const { data: accounts, setData: setAccounts } = useServerSyncedData<AccountWithType[]>(initialAccounts, () => getAccounts());
+	const { data: serverAccounts, setData: setAccounts } = useServerSyncedData<AccountWithType[]>(initialAccounts, () =>
+		getAccounts()
+	);
 	const { data: activity } = useServerSyncedData<RecentActivityItem[]>(initialActivity, () => getRecentActivity());
 	const router = useRouter();
+
+	const [isDemo, setIsDemo] = useState(false);
+	const demoAccounts = useDemoStore((state) => state.accounts);
+	const accounts = isDemo ? demoAccounts : serverAccounts;
+
+	useEffect(() => {
+		setIsDemo(isDemoModeActive());
+	}, []);
+
 	const [selectedAccount, setSelectedAccount] = useState<AccountWithType | null>(initialAccounts[0] || null);
 	const [searchQuery, setSearchQuery] = useState("");
 	const [addDialogOpen, setAddDialogOpen] = useState(false);
@@ -91,38 +104,45 @@ export function BalanceSheetClient({
 	});
 
 	const handleAccountSuccess = (newAccount: AccountWithType) => {
+		setSelectedAccount(newAccount);
+		// Demo mode: the account was already added to the in-memory store by the dialog.
+		if (isDemo) return;
 		// Optimistically add the new account to the list
 		setAccounts((prev) => [...prev, newAccount]);
 		// Select the new account
-		setSelectedAccount(newAccount);
 		// Revalidate in background
 		router.refresh();
 	};
 
 	const handleTransactionSuccess = (accountId: string, amount: number, transactionType: string) => {
-		// Optimistically update the account balance
-		setAccounts((prev) =>
-			prev.map((acc) => {
-				if (acc.id !== accountId) return acc;
-
-				let newBalance = acc.current_balance;
-				if (acc.account_type?.class === "asset") {
-					// Assets: deposits increase, withdrawals decrease
-					if (transactionType === "deposit") {
-						newBalance += amount;
-					} else if (transactionType === "withdrawal") {
-						newBalance -= amount;
-					}
-				} else {
-					// Liabilities: payments decrease
-					if (transactionType === "payment") {
-						newBalance -= amount;
-					}
+		const applyBalance = (acc: AccountWithType) => {
+			let newBalance = acc.current_balance;
+			if (acc.account_type?.class === "asset") {
+				// Assets: deposits increase, withdrawals decrease
+				if (transactionType === "deposit") {
+					newBalance += amount;
+				} else if (transactionType === "withdrawal") {
+					newBalance -= amount;
 				}
+			} else {
+				// Liabilities: payments decrease
+				if (transactionType === "payment") {
+					newBalance -= amount;
+				}
+			}
+			return { ...acc, current_balance: newBalance };
+		};
 
-				return { ...acc, current_balance: newBalance };
-			})
-		);
+		if (isDemo) {
+			const target = accounts.find((acc) => acc.id === accountId);
+			if (target) {
+				useDemoStore.getState().updateAccountBalance(accountId, applyBalance(target).current_balance);
+			}
+			return;
+		}
+
+		// Optimistically update the account balance
+		setAccounts((prev) => prev.map((acc) => (acc.id === accountId ? applyBalance(acc) : acc)));
 
 		// Revalidate in background
 		router.refresh();
@@ -190,13 +210,10 @@ export function BalanceSheetClient({
 				className="flex flex-col md:flex-row gap-4 justify-between items-start md:items-center"
 			>
 				<div>
-					<h1 className="text-3xl font-bold tracking-tight">Balance Sheet</h1>
-					<p className="text-sm text-primary">Track your assets and liabilities</p>
+					<h1 className="type-h1">Balance Sheet</h1>
+					<p className="type-body-sm text-muted-foreground">Track your assets and liabilities</p>
 				</div>
-				<Button
-					onClick={() => setAddDialogOpen(true)}
-					className="gap-2 bg-green-600 hover:bg-green-700 text-white"
-				>
+				<Button onClick={() => setAddDialogOpen(true)} className="gap-2">
 					<Plus className="h-4 w-4 md:hidden" />
 					Add Account
 					<ShortcutHint
@@ -233,7 +250,7 @@ export function BalanceSheetClient({
 					{/* Main Content: Account List and Activity */}
 					<div className="grid grid-cols-1 lg:grid-cols-3 gap-6">
 						{/* All Accounts List */}
-						<Card className="lg:col-span-2 flex flex-col bg-card border shadow-sm">
+						<Card className="lg:col-span-2 flex flex-col">
 							<div className="p-6 border-border border-b flex flex-col sm:flex-row gap-4 items-start sm:items-center justify-between">
 								<div>
 									<h2 className="text-xl font-bold">All Accounts</h2>
@@ -266,6 +283,7 @@ export function BalanceSheetClient({
 								{/* Account Items */}
 								<div className="flex flex-col divide-y divide-border">
 									<DndContext
+										id="balance-sheet-accounts"
 										sensors={sensors}
 										collisionDetection={closestCenter}
 										onDragEnd={handleDragEnd}

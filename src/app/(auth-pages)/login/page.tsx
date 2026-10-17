@@ -1,177 +1,285 @@
 "use client";
 
-import { login, loginAsGuest } from "@/app/(auth-pages)/login/actions";
-import { AuthCard } from "@/app/(auth-pages)/components/auth-card";
-import { Button } from "@/components/ui/button";
-import { FloatingLabelInput } from "@/components/floating-label-input";
+import "@/styles/login.css";
+import Image from "next/image";
 import Link from "next/link";
 import { useRouter } from "next/navigation";
+import { useEffect, useRef, useState } from "react";
 import { toast } from "sonner";
-import { useState } from "react";
-import { useAuthForm } from "@/hooks/use-auth-form";
+import { Check, Sparkles } from "lucide-react";
+
+import { sendMagicLink } from "@/app/(auth-pages)/login/actions";
+import { setDemoModeCookie } from "@/lib/demo-mode";
+import { useDemoStore } from "@/lib/demo-store";
+import { LedgerField } from "./components/ledger-field";
+
+const NET_WORTH = 248910;
+
+const THREAD_PATH = "M 24 0 L 24 27 C 2 41 46 67 24 81 C 2 95 46 121 24 135 C 2 149 46 175 24 189";
+
+const ACCOUNTS = [
+	{ name: "Chequing", value: "4,210" },
+	{ name: "Savings", value: "18,400" },
+	{ name: "Investments", value: "96,300" },
+];
 
 export default function Page() {
 	const router = useRouter();
-	const [isGuestLoading, setIsGuestLoading] = useState(false);
-	const [fieldErrors, setFieldErrors] = useState<{ email?: string; password?: string }>({});
+	const netWorthRef = useRef<HTMLSpanElement>(null);
+	const [isLoading, setIsLoading] = useState(false);
+	const [isDemoLoading, setIsDemoLoading] = useState(false);
+	const [sentEmail, setSentEmail] = useState<string | null>(null);
+	const [fieldErrors, setFieldErrors] = useState<{ email?: string }>({});
 
-	const validate = (formData: FormData): string | null => {
-		const email = formData.get("email") as string;
-		const password = formData.get("password") as string;
-		const emailRegex = /^[^\s@]+@[^\s@]+\.[^\s@]+$/;
-		const newErrors: { email?: string; password?: string } = {};
-		let hasError = false;
+	const emailRegex = /^[^\s@]+@[^\s@]+\.[^\s@]+$/;
 
+	useEffect(() => {
+		const element = netWorthRef.current;
+		if (!element) return;
+
+		const formatter = new Intl.NumberFormat("en-US");
+		const reduceMotion = window.matchMedia("(prefers-reduced-motion: reduce)");
+
+		if (reduceMotion.matches) {
+			element.textContent = formatter.format(NET_WORTH);
+			return;
+		}
+
+		let frame = 0;
+		const start = performance.now() + 2300;
+		const duration = 1200;
+
+		const tick = (now: number) => {
+			const progress = Math.max(0, Math.min(1, (now - start) / duration));
+			const eased = 1 - Math.pow(1 - progress, 3);
+			element.textContent = formatter.format(Math.round(NET_WORTH * eased));
+			if (progress < 1) frame = requestAnimationFrame(tick);
+		};
+
+		frame = requestAnimationFrame(tick);
+		return () => cancelAnimationFrame(frame);
+	}, []);
+
+	const validate = (email: string): boolean => {
 		if (!email) {
-			newErrors.email = "Email is required";
-			hasError = true;
-		} else if (!emailRegex.test(email)) {
-			newErrors.email = "Please enter a valid email address";
-			hasError = true;
+			setFieldErrors({ email: "Enter your email to get a link." });
+			return false;
 		}
-
-		if (!password) {
-			newErrors.password = "Password is required";
-			hasError = true;
+		if (!emailRegex.test(email)) {
+			setFieldErrors({ email: "That email address doesn't look right." });
+			return false;
 		}
-
-		setFieldErrors(newErrors);
-
-		if (hasError) {
-			toast.error("Please fill in all required fields", {
-				description: "Check the form for displayed errors.",
-			});
-			return "Validation Failed";
-		}
-		return null;
+		setFieldErrors({});
+		return true;
 	};
 
-	const { handleSubmit, isLoading, error, setError, isMounted } = useAuthForm({
-		action: login,
-		validate,
-		onSuccess: (result) => {
-			// Check if this is first login - redirect with welcome param
-			const redirectUrl = (result as { showWelcome?: boolean })?.showWelcome ? "/?welcome=true" : "/";
-			router.push(redirectUrl);
-			// Detect if navigation failed (still on login page after timeout)
-			setTimeout(() => {
-				if (window.location.pathname === "/login") {
-					toast.error("Navigation Timeout", {
-						description:
-							"Authentication was successful, but we're having trouble redirecting you. Please refresh or try navigating manually.",
-					});
-				}
-			}, 3000); // Increased to 3s to give more time for slow networks
-		},
-	});
+	const handleSubmit = async (e: React.FormEvent<HTMLFormElement>) => {
+		e.preventDefault();
+		if (isLoading) return;
 
-	const handleGuestLogin = async () => {
-		if (!isMounted) return;
-		setIsGuestLoading(true);
-		setError(null);
+		const formData = new FormData(e.currentTarget);
+		const email = (formData.get("email") as string).trim().toLowerCase();
 
+		if (!validate(email)) return;
+
+		setIsLoading(true);
 		try {
-			const result = await loginAsGuest();
-
+			const result = await sendMagicLink(formData);
 			if (result?.error) {
-				setError(result.error);
-				toast.error("Guest Login Failed", {
-					description: result.error,
-				});
-				setIsGuestLoading(false);
-			} else {
-				router.push("/");
+				toast.error("Could not send the link", { description: result.error });
+				setIsLoading(false);
+				return;
 			}
+			setSentEmail(email);
+			setIsLoading(false);
 		} catch (err) {
-			const errorMessage = err instanceof Error ? err.message : "Failed to create guest session";
-			setError(errorMessage);
-			toast.error("Guest Login Failed", {
-				description: errorMessage,
+			toast.error("Could not send the link", {
+				description: err instanceof Error ? err.message : "An unexpected error occurred",
 			});
-			setIsGuestLoading(false);
+			setIsLoading(false);
 		}
+	};
+
+	const handleTryDemo = () => {
+		if (isDemoLoading) return;
+		setIsDemoLoading(true);
+		useDemoStore.getState().reset();
+		setDemoModeCookie();
+		router.push("/dashboard");
 	};
 
 	return (
-		<div className="flex min-h-svh w-full items-center justify-center p-6 md:p-10">
-			<div className="w-full max-w-[450px]">
-				<div className="flex flex-col gap-6">
-					<AuthCard
-						title="Welcome to Pholio!"
-						description="Enter your email below to log in"
-						className="shadow-[0px_0px_25px_rgba(0,0,0,0.08)] bg-card backdrop-blur-sm"
+		<div className="login-page theme-paper relative isolate min-h-dvh w-full overflow-x-hidden">
+			<LedgerField />
+			<div className="login-paper-edge" aria-hidden />
+			<div className="login-paper-grain" aria-hidden />
+			<div className="login-page-frame" aria-hidden />
+
+			<div className="relative z-10 mx-auto flex min-h-dvh w-full max-w-[1320px] flex-col px-6 lg:px-10">
+				<header className="flex items-center justify-between py-6 lg:py-8">
+					<Link
+						href="/"
+						className="flex items-center gap-2.5 rounded-sm focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-accent focus-visible:ring-offset-4 focus-visible:ring-offset-background"
+						aria-label="Pholio home"
 					>
-						<form onSubmit={handleSubmit} noValidate>
-							<div className="flex flex-col gap-5">
-								<div className="grid gap-2">
-									<FloatingLabelInput
-										id="email"
-										name="email"
-										type="email"
-										label="Email"
-										required
-										className="border-border focus-visible:ring-offset-0 focus-visible:ring-ring bg-card/80"
-										hasError={!!fieldErrors.email}
-										onChange={() => {
-											if (fieldErrors.email) setFieldErrors({ ...fieldErrors, email: undefined });
-										}}
-									/>
-									{fieldErrors.email && <p className="text-xs text-error">{fieldErrors.email}</p>}
-								</div>
-								<div className="grid gap-2">
-									<FloatingLabelInput
-										id="password"
-										name="password"
-										type="password"
-										label="Password"
-										required
-										className="border-border focus-visible:ring-offset-0 focus-visible:ring-ring bg-card/80"
-										hasError={!!fieldErrors.password}
-										onChange={() => {
-											if (fieldErrors.password) setFieldErrors({ ...fieldErrors, password: undefined });
-										}}
-									/>
-									{fieldErrors.password && <p className="text-xs text-error">{fieldErrors.password}</p>}
-									<div className="pl-1 flex justify-start">
-										<Link href="/forgot-password" className="font-medium text-xs text-primary underline-animation">
-											Forgot password?
-										</Link>
-									</div>
-								</div>
-								{error && (
-									<div className="p-3 text-sm text-error bg-error/10 rounded-md border border-error/20">{error}</div>
-								)}
-								<div className="flex flex-col gap-3 pt-2">
-									<Button type="submit" className="w-full h-10" disabled={isLoading || isGuestLoading || !isMounted}>
-										{isLoading ? "Logging in..." : "Log in"}
-									</Button>
+						<Image src="/pholio-icon.svg" alt="" width={26} height={26} priority />
+						<span className="login-wordmark">Pholio</span>
+					</Link>
+					<span className="login-tagline hidden sm:block">A calmer way to see your money.</span>
+				</header>
 
-									<div className="flex items-center gap-4 py-2">
-										<span className="h-px flex-1 bg-border" />
-										<span className="text-xs uppercase text-primary">Or</span>
-										<span className="h-px flex-1 bg-border" />
-									</div>
+				<div className="grid flex-1 grid-cols-1 items-center gap-8 pb-10 pt-2 lg:grid-cols-12 lg:gap-16 lg:pb-14 lg:pt-0">
+					<section className="contents lg:col-span-7 lg:block">
+						<h1 className="login-headline order-1 lg:order-none">
+							<span className="login-headline-mask">
+								<span className="login-headline-line">Every account,</span>
+							</span>
+							<span className="login-headline-mask">
+								<span className="login-headline-line login-headline-light" style={{ animationDelay: "110ms" }}>
+									one unbroken line.
+								</span>
+							</span>
+						</h1>
 
-									<Button
-										type="button"
-										variant="outline"
-										className="w-full h-10 text-xs"
-										onClick={handleGuestLogin}
-										disabled={isLoading || isGuestLoading || !isMounted}
+						<p className="login-lede order-2 mt-5 lg:order-none">
+							Balances, debts, and budgets, threaded together. No spreadsheets, no guesswork.
+						</p>
+
+						<div className="login-ledger order-4 mt-0 lg:order-none lg:mt-10" aria-hidden>
+							<div className="login-ledger-head">
+								<span className="login-ledger-note">Three accounts, one thread</span>
+							</div>
+
+							<div className="login-ledger-rows">
+								<svg viewBox="0 0 48 216" preserveAspectRatio="none" className="login-thread" aria-hidden>
+									<path
+										d={THREAD_PATH}
+										pathLength={1}
+										className="login-thread-path login-thread-shadow"
+										vectorEffect="non-scaling-stroke"
+									/>
+									<path
+										d={THREAD_PATH}
+										pathLength={1}
+										className="login-thread-path"
+										vectorEffect="non-scaling-stroke"
+									/>
+								</svg>
+
+								{ACCOUNTS.map((account, index) => (
+									<div
+										key={account.name}
+										className="login-ledger-row"
+										style={{ animationDelay: `${1 + index * 0.4}s` }}
 									>
-										{isGuestLoading ? "Creating session..." : "Continue as Guest"}
-									</Button>
+										<span className="login-ledger-hole" />
+										<span className="login-ledger-name">{account.name}</span>
+										<span className="login-ledger-value">${account.value}</span>
+									</div>
+								))}
+
+								<div className="login-ledger-row login-ledger-total" style={{ animationDelay: "2.2s" }}>
+									<span className="login-ledger-hole login-ledger-hole-live" />
+									<span className="login-ledger-name">Net worth</span>
+									<span className="login-ledger-value login-ledger-total-value">
+										<span>$</span>
+										<span ref={netWorthRef}>0</span>
+									</span>
 								</div>
 							</div>
-							<div className="mt-6 text-center text-sm text-primary">
-								Don't have an account?{" "}
-								<Link href="/signup" className="font-medium text-primary underline-animation">
-									Sign up
-								</Link>
+						</div>
+					</section>
+
+					<section className="order-3 flex justify-center lg:order-none lg:col-span-5 lg:justify-end">
+						<div className="w-full max-w-[460px]">
+							<div className="login-sheet">
+								<div className="login-sheet-body">
+									<div className="login-sheet-status">
+										<span className="login-sheet-status-dot" aria-hidden />
+										<span>Sign in</span>
+									</div>
+
+									{sentEmail ? (
+										<div role="status" aria-live="polite">
+											<div className="login-seal" aria-hidden>
+												<Check className="h-[18px] w-[18px]" strokeWidth={1.7} />
+												<span>Sent</span>
+											</div>
+											<h2 className="login-sheet-heading">Check your inbox.</h2>
+											<p className="login-sent-copy mt-3">
+												We sent a one-time sign-in link to <span className="login-sent-email">{sentEmail}</span>.
+											</p>
+											<p className="login-sent-copy mt-2">
+												The link works once. If it hasn&apos;t arrived, check spam or{" "}
+												<button type="button" onClick={() => setSentEmail(null)} className="login-again">
+													use a different email
+												</button>
+												.
+											</p>
+											<div className="login-sheet-foot">
+												<span>The link expires once it&apos;s used.</span>
+											</div>
+										</div>
+									) : (
+										<>
+											<h2 className="login-sheet-heading">Welcome back.</h2>
+											<p className="login-sheet-copy mt-2">
+												No password to remember. We&apos;ll email you a one-time sign-in link.
+											</p>
+
+											<form onSubmit={handleSubmit} noValidate className="mt-6">
+												<label htmlFor="email" className="login-label">
+													Email
+												</label>
+												<div className="login-field">
+													<input
+														id="email"
+														name="email"
+														type="email"
+														autoComplete="email"
+														required
+														placeholder="you@example.com"
+														className="login-input"
+														aria-invalid={Boolean(fieldErrors.email)}
+														aria-describedby={fieldErrors.email ? "email-error" : undefined}
+														onChange={() => {
+															if (fieldErrors.email) setFieldErrors({});
+														}}
+													/>
+													<span className="login-field-line" aria-hidden />
+												</div>
+												{fieldErrors.email && (
+													<p id="email-error" role="alert" className="login-error">
+														{fieldErrors.email}
+													</p>
+												)}
+												<button type="submit" disabled={isLoading} aria-busy={isLoading} className="login-submit mt-6">
+													{isLoading ? "Sending link…" : "Email me a link"}
+												</button>
+											</form>
+
+											<div className="login-divider">or</div>
+
+											<button type="button" onClick={handleTryDemo} disabled={isDemoLoading} className="login-demo">
+												<Sparkles className="h-4 w-4" />
+												{isDemoLoading ? "Opening the demo…" : "Try the demo"}
+											</button>
+											<p className="login-demo-note">Sample data. Nothing is saved.</p>
+
+											<div className="login-sheet-foot">
+												<span>New here? The same link creates your account.</span>
+											</div>
+										</>
+									)}
+								</div>
 							</div>
-						</form>
-					</AuthCard>
+						</div>
+					</section>
 				</div>
+
+				<footer className="login-footer">
+					<span>© 2026 Pholio</span>
+				</footer>
 			</div>
 		</div>
 	);

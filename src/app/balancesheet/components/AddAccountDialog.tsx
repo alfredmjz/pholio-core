@@ -29,6 +29,8 @@ import { ProminentAmountInput } from "@/components/ProminentAmountInput";
 import { Switch } from "@/components/ui/switch";
 import { getFieldVisibility } from "../field-visibility";
 import { AccountFieldConfigurator } from "./AccountFieldConfigurator";
+import { isDemoModeActive } from "@/lib/demo-mode";
+import { useDemoStore } from "@/lib/demo-store";
 
 interface AddAccountDialogProps {
 	open: boolean;
@@ -179,6 +181,11 @@ export function AddAccountDialog({ open, onOpenChange, onSuccess }: AddAccountDi
 			const result = await createAccount(input);
 
 			if (result) {
+				// Demo mode: the server returns a mock account without persisting; record it
+				// in-memory so it appears for the duration of the session.
+				if (isDemoModeActive()) {
+					useDemoStore.getState().addAccount(result);
+				}
 				toast.success("Account created successfully");
 				onOpenChange(false);
 				onSuccess(result);

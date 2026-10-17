@@ -3,13 +3,14 @@
 import { createClient } from "@/lib/supabase/server";
 import { revalidatePath } from "next/cache";
 import { Database } from "@/lib/database.types";
-import { MOCK_RECURRING_EXPENSES } from "@/mock-data/recurring";
-import { MOCK_TRANSACTIONS } from "@/mock-data/transactions";
+import { getMockRecurringExpenses } from "@/mock-data/recurring";
+import { getMockTransactions } from "@/mock-data/transactions";
 import { Logger } from "@/lib/logger";
 import { calculateNextDueDate, formatDateString, parseLocalDate } from "@/lib/date-utils";
 import { compareAlphabetically } from "@/lib/sort-utils";
 import { sampleAllocationSummary } from "@/mock-data/allocations";
 import { getAllocation, autoCreateAllocationWithDefaults } from "../allocations/actions";
+import { isSampleDataMode } from "@/lib/demo-mode.server";
 
 /**
  * The allocation category NAME a recurring expense is bundled into. A user-chosen
@@ -46,9 +47,9 @@ export async function getRecurringExpenses(): Promise<RecurringExpense[]> {
 	let transactions: any[] = [];
 	let recordedOccurrences: any[] = [];
 
-	if (process.env.NEXT_PUBLIC_USE_SAMPLE_DATA === "true") {
-		expenses = MOCK_RECURRING_EXPENSES;
-		transactions = MOCK_TRANSACTIONS;
+	if (await isSampleDataMode()) {
+		expenses = getMockRecurringExpenses();
+		transactions = getMockTransactions();
 	} else {
 		const {
 			data: { user },
@@ -361,7 +362,7 @@ export async function getRecurringCategoryOptions(): Promise<string[]> {
 			.filter((name) => !hidden.has(name.toLowerCase()))
 			.sort((a, b) => compareAlphabetically(a, b));
 
-	if (process.env.NEXT_PUBLIC_USE_SAMPLE_DATA === "true") {
+	if (await isSampleDataMode()) {
 		return clean(sampleAllocationSummary.categories.map((c) => c.name));
 	}
 

@@ -26,7 +26,6 @@ export default function EmailChangeCard({ currentEmail }: EmailChangeCardProps) 
 	const [isPending, startTransition] = useTransition();
 	const [formData, setFormData] = useState({
 		newEmail: "",
-		currentPassword: "",
 	});
 
 	const handleSubmit = (e: React.FormEvent) => {
@@ -34,7 +33,6 @@ export default function EmailChangeCard({ currentEmail }: EmailChangeCardProps) 
 
 		const data = new FormData();
 		data.append("newEmail", formData.newEmail);
-		data.append("currentPassword", formData.currentPassword);
 
 		startTransition(async () => {
 			const result = await changeEmail(data);
@@ -48,7 +46,6 @@ export default function EmailChangeCard({ currentEmail }: EmailChangeCardProps) 
 				setIsOpen(false);
 				setFormData({
 					newEmail: "",
-					currentPassword: "",
 				});
 			}
 		});
@@ -57,7 +54,6 @@ export default function EmailChangeCard({ currentEmail }: EmailChangeCardProps) 
 	const handleCancel = () => {
 		setFormData({
 			newEmail: "",
-			currentPassword: "",
 		});
 		setIsOpen(false);
 	};
@@ -65,23 +61,25 @@ export default function EmailChangeCard({ currentEmail }: EmailChangeCardProps) 
 	return (
 		<div className="flex flex-col gap-3">
 			<div>
-				<h3 className="text-sm font-medium">Email Address</h3>
+				<h3 className="text-sm font-medium">Sign-in email</h3>
 				<p className="text-xs text-primary">
 					Current email: <span className="font-medium text-success">{currentEmail}</span>
 				</p>
-				<p className="text-xs text-primary">Update your email address. You'll need to verify the new address.</p>
+				<p className="text-xs text-primary">
+					One-time sign-in links are sent here. Changing it requires confirming the new address by email.
+				</p>
 			</div>
 			<Dialog open={isOpen} onOpenChange={setIsOpen}>
 				<DialogTrigger asChild>
 					<Button variant="outline" className="w-fit">
-						Change Email
+						Change sign-in email
 					</Button>
 				</DialogTrigger>
 				<DialogContent>
 					<form onSubmit={handleSubmit}>
 						<DialogHeader>
-							<DialogTitle>Change Email Address</DialogTitle>
-							<DialogDescription>Enter your new email address and current password for verification</DialogDescription>
+							<DialogTitle>Change sign-in email</DialogTitle>
+							<DialogDescription>Enter the new address for your one-time sign-in links.</DialogDescription>
 						</DialogHeader>
 
 						<div className="space-y-4 py-4">
@@ -96,19 +94,6 @@ export default function EmailChangeCard({ currentEmail }: EmailChangeCardProps) 
 									onChange={(e) => setFormData({ ...formData, newEmail: e.target.value })}
 									disabled={isPending}
 								/>
-							</div>
-
-							<div className="space-y-2">
-								<Label htmlFor="emailPassword">Current Password</Label>
-								<Input
-									id="emailPassword"
-									type="password"
-									required
-									value={formData.currentPassword}
-									onChange={(e) => setFormData({ ...formData, currentPassword: e.target.value })}
-									disabled={isPending}
-								/>
-								<p className="text-xs text-primary">We need your password to verify this change</p>
 							</div>
 
 							<div className="rounded-md bg-info-muted p-3 border border-info/30">

@@ -13,6 +13,7 @@ import type {
 } from "./types";
 import { sampleAllocationSummary, sampleTransactions } from "@/mock-data/allocations";
 import { Logger } from "@/lib/logger";
+import { isSampleDataMode } from "@/lib/demo-mode.server";
 import { parseLocalDate, calculateNextDueDate, getTodayDateString, formatDateString, stepDate } from "@/lib/date-utils";
 import { getAllocationSettings, getTimezone } from "@/app/settings/actions";
 
@@ -86,7 +87,7 @@ function buildSampleSummary(allocation: Allocation): AllocationSummary {
 
 export async function getAllocation(year: number, month: number): Promise<Allocation | null> {
 	// Handle sample data mode
-	if (process.env.NEXT_PUBLIC_USE_SAMPLE_DATA === "true") {
+	if (await isSampleDataMode()) {
 		return getSampleAllocation(year, month);
 	}
 
@@ -119,7 +120,7 @@ export async function getOrCreateAllocation(
 	expectedIncome: number = 0
 ): Promise<Allocation | null> {
 	// Handle sample data mode
-	if (process.env.NEXT_PUBLIC_USE_SAMPLE_DATA === "true") {
+	if (await isSampleDataMode()) {
 		return getSampleAllocation(year, month) ?? createSampleAllocation(year, month, expectedIncome);
 	}
 
@@ -730,7 +731,7 @@ async function syncRecurringExpenses(
 
 export async function getAllocationSummary(allocationId: string): Promise<AllocationSummary | null> {
 	// Handle sample data mode
-	if (process.env.NEXT_PUBLIC_USE_SAMPLE_DATA === "true") {
+	if (await isSampleDataMode()) {
 		const allocation = findSampleAllocationById(allocationId);
 		if (!allocation) return null;
 		return allocation.id === sampleAllocationSummary.allocation.id
@@ -999,7 +1000,7 @@ export async function deleteCategory(categoryId: string): Promise<boolean> {
 
 export async function reorderCategories(categoryOrders: { id: string; display_order: number }[]): Promise<boolean> {
 	// Handle sample data mode
-	if (process.env.NEXT_PUBLIC_USE_SAMPLE_DATA === "true") {
+	if (await isSampleDataMode()) {
 		return true;
 	}
 
@@ -1023,7 +1024,7 @@ export async function reorderCategories(categoryOrders: { id: string; display_or
 
 export async function getTransactionsForMonth(year: number, month: number): Promise<Transaction[]> {
 	// Handle sample data mode
-	if (process.env.NEXT_PUBLIC_USE_SAMPLE_DATA === "true") {
+	if (await isSampleDataMode()) {
 		return sampleTransactions;
 	}
 
@@ -1340,7 +1341,7 @@ export async function getHistoricalPace(
 	currentYear: number,
 	currentMonth: number
 ): Promise<{ hasEnoughData: boolean; dailyAmounts: number[] }> {
-	if (process.env.NEXT_PUBLIC_USE_SAMPLE_DATA === "true") {
+	if (await isSampleDataMode()) {
 		// Create a realistic-looking fake curve for mock data mode
 		const fakeCurve = Array.from({ length: 31 }, (_, i) => {
 			const dayNum = i + 1;
@@ -1509,7 +1510,7 @@ export async function getIncomeVerification(
 		drift: null,
 	};
 
-	if (process.env.NEXT_PUBLIC_USE_SAMPLE_DATA === "true") {
+	if (await isSampleDataMode()) {
 		return { status: "verified", consecutiveMatches: 4, drift: null };
 	}
 

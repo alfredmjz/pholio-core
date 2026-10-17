@@ -141,7 +141,9 @@ const createTx = (
 	categoryId?: string,
 	type: TransactionType = "one_time",
 	accountId?: string,
-	transferToAccountId?: string
+	transferToAccountId?: string,
+	year: number = CURRENT_YEAR,
+	month: number = CURRENT_MONTH
 ): Transaction => {
 	const categoryName = categoryId ? sampleCategories.find((c) => c.id === categoryId)?.name : undefined;
 	const isTransfer = type === "transfer";
@@ -153,7 +155,7 @@ const createTx = (
 		category_name: categoryName,
 		name,
 		amount,
-		transaction_date: new Date(CURRENT_YEAR, CURRENT_MONTH - 1, day).toISOString(),
+		transaction_date: new Date(year, month - 1, day).toISOString(),
 		source: isTransfer ? "transfer" : "manual",
 		account_id: accountId,
 		linked_account_transaction:
@@ -172,27 +174,31 @@ const createTx = (
 	};
 };
 
-export const sampleTransactions: Transaction[] = [
-	createTx("tx-1", "Rent Payment", 2000, 1, "cat-housing", "recurring", "acc-1"),
-	createTx("tx-2", "Electric Bill", 150, 5, "cat-utilities", "recurring", "acc-1"),
-	createTx("tx-3", "Water Bill", 50, 12, "cat-utilities", "recurring", "acc-1"),
-	createTx("tx-4", "Internet Subscription", 80, 15, "cat-utilities", "subscription", "acc-4"),
-	createTx("tx-5", "Grocery Store", 150, 2, "cat-food", "one_time", "acc-4"),
-	createTx("tx-6", "Restaurant Dinner", 85, 4, "cat-food", "one_time", "acc-4"),
-	createTx("tx-7", "Coffee Shop", 15, 6, "cat-food", "one_time", "acc-4"),
-	createTx("tx-8", "Grocery Run", 200, 10, "cat-food", "one_time", "acc-4"),
-	createTx("tx-9", "Gas Station", 60, 3, "cat-transport", "one_time", "acc-4"),
-	createTx("tx-10", "Uber Ride", 25, 8, "cat-transport", "one_time", "acc-4"),
-	createTx("tx-11", "Car Insurance", 100, 15, "cat-transport", "one_time", "acc-1"),
-	createTx("tx-12", "Netflix Subscription", 15, 1, "cat-entertainment", "subscription", "acc-4"),
-	createTx("tx-13", "Spotify", 10, 1, "cat-entertainment", "subscription", "acc-4"),
-	createTx("tx-14", "Movie Tickets", 40, 20, "cat-entertainment", "one_time", "acc-4"),
-	createTx("tx-15", "Concert Tickets", 150, 22, "cat-entertainment", "one_time", "acc-4"),
-	createTx("tx-16", "Student Loan", 300, 1, undefined, "loan", "acc-5"),
-	createTx("tx-17", "Savings Transfer", 500, 1, undefined, "transfer", "acc-1", "acc-3"),
-	createTx("tx-18", "Paycheck", 2500, 15, undefined, "income", "acc-1"),
-	createTx("tx-19", "Paycheck", 2500, 30, undefined, "income", "acc-1"),
-];
+export function buildSampleTransactions(year: number = CURRENT_YEAR, month: number = CURRENT_MONTH): Transaction[] {
+	return [
+		createTx("tx-1", "Rent Payment", 2000, 1, "cat-housing", "recurring", "acc-1", undefined, year, month),
+		createTx("tx-2", "Electric Bill", 150, 5, "cat-utilities", "recurring", "acc-1", undefined, year, month),
+		createTx("tx-3", "Water Bill", 50, 12, "cat-utilities", "recurring", "acc-1", undefined, year, month),
+		createTx("tx-4", "Internet Subscription", 80, 15, "cat-utilities", "subscription", "acc-4", undefined, year, month),
+		createTx("tx-5", "Grocery Store", 150, 2, "cat-food", "one_time", "acc-4", undefined, year, month),
+		createTx("tx-6", "Restaurant Dinner", 85, 4, "cat-food", "one_time", "acc-4", undefined, year, month),
+		createTx("tx-7", "Coffee Shop", 15, 6, "cat-food", "one_time", "acc-4", undefined, year, month),
+		createTx("tx-8", "Grocery Run", 200, 10, "cat-food", "one_time", "acc-4", undefined, year, month),
+		createTx("tx-9", "Gas Station", 60, 3, "cat-transport", "one_time", "acc-4", undefined, year, month),
+		createTx("tx-10", "Uber Ride", 25, 8, "cat-transport", "one_time", "acc-4", undefined, year, month),
+		createTx("tx-11", "Car Insurance", 100, 15, "cat-transport", "one_time", "acc-1", undefined, year, month),
+		createTx("tx-12", "Netflix Subscription", 15, 1, "cat-entertainment", "subscription", "acc-4", undefined, year, month),
+		createTx("tx-13", "Spotify", 10, 1, "cat-entertainment", "subscription", "acc-4", undefined, year, month),
+		createTx("tx-14", "Movie Tickets", 40, 20, "cat-entertainment", "one_time", "acc-4", undefined, year, month),
+		createTx("tx-15", "Concert Tickets", 150, 22, "cat-entertainment", "one_time", "acc-4", undefined, year, month),
+		createTx("tx-16", "Student Loan", 300, 1, undefined, "loan", "acc-5", undefined, year, month),
+		createTx("tx-17", "Savings Transfer", 500, 1, undefined, "transfer", "acc-1", "acc-3", year, month),
+		createTx("tx-18", "Paycheck", 2500, 15, undefined, "income", "acc-1", undefined, year, month),
+		createTx("tx-19", "Paycheck", 2500, 30, undefined, "income", "acc-1", undefined, year, month),
+	];
+}
+
+export const sampleTransactions: Transaction[] = buildSampleTransactions();
 
 // Helper to deep copy and modify dates
 function getMockData(year: number, month: number, type: "base" | "default" = "base") {
@@ -251,23 +257,16 @@ function getMockData(year: number, month: number, type: "base" | "default" = "ba
 		return { summary, transactions: [] };
 	}
 
-	return { summary, transactions: sampleTransactions };
+	return { summary, transactions: buildSampleTransactions(year, month) };
 }
 
 export function getSmartMockData(year: number, month: number) {
-	// Dec 2025: Base Scenario
-	if (year === 2025 && month === 12) {
-		return getMockData(year, month, "base");
-	}
-	// Jan 2026: Imported Scenario (Categories exist, Transactions empty)
-	if (year === 2026 && month === 1) {
-		return getMockData(year, month, "base");
-	}
 	// Feb 2026: Default Template Scenario
 	if (year === 2026 && month === 2) {
 		return getMockData(year, month, "default");
 	}
 
-	// Default: Empty for other months
-	return { summary: null, transactions: [] };
+	// Every other month (including the current one) shows the populated base
+	// scenario so the demo never lands on an empty, non-persisting budget flow.
+	return getMockData(year, month, "base");
 }

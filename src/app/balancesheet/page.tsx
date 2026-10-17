@@ -2,11 +2,14 @@ import { requireAuth } from "@/lib/auth";
 import { BalanceSheetClient } from "./client";
 import { getBalanceSheetSummary, getAccounts, getRecentActivity } from "./actions";
 import { createClient } from "@/lib/supabase/server";
-import { sampleAccounts, sampleBalanceSheetSummary, sampleRecentActivity } from "@/mock-data/balancesheet";
+import { sampleAccounts, getSampleBalanceSheetSummary, getSampleRecentActivity } from "@/mock-data/balancesheet";
+import { isSampleDataMode } from "@/lib/demo-mode.server";
 
 export default async function BalanceSheetPage() {
+	const sampleMode = await isSampleDataMode();
+
 	// Skip auth check if using sample data
-	if (process.env.NEXT_PUBLIC_USE_SAMPLE_DATA !== "true") {
+	if (!sampleMode) {
 		await requireAuth();
 	}
 
@@ -15,10 +18,10 @@ export default async function BalanceSheetPage() {
 	let categories: any[] = [];
 	let activity: any[] = [];
 
-	if (process.env.NEXT_PUBLIC_USE_SAMPLE_DATA === "true") {
-		summary = sampleBalanceSheetSummary;
+	if (sampleMode) {
+		summary = getSampleBalanceSheetSummary();
 		accounts = sampleAccounts;
-		activity = sampleRecentActivity;
+		activity = getSampleRecentActivity();
 		// Fetch categories for unified dialog even in sample mode
 		const { data: cats } = await (await createClient()).from("allocation_categories").select("*");
 		categories = cats || [];

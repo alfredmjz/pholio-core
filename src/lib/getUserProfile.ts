@@ -2,6 +2,7 @@ import { Logger } from "@/lib/logger";
 import { createClient } from "@/lib/supabase/server";
 import { Database } from "@/lib/database.types";
 import { sampleProfile } from "@/mock-data/profile";
+import { isSampleDataMode } from "@/lib/demo-mode.server";
 
 export type UserProfile = Database["public"]["Tables"]["users"]["Row"];
 
@@ -19,8 +20,8 @@ export type UserProfile = Database["public"]["Tables"]["users"]["Row"];
  * ```
  */
 export async function getUserProfile(): Promise<UserProfile | null> {
-	// Early return for sample data mode
-	if (process.env.NEXT_PUBLIC_USE_SAMPLE_DATA === "true") {
+	// Early return for sample data / demo mode
+	if (await isSampleDataMode()) {
 		return sampleProfile as UserProfile;
 	}
 

@@ -4,6 +4,7 @@ import { createClient } from "@/lib/supabase/server";
 import { revalidatePath } from "next/cache";
 import { sampleProfile } from "@/mock-data/profile";
 import { Logger } from "@/lib/logger";
+import { isSampleDataMode } from "@/lib/demo-mode.server";
 
 /**
  * Update user profile (full name)
@@ -55,78 +56,6 @@ export async function updateProfile(formData: FormData) {
 }
 
 /**
- * Change user password
- */
-export async function changePassword(formData: FormData) {
-	try {
-		const supabase = await createClient();
-
-		// Get current user
-		const {
-			data: { user },
-			error: authError,
-		} = await supabase.auth.getUser();
-
-		if (authError || !user) {
-			return { error: "You must be logged in" };
-		}
-
-		// Check if user is guest
-		const { data: profile } = await supabase.from("users").select("is_guest").eq("id", user.id).single();
-
-		if (profile?.is_guest) {
-			return { error: "Guest accounts cannot change passwords. Please create a full account first." };
-		}
-
-		const currentPassword = formData.get("currentPassword") as string;
-		const newPassword = formData.get("newPassword") as string;
-		const confirmPassword = formData.get("confirmPassword") as string;
-
-		// Validation
-		if (!currentPassword || !newPassword || !confirmPassword) {
-			return { error: "All fields are required" };
-		}
-
-		if (newPassword !== confirmPassword) {
-			return { error: "New passwords do not match" };
-		}
-
-		if (newPassword.length < 8) {
-			return { error: "New password must be at least 8 characters" };
-		}
-
-		if (newPassword === currentPassword) {
-			return { error: "New password must be different from current password" };
-		}
-
-		// Verify current password by attempting sign in
-		const { error: verifyError } = await supabase.auth.signInWithPassword({
-			email: user.email!,
-			password: currentPassword,
-		});
-
-		if (verifyError) {
-			return { error: "Current password is incorrect" };
-		}
-
-		// Update password
-		const { error: updateError } = await supabase.auth.updateUser({
-			password: newPassword,
-		});
-
-		if (updateError) {
-			Logger.error("Password update error", { error: updateError });
-			return { error: updateError.message || "Failed to update password" };
-		}
-
-		return { success: true, message: "Password updated successfully" };
-	} catch (error) {
-		Logger.error("Unexpected error in changePassword", { error });
-		return { error: "An unexpected error occurred" };
-	}
-}
-
-/**
  * Change user email
  */
 export async function changeEmail(formData: FormData) {
@@ -143,19 +72,11 @@ export async function changeEmail(formData: FormData) {
 			return { error: "You must be logged in" };
 		}
 
-		// Check if user is guest
-		const { data: profile } = await supabase.from("users").select("is_guest").eq("id", user.id).single();
-
-		if (profile?.is_guest) {
-			return { error: "Guest accounts cannot change email. Please create a full account first." };
-		}
-
 		const newEmail = formData.get("newEmail") as string;
-		const currentPassword = formData.get("currentPassword") as string;
 
 		// Validation
-		if (!newEmail || !currentPassword) {
-			return { error: "All fields are required" };
+		if (!newEmail) {
+			return { error: "Email is required" };
 		}
 
 		// Email validation (more robust regex)
@@ -168,17 +89,7 @@ export async function changeEmail(formData: FormData) {
 			return { error: "New email must be different from current email" };
 		}
 
-		// Verify current password
-		const { error: verifyError } = await supabase.auth.signInWithPassword({
-			email: user.email!,
-			password: currentPassword,
-		});
-
-		if (verifyError) {
-			return { error: "Current password is incorrect" };
-		}
-
-		// Update email (Supabase will send verification email automatically)
+		// Update email (Supabase will send the confirmation email automatically)
 		const { error: updateError } = await supabase.auth.updateUser({
 			email: newEmail,
 		});
@@ -209,7 +120,7 @@ export async function changeEmail(formData: FormData) {
  */
 export async function uploadProfileAvatar(formData: FormData) {
 	try {
-		if (process.env.NEXT_PUBLIC_USE_SAMPLE_DATA === "true") {
+		if (await isSampleDataMode()) {
 			return { error: "Cannot upload avatar in demo mode" };
 		}
 
@@ -223,13 +134,6 @@ export async function uploadProfileAvatar(formData: FormData) {
 
 		if (authError || !user) {
 			return { error: "You must be logged in" };
-		}
-
-		// Check if user is guest
-		const { data: profile } = await supabase.from("users").select("is_guest").eq("id", user.id).single();
-
-		if (profile?.is_guest) {
-			return { error: "Guest accounts cannot upload profile pictures" };
 		}
 
 		const avatarFile = formData.get("avatar") as File;
@@ -301,8 +205,8 @@ export async function getAllocationSettings(): Promise<{
 	newMonthDefault: AllocationNewMonthDefault;
 	defaultTemplateId: string | null;
 }> {
-	// Handle sample data mode
-	if (process.env.NEXT_PUBLIC_USE_SAMPLE_DATA === "true") {
+	// Handle sample data / demo mode
+	if (await isSampleDataMode()) {
 		return {
 			newMonthDefault: (sampleProfile.allocation_new_month_default as AllocationNewMonthDefault) || "dialog",
 			defaultTemplateId: null,
@@ -346,7 +250,7 @@ export async function getAllocationSettings(): Promise<{
 				.order("created_at", { ascending: true })
 				.limit(1)
 				.single();
-			
+
 			if (oldestTemplate) {
 				defaultTemplateId = oldestTemplate.id;
 			}
@@ -369,8 +273,8 @@ export async function updateAllocationSettings(settings: {
 	newMonthDefault?: AllocationNewMonthDefault;
 	defaultTemplateId?: string | null;
 }): Promise<{ success: boolean; error?: string }> {
-	// Handle sample data mode
-	if (process.env.NEXT_PUBLIC_USE_SAMPLE_DATA === "true") {
+	// Handle sample data / demo mode
+	if (await isSampleDataMode()) {
 		return { success: true };
 	}
 
@@ -398,7 +302,6 @@ export async function updateAllocationSettings(settings: {
 			updates.allocation_new_month_default = settings.newMonthDefault;
 		}
 
-
 		const { error } = await supabase.from("users").update(updates).eq("id", user.id);
 
 		if (error) {
@@ -409,10 +312,7 @@ export async function updateAllocationSettings(settings: {
 		// Handle default template update
 		if (settings.defaultTemplateId !== undefined) {
 			// First, unset all defaults
-			await supabase
-				.from("allocation_templates")
-				.update({ is_default: false })
-				.eq("user_id", user.id);
+			await supabase.from("allocation_templates").update({ is_default: false }).eq("user_id", user.id);
 
 			// Then, set the new default if provided
 			if (settings.defaultTemplateId) {
@@ -442,7 +342,7 @@ export async function updateAllocationSettings(settings: {
  * Returns null if not explicitly set (system-detected should be used).
  */
 export async function getTimezone(): Promise<string | null> {
-	if (process.env.NEXT_PUBLIC_USE_SAMPLE_DATA === "true") {
+	if (await isSampleDataMode()) {
 		return (sampleProfile as any).timezone ?? null;
 	}
 
@@ -469,7 +369,7 @@ export async function getTimezone(): Promise<string | null> {
  * Pass null to reset to system-detected timezone.
  */
 export async function updateTimezone(timezone: string | null): Promise<{ success: boolean; error?: string }> {
-	if (process.env.NEXT_PUBLIC_USE_SAMPLE_DATA === "true") {
+	if (await isSampleDataMode()) {
 		return { success: true };
 	}
 

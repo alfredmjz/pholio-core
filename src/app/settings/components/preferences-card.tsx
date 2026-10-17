@@ -36,7 +36,7 @@ export default function PreferencesCard() {
 	// Allocation settings (persisted)
 	const [initialNewMonthDefault, setInitialNewMonthDefault] = useState<AllocationNewMonthDefault>("dialog");
 	const [initialDefaultTemplateId, setInitialDefaultTemplateId] = useState<string>("none");
-	
+
 	const [newMonthDefault, setNewMonthDefault] = useState<AllocationNewMonthDefault>("dialog");
 	const [defaultTemplateId, setDefaultTemplateId] = useState<string>("none");
 	const [templates, setTemplates] = useState<Array<{ id: string; name: string }>>([]);
@@ -81,11 +81,11 @@ export default function PreferencesCard() {
 		Promise.all([getAllocationSettings(), getUserTemplates()]).then(([settings, userTemplates]) => {
 			setInitialNewMonthDefault(settings.newMonthDefault);
 			setNewMonthDefault(settings.newMonthDefault);
-			
+
 			const defaultTpl = settings.defaultTemplateId || "none";
 			setInitialDefaultTemplateId(defaultTpl);
 			setDefaultTemplateId(defaultTpl);
-			
+
 			setTemplates(userTemplates);
 			setIsLoadingSettings(false);
 		});
@@ -152,9 +152,9 @@ export default function PreferencesCard() {
 				defaultTemplateId: defaultTemplateId === "none" ? null : defaultTemplateId,
 			});
 			const tzPromise = updateTimezone(timezone);
-			
+
 			const [allocResult, tzResult] = await Promise.all([allocPromise, tzPromise]);
-			
+
 			if (!allocResult.success || !tzResult.success) {
 				toast.error("Save Failed", { description: "Some settings could not be saved." });
 			} else {
@@ -203,7 +203,7 @@ export default function PreferencesCard() {
 						<ToggleGroupItem
 							value="light"
 							aria-label="Light Code"
-							className="h-24 w-full max-w-[140px] flex flex-col gap-2 rounded-lg border-2 border-muted hover:border-primary hover:bg-transparent data-[state=on]:border-primary data-[state=on]:bg-primary/5"
+							className="h-24 w-full max-w-[140px] flex flex-col gap-2 rounded-lg border-2 border-muted text-primary hover:border-primary hover:bg-transparent data-[state=on]:border-primary data-[state=on]:bg-primary/5 data-[state=on]:text-primary"
 						>
 							<Sun className="h-6 w-6" />
 							<span className="text-xs font-medium">Light</span>
@@ -212,7 +212,7 @@ export default function PreferencesCard() {
 						<ToggleGroupItem
 							value="dark"
 							aria-label="Dark Mode"
-							className="h-24 w-full max-w-[140px] flex flex-col gap-2 rounded-lg border-2 border-muted hover:border-primary hover:bg-transparent data-[state=on]:border-primary data-[state=on]:bg-primary/5"
+							className="h-24 w-full max-w-[140px] flex flex-col gap-2 rounded-lg border-2 border-muted text-primary hover:border-primary hover:bg-transparent data-[state=on]:border-primary data-[state=on]:bg-primary/5 data-[state=on]:text-primary"
 						>
 							<Moon className="h-6 w-6" />
 							<span className="text-xs font-medium">Dark</span>
@@ -221,7 +221,7 @@ export default function PreferencesCard() {
 						<ToggleGroupItem
 							value="system"
 							aria-label="System Mode"
-							className="h-24 w-full max-w-[140px] flex flex-col gap-2 rounded-lg border-2 border-muted hover:border-primary hover:bg-transparent data-[state=on]:border-primary data-[state=on]:bg-primary/5"
+							className="h-24 w-full max-w-[140px] flex flex-col gap-2 rounded-lg border-2 border-muted text-primary hover:border-primary hover:bg-transparent data-[state=on]:border-primary data-[state=on]:bg-primary/5 data-[state=on]:text-primary"
 						>
 							<Monitor className="h-6 w-6" />
 							<span className="text-xs font-medium">System</span>
@@ -441,17 +441,10 @@ export default function PreferencesCard() {
 
 				{/* Save/Cancel Action */}
 				<div className="flex justify-end gap-3 pt-2">
-					<Button 
-						variant="outline" 
-						onClick={handleCancel} 
-						disabled={!hasChanges || isSaving || isLoadingSettings}
-					>
+					<Button variant="outline" onClick={handleCancel} disabled={!hasChanges || isSaving || isLoadingSettings}>
 						Cancel
 					</Button>
-					<Button 
-						onClick={handleSave} 
-						disabled={!hasChanges || isSaving || isLoadingSettings}
-					>
+					<Button onClick={handleSave} disabled={!hasChanges || isSaving || isLoadingSettings}>
 						{isSaving ? "Saving..." : "Save Changes"}
 					</Button>
 				</div>

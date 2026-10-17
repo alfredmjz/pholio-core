@@ -4,6 +4,7 @@ import { Card } from "@/components/ui/card";
 import { Info, TrendingUp, TrendingDown } from "lucide-react";
 import { Tooltip, LineChart, Line } from "recharts";
 import { cn } from "@/lib/utils";
+import { formatCompactCurrency } from "@/lib/format-utils";
 import { HistoricalDataPoint } from "../types";
 import { ChartContainer } from "@/components/common/ChartContainer";
 
@@ -18,15 +19,6 @@ export function DebtRundownCard({
 	previousTotalLiabilities = 0,
 	historicalData,
 }: DebtRundownCardProps) {
-	const formatCurrency = (amount: number) => {
-		return new Intl.NumberFormat("en-US", {
-			style: "currency",
-			currency: "USD",
-			notation: "compact",
-			maximumFractionDigits: 1,
-		}).format(amount);
-	};
-
 	const formatFullCurrency = (amount: number) => {
 		return new Intl.NumberFormat("en-US", {
 			style: "currency",
@@ -63,7 +55,7 @@ export function DebtRundownCard({
 			</div>
 
 			<div className="space-y-1">
-				<div className="text-4xl font-bold tracking-tight">{formatCurrency(totalLiabilities)}</div>
+				<div className="text-4xl font-bold tracking-tight">{formatCompactCurrency(totalLiabilities)}</div>
 				<div className={cn("flex items-center gap-1 text-sm font-medium", isGood ? "text-green-500" : "text-red-500")}>
 					{percentChange > 0 ? <TrendingUp className="h-4 w-4" /> : <TrendingDown className="h-4 w-4" />}
 					{Math.abs(percentChange).toFixed(1)}% vs. last month

@@ -1,6 +1,5 @@
 "use client";
 
-import PasswordChangeCard from "./password-change-card";
 import EmailChangeCard from "./email-change-card";
 
 interface SecurityCardProps {
@@ -11,13 +10,12 @@ export default function SecurityCard({ userEmail }: SecurityCardProps) {
 	return (
 		<div className="flex flex-col gap-6">
 			<div>
-				<h3 className="text-lg font-medium">Credentials</h3>
-				<p className="text-sm text-primary">Change your password or email address</p>
+				<h3 className="text-lg font-medium">Sign-in email</h3>
+				<p className="text-sm text-primary">
+					Pholio signs you in with one-time email links. Manage the address those links go to below.
+				</p>
 			</div>
-			{/* Password Change Section */}
-			<PasswordChangeCard />
 
-			{/* Email Change Section */}
 			<EmailChangeCard currentEmail={userEmail} />
 		</div>
 	);

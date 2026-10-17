@@ -97,7 +97,7 @@ export function BillCard({ bill, onDelete, onUpdate, timezone, categoryOptions =
 
 	return (
 		<>
-			<Card className="group relative transition-all duration-200 hover:shadow-md hover:border-primary hover:ring-1 hover:ring-primary border-border/60">
+			<Card className="group relative card-interactive">
 				<BillCardHeader
 					bill={bill}
 					isAutomated={isAutomated}
@@ -146,9 +146,7 @@ export function BillCard({ bill, onDelete, onUpdate, timezone, categoryOptions =
 											${Number(bill.next_amount_change.from).toFixed(2)}
 										</span>
 										<ArrowRight className="h-3.5 w-3.5 text-muted-foreground" />
-										<span className="font-semibold">
-											${Number(bill.next_amount_change.to).toFixed(2)}
-										</span>
+										<span className="font-semibold">${Number(bill.next_amount_change.to).toFixed(2)}</span>
 									</div>
 								)}
 								{bill.next_due_change && (

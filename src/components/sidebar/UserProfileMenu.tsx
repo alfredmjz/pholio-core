@@ -8,10 +8,7 @@ import {
 	DropdownMenuItem,
 	DropdownMenuTrigger,
 } from "@/components/ui/dropdown-menu";
-import { signOut } from "@/app/(auth-pages)/login/actions";
 import Link from "next/link";
-import { useRouter } from "next/navigation";
-import { GuestLogoutAlert } from "@/components/guest-logout-alert";
 import { cn } from "@/lib/utils";
 import { ChevronDown } from "lucide-react";
 
@@ -19,15 +16,21 @@ interface UserProfileMenuProps {
 	userProfile: UserProfile | null;
 	onSignOut: () => void;
 	isCollapsed: boolean;
+	/** Where the dropdown opens relative to the trigger. Defaults to the sidebar placement. */
+	menuSide?: "top" | "right" | "bottom" | "left";
+	menuAlign?: "start" | "center" | "end";
 }
 
-export function UserProfileMenu({ userProfile, onSignOut, isCollapsed }: UserProfileMenuProps) {
-	const router = useRouter();
-
-	const [showGuestLogoutAlert, setShowGuestLogoutAlert] = React.useState(false);
+export function UserProfileMenu({
+	userProfile,
+	onSignOut,
+	isCollapsed,
+	menuSide = "right",
+	menuAlign = "start",
+}: UserProfileMenuProps) {
 	const [open, setOpen] = React.useState(false);
 
-	const displayName = userProfile?.full_name || userProfile?.guest_name || "Guest User";
+	const displayName = userProfile?.full_name || "Pholio User";
 
 	const displayInitials = displayName
 		.split(" ")
@@ -40,21 +43,10 @@ export function UserProfileMenu({ userProfile, onSignOut, isCollapsed }: UserPro
 		(e: React.MouseEvent) => {
 			e.preventDefault();
 			setOpen(false);
-			if (userProfile?.is_guest) {
-				setShowGuestLogoutAlert(true);
-			} else {
-				onSignOut();
-			}
+			onSignOut();
 		},
-		[userProfile, onSignOut]
+		[onSignOut]
 	);
-
-	const performSignOut = React.useCallback(async () => {
-		localStorage.removeItem("sidebarWidth");
-		localStorage.removeItem("sidebarCollapsed");
-		await signOut();
-		router.push("/login");
-	}, [router]);
 
 	return (
 		<>
@@ -63,9 +55,11 @@ export function UserProfileMenu({ userProfile, onSignOut, isCollapsed }: UserPro
 				<DropdownMenuTrigger asChild>
 					<div
 						className={cn(
-							"inline-flex items-center gap-2 p-2 rounded-md h-auto outline-none cursor-pointer max-w-full",
+							"inline-flex items-center gap-2 p-2 rounded-md h-auto outline-none cursor-pointer max-w-full focus-visible:ring-2 focus-visible:ring-ring",
 							isCollapsed ? "justify-center" : "justify-start"
 						)}
+						aria-label={isCollapsed ? "Account menu" : undefined}
+						tabIndex={0}
 					>
 						{userProfile?.avatar_url ? (
 							<img
@@ -92,10 +86,10 @@ export function UserProfileMenu({ userProfile, onSignOut, isCollapsed }: UserPro
 					</div>
 				</DropdownMenuTrigger>
 				<DropdownMenuContent
-					side="right"
-					align="start"
-					sideOffset={-20}
-					alignOffset={30}
+					side={menuSide}
+					align={menuAlign}
+					sideOffset={menuSide === "right" ? -20 : 8}
+					alignOffset={menuSide === "right" ? 30 : 0}
 					className="border-border border-2 w-40"
 				>
 					<DropdownMenuItem asChild>
@@ -112,9 +106,6 @@ export function UserProfileMenu({ userProfile, onSignOut, isCollapsed }: UserPro
 					</DropdownMenuItem>
 				</DropdownMenuContent>
 			</DropdownMenu>
-
-			{/* Guest Logout Alert */}
-			<GuestLogoutAlert open={showGuestLogoutAlert} onOpenChange={setShowGuestLogoutAlert} onConfirm={performSignOut} />
 		</>
 	);
 }

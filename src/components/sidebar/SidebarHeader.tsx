@@ -26,7 +26,7 @@ export function SidebarHeader({ isCollapsed, onToggleCollapse, userProfile, onSi
 				onClick={onToggleCollapse}
 				variant="ghost"
 				size="icon"
-				className="flex items-center justify-center w-8 h-8 rounded-md bg-secondary hover:bg-accent hover:text-accent-foreground text-primary flex-shrink-0"
+				className="flex items-center justify-center w-8 h-8 rounded-md bg-secondary hover:bg-hover hover:text-primary text-primary flex-shrink-0"
 				aria-label={isCollapsed ? "Expand sidebar" : "Collapse sidebar"}
 				title={isCollapsed ? "Expand sidebar" : "Collapse sidebar"}
 			>

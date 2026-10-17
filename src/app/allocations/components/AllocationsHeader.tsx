@@ -41,7 +41,7 @@ export function AllocationsHeader({
 				<MonthSelector currentMonth={currentMonth} onMonthChange={onMonthChange} />
 
 				<div className="flex items-center gap-2">
-					<Button className="gap-2 bg-primary hover:bg-primary/90 text-background" onClick={onExport}>
+					<Button className="gap-2" onClick={onExport}>
 						<Download className="h-4 w-4" />
 						Export
 					</Button>

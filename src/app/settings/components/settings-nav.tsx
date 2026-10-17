@@ -28,8 +28,10 @@ const navItems: NavItem[] = [
 		href: "/settings/security",
 		icon: Shield,
 		keywords: [
-			"password",
-			"change password",
+			"magic link",
+			"sign-in",
+			"sign in",
+			"email",
 			"mfa",
 			"2fa",
 			"multi-factor",
@@ -163,8 +165,8 @@ export function SettingsNav() {
 									"flex items-center gap-3 px-3 py-2 text-sm rounded-md transition-all duration-200",
 									"border-l-2 border-transparent",
 									isActive
-										? "bg-accent/50 border-l-primary text-primary font-medium"
-										: "text-primary hover:text-primary hover:bg-accent/50"
+										? "bg-secondary border-l-primary text-primary font-medium"
+										: "text-primary hover:text-primary hover:bg-hover"
 								)}
 							>
 								<Icon className="w-4 h-4 flex-shrink-0" />

@@ -50,10 +50,10 @@ export function RecurringClient({ initialExpenses, timezone, categoryOptions = [
 				className="flex flex-col md:flex-row gap-4 justify-between items-start md:items-center"
 			>
 				<div>
-					<h1 className="text-3xl font-bold tracking-tight">Recurring</h1>
-					<p className="text-primary">Manage your subscriptions and recurring bills.</p>
+					<h1 className="type-h1">Recurring</h1>
+					<p className="type-body-sm text-muted-foreground">Manage your subscriptions and recurring bills.</p>
 				</div>
-				<Button onClick={() => setIsAddOpen(true)} className="gap-2 bg-green-600 hover:bg-green-700 text-white">
+				<Button onClick={() => setIsAddOpen(true)} className="gap-2">
 					<Plus className="h-4 w-4 md:hidden" /> Add Recurring
 					<ShortcutHint
 						keys={SHORTCUTS[ShortcutId.AddRecurring].keys}

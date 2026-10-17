@@ -1,4 +1,4 @@
-@import url("https://fonts.googleapis.com/css2?family=Geist:wght@100..900&display=swap");
+@import url("https://fonts.googleapis.com/css2?family=Instrument+Sans:ital,wght@0,400..700;1,400..700&display=swap");
 
 @tailwind base;
 @tailwind components;
@@ -6,134 +6,280 @@
 
 @import "./animations.css";
 
-@layer base {
-	:root,
-	.light-theme {
-		/* Light theme - Notion-inspired palette - HSL Format for Opacity Support */
+/* --------------------------------------------------------------------------
+ * Typography system
+ * One family, a small semantic scale, and shared roles for headings, copy,
+ * labels, controls, and financial values.
+ * -------------------------------------------------------------------------- */
 
-		/* Base colors */
-		--background: 0 0% 100%;
-		--border: 210 10% 90%;
-		--ring: 200 71% 46%;
-		--radius: 0.375rem;
+:root {
+	--type-display-size: clamp(2.4rem, 6vw, 5.4rem);
+	--type-display-weight: 550;
+	--type-display-leading: 0.98;
+	--type-display-tracking: -0.048em;
 
-		/* Primary */
-		--primary: 30 6% 25%;
-		--primary-foreground: 0 0% 100%;
-		--primary-hover: 0 0% 18%;
-		--primary-border: 30 6% 25%;
+	--type-h1-size: 2.5rem;
+	--type-h1-weight: 600;
+	--type-h1-leading: 1.08;
+	--type-h1-tracking: -0.035em;
 
-		/* Secondary */
-		--secondary: 210 10% 90%;
-		--secondary-foreground: 30 6% 25%;
-		--secondary-hover: 210 10% 85%;
-		--secondary-muted: 210 10% 88%;
-		--secondary-border: 210 10% 85%;
+	--type-h2-size: 2rem;
+	--type-h2-weight: 600;
+	--type-h2-leading: 1.1;
+	--type-h2-tracking: -0.03em;
 
-		/* Accent */
-		--accent: 210 10% 94%;
-		--accent-foreground: 30 6% 25%;
-		--accent-hover: 210 10% 91%;
-		--accent-muted: 210 10% 88%;
+	--type-h3-size: 1.5rem;
+	--type-h3-weight: 600;
+	--type-h3-leading: 1.2;
+	--type-h3-tracking: -0.02em;
 
-		/* Hover */
-		--hover: 210 15% 95%;
+	--type-h4-size: 1.25rem;
+	--type-h4-weight: 600;
+	--type-h4-leading: 1.3;
+	--type-h4-tracking: -0.015em;
 
-		/* Popover */
-		--popover: 0 0% 100%;
-		--popover-foreground: 30 6% 25%;
-		--popover-muted: 210 10% 90%;
+	--type-body-lg-size: 1rem;
+	--type-body-size: 0.9375rem;
+	--type-body-sm-size: 0.8125rem;
+	--type-body-xs-size: 0.75rem;
+	--type-label-size: 0.75rem;
+	--type-caption-size: 0.6875rem;
+	--type-control-size: 0.875rem;
+	--type-value-size: 0.875rem;
+	--type-stat-size: 1.375rem;
 
-		/* Card */
-		--card: 0 0% 100%;
-		--card-foreground: 30 6% 25%;
-		--card-muted: 210 10% 90%;
+	--type-body-weight: 400;
+	--type-medium-weight: 500;
+	--type-heading-weight: 600;
+	--type-label-weight: 550;
+	--type-control-weight: 550;
+	--type-stat-weight: 600;
 
-		/* Status */
-		--success: 124 38% 45%;
-		--success-foreground: 0 0% 100%;
-		--success-muted: 120 33% 89%;
+	--type-body-lg-leading: 1.62;
+	--type-body-leading: 1.62;
+	--type-body-sm-leading: 1.55;
+	--type-body-xs-leading: 1.5;
+	--type-label-leading: 1.2;
+	--type-label-tracking: 0.01em;
+	--type-caption-leading: 1.35;
+	--type-control-leading: 1.2;
+	--type-input-leading: 1.4;
+	--type-stat-leading: 1.1;
+	--type-stat-tracking: -0.03em;
 
-		--warning: 45 61% 49%;
-		--warning-foreground: 0 0% 100%;
-		--warning-muted: 41 87% 89%;
-
-		--error: 2 60% 55%;
-		--error-foreground: 0 0% 100%;
-		--error-muted: 10 100% 93%;
-
-		--info: 210 80% 50%;
-		--info-foreground: 0 0% 100%;
-		--info-muted: 210 50% 90%;
-	}
-
-	.dark {
-		/* Dark theme - Notion-inspired palette */
-
-		/* Base colors */
-		--background: 30 5% 15%;
-		--border: 30 5% 25%;
-		--ring: 200 71% 46%;
-		--radius: 0.375rem;
-
-		/* Primary */
-		--primary: 0 0% 100%;
-		--primary-foreground: 30 5% 15%;
-		--primary-hover: 0 0% 92%;
-		--primary-border: 0 0% 100%;
-
-		/* Secondary */
-		--secondary: 30 5% 28%;
-		--secondary-foreground: 0 0% 92%;
-		--secondary-hover: 30 5% 32%;
-		--secondary-muted: 30 5% 30%;
-		--secondary-border: 30 5% 30%;
-
-		/* Accent */
-		--accent: 30 5% 22%;
-		--accent-foreground: 0 0% 92%;
-		--accent-hover: 30 5% 25%;
-		--accent-muted: 30 5% 28%;
-
-		/* Hover */
-		--hover: 30 5% 25%;
-
-		/* Popover */
-		--popover: 30 5% 18%;
-		--popover-foreground: 0 0% 92%;
-		--popover-muted: 30 5% 25%;
-
-		/* Card */
-		--card: 30 5% 18%;
-		--card-foreground: 0 0% 92%;
-		--card-muted: 30 5% 25%;
-
-		/* Status */
-		--success: 153 38% 49%;
-		--success-foreground: 30 5% 15%;
-		--success-muted: 153 30% 15%;
-
-		--warning: 48 100% 64%;
-		--warning-foreground: 30 5% 15%;
-		--warning-muted: 48 30% 15%;
-
-		--error: 4 100% 71%;
-		--error-foreground: 30 5% 15%;
-		--error-muted: 4 30% 18%;
-
-		--info: 210 80% 55%;
-		--info-foreground: 30 5% 15%;
-		--info-muted: 210 30% 18%;
-	}
+	--radius: 0.375rem;
 }
 
 @layer base {
+	/* Light theme — warm paper neutrals, ink text, one green action color. */
+	:root,
+	.light-theme {
+		--background: 40 32% 93%;
+		--foreground: 48 10% 10%;
+
+		--card: 40 48% 97%;
+		--card-foreground: 48 10% 10%;
+		--card-muted: 40 24% 90%;
+
+		--popover: 40 48% 97%;
+		--popover-foreground: 48 10% 10%;
+		--popover-muted: 40 24% 91%;
+
+		--text-primary: 48 10% 10%;
+		--text-secondary: 45 8% 24%;
+		--text-muted: 44 7% 42%;
+
+		--border: 40 18% 84%;
+		--border-strong: 40 14% 70%;
+		--ring: 162 75% 24%;
+
+		--primary: 48 10% 10%;
+		--primary-foreground: 41 70% 95%;
+		--primary-hover: 48 10% 16%;
+		--primary-border: 48 10% 10%;
+
+		--secondary: 40 24% 90%;
+		--secondary-foreground: 48 10% 10%;
+		--secondary-hover: 40 24% 86%;
+		--secondary-muted: 40 22% 88%;
+		--secondary-border: 40 18% 84%;
+
+		--accent: 162 75% 24%;
+		--accent-foreground: 41 70% 95%;
+		--accent-hover: 162 75% 20%;
+		--accent-muted: 162 28% 92%;
+		--accent-playful: 162 55% 38%;
+
+		--hover: 40 24% 91%;
+
+		--field-bg: 40 45% 96%;
+		--field-border: 40 18% 82%;
+		--field-placeholder: 44 7% 46%;
+		--field-focus: 162 75% 24%;
+		--overlay: 48 10% 10%;
+		--shadow-card:
+			0 1px 0 hsl(0 0% 100% / 0.55) inset, 0 1px 2px hsl(48 10% 10% / 0.04), 0 12px 28px -24px hsl(48 10% 10% / 0.2);
+		--shadow-raised: 0 1px 0 hsl(0 0% 100% / 0.6) inset, 0 20px 48px -28px hsl(48 10% 10% / 0.28);
+		--app-glow: radial-gradient(1100px 600px at 50% -10%, hsl(0 0% 100% / 0.35), transparent 62%);
+
+		--success: 152 45% 34%;
+		--success-foreground: 41 70% 95%;
+		--success-muted: 152 30% 92%;
+
+		--warning: 38 82% 45%;
+		--warning-foreground: 48 10% 10%;
+		--warning-muted: 40 80% 92%;
+
+		--error: 5 64% 39%;
+		--error-foreground: 41 70% 95%;
+		--error-muted: 8 60% 94%;
+
+		--info: 210 60% 42%;
+		--info-foreground: 41 70% 95%;
+		--info-muted: 210 45% 93%;
+	}
+
+	/* Dark theme — same roles, warm ink surfaces instead of neutral grey. */
+	.dark {
+		--background: 48 8% 6%;
+		--foreground: 41 30% 94%;
+
+		--card: 45 8% 11%;
+		--card-foreground: 41 30% 94%;
+		--card-muted: 45 8% 15%;
+
+		--popover: 45 8% 13%;
+		--popover-foreground: 41 30% 94%;
+		--popover-muted: 45 8% 17%;
+
+		--text-primary: 41 30% 94%;
+		--text-secondary: 41 15% 78%;
+		--text-muted: 41 12% 64%;
+
+		--border: 45 8% 23%;
+		--border-strong: 45 7% 34%;
+		--ring: 162 55% 55%;
+
+		--primary: 41 30% 94%;
+		--primary-foreground: 48 8% 8%;
+		--primary-hover: 41 25% 88%;
+		--primary-border: 41 30% 94%;
+
+		--secondary: 45 8% 15%;
+		--secondary-foreground: 41 25% 90%;
+		--secondary-hover: 45 8% 19%;
+		--secondary-muted: 45 8% 17%;
+		--secondary-border: 45 8% 25%;
+
+		--accent: 162 55% 52%;
+		--accent-foreground: 48 8% 8%;
+		--accent-hover: 162 55% 60%;
+		--accent-muted: 162 25% 16%;
+		--accent-playful: 162 50% 45%;
+
+		--hover: 45 8% 15%;
+
+		--field-bg: 45 8% 9%;
+		--field-border: 45 8% 25%;
+		--field-placeholder: 41 10% 60%;
+		--field-focus: 162 55% 55%;
+		--overlay: 0 0% 0%;
+		--shadow-card:
+			0 1px 0 hsl(41 30% 94% / 0.06) inset, 0 1px 2px hsl(0 0% 0% / 0.45), 0 16px 32px -22px hsl(0 0% 0% / 0.7);
+		--shadow-raised: 0 1px 0 hsl(41 30% 94% / 0.08) inset, 0 28px 64px -26px hsl(0 0% 0% / 0.85);
+		--app-glow: radial-gradient(1100px 620px at 50% -12%, hsl(41 30% 94% / 0.05), transparent 64%);
+
+		--success: 152 40% 52%;
+		--success-foreground: 48 8% 8%;
+		--success-muted: 152 25% 16%;
+
+		--warning: 48 90% 60%;
+		--warning-foreground: 48 8% 8%;
+		--warning-muted: 48 30% 16%;
+
+		--error: 4 80% 62%;
+		--error-foreground: 48 8% 8%;
+		--error-muted: 4 30% 18%;
+
+		--info: 210 70% 62%;
+		--info-foreground: 48 8% 8%;
+		--info-muted: 210 30% 18%;
+	}
+
+	/* Paper theme — used by the login experience. Same semantic roles, warm stock. */
+	.theme-paper {
+		--background: 40 46% 89%;
+		--foreground: 48 10% 10%;
+
+		--card: 41 70% 95%;
+		--card-foreground: 48 10% 10%;
+		--card-muted: 39 38% 82%;
+
+		--popover: 41 70% 95%;
+		--popover-foreground: 48 10% 10%;
+		--popover-muted: 39 38% 82%;
+
+		--text-primary: 48 10% 10%;
+		--text-secondary: 45 8% 19%;
+		--text-muted: 44 7% 40%;
+
+		--border: 40 20% 78%;
+		--border-strong: 45 10% 35%;
+		--ring: 162 75% 24%;
+
+		--primary: 48 10% 10%;
+		--primary-foreground: 41 70% 95%;
+		--primary-hover: 48 10% 16%;
+		--primary-border: 48 10% 10%;
+
+		--secondary: 39 38% 82%;
+		--secondary-foreground: 48 10% 10%;
+		--secondary-hover: 39 38% 78%;
+		--secondary-muted: 39 30% 86%;
+		--secondary-border: 39 25% 75%;
+
+		--accent: 162 75% 24%;
+		--accent-foreground: 41 70% 95%;
+		--accent-hover: 162 75% 20%;
+		--accent-muted: 162 25% 90%;
+		--accent-playful: 162 60% 35%;
+
+		--hover: 39 35% 86%;
+
+		--field-bg: 41 70% 95%;
+		--field-border: 40 20% 75%;
+		--field-placeholder: 44 7% 45%;
+		--field-focus: 162 75% 24%;
+		--overlay: 48 10% 10%;
+		--shadow-card:
+			0 1px 0 hsl(0 0% 100% / 0.55) inset, 0 1px 2px hsl(48 10% 10% / 0.04), 0 12px 28px -24px hsl(48 10% 10% / 0.2);
+		--shadow-raised: 0 1px 0 hsl(0 0% 100% / 0.6) inset, 0 20px 48px -28px hsl(48 10% 10% / 0.28);
+		--app-glow: radial-gradient(1100px 600px at 50% -10%, hsl(0 0% 100% / 0.35), transparent 62%);
+
+		--success: 152 45% 32%;
+		--success-foreground: 41 70% 95%;
+		--success-muted: 152 30% 90%;
+
+		--warning: 38 82% 42%;
+		--warning-foreground: 48 10% 10%;
+		--warning-muted: 40 80% 90%;
+
+		--error: 5 64% 39%;
+		--error-foreground: 41 70% 95%;
+		--error-muted: 8 60% 92%;
+
+		--info: 210 60% 42%;
+		--info-foreground: 41 70% 95%;
+		--info-muted: 210 45% 91%;
+	}
+
 	* {
 		@apply box-border;
 	}
 	html,
 	body {
 		@apply font-sans antialiased bg-background text-primary m-0 p-0;
+		background-image: var(--app-glow);
 	}
 	a {
 		@apply text-inherit no-underline;
@@ -205,6 +351,109 @@
 	}
 	input[type="number"] {
 		-moz-appearance: textfield;
+	}
+}
+
+@layer components {
+	.type-display {
+		font-size: var(--type-display-size);
+		font-weight: var(--type-display-weight);
+		line-height: var(--type-display-leading);
+		letter-spacing: var(--type-display-tracking);
+	}
+
+	.type-h1 {
+		font-size: var(--type-h1-size);
+		font-weight: var(--type-h1-weight);
+		line-height: var(--type-h1-leading);
+		letter-spacing: var(--type-h1-tracking);
+	}
+
+	.type-h2 {
+		font-size: var(--type-h2-size);
+		font-weight: var(--type-h2-weight);
+		line-height: var(--type-h2-leading);
+		letter-spacing: var(--type-h2-tracking);
+	}
+
+	.type-h3 {
+		font-size: var(--type-h3-size);
+		font-weight: var(--type-h3-weight);
+		line-height: var(--type-h3-leading);
+		letter-spacing: var(--type-h3-tracking);
+	}
+
+	.type-h4 {
+		font-size: var(--type-h4-size);
+		font-weight: var(--type-h4-weight);
+		line-height: var(--type-h4-leading);
+		letter-spacing: var(--type-h4-tracking);
+	}
+
+	.type-body-lg {
+		font-size: var(--type-body-lg-size);
+		font-weight: var(--type-body-weight);
+		line-height: var(--type-body-lg-leading);
+	}
+
+	.type-body {
+		font-size: var(--type-body-size);
+		font-weight: var(--type-body-weight);
+		line-height: var(--type-body-leading);
+	}
+
+	.type-body-sm {
+		font-size: var(--type-body-sm-size);
+		font-weight: var(--type-body-weight);
+		line-height: var(--type-body-sm-leading);
+	}
+
+	.type-body-xs {
+		font-size: var(--type-body-xs-size);
+		font-weight: var(--type-body-weight);
+		line-height: var(--type-body-xs-leading);
+	}
+
+	.type-label {
+		font-size: var(--type-label-size);
+		font-weight: var(--type-label-weight);
+		line-height: var(--type-label-leading);
+		letter-spacing: var(--type-label-tracking);
+	}
+
+	.type-caption {
+		font-size: var(--type-caption-size);
+		font-weight: var(--type-medium-weight);
+		line-height: var(--type-caption-leading);
+	}
+
+	.type-control {
+		font-size: var(--type-control-size);
+		font-weight: var(--type-control-weight);
+		line-height: var(--type-control-leading);
+	}
+
+	.type-value {
+		font-size: var(--type-value-size);
+		font-weight: var(--type-medium-weight);
+		line-height: var(--type-control-leading);
+		font-variant-numeric: tabular-nums;
+	}
+
+	.type-stat {
+		font-size: var(--type-stat-size);
+		font-weight: var(--type-stat-weight);
+		line-height: var(--type-stat-leading);
+		letter-spacing: var(--type-stat-tracking);
+		font-variant-numeric: tabular-nums;
+	}
+
+	.card-interactive {
+		@apply transition-colors duration-200 hover:border-primary/60 hover:ring-1 hover:ring-primary/25 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring focus-visible:ring-offset-2 focus-visible:ring-offset-background;
+	}
+
+	.row-interactive {
+		@apply transition-colors duration-200 hover:ring-1 hover:ring-inset hover:ring-primary/25 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-inset focus-visible:ring-ring;
 	}
 }
 

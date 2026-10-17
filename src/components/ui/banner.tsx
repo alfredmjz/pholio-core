@@ -71,11 +71,11 @@ const BannerIcon = ({
 };
 
 const BannerTitle = ({ className, ...props }: HTMLAttributes<HTMLHeadingElement>) => (
-	<h3 className={cn("flex-1 text-sm font-medium", className)} {...props} />
+	<h3 className={cn("type-body-sm flex-1 font-medium", className)} {...props} />
 );
 
 const BannerAction = ({ className, ...props }: ComponentProps<typeof Button>) => (
-	<Button variant="ghost" size="sm" className={cn("h-auto p-0 text-sm underline", className)} {...props} />
+	<Button variant="ghost" size="sm" className={cn("h-auto p-0 type-body-sm underline", className)} {...props} />
 );
 
 const BannerClose = ({ className, ...props }: ComponentProps<typeof Button>) => {
@@ -99,4 +99,3 @@ const BannerClose = ({ className, ...props }: ComponentProps<typeof Button>) => 
 };
 
 export { Banner, BannerAction, BannerClose, BannerIcon, BannerTitle };
-

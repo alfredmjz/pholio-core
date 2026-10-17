@@ -1,6 +1,11 @@
 import { RecurringExpense } from "@/app/recurring/actions";
+import { getDemoNow } from "./demo-date";
 
-export const MOCK_RECURRING_EXPENSES: RecurringExpense[] = [
+export function getMockRecurringExpenses(now: Date = getDemoNow()): RecurringExpense[] {
+	const y = now.getFullYear();
+	const m = now.getMonth();
+	const iso = now.toISOString();
+	return [
     {
         id: "mock-1",
         user_id: "mock-user",
@@ -8,15 +13,15 @@ export const MOCK_RECURRING_EXPENSES: RecurringExpense[] = [
         amount: 15.99,
         currency: "USD",
         billing_period: "monthly",
-        next_due_date: new Date(new Date().getFullYear(), new Date().getMonth(), 15).toISOString(), // 15th of this month
+        next_due_date: new Date(y, m, 15).toISOString(), // 15th of this month
         category: "subscription",
         budget_category: null,
         is_active: true,
         service_provider: "netflix",
         plaid_stream_id: null,
         meta_data: {},
-        created_at: new Date().toISOString(),
-        updated_at: new Date().toISOString(),
+        created_at: iso,
+        updated_at: iso,
     },
     {
         id: "mock-2",
@@ -25,15 +30,15 @@ export const MOCK_RECURRING_EXPENSES: RecurringExpense[] = [
         amount: 9.99,
         currency: "USD",
         billing_period: "monthly",
-        next_due_date: new Date(new Date().getFullYear(), new Date().getMonth(), 28).toISOString(), // 28th of this month
+        next_due_date: new Date(y, m, 28).toISOString(), // 28th of this month
         category: "subscription",
         budget_category: null,
         is_active: true,
         service_provider: "spotify",
         plaid_stream_id: null,
         meta_data: {},
-        created_at: new Date().toISOString(),
-        updated_at: new Date().toISOString(),
+        created_at: iso,
+        updated_at: iso,
     },
     {
         id: "mock-3",
@@ -42,15 +47,15 @@ export const MOCK_RECURRING_EXPENSES: RecurringExpense[] = [
         amount: 50.00,
         currency: "USD",
         billing_period: "monthly",
-        next_due_date: new Date(new Date().getFullYear(), new Date().getMonth(), 1).toISOString(), // 1st of this month
+        next_due_date: new Date(y, m, 1).toISOString(), // 1st of this month
         category: "subscription",
         budget_category: null,
         is_active: true,
         service_provider: null,
         plaid_stream_id: null,
         meta_data: { no_logo_lookup: true },
-        created_at: new Date().toISOString(),
-        updated_at: new Date().toISOString(),
+        created_at: iso,
+        updated_at: iso,
     },
     {
         id: "mock-4",
@@ -59,15 +64,15 @@ export const MOCK_RECURRING_EXPENSES: RecurringExpense[] = [
         amount: 1200.00,
         currency: "USD",
         billing_period: "monthly",
-        next_due_date: new Date(new Date().getFullYear(), new Date().getMonth(), 1).toISOString(), // 1st of this month
+        next_due_date: new Date(y, m, 1).toISOString(), // 1st of this month
         category: "bill",
         budget_category: null,
         is_active: true,
         service_provider: "rent",
         plaid_stream_id: null,
         meta_data: {},
-        created_at: new Date().toISOString(),
-        updated_at: new Date().toISOString(),
+        created_at: iso,
+        updated_at: iso,
     },
     {
         id: "mock-5",
@@ -76,15 +81,15 @@ export const MOCK_RECURRING_EXPENSES: RecurringExpense[] = [
         amount: 85.00,
         currency: "USD",
         billing_period: "monthly",
-        next_due_date: new Date(new Date().getFullYear(), new Date().getMonth(), 20).toISOString(), // 20th of this month
+        next_due_date: new Date(y, m, 20).toISOString(), // 20th of this month
         category: "bill",
         budget_category: null,
         is_active: true,
         service_provider: null,
         plaid_stream_id: null,
         meta_data: { no_logo_lookup: true },
-        created_at: new Date().toISOString(),
-        updated_at: new Date().toISOString(),
+        created_at: iso,
+        updated_at: iso,
     },
     {
         id: "mock-6",
@@ -93,15 +98,15 @@ export const MOCK_RECURRING_EXPENSES: RecurringExpense[] = [
         amount: 139.00,
         currency: "USD",
         billing_period: "yearly",
-        next_due_date: new Date(new Date().getFullYear() + 1, 5, 15).toISOString(), // Next year, June 15th
+        next_due_date: new Date(y + 1, 5, 15).toISOString(), // Next year, June 15th
         category: "subscription",
         budget_category: null,
         is_active: true,
         service_provider: "amazon",
         plaid_stream_id: null,
         meta_data: {},
-        created_at: new Date().toISOString(),
-        updated_at: new Date().toISOString(),
+        created_at: iso,
+        updated_at: iso,
         status: "upcoming"
     },
     // Additional mock data for testing logo.dev API
@@ -112,15 +117,15 @@ export const MOCK_RECURRING_EXPENSES: RecurringExpense[] = [
         amount: 54.99,
         currency: "USD",
         billing_period: "monthly",
-        next_due_date: new Date(new Date().getFullYear(), new Date().getMonth(), 10).toISOString(),
+        next_due_date: new Date(y, m, 10).toISOString(),
         category: "subscription",
         budget_category: null,
         is_active: true,
         service_provider: "adobe", // Using provider for logo lookup
         plaid_stream_id: null,
         meta_data: {},
-        created_at: new Date().toISOString(),
-        updated_at: new Date().toISOString(),
+        created_at: iso,
+        updated_at: iso,
     },
     {
         id: "mock-8",
@@ -129,15 +134,15 @@ export const MOCK_RECURRING_EXPENSES: RecurringExpense[] = [
         amount: 11.99,
         currency: "USD",
         billing_period: "monthly",
-        next_due_date: new Date(new Date().getFullYear(), new Date().getMonth(), 5).toISOString(),
+        next_due_date: new Date(y, m, 5).toISOString(),
         category: "subscription",
         budget_category: null,
         is_active: true,
         service_provider: "dropbox",
         plaid_stream_id: null,
         meta_data: {},
-        created_at: new Date().toISOString(),
-        updated_at: new Date().toISOString(),
+        created_at: iso,
+        updated_at: iso,
     },
     {
         id: "mock-9",
@@ -146,15 +151,15 @@ export const MOCK_RECURRING_EXPENSES: RecurringExpense[] = [
         amount: 8.75,
         currency: "USD",
         billing_period: "monthly",
-        next_due_date: new Date(new Date().getFullYear(), new Date().getMonth(), 12).toISOString(),
+        next_due_date: new Date(y, m, 12).toISOString(),
         category: "subscription",
         budget_category: null,
         is_active: true,
         service_provider: "slack",
         plaid_stream_id: null,
         meta_data: {},
-        created_at: new Date().toISOString(),
-        updated_at: new Date().toISOString(),
+        created_at: iso,
+        updated_at: iso,
     },
     {
         id: "mock-10",
@@ -163,15 +168,15 @@ export const MOCK_RECURRING_EXPENSES: RecurringExpense[] = [
         amount: 4.00,
         currency: "USD",
         billing_period: "monthly",
-        next_due_date: new Date(new Date().getFullYear(), new Date().getMonth(), 8).toISOString(),
+        next_due_date: new Date(y, m, 8).toISOString(),
         category: "subscription",
         budget_category: null,
         is_active: false, // Testing inactive subscription
         service_provider: "github",
         plaid_stream_id: null,
         meta_data: {},
-        created_at: new Date().toISOString(),
-        updated_at: new Date().toISOString(),
+        created_at: iso,
+        updated_at: iso,
     },
     {
         id: "mock-11",
@@ -180,15 +185,15 @@ export const MOCK_RECURRING_EXPENSES: RecurringExpense[] = [
         amount: 13.99,
         currency: "USD",
         billing_period: "monthly",
-        next_due_date: new Date(new Date().getFullYear(), new Date().getMonth(), 22).toISOString(),
+        next_due_date: new Date(y, m, 22).toISOString(),
         category: "subscription",
         budget_category: null,
         is_active: true,
         service_provider: "disneyplus",
         plaid_stream_id: null,
         meta_data: {},
-        created_at: new Date().toISOString(),
-        updated_at: new Date().toISOString(),
+        created_at: iso,
+        updated_at: iso,
     },
     {
         id: "mock-12",
@@ -197,15 +202,16 @@ export const MOCK_RECURRING_EXPENSES: RecurringExpense[] = [
         amount: 79.99,
         currency: "USD",
         billing_period: "monthly",
-        next_due_date: new Date(new Date().getFullYear(), new Date().getMonth(), 18).toISOString(),
+        next_due_date: new Date(y, m, 18).toISOString(),
         category: "bill",
         budget_category: null,
         is_active: true,
         service_provider: "comcast",
         plaid_stream_id: null,
         meta_data: {},
-        created_at: new Date().toISOString(),
-        updated_at: new Date().toISOString(),
+        created_at: iso,
+        updated_at: iso,
     },
-];
+	];
+}
 

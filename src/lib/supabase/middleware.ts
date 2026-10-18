@@ -1,6 +1,7 @@
 import { createServerClient } from "@supabase/ssr";
 import { NextResponse, type NextRequest } from "next/server";
-import { verifySupabaseJWT, getAccessTokenFromRequest, isPublicRoute, decodeJWTPayload } from "./jwt-middleware";
+import { verifySupabaseJWT, getAccessTokenFromRequest, decodeJWTPayload } from "./jwt-middleware";
+import { isPublicRoute } from "@/lib/routes";
 import { Logger } from "@/lib/logger";
 
 /**

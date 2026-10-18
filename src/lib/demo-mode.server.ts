@@ -1,17 +1,21 @@
-import { cookies } from "next/headers";
-import { DEMO_COOKIE } from "@/lib/demo-mode";
+import { cookies, headers } from "next/headers";
+import { DEMO_HEADER } from "@/lib/demo-mode";
+import { DEMO_SESSION_COOKIE, isValidDemoSession } from "@/lib/demo-session";
 
 /**
  * Whether the current request is running in demo mode.
  *
- * Demo mode lets an unauthenticated visitor explore the app with prefilled
- * data without creating an account. It is enabled by the `pholio_demo` cookie
- * (set by the "Try the demo" entry point) and shares the sample-data layer
- * with the build-time `NEXT_PUBLIC_USE_SAMPLE_DATA` flag.
+ * Demo access is button-gated: the middleware sets DEMO_HEADER when a request
+ * carries the signed httpOnly session issued by `startDemo`. The session itself
+ * is also accepted as a fallback (e.g. for server actions invoked from a demo
+ * page).
  */
 export async function isDemoMode(): Promise<boolean> {
+	const headerStore = await headers();
+	if (headerStore.get(DEMO_HEADER) === "1") return true;
+
 	const cookieStore = await cookies();
-	return cookieStore.get(DEMO_COOKIE)?.value === "1";
+	return isValidDemoSession(cookieStore.get(DEMO_SESSION_COOKIE)?.value);
 }
 
 /**

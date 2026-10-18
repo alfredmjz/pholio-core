@@ -8,8 +8,7 @@ import { useEffect, useRef, useState } from "react";
 import { toast } from "sonner";
 import { Check, Sparkles } from "lucide-react";
 
-import { sendMagicLink } from "@/app/(auth-pages)/login/actions";
-import { setDemoModeCookie } from "@/lib/demo-mode";
+import { sendMagicLink, startDemo } from "@/app/(auth-pages)/login/actions";
 import { useDemoStore } from "@/lib/demo-store";
 import { LedgerField } from "./components/ledger-field";
 
@@ -100,11 +99,18 @@ export default function Page() {
 		}
 	};
 
-	const handleTryDemo = () => {
+	const handleTryDemo = async () => {
 		if (isDemoLoading) return;
 		setIsDemoLoading(true);
 		useDemoStore.getState().reset();
-		setDemoModeCookie();
+
+		const result = await startDemo();
+		if (result?.error) {
+			toast.error("Could not start the demo", { description: result.error });
+			setIsDemoLoading(false);
+			return;
+		}
+
 		router.push("/dashboard");
 	};
 

@@ -222,11 +222,3 @@ export function getAccessTokenFromRequest(request: NextRequest): { token: string
 
 	return { token: bestItem.token, staleCookieNames };
 }
-
-/**
- * Check if route is public (doesn't require auth)
- */
-export function isPublicRoute(pathname: string): boolean {
-	const publicRoutes = ["/login", "/confirm", "/welcome", "/error", "/auth/callback", "/api/auth", "/api/cron"];
-	return publicRoutes.some((route) => pathname.startsWith(route));
-}

@@ -204,7 +204,7 @@ export function AddRecurringDialog({ open, onOpenChange, onSuccess, categoryOpti
 			}}
 		>
 			{step === 1 && (
-				<div className="grid grid-cols-2 gap-4 py-4">
+				<div className="grid grid-cols-2 gap-3 py-4 sm:gap-4">
 					{PRESET_PROVIDERS.map((provider) => (
 						<div
 							key={provider.id}
@@ -262,7 +262,7 @@ export function AddRecurringDialog({ open, onOpenChange, onSuccess, categoryOpti
 							/>
 						)}
 					</div>
-					<div className="grid grid-cols-2 gap-4">
+					<div className="grid grid-cols-1 gap-4 sm:grid-cols-2">
 						<div className="space-y-2">
 							<Label>
 								Amount <span className="text-error">*</span>

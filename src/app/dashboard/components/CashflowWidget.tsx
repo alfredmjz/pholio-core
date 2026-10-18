@@ -95,8 +95,8 @@ export function CashflowWidget({
 	return (
 		<Card className={cn("p-6 bg-card border border-border min-w-0", className)}>
 			{/* Header */}
-			<div className="flex items-center justify-between mb-6">
-				<div>
+			<div className="flex flex-wrap items-center justify-between gap-3 mb-6">
+				<div className="min-w-0">
 					<h3 className="text-xl font-semibold text-primary mb-1">Cash Flow</h3>
 					<p className="text-xs text-primary">Income vs Expenses over time</p>
 				</div>
@@ -107,7 +107,7 @@ export function CashflowWidget({
 					value={selectedPeriod}
 					onValueChange={(value) => value && onPeriodChange(value as Period)}
 					variant="segmented"
-					className="rounded-lg border border-border/60 bg-background p-1"
+					className="shrink-0 rounded-lg border border-border/60 bg-background p-1"
 				>
 					<ToggleGroupItem value="month" className="px-3 py-1.5 text-xs">
 						Month
@@ -122,18 +122,23 @@ export function CashflowWidget({
 			</div>
 
 			{/* Summary Row */}
-			<div className="grid grid-cols-3 gap-4 mb-6 p-4 bg-muted/50 rounded-lg">
-				<div>
-					<p className="text-xs text-primary mb-1">Total Income</p>
-					<p className="text-lg font-semibold text-info">{formatCurrency(totalIncome)}</p>
+			<div className="grid grid-cols-1 gap-2 mb-6 rounded-lg bg-muted/50 p-4 sm:grid-cols-3 sm:gap-4">
+				<div className="flex items-center justify-between gap-4 sm:block">
+					<p className="text-xs text-primary sm:mb-1">Total Income</p>
+					<p className="text-lg font-semibold tabular-nums text-info">{formatCurrency(totalIncome)}</p>
 				</div>
-				<div>
-					<p className="text-xs text-primary mb-1">Total Expenses</p>
-					<p className="text-lg font-semibold text-error">{formatCurrency(totalExpenses)}</p>
+				<div className="flex items-center justify-between gap-4 sm:block">
+					<p className="text-xs text-primary sm:mb-1">Total Expenses</p>
+					<p className="text-lg font-semibold tabular-nums text-error">{formatCurrency(totalExpenses)}</p>
 				</div>
-				<div>
-					<p className="text-xs text-primary mb-1">Net Cashflow</p>
-					<p className={cn("text-lg font-semibold", netCashflow >= 0 ? "text-success" : "text-error")}>
+				<div className="flex items-center justify-between gap-4 sm:block">
+					<p className="text-xs text-primary sm:mb-1">Net Cashflow</p>
+					<p
+						className={cn(
+							"text-lg font-semibold tabular-nums",
+							netCashflow >= 0 ? "text-success" : "text-error"
+						)}
+					>
 						{formatCurrency(netCashflow)}
 					</p>
 				</div>
@@ -203,14 +208,14 @@ function EmptyState({ onAddTransaction }: { onAddTransaction?: () => void }) {
 export function CashflowWidgetSkeleton({ className }: { className?: string }) {
 	return (
 		<Card className={cn("p-6 bg-card border border-border", className)}>
-			<div className="flex items-center justify-between mb-6">
+			<div className="flex flex-wrap items-center justify-between gap-3 mb-6">
 				<div>
 					<Skeleton className="h-6 w-32 mb-2" />
 					<Skeleton className="h-3 w-48" />
 				</div>
 				<Skeleton className="h-9 w-40" />
 			</div>
-			<div className="grid grid-cols-3 gap-4 mb-6">
+			<div className="grid grid-cols-1 gap-4 mb-6 sm:grid-cols-3">
 				{[1, 2, 3].map((i) => (
 					<div key={i} className="p-4 bg-muted/50 rounded-lg">
 						<Skeleton className="h-3 w-20 mb-2" />

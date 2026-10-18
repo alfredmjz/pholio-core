@@ -249,7 +249,7 @@ export function ExportDialog({ open, onOpenChange, currentYear, currentMonth }: 
 					</TabsContent>
 
 					<TabsContent value="custom" className="space-y-4 py-4">
-						<div className="grid grid-cols-2 gap-4">
+						<div className="grid grid-cols-1 gap-4 sm:grid-cols-2">
 							<div className="space-y-2">
 								<div className="text-sm font-medium">Start Month</div>
 								<MonthPicker date={startDate} setDate={setStartDate} placeholder="Select start month" />

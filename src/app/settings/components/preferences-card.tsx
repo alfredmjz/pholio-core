@@ -198,12 +198,12 @@ export default function PreferencesCard() {
 						type="single"
 						value={theme}
 						onValueChange={(value) => value && setTheme(value)}
-						className="justify-start gap-4"
+						className="grid grid-cols-3 gap-3 sm:flex sm:flex-wrap sm:justify-start sm:gap-4"
 					>
 						<ToggleGroupItem
 							value="light"
 							aria-label="Light Code"
-							className="h-24 w-full max-w-[140px] flex flex-col gap-2 rounded-lg border-2 border-muted text-primary hover:border-primary hover:bg-transparent data-[state=on]:border-primary data-[state=on]:bg-primary/5 data-[state=on]:text-primary"
+							className="h-24 w-full flex flex-col gap-2 rounded-lg border-2 sm:max-w-[140px] border-muted text-primary hover:border-primary hover:bg-transparent data-[state=on]:border-primary data-[state=on]:bg-primary/5 data-[state=on]:text-primary"
 						>
 							<Sun className="h-6 w-6" />
 							<span className="text-xs font-medium">Light</span>
@@ -212,7 +212,7 @@ export default function PreferencesCard() {
 						<ToggleGroupItem
 							value="dark"
 							aria-label="Dark Mode"
-							className="h-24 w-full max-w-[140px] flex flex-col gap-2 rounded-lg border-2 border-muted text-primary hover:border-primary hover:bg-transparent data-[state=on]:border-primary data-[state=on]:bg-primary/5 data-[state=on]:text-primary"
+							className="h-24 w-full flex flex-col gap-2 rounded-lg border-2 sm:max-w-[140px] border-muted text-primary hover:border-primary hover:bg-transparent data-[state=on]:border-primary data-[state=on]:bg-primary/5 data-[state=on]:text-primary"
 						>
 							<Moon className="h-6 w-6" />
 							<span className="text-xs font-medium">Dark</span>
@@ -221,7 +221,7 @@ export default function PreferencesCard() {
 						<ToggleGroupItem
 							value="system"
 							aria-label="System Mode"
-							className="h-24 w-full max-w-[140px] flex flex-col gap-2 rounded-lg border-2 border-muted text-primary hover:border-primary hover:bg-transparent data-[state=on]:border-primary data-[state=on]:bg-primary/5 data-[state=on]:text-primary"
+							className="h-24 w-full flex flex-col gap-2 rounded-lg border-2 sm:max-w-[140px] border-muted text-primary hover:border-primary hover:bg-transparent data-[state=on]:border-primary data-[state=on]:bg-primary/5 data-[state=on]:text-primary"
 						>
 							<Monitor className="h-6 w-6" />
 							<span className="text-xs font-medium">System</span>
@@ -330,7 +330,7 @@ export default function PreferencesCard() {
 										</Button>
 									</PopoverTrigger>
 									<PopoverContent
-										className="w-[400px] p-0 data-[state=open]:animate-none data-[state=closed]:animate-none"
+										className="w-[calc(100vw-2rem)] p-0 data-[state=open]:animate-none data-[state=closed]:animate-none sm:w-[400px]"
 										align="start"
 									>
 										<Command>
@@ -366,8 +366,8 @@ export default function PreferencesCard() {
 								)}
 							</div>
 						</div>
-						<div className="flex gap-8">
-							<div className="space-y-2.5 w-full max-w-[300px]">
+						<div className="flex flex-col gap-4 sm:flex-row sm:gap-8">
+							<div className="w-full max-w-[300px] space-y-2.5">
 								<Label className="text-sm font-semibold" htmlFor="currency">
 									Currency
 								</Label>
@@ -385,7 +385,7 @@ export default function PreferencesCard() {
 								</Select>
 							</div>
 
-							<div className="space-y-2.5 w-full max-w-[300px]">
+							<div className="w-full max-w-[300px] space-y-2.5">
 								<Label className="text-sm font-semibold" htmlFor="language">
 									Language
 								</Label>

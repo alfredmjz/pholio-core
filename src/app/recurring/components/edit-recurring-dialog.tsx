@@ -185,7 +185,7 @@ export function EditRecurringDialog({
 						className="h-10"
 					/>
 				</div>
-				<div className="grid grid-cols-2 gap-4">
+				<div className="grid grid-cols-1 gap-4 sm:grid-cols-2">
 					<div className="space-y-2">
 						<Label>
 							Amount <span className="text-error">*</span>
@@ -226,7 +226,7 @@ export function EditRecurringDialog({
 						</div>
 					</div>
 				</div>
-				<div className="grid grid-cols-2 gap-4">
+				<div className="grid grid-cols-1 gap-4 sm:grid-cols-2">
 					<div className="space-y-2">
 						<Label>Category</Label>
 						<Select value={formData.category} onValueChange={(v) => setFormData({ ...formData, category: v })}>

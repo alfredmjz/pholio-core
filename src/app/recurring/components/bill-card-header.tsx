@@ -24,17 +24,17 @@ interface BillCardHeaderProps {
 export function BillCardHeader({ bill, isAutomated, isDeleting, onPayFuture, onEdit, onDelete }: BillCardHeaderProps) {
 	return (
 		<CardHeader className="flex flex-row items-start justify-between p-5 pb-2 space-y-0">
-			<div className="flex items-center gap-3">
+			<div className="flex min-w-0 items-center gap-3">
 				<div
 					className={cn(
-						"h-10 w-10 rounded-xl flex items-center justify-center text-sm font-bold shadow-sm transition-colors",
+						"h-10 w-10 shrink-0 rounded-xl flex items-center justify-center text-sm font-bold shadow-sm transition-colors",
 						"bg-primary/10 text-primary group-hover:bg-primary group-hover:text-primary-foreground"
 					)}
 				>
 					{bill.name.substring(0, 2).toUpperCase()}
 				</div>
-				<div className="flex flex-col">
-					<span className="font-semibold leading-none tracking-tight">{bill.name}</span>
+				<div className="flex min-w-0 flex-col">
+					<span className="truncate font-semibold leading-none tracking-tight">{bill.name}</span>
 					<span className="text-xs text-muted-foreground capitalize mt-1">
 						{formatFrequency(bill.billing_period)}
 					</span>

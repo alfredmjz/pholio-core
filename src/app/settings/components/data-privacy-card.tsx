@@ -46,35 +46,43 @@ export default function DataPrivacyCard() {
 				</CardHeader>
 				<CardContent className="space-y-6">
 					<div className="flex items-center justify-between space-x-4">
-						<div className="space-y-1">
+						<div className="min-w-0 space-y-1">
 							<Label className="text-base leading-none">Use data to improve Pholio</Label>
 							<p className="text-sm text-primary">
 								Allows us to process usage logs and error reports to understand system performance and improve our
 								services.
 							</p>
 						</div>
-						<Switch checked={improvePholio} onCheckedChange={setImprovePholio} />
+						<Switch className="shrink-0" checked={improvePholio} onCheckedChange={setImprovePholio} />
 					</div>
 
 					<div className="flex items-center justify-between space-x-4">
-						<div className="space-y-1">
+						<div className="min-w-0 space-y-1">
 							<Label className="text-base leading-none">Personalized Insights</Label>
 							<p className="text-sm text-primary">
 								Allows us to analyze your transaction history to generate personalized budget tips and spending alerts.
 							</p>
 						</div>
-						<Switch checked={personalizedInsights} onCheckedChange={setPersonalizedInsights} />
+						<Switch
+							className="shrink-0"
+							checked={personalizedInsights}
+							onCheckedChange={setPersonalizedInsights}
+						/>
 					</div>
 
 					<div className="flex items-center justify-between space-x-4">
-						<div className="space-y-1">
+						<div className="min-w-0 space-y-1">
 							<Label className="text-base leading-none">Anonymous Benchmarking</Label>
 							<p className="text-sm text-primary">
 								Contribute anonymous aggregated data to community averages. This lets you compare your spending habits
 								with similar profiles.
 							</p>
 						</div>
-						<Switch checked={anonymousBenchmarking} onCheckedChange={setAnonymousBenchmarking} />
+						<Switch
+							className="shrink-0"
+							checked={anonymousBenchmarking}
+							onCheckedChange={setAnonymousBenchmarking}
+						/>
 					</div>
 				</CardContent>
 			</Card>
@@ -117,7 +125,7 @@ export default function DataPrivacyCard() {
 				</CardHeader>
 				<CardContent>
 					<div className="space-y-4">
-						<div className="flex items-center justify-between">
+						<div className="flex flex-col gap-3 sm:flex-row sm:items-center sm:justify-between">
 							<div className="space-y-1">
 								<Label className="text-base">Delete Account</Label>
 								<p className="text-sm text-primary">Permanently delete your account and all associated data.</p>
@@ -125,7 +133,9 @@ export default function DataPrivacyCard() {
 
 							<AlertDialog>
 								<AlertDialogTrigger asChild>
-									<Button variant="destructive">Delete Account</Button>
+									<Button variant="destructive" className="w-full sm:w-auto">
+										Delete Account
+									</Button>
 								</AlertDialogTrigger>
 								<AlertDialogContent>
 									<AlertDialogHeader>

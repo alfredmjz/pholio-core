@@ -29,7 +29,7 @@ export default function ProfileLayout({ children }: { children: ReactNode }) {
 			</div>
 
 			{/* Desktop Layout - Two-column */}
-			<div className="flex-1 w-full max-w-6xl lg:flex lg:gap-8 md:px-6 lg:px-8 pt-6 pb-12">
+			<div className="flex-1 w-full max-w-6xl px-4 md:px-6 lg:flex lg:gap-8 lg:px-8 pt-6 pb-12">
 				{/* Settings Navigation - Vertical sidebar on desktop */}
 				<SettingsNav />
 

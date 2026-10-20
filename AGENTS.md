@@ -126,9 +126,16 @@ SQL editor; production is updated manually after a PR merges.
 
 ### Testing & linting
 
-- **There is no automated test suite and no ESLint config in this repo.** Do not invent
+- **The only automated tests are the Playwright E2E suite in `src/e2e/`** (spec:
+  `docs/e2e-testing-spec.md`). There are no unit tests and no ESLint config; do not invent
   `bun test` / `bun run lint` commands.
-- CI (`.github/workflows/ci.yml`) only runs `bun install && bun run build` in `src/` for PRs
+- E2E needs Docker and the local Supabase (`cd src && bun run e2e:db`). It builds the app into
+  `src/.next-e2e`, serves it on :3100 and runs on desktop (1440px), Android (412px) and
+  iPhone (375px). `bun run e2e:smoke` runs tests tagged `@smoke`; `bun run e2e` runs everything.
+  Each run signs in a fresh user, so no DB reset is needed. Tests refuse non-local Supabase URLs.
+- New signed-in pages go in `src/e2e/support/routes.ts` so the layout smoke test covers them.
+- `.githooks/pre-push` runs the smoke tier (enable per clone with `bun run hooks:install`).
+- CI (`.github/workflows/ci.yml`) runs `bun run build` and the full E2E suite in `src/` for PRs
   targeting `main`/`development`.
 - Optional dead-code sweep used on this project:
   `cd src && bunx tsc --noEmit --noUnusedLocals --noUnusedParameters --pretty false`.
@@ -148,7 +155,7 @@ cd src && bun run build
 
 UI-affecting work additionally needs manual browser verification at **mobile (375px)** and
 **desktop (1440px)**. `bun run dev:mock` is the fastest way to exercise UI without a database.
-There is no automated regression suite; `docs/regression-test-spec.md` is an unfinished checklist.
+`cd src && bun run e2e:smoke` must pass before pushing; add or update E2E tests for changed flows.
 
 ### Always produce a manual verification guide
 

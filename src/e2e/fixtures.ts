@@ -1,10 +1,23 @@
-import { test as base, expect, type Page } from "@playwright/test";
+import { test as base, expect, type Locator, type Page } from "@playwright/test";
 
 /**
  * Same-origin routes that proxy third-party services. They return 503 when the service is not
  * configured (e.g. no logo.dev token in CI), which is not an app failure.
  */
 const EXTERNAL_PROXY_PATHS = ["/api/logos/"];
+
+/**
+ * Browser noise reported as uncaught errors that never affects the user:
+ * - WebKit reports Next.js route prefetches (`?_rsc=`) cancelled by a navigation or redirect
+ *   as "access control checks" errors.
+ * - "ResizeObserver loop" is a benign notice when a chart resizes during layout.
+ */
+function isBenignBrowserError(message: string) {
+	return (
+		(message.includes("_rsc=") && message.includes("access control checks")) ||
+		message.startsWith("ResizeObserver loop")
+	);
+}
 
 /**
  * Shared test with an automatic guard: any uncaught page error or same-origin 5xx response
@@ -14,7 +27,9 @@ export const test = base.extend<{ pageProblems: string[] }>({
 	pageProblems: [
 		async ({ page, baseURL }, use) => {
 			const problems: string[] = [];
-			page.on("pageerror", (error) => problems.push(`Uncaught error: ${error.message}`));
+			page.on("pageerror", (error) => {
+				if (!isBenignBrowserError(error.message)) problems.push(`Uncaught error: ${error.message}`);
+			});
 			page.on("response", (response) => {
 				const url = response.url();
 				if (!baseURL || !url.startsWith(baseURL) || response.status() < 500) return;
@@ -34,6 +49,17 @@ export { expect };
 
 /** Signed-out browser state, for tests of public pages. */
 export const SIGNED_OUT = { cookies: [], origins: [] };
+
+/**
+ * Clicks a trigger until the dialog it opens is visible. A click that lands before the page
+ * has hydrated does nothing, which happens under parallel load.
+ */
+export async function openDialog(trigger: Locator, dialog: Locator) {
+	await expect(async () => {
+		await trigger.click();
+		await expect(dialog).toBeVisible({ timeout: 2_000 });
+	}).toPass({ timeout: 20_000 });
+}
 
 /** The bottom tab bar and top bar replace the sidebar below Tailwind's `lg` breakpoint. */
 export function isMobileLayout(page: Page) {

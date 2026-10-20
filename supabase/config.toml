@@ -156,6 +156,9 @@ additional_redirect_urls = [
   "http://127.0.0.1:3000/auth/callback",
   "http://localhost:3000/confirm",
   "http://127.0.0.1:3000/confirm",
+  # Production build served by the Playwright E2E suite (src/playwright.config.ts).
+  "http://127.0.0.1:3100/**",
+  "http://localhost:3100/**",
   "https://pholio.ca/**",
   "https://pholio.ca/confirm",
   "https://pholio.ca/auth/callback",

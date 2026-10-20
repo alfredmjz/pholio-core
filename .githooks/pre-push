@@ -1,0 +1,22 @@
+#!/bin/sh
+# Runs the E2E smoke tier before every push (docs/e2e-testing-spec.md).
+# Enable once per clone with `bun run hooks:install` from src/. Skip a push with `git push --no-verify`.
+
+set -e
+cd "$(git rev-parse --show-toplevel)/src"
+
+if ! docker info >/dev/null 2>&1; then
+	echo "pre-push: Docker is not running. Start Docker Desktop, or push with --no-verify to skip the E2E smoke tests." >&2
+	exit 1
+fi
+
+if ! bunx supabase status --workdir .. >/dev/null 2>&1; then
+	echo "pre-push: starting local Supabase..."
+	bunx supabase start --workdir .. >/dev/null
+fi
+
+# Bring the local database up to date with any new migrations on this branch.
+bunx supabase migration up --local --workdir .. >/dev/null
+
+echo "pre-push: running E2E smoke tests..."
+bun run e2e:smoke

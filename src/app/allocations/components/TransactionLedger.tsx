@@ -72,12 +72,7 @@ function resolveAccountLabel(transaction: Transaction, accounts: AccountWithType
 	return accountName(transaction.account_id ?? transaction.linked_account_transaction?.account_id ?? null) ?? "—";
 }
 
-function compareTransactions(
-	a: Transaction,
-	b: Transaction,
-	field: SortField,
-	accounts: AccountWithType[]
-): number {
+function compareTransactions(a: Transaction, b: Transaction, field: SortField, accounts: AccountWithType[]): number {
 	switch (field) {
 		case "name":
 			return a.name.localeCompare(b.name);
@@ -169,16 +164,7 @@ export function TransactionLedger({
 		});
 
 		return filtered;
-	}, [
-		transactions,
-		accounts,
-		searchQuery,
-		categoryFilter,
-		effectiveTypeFilter,
-		sorts,
-		minAmount,
-		maxAmount,
-	]);
+	}, [transactions, accounts, searchQuery, categoryFilter, effectiveTypeFilter, sorts, minAmount, maxAmount]);
 
 	const toggleSort = (field: SortField, additive: boolean) => {
 		setSorts((prev) => {
@@ -264,8 +250,8 @@ export function TransactionLedger({
 				</div>
 			</div>
 
-			<div className="flex items-center gap-3 mb-4">
-				<div className="relative flex-1 max-w-md">
+			<div className="mb-4 flex flex-col gap-3 sm:flex-row sm:flex-wrap sm:items-center">
+				<div className="relative w-full sm:max-w-md sm:flex-1">
 					<Search className="absolute left-3 top-1/2 -translate-y-1/2 h-4 w-4 text-primary" />
 					<Input
 						type="text"
@@ -276,67 +262,69 @@ export function TransactionLedger({
 					/>
 				</div>
 
-				<Select value={categoryFilter} onValueChange={setCategoryFilter}>
-					<SelectTrigger className="w-48 bg-background border-border">
-						<SelectValue placeholder="All Categories" />
-					</SelectTrigger>
-					<SelectContent>
-						<SelectItem value="all">All Categories</SelectItem>
-						{categories.map((cat) => (
-							<SelectItem key={cat.id} value={cat.id}>
-								{cat.name}
-							</SelectItem>
-						))}
-					</SelectContent>
-				</Select>
+				<div className="flex flex-wrap items-center gap-2">
+					<Select value={categoryFilter} onValueChange={setCategoryFilter}>
+						<SelectTrigger className="min-w-0 flex-1 bg-background border-border sm:w-48 sm:flex-none">
+							<SelectValue placeholder="All Categories" />
+						</SelectTrigger>
+						<SelectContent>
+							<SelectItem value="all">All Categories</SelectItem>
+							{categories.map((cat) => (
+								<SelectItem key={cat.id} value={cat.id}>
+									{cat.name}
+								</SelectItem>
+							))}
+						</SelectContent>
+					</Select>
 
-				<Select
-					value={externalTypeFilter || typeFilter}
-					onValueChange={(v) => {
-						if (externalTypeFilter) {
-							onClearExternalFilter?.();
-						}
-						setTypeFilter(v as TransactionType | "all");
-					}}
-				>
-					<SelectTrigger className="w-44 bg-background border-border">
-						<SelectValue placeholder="All Types" />
-					</SelectTrigger>
-					<SelectContent>
-						<SelectItem value="all">All Types</SelectItem>
-						{Object.entries(TRANSACTION_TYPE_CONFIG).map(([type, config]) => (
-							<SelectItem key={type} value={type}>
-								<div className="flex items-center gap-2">
-									<config.icon className={cn("h-4 w-4", config.textColor)} />
-									{config.label}
-								</div>
-							</SelectItem>
-						))}
-					</SelectContent>
-				</Select>
+					<Select
+						value={externalTypeFilter || typeFilter}
+						onValueChange={(v) => {
+							if (externalTypeFilter) {
+								onClearExternalFilter?.();
+							}
+							setTypeFilter(v as TransactionType | "all");
+						}}
+					>
+						<SelectTrigger className="min-w-0 flex-1 bg-background border-border sm:w-44 sm:flex-none">
+							<SelectValue placeholder="All Types" />
+						</SelectTrigger>
+						<SelectContent>
+							<SelectItem value="all">All Types</SelectItem>
+							{Object.entries(TRANSACTION_TYPE_CONFIG).map(([type, config]) => (
+								<SelectItem key={type} value={type}>
+									<div className="flex items-center gap-2">
+										<config.icon className={cn("h-4 w-4", config.textColor)} />
+										{config.label}
+									</div>
+								</SelectItem>
+							))}
+						</SelectContent>
+					</Select>
 
-				<Button
-					variant="outline"
-					size="default"
-					onClick={() => setShowFilters(!showFilters)}
-					className={cn(showFilters && "bg-muted")}
-				>
-					<Filter className="h-4 w-4" />
-				</Button>
+					<Button
+						variant="outline"
+						size="default"
+						onClick={() => setShowFilters(!showFilters)}
+						className={cn("shrink-0", showFilters && "bg-muted")}
+					>
+						<Filter className="h-4 w-4" />
+					</Button>
 
-				<Button
-					variant="ghost"
-					size="sm"
-					onClick={handleReset}
-					className="ml-auto text-muted-foreground hover:text-primary"
-				>
-					<RotateCcw className="h-4 w-4 mr-1" />
-					Reset
-				</Button>
+					<Button
+						variant="ghost"
+						size="sm"
+						onClick={handleReset}
+						className="shrink-0 text-muted-foreground hover:text-primary sm:ml-auto"
+					>
+						<RotateCcw className="h-4 w-4 mr-1" />
+						Reset
+					</Button>
+				</div>
 			</div>
 
 			{showFilters && (
-				<div className="flex items-center gap-3 mb-4 p-3 bg-muted/50 rounded-lg">
+				<div className="mb-4 flex flex-wrap items-center gap-3 rounded-lg bg-muted/50 p-3">
 					<span className="text-sm text-primary">Amount:</span>
 					<Input
 						type="text"
@@ -377,7 +365,8 @@ export function TransactionLedger({
 				</div>
 			)}
 
-			<div className="mb-2 text-xs text-primary/50">
+			{/* Mouse and keyboard sorting gestures; hidden on phones like the other shortcut hints. */}
+			<div className="mb-2 hidden text-xs text-primary/50 md:block">
 				<span className="font-medium text-primary/60">Legend:</span>
 				<div className="mt-2 flex flex-col gap-1.5">
 					{LEGEND_SHORTCUTS.map((id) => (
@@ -484,9 +473,7 @@ export function TransactionLedger({
 												)}
 											</td>
 											<td className="px-4 py-3">
-												<span className="text-sm text-primary">
-													{resolveAccountLabel(transaction, accounts)}
-												</span>
+												<span className="text-sm text-primary">{resolveAccountLabel(transaction, accounts)}</span>
 											</td>
 											<td className="px-4 py-3">
 												<TransactionTypeIcon type={txType} size="sm" showLabel />

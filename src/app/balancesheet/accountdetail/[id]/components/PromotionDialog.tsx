@@ -144,7 +144,7 @@ export function PromotionDialog({ open, onOpenChange, accountId, promotion, onSu
 					/>
 				</div>
 
-				<div className="grid grid-cols-2 gap-4">
+				<div className="grid grid-cols-1 gap-4 sm:grid-cols-2">
 					<div className="space-y-2">
 						<Label htmlFor="promo-type">Promotion Type</Label>
 						<Select value={promotionType} onValueChange={(val: any) => setPromotionType(val)}>
@@ -188,7 +188,7 @@ export function PromotionDialog({ open, onOpenChange, accountId, promotion, onSu
 					/>
 				</div>
 
-				<div className="grid grid-cols-2 gap-4">
+				<div className="grid grid-cols-1 gap-4 sm:grid-cols-2">
 					<div className="space-y-2">
 						<Label htmlFor="promo-start">Start Date</Label>
 						<DatePicker id="promo-start" value={startDate} onChange={setStartDate} />

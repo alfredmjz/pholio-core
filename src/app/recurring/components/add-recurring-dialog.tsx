@@ -120,6 +120,15 @@ export function AddRecurringDialog({ open, onOpenChange, onSuccess, categoryOpti
 			return;
 		}
 
+		// The field may be empty while typing; it only has to be a whole number of at least 1 on submit.
+		const frequencyValue = parseInt(formData.frequency_value, 10);
+		if (!(frequencyValue >= 1)) {
+			toast.error("Invalid frequency", {
+				description: "Frequency must be a whole number of at least 1.",
+			});
+			return;
+		}
+
 		setIsSubmitting(true);
 		try {
 			let serviceProvider = formData.service_provider;
@@ -140,7 +149,7 @@ export function AddRecurringDialog({ open, onOpenChange, onSuccess, categoryOpti
 			const result = await addRecurringExpense({
 				name: formData.name,
 				amount: amount,
-				billing_period: `${formData.frequency_value}:${formData.frequency_unit}`,
+				billing_period: `${frequencyValue}:${formData.frequency_unit}`,
 				next_due_date: formatDateString(formData.next_due_date),
 				category: formData.category,
 				budget_category: formData.budget_category === "__default__" ? null : formData.budget_category,
@@ -204,7 +213,7 @@ export function AddRecurringDialog({ open, onOpenChange, onSuccess, categoryOpti
 			}}
 		>
 			{step === 1 && (
-				<div className="grid grid-cols-2 gap-4 py-4">
+				<div className="grid grid-cols-2 gap-3 py-4 sm:gap-4">
 					{PRESET_PROVIDERS.map((provider) => (
 						<div
 							key={provider.id}
@@ -262,7 +271,7 @@ export function AddRecurringDialog({ open, onOpenChange, onSuccess, categoryOpti
 							/>
 						)}
 					</div>
-					<div className="grid grid-cols-2 gap-4">
+					<div className="grid grid-cols-1 gap-4 sm:grid-cols-2">
 						<div className="space-y-2">
 							<Label>
 								Amount <span className="text-error">*</span>
@@ -274,15 +283,16 @@ export function AddRecurringDialog({ open, onOpenChange, onSuccess, categoryOpti
 							/>
 						</div>
 						<div className="space-y-2">
-							<Label>Frequency</Label>
+							<Label htmlFor="frequency-value">Frequency</Label>
 							<div className="flex gap-2">
 								<Input
 									type="text"
+									id="frequency-value"
 									inputMode="numeric"
 									value={formData.frequency_value}
 									onChange={(e) => {
 										const val = e.target.value.replace(/[^0-9]/g, "");
-										setFormData({ ...formData, frequency_value: val || "1" });
+										setFormData({ ...formData, frequency_value: val });
 									}}
 									className="h-10 w-20"
 								/>
@@ -353,9 +363,7 @@ export function AddRecurringDialog({ open, onOpenChange, onSuccess, categoryOpti
 								))}
 							</SelectContent>
 						</Select>
-						<p className="text-xs text-muted-foreground">
-							Which budget category this recurring expense is added to.
-						</p>
+						<p className="text-xs text-muted-foreground">Which budget category this recurring expense is added to.</p>
 					</div>
 					{formData.category === "bill" && (
 						<div className="flex items-center justify-between space-x-2 pt-2">

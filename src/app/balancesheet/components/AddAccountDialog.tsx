@@ -272,7 +272,7 @@ export function AddAccountDialog({ open, onOpenChange, onSuccess }: AddAccountDi
 
 					{/* Account Details */}
 					<FormSection icon={<Info />} title="Account Details" variant="subtle">
-						<div className="grid grid-cols-2 gap-4">
+						<div className="grid grid-cols-1 gap-4 sm:grid-cols-2">
 							<div className="space-y-2">
 								<Label htmlFor="name">
 									Account Name <span className="text-error">*</span>
@@ -351,7 +351,7 @@ export function AddAccountDialog({ open, onOpenChange, onSuccess }: AddAccountDi
 							</div>
 						</div>
 
-						<div className="grid grid-cols-2 gap-4">
+						<div className="grid grid-cols-1 gap-4 sm:grid-cols-2">
 							<div className="space-y-2">
 								<Label htmlFor="balance">
 									Current Balance <span className="text-error">*</span>
@@ -394,7 +394,7 @@ export function AddAccountDialog({ open, onOpenChange, onSuccess }: AddAccountDi
 
 						{/* Credit-specific fields */}
 						{visibility.showCreditLimit && (
-							<div className="grid grid-cols-2 gap-4 mt-4">
+							<div className="grid grid-cols-1 gap-4 sm:grid-cols-2 mt-4">
 								<div className="space-y-2">
 									<Label htmlFor="credit_limit">Credit Limit (Optional)</Label>
 									<ProminentAmountInput
@@ -425,7 +425,7 @@ export function AddAccountDialog({ open, onOpenChange, onSuccess }: AddAccountDi
 
 						{/* Debt-specific fields: Original Loan Amount & Loan Term */}
 						{visibility.showOriginalAmount && (
-							<div className="grid grid-cols-2 gap-4 mt-4">
+							<div className="grid grid-cols-1 gap-4 sm:grid-cols-2 mt-4">
 								<div className="space-y-2">
 									<Label htmlFor="original_amount">Original Loan Amount</Label>
 									<ProminentAmountInput
@@ -456,7 +456,7 @@ export function AddAccountDialog({ open, onOpenChange, onSuccess }: AddAccountDi
 
 						{/* Debt-specific: Due Date & APR row */}
 						{visibility.showOriginalAmount && visibility.showDueDate && (
-							<div className="grid grid-cols-2 gap-4 mt-4">
+							<div className="grid grid-cols-1 gap-4 sm:grid-cols-2 mt-4">
 								<div className="space-y-2">
 									<Label htmlFor="payment_due_date">Payment Due Date (1-31)</Label>
 									<Input
@@ -490,7 +490,7 @@ export function AddAccountDialog({ open, onOpenChange, onSuccess }: AddAccountDi
 
 						{/* Interest Rate for non-debt categories that show it (credit, banking, etc.) */}
 						{visibility.showInterestRate && !visibility.showOriginalAmount && (
-							<div className="grid grid-cols-2 gap-4 mt-4">
+							<div className="grid grid-cols-1 gap-4 sm:grid-cols-2 mt-4">
 								<div className="space-y-2">
 									<Label htmlFor="interest">{visibility.interestRateLabel}</Label>
 									<Input
@@ -549,7 +549,7 @@ export function AddAccountDialog({ open, onOpenChange, onSuccess }: AddAccountDi
 								</div>
 
 								{formData.track_contribution_room && (
-									<div className="grid grid-cols-2 gap-4 mt-4">
+									<div className="grid grid-cols-1 gap-4 sm:grid-cols-2 mt-4">
 										<div className="space-y-2">
 											<Label htmlFor="contribution_room">Total Contribution Room</Label>
 											<ProminentAmountInput

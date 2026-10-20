@@ -61,8 +61,8 @@ export function PromotionsTrackerCard({ accountId, formatCurrency }: PromotionsT
 		<Card className="p-5 border-purple-200/50 bg-purple-50/20 dark:bg-purple-950/10 dark:border-purple-900/40">
 			<div className="flex flex-col gap-4">
 				{/* Card Header */}
-				<div className="flex items-center justify-between">
-					<div className="flex items-center gap-2.5">
+				<div className="flex flex-wrap items-start justify-between gap-2">
+					<div className="flex min-w-0 items-center gap-2.5">
 						<div className="p-2 rounded-lg bg-purple-100 dark:bg-purple-900/40 text-purple-600 dark:text-purple-400">
 							<Gift className="h-4 w-4" />
 						</div>
@@ -74,7 +74,7 @@ export function PromotionsTrackerCard({ accountId, formatCurrency }: PromotionsT
 						</div>
 					</div>
 
-					<Button size="sm" variant="outline" className="h-8 gap-1 text-xs" onClick={handleAddClick}>
+					<Button size="sm" variant="outline" className="h-8 shrink-0 gap-1 text-xs" onClick={handleAddClick}>
 						<Plus className="h-3.5 w-3.5" />
 						Add Promotion
 					</Button>

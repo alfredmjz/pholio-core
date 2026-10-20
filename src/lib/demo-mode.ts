@@ -1,18 +1,15 @@
-export const DEMO_COOKIE = "pholio_demo";
-
-const DEMO_COOKIE_MAX_AGE = 60 * 60 * 24; // 1 day
+export const DEMO_COOKIE = "PHOLIO_DEMO_EXPIRED_SESSION";
+export const DEMO_COOKIE_MAX_AGE = 60 * 60 * 24; // 1 day
 
 /**
- * Sets the demo-mode cookie. Used by the "Try the demo" entry point.
- * Client-only (no-op on the server).
+ * Request header the middleware sets on demo requests. Server code uses it to
+ * serve sample data without relying on a cookie that any visitor can set by hand.
  */
-export function setDemoModeCookie(): void {
-	if (typeof document === "undefined") return;
-	document.cookie = `${DEMO_COOKIE}=1; path=/; max-age=${DEMO_COOKIE_MAX_AGE}; samesite=lax`;
-}
+export const DEMO_HEADER = "x-pholio-demo";
 
 /**
- * Clears the demo-mode cookie. Used when the user signs out or signs up.
+ * Clears the demo-mode UI marker. The authoritative demo session is an
+ * httpOnly cookie cleared by the `endDemo`/`signOut` server actions.
  * Client-only (no-op on the server).
  */
 export function clearDemoModeCookie(): void {
@@ -21,7 +18,8 @@ export function clearDemoModeCookie(): void {
 }
 
 /**
- * Checks whether the demo-mode cookie is currently set.
+ * Checks whether the demo-mode UI marker is currently set. This only controls
+ * demo chrome/toasts; route access is guarded by the signed demo session.
  * Client-only (returns false on the server).
  */
 export function isDemoModeActive(): boolean {

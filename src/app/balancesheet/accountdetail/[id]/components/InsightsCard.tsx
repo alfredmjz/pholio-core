@@ -225,28 +225,32 @@ function InvestmentComposition({ account, transactions, formatCurrency }: any) {
 						<RechartsTooltip content={<CustomTooltip />} />
 					</PieChart>
 				</ResponsiveContainer>
-				<div className="absolute inset-0 flex flex-col items-center justify-center pointer-events-none">
-					<span className="text-2xl font-bold tracking-tight">{formatCurrency(account.current_balance)}</span>
+				<div className="pointer-events-none absolute inset-0 flex flex-col items-center justify-center px-10 text-center">
+					<span className="break-words text-lg font-bold tabular-nums tracking-tight sm:text-2xl">
+						{formatCurrency(account.current_balance)}
+					</span>
 					<span className="text-xs font-medium text-muted-foreground">Total Value</span>
 				</div>
 			</div>
 
-			<div className="grid grid-cols-2 gap-4 mt-8">
-				<div className="flex flex-col gap-1.5 items-center bg-muted/30 py-3 rounded-lg">
+			<div className="mt-8 grid grid-cols-2 gap-3 sm:gap-4">
+				<div className="flex min-w-0 flex-col items-center gap-1.5 rounded-lg bg-muted/30 py-3">
 					<div className="flex items-center gap-2">
 						<div className="w-2.5 h-2.5 rounded-full" style={{ backgroundColor: account.color || "#3b82f6" }} />
 						<span className="text-xs font-medium text-muted-foreground">Contributions</span>
 					</div>
-					<span className="text-base font-bold">{formatCurrency(totalDeposits)}</span>
+					<span className="break-words text-center text-base font-bold tabular-nums">
+						{formatCurrency(totalDeposits)}
+					</span>
 				</div>
-				<div className="flex flex-col gap-1.5 items-center bg-muted/30 py-3 rounded-lg">
+				<div className="flex min-w-0 flex-col items-center gap-1.5 rounded-lg bg-muted/30 py-3">
 					<div className="flex items-center gap-2">
 						<div className="w-2.5 h-2.5 rounded-full bg-green-500" />
 						<span className="text-xs font-medium text-muted-foreground">Est. Growth</span>
 					</div>
 					<span
 						className={cn(
-							"text-base font-bold",
+							"break-words text-center text-base font-bold tabular-nums",
 							returns >= 0 ? "text-green-600 dark:text-green-400" : "text-red-600 dark:text-red-400"
 						)}
 					>
@@ -291,20 +295,22 @@ function LoanComposition({ account, transactions, goalValue, formatCurrency }: a
 					)}
 				</div>
 
-				<div className="grid grid-cols-2 gap-4">
-					<div className="flex flex-col gap-1">
+				<div className="grid grid-cols-1 gap-3 sm:grid-cols-2 sm:gap-4">
+					<div className="flex min-w-0 flex-col gap-1">
 						<div className="flex items-center gap-2">
 							<div className="w-3 h-3 rounded-full bg-blue-500" />
 							<span className="text-sm font-medium text-muted-foreground">Principal Paid</span>
 						</div>
-						<span className="text-2xl font-bold tracking-tight">{formatCurrency(principalPaid)}</span>
+						<span className="break-words text-xl font-bold tabular-nums tracking-tight sm:text-2xl">
+							{formatCurrency(principalPaid)}
+						</span>
 					</div>
-					<div className="flex flex-col gap-1">
+					<div className="flex min-w-0 flex-col gap-1">
 						<div className="flex items-center gap-2">
 							<div className="w-3 h-3 rounded-full bg-red-500" />
 							<span className="text-sm font-medium text-muted-foreground">Interest Paid</span>
 						</div>
-						<span className="text-2xl font-bold tracking-tight text-red-600 dark:text-red-400">
+						<span className="break-words text-xl font-bold tabular-nums tracking-tight text-red-600 dark:text-red-400 sm:text-2xl">
 							{formatCurrency(interestPaid)}
 						</span>
 					</div>
@@ -312,9 +318,11 @@ function LoanComposition({ account, transactions, goalValue, formatCurrency }: a
 
 				<div className="h-px bg-border my-2" />
 
-				<div className="flex justify-between items-center bg-muted/20 p-4 rounded-xl">
+				<div className="flex items-center justify-between gap-3 rounded-xl bg-muted/20 p-4">
 					<span className="text-sm font-medium text-foreground">Total Value Paid</span>
-					<span className="text-xl font-bold tracking-tight">{formatCurrency(totalPaid)}</span>
+					<span className="shrink-0 text-xl font-bold tabular-nums tracking-tight">
+						{formatCurrency(totalPaid)}
+					</span>
 				</div>
 			</div>
 		</Card>

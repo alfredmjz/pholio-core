@@ -124,8 +124,8 @@ export function NetWorthWidget({
 	return (
 		<Card className={cn("p-6 bg-card border border-border min-w-0", className)}>
 			{/* Header */}
-			<div className="flex items-center justify-between mb-6">
-				<div className="flex items-center gap-3">
+			<div className="flex flex-wrap items-center justify-between gap-3 mb-6">
+				<div className="flex min-w-0 items-center gap-3">
 					<div className={cn("p-2.5 rounded-lg", netWorth >= 0 ? "bg-success-muted" : "bg-error-muted")}>
 						{netWorth >= 0 ? (
 							<TrendingUp className="h-5 w-5 text-success" />
@@ -161,7 +161,7 @@ export function NetWorthWidget({
 					value={chartType}
 					onValueChange={(value) => value && onChartTypeChange(value as ChartType)}
 					variant="segmented"
-					className="rounded-lg border border-border/60 bg-background p-1"
+					className="shrink-0 rounded-lg border border-border/60 bg-background p-1"
 				>
 					<ToggleGroupItem value="donut" className="p-2" title="Breakdown view">
 						<PieChart className="h-4 w-4" />
@@ -182,7 +182,9 @@ export function NetWorthWidget({
 				)}
 			>
 				<p className="text-sm text-primary mb-1">Total Net Worth</p>
-				<p className="text-4xl font-bold text-primary tracking-tight">{formatCurrency(netWorth)}</p>
+				<p className="break-words text-3xl font-bold tabular-nums tracking-tight text-primary sm:text-4xl">
+					{formatCurrency(netWorth)}
+				</p>
 			</div>
 
 			{hasData ? (
@@ -197,14 +199,16 @@ export function NetWorthWidget({
 					)}
 
 					{/* Breakdown Summary */}
-					<div className="grid grid-cols-2 gap-4 mt-6">
+					<div className="mt-6 grid grid-cols-1 gap-3 sm:grid-cols-2 sm:gap-4">
 						{/* Assets */}
 						<div className="p-4 bg-info-muted rounded-lg border border-border">
 							<div className="flex items-center gap-2 mb-2">
 								<Wallet className="h-4 w-4 text-info" />
 								<span className="text-xs font-medium text-primary">Assets</span>
 							</div>
-							<p className="text-xl font-semibold text-info">{formatCurrency(totalAssets)}</p>
+							<p className="break-words text-xl font-semibold tabular-nums text-info">
+								{formatCurrency(totalAssets)}
+							</p>
 						</div>
 
 						{/* Liabilities */}
@@ -213,7 +217,9 @@ export function NetWorthWidget({
 								<CreditCard className="h-4 w-4 text-error" />
 								<span className="text-xs font-medium text-primary">Liabilities</span>
 							</div>
-							<p className="text-xl font-semibold text-error">{formatCurrency(totalLiabilities)}</p>
+							<p className="break-words text-xl font-semibold tabular-nums text-error">
+								{formatCurrency(totalLiabilities)}
+							</p>
 						</div>
 					</div>
 
@@ -419,7 +425,7 @@ function EmptyState({ onAddAccount }: { onAddAccount?: () => void }) {
 export function NetWorthWidgetSkeleton({ className }: { className?: string }) {
 	return (
 		<Card className={cn("p-6 bg-card border border-border", className)}>
-			<div className="flex items-center justify-between mb-6">
+			<div className="flex flex-wrap items-center justify-between gap-3 mb-6">
 				<div className="flex items-center gap-3">
 					<Skeleton className="h-12 w-12 rounded-lg" />
 					<div>
@@ -431,7 +437,7 @@ export function NetWorthWidgetSkeleton({ className }: { className?: string }) {
 			</div>
 			<Skeleton className="h-24 w-full rounded-xl mb-6" />
 			<Skeleton className="h-56 w-full" />
-			<div className="grid grid-cols-2 gap-4 mt-6">
+			<div className="mt-6 grid grid-cols-1 gap-3 sm:grid-cols-2 sm:gap-4">
 				<Skeleton className="h-20 w-full rounded-lg" />
 				<Skeleton className="h-20 w-full rounded-lg" />
 			</div>

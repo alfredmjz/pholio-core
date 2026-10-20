@@ -194,7 +194,7 @@ export function EditAccountDialog({ open, onOpenChange, account, onSuccess }: Ed
 					</div>
 
 					{/* Generic Base Fields */}
-					<div className="grid grid-cols-2 gap-4">
+					<div className="grid grid-cols-1 gap-4 sm:grid-cols-2">
 						<div className="space-y-2">
 							<Label htmlFor="current_balance">
 								Current Balance <span className="text-error">*</span>
@@ -246,7 +246,7 @@ export function EditAccountDialog({ open, onOpenChange, account, onSuccess }: Ed
 					{/* Credit-specific fields */}
 					{visibility.showCreditLimit && (
 						<>
-							<div className="grid grid-cols-2 gap-4">
+							<div className="grid grid-cols-1 gap-4 sm:grid-cols-2">
 								<div className="space-y-2">
 									<Label htmlFor="credit_limit">Credit Limit (Optional)</Label>
 									<Input
@@ -299,7 +299,7 @@ export function EditAccountDialog({ open, onOpenChange, account, onSuccess }: Ed
 					{/* Debt-specific fields */}
 					{visibility.showOriginalAmount && (
 						<>
-							<div className="grid grid-cols-2 gap-4">
+							<div className="grid grid-cols-1 gap-4 sm:grid-cols-2">
 								<div className="space-y-2">
 									<Label htmlFor="original_amount">Original Loan Amount</Label>
 									<Input
@@ -329,7 +329,7 @@ export function EditAccountDialog({ open, onOpenChange, account, onSuccess }: Ed
 									</div>
 								)}
 							</div>
-							<div className="grid grid-cols-2 gap-4">
+							<div className="grid grid-cols-1 gap-4 sm:grid-cols-2">
 								{visibility.showDueDate && (
 									<div className="space-y-2">
 										<Label htmlFor="payment_due_date">Payment Due Date (1-31)</Label>
@@ -383,7 +383,7 @@ export function EditAccountDialog({ open, onOpenChange, account, onSuccess }: Ed
 							</div>
 
 							{formData.track_contribution_room && (
-								<div className="grid grid-cols-2 gap-4">
+								<div className="grid grid-cols-1 gap-4 sm:grid-cols-2">
 									<div className="space-y-2">
 										<Label htmlFor="contribution_room">Total Contribution Room</Label>
 										<Input

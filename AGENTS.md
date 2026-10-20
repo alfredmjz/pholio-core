@@ -18,9 +18,10 @@ allocations, and see net worth over time.
 | Runtime / package manager | **Bun** (`bun install`, `bun run …`, `bunx`) |
 | Framework | **Next.js 15** App Router, **React 19** |
 | Language | **TypeScript 5.9**, `strict: true` |
-| Database / Auth | **Supabase** (PostgreSQL + RLS, Supabase Auth) |
+| Database / Auth | **Supabase** (PostgreSQL + RLS, Supabase Auth — **magic link only**) |
+| Mobile | **Capacitor 8** hybrid wrapper (`src/ios/`, `src/android/`) loading the hosted app |
 | UI | Tailwind CSS 3.4, Radix UI, Shadcn primitives, Recharts, lucide-react, sonner, dnd-kit |
-| State | React hooks; Zustand used sparingly |
+| State | React hooks; Zustand used sparingly (incl. `src/lib/demo-store.ts`) |
 | Logging | Pino (`src/lib/logger.ts`) |
 | Email | Resend (templates in `supabase/templates/`) |
 | Infra | Docker Compose (root), Redis, Vercel, GitHub Actions + semantic-release |
@@ -106,6 +107,9 @@ Environment files:
 | `bunx tsc --noEmit` | **Type-check — primary gate, must exit 0** |
 | `bun run build` | Production build — second gate, must exit 0 |
 | `bun run start` | Serve the production build locally |
+| `bun run mobile:sync` | `cap sync` (copy web assets + update native plugins) |
+| `bun run mobile:add:ios` / `mobile:add:android` | Scaffold the native projects |
+| `bun run mobile:open:ios` / `mobile:open:android` | Open the native IDE |
 
 ### Root / infra
 
@@ -122,9 +126,16 @@ SQL editor; production is updated manually after a PR merges.
 
 ### Testing & linting
 
-- **There is no automated test suite and no ESLint config in this repo.** Do not invent
+- **The only automated tests are the Playwright E2E suite in `src/e2e/`** (spec:
+  `docs/e2e-testing-spec.md`). There are no unit tests and no ESLint config; do not invent
   `bun test` / `bun run lint` commands.
-- CI (`.github/workflows/ci.yml`) only runs `bun install && bun run build` in `src/` for PRs
+- E2E needs Docker and the local Supabase (`cd src && bun run e2e:db`). It builds the app into
+  `src/.next-e2e`, serves it on :3100 and runs on desktop (1440px), Android (412px) and
+  iPhone (375px). `bun run e2e:smoke` runs tests tagged `@smoke`; `bun run e2e` runs everything.
+  Each run signs in a fresh user, so no DB reset is needed. Tests refuse non-local Supabase URLs.
+- New signed-in pages go in `src/e2e/support/routes.ts` so the layout smoke test covers them.
+- `.githooks/pre-push` runs the smoke tier (enable per clone with `bun run hooks:install`).
+- CI (`.github/workflows/ci.yml`) runs `bun run build` and the full E2E suite in `src/` for PRs
   targeting `main`/`development`.
 - Optional dead-code sweep used on this project:
   `cd src && bunx tsc --noEmit --noUnusedLocals --noUnusedParameters --pretty false`.
@@ -144,7 +155,7 @@ cd src && bun run build
 
 UI-affecting work additionally needs manual browser verification at **mobile (375px)** and
 **desktop (1440px)**. `bun run dev:mock` is the fastest way to exercise UI without a database.
-There is no automated regression suite; `docs/regression-test-spec.md` is an unfinished checklist.
+`cd src && bun run e2e:smoke` must pass before pushing; add or update E2E tests for changed flows.
 
 ### Always produce a manual verification guide
 
@@ -205,6 +216,28 @@ unrelated files — see §10 (line-ending churn).
 contain emoji or non-ASCII text; it has corrupted files in this repo. Use the editor tool, or
 .NET `[IO.File]::ReadAllText/WriteAllText` with explicit UTF-8. Also prefer `-LiteralPath` for
 Next.js bracket paths such as `accountdetail/[id]/…`.
+
+### Theme tokens
+
+`src/styles/globals.css` is the single source of truth for the app theme:
+
+- **Type roles:** use `type-display`, `type-h1`–`type-h4`, `type-body-lg`, `type-body`,
+  `type-body-sm`, `type-body-xs`, `type-label`, `type-caption`, `type-control`, `type-value`,
+  `type-stat` (or the matching `text-*` Tailwind keys). Do not hardcode font sizes/weights in
+  new components.
+- **Color roles:** use semantic Tailwind tokens (`bg-background`, `bg-card`, `text-primary`,
+  `text-muted-foreground`, `border-border`, `bg-primary`, `bg-secondary`, `bg-accent`,
+  `text-success`, `text-error`, `ring-ring`) and the component tokens
+  (`bg-field`, `border-field-border`, `text-field-placeholder`, `ring-field-focus`,
+  `bg-overlay`). Do not hardcode hex/rgb colors in new components.
+- **Login:** the paper login theme is `.theme-paper`, a scoped override of the same semantic
+  tokens. Reuse the roles rather than adding another local palette.
+- **Merging classes:** custom `text-*` type tokens are registered as font sizes in
+  `src/lib/utils.ts` via `extendTailwindMerge`. If you add a new size token, add it there too;
+  otherwise `cn()` can treat it as a text color and strip a variant's `text-*-foreground`.
+- **Interactive surfaces:** cards use `.card-interactive`, list rows use `.row-interactive`.
+  These light up the border/ring only — do not add background-fill hover colors to cards or rows.
+  Segmented selectors use `ToggleGroup` with `variant="segmented"`.
 
 ---
 
@@ -318,10 +351,14 @@ Keep components focused; extract form sections and sub-components. Existing file
   and filter on read (e.g. `getAccountTypes()` filters `is_active = true`).
 - Every migration must be safe to re-run on an already-migrated database, because the owner
   applies the concatenated SQL manually and may re-run it.
-- Migrations are applied in filename sort order. Note the existing duplicate prefix:
-  `005_promotions_and_account_types.sql` and `005_storage.sql` (both are applied;
-  `005_promotions…` sorts first). `000_destroy_and_reset.sql` is excluded by `scripts/migrate.js`
-  and is only for local resets.
+- Migrations are applied in filename sort order. Version prefixes must be **unique** because
+  the Supabase CLI records one row per version in `supabase_migrations.schema_migrations`
+  (a duplicate prefix fails `supabase start`/`db reset`). The storage migration is
+  `0051_storage.sql` so it stays after `005_promotions_and_account_types.sql` and before
+  `006_…`.
+- `000_destroy_and_reset.sql` lives in **`supabase/scripts/`** (not `supabase/migrations/`) so
+  the Supabase CLI never applies it. It is destructive and only for manual local resets
+  (and is skipped by `scripts/migrate.js`).
 
 ---
 
@@ -337,7 +374,7 @@ Keep components focused; extract form sections and sub-components. Existing file
 - Do not duplicate DB-derived logic (balances, debt, promotion progress) in the client.
 - Do not change RLS policies, table grants, or existing `SECURITY DEFINER` functions casually;
   they affect production data access.
-- Do not run `supabase/migrations/000_destroy_and_reset.sql` against anything but a local DB.
+- Do not run `supabase/scripts/000_destroy_and_reset.sql` against anything but a local DB.
 - Do not reformat or re-save whole unrelated files (creates EOL noise that hides the real diff).
 
 ---
@@ -358,6 +395,11 @@ Keep components focused; extract form sections and sub-components. Existing file
   changes (new columns, new types), update `src/mock-data/balancesheet.ts` and any
   `NEXT_PUBLIC_USE_SAMPLE_DATA` branch in the corresponding `actions.ts`, otherwise
   `bun run dev:mock` silently diverges.
+- **Demo data must be time-relative.** Demo/sample data is generated at **request time** from
+  `getDemoNow()` (`src/mock-data/demo-date.ts`), not from module-load `new Date()` constants or
+  hardcoded dates, so the demo always looks current whenever it is run. Generators accept an
+  optional `now` anchor; set `DEMO_DATE` (server-only) for deterministic screenshots/tests.
+  `getSmartMockData()` should return a populated month for the current month.
 - **Client-only validation.** `createUnifiedTransaction` and related actions do **not**
   re-validate balance/debt caps server-side; the caps live in the dialogs. Treat that as a known
   gap (see `OPENCode_HANDOFF.md`), not as permission to rely on client validation.
@@ -445,3 +487,19 @@ type-check + build, manual UI verification at 375px/1440px, review, PR.
 Update `AGENTS.md` when a durable rule, command, or architectural constraint changes
 (then say so in the commit/PR). Keep session-specific status in `OPENCode_HANDOFF.md`
 instead — it is a snapshot and will go stale.
+
+---
+
+## Agent skills
+
+### Issue tracker
+
+Issues live in GitHub Issues for `alfredmjz/pholio-core`, managed with the `gh` CLI. See `docs/agents/issue-tracker.md`.
+
+### Triage labels
+
+Default vocabulary: `needs-triage`, `needs-info`, `ready-for-agent`, `ready-for-human`, `wontfix`. See `docs/agents/triage-labels.md`.
+
+### Domain docs
+
+Single-context: one `CONTEXT.md` and `docs/adr/` at the repo root. See `docs/agents/domain.md`.

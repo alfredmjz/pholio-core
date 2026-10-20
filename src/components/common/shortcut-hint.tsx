@@ -68,11 +68,7 @@ function ShortcutToken({
 	keyClassName?: string;
 }) {
 	const isMouse = token === ShortcutKey.LeftClick;
-	const content = isMouse ? (
-		<LeftMouseButtonIcon className={ICON_SIZE[size]} />
-	) : (
-		SHORTCUT_KEY_SYMBOL[token]
-	);
+	const content = isMouse ? <LeftMouseButtonIcon className={ICON_SIZE[size]} /> : SHORTCUT_KEY_SYMBOL[token];
 
 	if (variant === "plain") {
 		return (
@@ -113,9 +109,10 @@ export function ShortcutHint({
 	// is joined with a "+" so the pointer step is unambiguous.
 	const usesMouse = keys.includes(ShortcutKey.LeftClick);
 
+	// Keyboard and mouse hints mean nothing on phones, so they only appear from `md` up.
 	return (
 		<span
-			className={cn("inline-flex items-center gap-1", className)}
+			className={cn("hidden items-center gap-1 md:inline-flex", className)}
 			data-dialog-submit={hintRole === "submit" ? "" : undefined}
 			data-dialog-dismiss={hintRole === "dismiss" ? "" : undefined}
 		>

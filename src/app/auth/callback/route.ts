@@ -1,4 +1,7 @@
 import { createClient } from "@/lib/supabase/server";
+import { DEMO_COOKIE } from "@/lib/demo-mode";
+import { DEMO_SESSION_COOKIE } from "@/lib/demo-session";
+import { cookies } from "next/headers";
 import { NextResponse } from "next/server";
 
 export async function GET(request: Request) {
@@ -11,6 +14,11 @@ export async function GET(request: Request) {
 		const supabase = await createClient();
 		const { error } = await supabase.auth.exchangeCodeForSession(code);
 		if (!error) {
+			// Signing in always ends the demo session.
+			const cookieStore = await cookies();
+			cookieStore.delete(DEMO_SESSION_COOKIE);
+			cookieStore.delete(DEMO_COOKIE);
+
 			const forwardedHost = request.headers.get("x-forwarded-host"); // original origin before load balancer
 			const isLocalEnv = process.env.NODE_ENV === "development";
 

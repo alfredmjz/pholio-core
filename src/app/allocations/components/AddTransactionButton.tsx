@@ -43,7 +43,6 @@ export function AddTransactionButton({
 				Add Transaction
 				<ShortcutHint
 					keys={SHORTCUTS[ShortcutId.OpenTransaction].keys}
-					className="hidden md:inline-flex"
 					keyClassName="border-current bg-transparent text-current"
 				/>
 			</Button>

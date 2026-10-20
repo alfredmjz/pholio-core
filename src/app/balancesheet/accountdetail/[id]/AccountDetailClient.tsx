@@ -134,15 +134,15 @@ export function AccountDetailClient({
 		<PageShell>
 			{/* Header */}
 			<PageHeader isSticky={false} className="flex items-center justify-between gap-4">
-				<div className="flex items-center gap-4">
+				<div className="flex min-w-0 items-center gap-4">
 					<Link href="/balancesheet">
 						<Button variant="ghost" size="icon" className="shrink-0">
 							<ArrowLeft className="h-5 w-5" />
 						</Button>
 					</Link>
-					<div>
-						<h1 className="text-2xl font-bold tracking-tight">{account.name}</h1>
-						<p className="text-sm text-primary">
+					<div className="min-w-0">
+						<h1 className="truncate text-2xl font-bold tracking-tight">{account.name}</h1>
+						<p className="truncate text-sm text-primary">
 							{account.institution && `${account.institution} • `}
 							{account.account_type?.name}
 						</p>

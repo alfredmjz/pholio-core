@@ -1,7 +1,7 @@
 "use client";
 
 import { useMemo } from "react";
-import { PieChart, Pie, Cell, Tooltip } from "recharts";
+import { PieChart, Pie, Cell, Tooltip, ResponsiveContainer } from "recharts";
 import { cn } from "@/lib/utils";
 
 export interface DonutChartData {
@@ -91,24 +91,26 @@ export function DonutChart({
 	const chartData = useMemo(() => prepareData(data, minSegmentPercentage), [data, minSegmentPercentage]);
 
 	return (
-		<div className={cn("relative", className)} style={{ width: size * 4, height: size * 4 }}>
-			<PieChart width={size * 4} height={size * 4}>
-				<Pie
-					data={chartData as any[]}
-					dataKey="value"
-					nameKey="name"
-					innerRadius="63%"
-					outerRadius="82%"
-					paddingAngle={5}
-					cornerRadius={6}
-					stroke="none"
-				>
-					{chartData.map((entry, index) => (
-						<Cell key={index} fill={entry.color} />
-					))}
-				</Pie>
-				{showTooltip && <Tooltip content={<DonutTooltip />} />}
-			</PieChart>
+		<div className={cn("relative aspect-square w-full", className)} style={{ maxWidth: size * 4 }}>
+			<ResponsiveContainer width="100%" height="100%">
+				<PieChart>
+					<Pie
+						data={chartData as any[]}
+						dataKey="value"
+						nameKey="name"
+						innerRadius="63%"
+						outerRadius="82%"
+						paddingAngle={5}
+						cornerRadius={6}
+						stroke="none"
+					>
+						{chartData.map((entry, index) => (
+							<Cell key={index} fill={entry.color} />
+						))}
+					</Pie>
+					{showTooltip && <Tooltip content={<DonutTooltip />} />}
+				</PieChart>
+			</ResponsiveContainer>
 
 			{centerContent && (
 				<div className="absolute inset-0 flex flex-col items-center justify-center pointer-events-none">

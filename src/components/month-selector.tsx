@@ -54,16 +54,28 @@ export function MonthSelector({ currentMonth, onMonthChange }: MonthSelectorProp
 	};
 
 	return (
-		<div className="flex items-center gap-4">
-			<Button variant="outline" size="icon" onClick={handlePrevMonth} className="h-9 w-9" aria-label="Previous month">
+		<div className="flex min-w-0 items-center gap-2 sm:gap-4">
+			<Button
+				variant="outline"
+				size="icon"
+				onClick={handlePrevMonth}
+				className="h-9 w-9 shrink-0"
+				aria-label="Previous month"
+			>
 				<ChevronLeft className="h-4 w-4" />
 			</Button>
 
-			<div className="text-2xl font-bold text-primary min-w-[200px] text-center">
+			<div className="min-w-0 flex-1 truncate text-center text-xl font-bold text-primary sm:text-2xl">
 				{MONTH_NAMES[currentMonth.month - 1]} {currentMonth.year}
 			</div>
 
-			<Button variant="outline" size="icon" onClick={handleNextMonth} className="h-9 w-9" aria-label="Next month">
+			<Button
+				variant="outline"
+				size="icon"
+				onClick={handleNextMonth}
+				className="h-9 w-9 shrink-0"
+				aria-label="Next month"
+			>
 				<ChevronRight className="h-4 w-4" />
 			</Button>
 
@@ -71,7 +83,7 @@ export function MonthSelector({ currentMonth, onMonthChange }: MonthSelectorProp
 				date={currentDate}
 				setDate={handleDateChange}
 				customLabel={<CalendarIcon className="h-4 w-4 text-foreground" />}
-				className="h-9 w-9 p-0 justify-center aspect-square"
+				className="h-9 w-9 shrink-0 p-0 justify-center aspect-square"
 				align="end"
 			/>
 		</div>

@@ -29,9 +29,11 @@ export function NetWorthCard({ netWorth, totalAssets, totalLiabilities, previous
 				<Info className="h-4 w-4 text-primary/50" />
 			</div>
 
-			<div className="flex items-start justify-between flex-1">
-				<div className="space-y-1 flex flex-col justify-center h-full">
-					<div className="text-4xl font-bold tracking-tight">{formatCompactCurrency(netWorth)}</div>
+			<div className="flex flex-1 items-start justify-between gap-3">
+				<div className="flex h-full min-w-0 flex-col justify-center space-y-1">
+					<div className="break-words text-3xl font-bold tabular-nums tracking-tight sm:text-4xl">
+						{formatCompactCurrency(netWorth)}
+					</div>
 					<div
 						className={cn(
 							"flex items-center gap-1 text-sm font-medium",
@@ -42,7 +44,7 @@ export function NetWorthCard({ netWorth, totalAssets, totalLiabilities, previous
 						{Math.abs(percentChange).toFixed(1)}% vs. last month
 					</div>
 
-					<div className="pt-4 grid grid-cols-2 gap-x-8 gap-y-2">
+					<div className="grid grid-cols-2 gap-x-4 gap-y-2 pt-4 sm:gap-x-8">
 						<div className="space-y-0.5">
 							<div className="flex items-center gap-2">
 								<div className="w-1 h-3 rounded-full bg-green-500" />
@@ -60,7 +62,7 @@ export function NetWorthCard({ netWorth, totalAssets, totalLiabilities, previous
 					</div>
 				</div>
 
-				<div className="flex items-center justify-center pr-2">
+				<div className="flex shrink-0 items-center justify-center pr-2">
 					<DonutChart data={data} size={32} minSegmentPercentage={3} className="scale-110" />
 				</div>
 			</div>

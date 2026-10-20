@@ -8,8 +8,7 @@ import { useEffect, useRef, useState } from "react";
 import { toast } from "sonner";
 import { Check, Sparkles } from "lucide-react";
 
-import { sendMagicLink } from "@/app/(auth-pages)/login/actions";
-import { setDemoModeCookie } from "@/lib/demo-mode";
+import { sendMagicLink, startDemo } from "@/app/(auth-pages)/login/actions";
 import { useDemoStore } from "@/lib/demo-store";
 import { LedgerField } from "./components/ledger-field";
 
@@ -100,11 +99,18 @@ export default function Page() {
 		}
 	};
 
-	const handleTryDemo = () => {
+	const handleTryDemo = async () => {
 		if (isDemoLoading) return;
 		setIsDemoLoading(true);
 		useDemoStore.getState().reset();
-		setDemoModeCookie();
+
+		const result = await startDemo();
+		if (result?.error) {
+			toast.error("Could not start the demo", { description: result.error });
+			setIsDemoLoading(false);
+			return;
+		}
+
 		router.push("/dashboard");
 	};
 
@@ -116,7 +122,7 @@ export default function Page() {
 			<div className="login-page-frame" aria-hidden />
 
 			<div className="relative z-10 mx-auto flex min-h-dvh w-full max-w-[1320px] flex-col px-6 lg:px-10">
-				<header className="flex items-center justify-between py-6 lg:py-8">
+				<header className="login-header flex items-center justify-between py-6 lg:py-8">
 					<Link
 						href="/"
 						className="flex items-center gap-2.5 rounded-sm focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-accent focus-visible:ring-offset-4 focus-visible:ring-offset-background"
@@ -128,9 +134,10 @@ export default function Page() {
 					<span className="login-tagline hidden sm:block">A calmer way to see your money.</span>
 				</header>
 
-				<div className="grid flex-1 grid-cols-1 items-center gap-8 pb-10 pt-2 lg:grid-cols-12 lg:gap-16 lg:pb-14 lg:pt-0">
-					<section className="contents lg:col-span-7 lg:block">
-						<h1 className="login-headline order-1 lg:order-none">
+				<div className="grid flex-1 grid-cols-1 items-center gap-8 pb-6 lg:grid-cols-12 lg:gap-16 lg:pb-14">
+					{/* Desktop only: below lg the sign-in sheet is the whole page. */}
+					<section className="hidden lg:col-span-7 lg:block">
+						<h1 className="login-headline">
 							<span className="login-headline-mask">
 								<span className="login-headline-line">Every account,</span>
 							</span>
@@ -141,11 +148,11 @@ export default function Page() {
 							</span>
 						</h1>
 
-						<p className="login-lede order-2 mt-5 lg:order-none">
+						<p className="login-lede mt-5">
 							Balances, debts, and budgets, threaded together. No spreadsheets, no guesswork.
 						</p>
 
-						<div className="login-ledger order-4 mt-0 lg:order-none lg:mt-10" aria-hidden>
+						<div className="login-ledger mt-10" aria-hidden>
 							<div className="login-ledger-head">
 								<span className="login-ledger-note">Three accounts, one thread</span>
 							</div>
@@ -190,7 +197,7 @@ export default function Page() {
 						</div>
 					</section>
 
-					<section className="order-3 flex justify-center lg:order-none lg:col-span-5 lg:justify-end">
+					<section className="flex justify-center lg:col-span-5 lg:justify-end">
 						<div className="w-full max-w-[460px]">
 							<div className="login-sheet">
 								<div className="login-sheet-body">

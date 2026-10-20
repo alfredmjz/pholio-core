@@ -340,7 +340,7 @@ export function TransactionDialog({
 
 					{type === "transfer" ? (
 						<>
-							<div className="flex flex-row gap-4">
+							<div className="flex flex-col gap-4 sm:flex-row">
 								<div className="flex-1 space-y-2">
 									<Label htmlFor="date">Date</Label>
 									<DatePicker
@@ -380,7 +380,7 @@ export function TransactionDialog({
 								<span>Transfers move money directly between accounts and do not require a budget category.</span>
 							</div>
 
-							<div className="grid grid-cols-2 gap-4">
+							<div className="grid grid-cols-1 gap-4 sm:grid-cols-2">
 								<div className="space-y-2">
 									<Label htmlFor="fromAccount">From Account (Source)</Label>
 									<Select value={fromAccountId} onValueChange={setFromAccountId}>
@@ -419,7 +419,7 @@ export function TransactionDialog({
 						</>
 					) : (
 						<>
-							<div className="flex flex-row gap-4">
+							<div className="flex flex-col gap-4 sm:flex-row">
 								<div className="flex-1 space-y-2">
 									<Label htmlFor="date">Date</Label>
 									<DatePicker

@@ -663,7 +663,7 @@ export function UnifiedTransactionDialog({
 											<span>Transfers move money directly between accounts and do not require a budget category.</span>
 										</div>
 
-										<div className="grid grid-cols-2 gap-4">
+										<div className="grid grid-cols-1 gap-4 sm:grid-cols-2">
 											<div className="space-y-2">
 												<Label htmlFor="fromAccount">
 													From Account (Source) <span className="text-error">*</span>

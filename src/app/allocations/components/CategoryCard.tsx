@@ -280,7 +280,10 @@ export function CategoryCard({ category, usedColors, usedNames }: CategoryCardPr
 					</div>
 
 					{/* Right side: Actions */}
-					<div className="flex flex-col flex-shrink-0 items-end gap-1 translate-y-[-2px]">
+					<div
+						className="flex flex-col flex-shrink-0 items-end gap-1 translate-y-[-2px]"
+						onPointerDown={(event) => event.stopPropagation()}
+					>
 						{isEditing ? (
 							<div className="flex flex-col gap-1 items-end pt-1">
 								<div className="flex items-center gap-1">
@@ -448,6 +451,7 @@ export function CategoryCard({ category, usedColors, usedNames }: CategoryCardPr
 								"flex items-center gap-1 transition-opacity",
 								isEditing ? "opacity-100" : "opacity-0 group-hover:opacity-100"
 							)}
+							onPointerDown={(event) => event.stopPropagation()}
 						>
 							{isEditing ? (
 								<>

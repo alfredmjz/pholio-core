@@ -57,7 +57,6 @@ export function RecurringClient({ initialExpenses, timezone, categoryOptions = [
 					<Plus className="h-4 w-4 md:hidden" /> Add Recurring
 					<ShortcutHint
 						keys={SHORTCUTS[ShortcutId.AddRecurring].keys}
-						className="hidden md:inline-flex"
 						keyClassName="border-current bg-transparent text-current"
 					/>
 				</Button>

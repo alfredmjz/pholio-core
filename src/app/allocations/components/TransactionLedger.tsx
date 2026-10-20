@@ -72,12 +72,7 @@ function resolveAccountLabel(transaction: Transaction, accounts: AccountWithType
 	return accountName(transaction.account_id ?? transaction.linked_account_transaction?.account_id ?? null) ?? "—";
 }
 
-function compareTransactions(
-	a: Transaction,
-	b: Transaction,
-	field: SortField,
-	accounts: AccountWithType[]
-): number {
+function compareTransactions(a: Transaction, b: Transaction, field: SortField, accounts: AccountWithType[]): number {
 	switch (field) {
 		case "name":
 			return a.name.localeCompare(b.name);
@@ -169,16 +164,7 @@ export function TransactionLedger({
 		});
 
 		return filtered;
-	}, [
-		transactions,
-		accounts,
-		searchQuery,
-		categoryFilter,
-		effectiveTypeFilter,
-		sorts,
-		minAmount,
-		maxAmount,
-	]);
+	}, [transactions, accounts, searchQuery, categoryFilter, effectiveTypeFilter, sorts, minAmount, maxAmount]);
 
 	const toggleSort = (field: SortField, additive: boolean) => {
 		setSorts((prev) => {
@@ -379,7 +365,8 @@ export function TransactionLedger({
 				</div>
 			)}
 
-			<div className="mb-2 text-xs text-primary/50">
+			{/* Mouse and keyboard sorting gestures; hidden on phones like the other shortcut hints. */}
+			<div className="mb-2 hidden text-xs text-primary/50 md:block">
 				<span className="font-medium text-primary/60">Legend:</span>
 				<div className="mt-2 flex flex-col gap-1.5">
 					{LEGEND_SHORTCUTS.map((id) => (
@@ -486,9 +473,7 @@ export function TransactionLedger({
 												)}
 											</td>
 											<td className="px-4 py-3">
-												<span className="text-sm text-primary">
-													{resolveAccountLabel(transaction, accounts)}
-												</span>
+												<span className="text-sm text-primary">{resolveAccountLabel(transaction, accounts)}</span>
 											</td>
 											<td className="px-4 py-3">
 												<TransactionTypeIcon type={txType} size="sm" showLabel />

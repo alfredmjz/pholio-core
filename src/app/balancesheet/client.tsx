@@ -218,7 +218,6 @@ export function BalanceSheetClient({
 					Add Account
 					<ShortcutHint
 						keys={SHORTCUTS[ShortcutId.AddAccount].keys}
-						className="hidden md:inline-flex"
 						keyClassName="border-current bg-transparent text-current"
 					/>
 				</Button>

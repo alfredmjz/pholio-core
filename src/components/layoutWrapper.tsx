@@ -24,10 +24,9 @@ export default function LayoutWrapper({ children, sidebar, userProfile }: Layout
 			{!isAuthPage && sidebar}
 			<div className="flex h-dvh min-w-0 flex-1 flex-col">
 				{!isAuthPage && <MobileTopBar userProfile={userProfile} />}
-				<main className={cn("flex-1 overflow-y-auto", !isAuthPage && "pb-28 lg:pb-0")}>
-					<DemoModeBanner />
-					{children}
-				</main>
+				{/* Outside the scroll area, so sticky page headers and tabs never overlap it. */}
+				<DemoModeBanner />
+				<main className={cn("flex-1 overflow-y-auto", !isAuthPage && "pb-28 lg:pb-0")}>{children}</main>
 				{!isAuthPage && <MobileNav />}
 			</div>
 		</>

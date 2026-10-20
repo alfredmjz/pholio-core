@@ -57,6 +57,5 @@ supabase/signing_keys.json
 .scratch/
 
 # Claude settings
-.claude/*.local.*
-
-.docs/
+.claude/
+docs/

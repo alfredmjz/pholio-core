@@ -385,7 +385,9 @@ Keep components focused; extract form sections and sub-components. Existing file
 ## 9. Things Agents Must Not Do
 
 - **Do not commit, push, rebase, or open PRs unless explicitly asked.** This repo is often in a
-  long-lived dirty working tree; committing mid-feature has caused rework.
+  long-lived dirty working tree; committing mid-feature has caused rework. When a request is out
+  of scope for the current branch, follow the scope-change workflow in §13 instead of starting
+  the work on this branch.
 - Do not stage or discard uncommitted work to "clean up" — inspect `git status` first and treat
   the working tree as the source of truth.
 - Do not edit `supabase/generated/**` (gitignored build output) or `supabase/signing_keys.json`.
@@ -488,6 +490,23 @@ still follow the same routing logic.
 
 Expected workflow for a feature: spec in `docs/<feature>-spec.md`, implementation,
 type-check + build, manual UI verification at 375px/1440px, review, PR.
+
+**Scope changes (new feature out of scope for the current branch):**
+
+A branch covers one feature (its issue). When the user asks for a new feature that is outside
+that scope, do not start it on the current branch. Instead:
+
+1. Say that the request is out of scope for the current branch, and ask the user to confirm
+   committing the current work. Do not commit until they confirm.
+2. After they confirm, commit the current work (conventions above), push the branch and open a
+   PR for it (title `feat:`/`fix:`, **Summary** and **Key changes** sections, base `main` or
+   `development`). Show the user the PR link.
+3. Create a new branch for the new feature from the PR's base branch, named after its issue
+   like the existing branches (e.g. `121-feature-investment-deposit-tracking`), and do the new
+   work there.
+
+Follow-ups, fixes and corrections to the feature already on the branch are in scope: keep them
+on the current branch.
 
 ---
 

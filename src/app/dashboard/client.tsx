@@ -12,7 +12,7 @@ import { TrendingUp, Wallet, CreditCard, PiggyBank } from "lucide-react";
 import type { DashboardData, Period, ChartType } from "./types";
 import { getDashboardData } from "./actions";
 import { useServerSyncedData } from "@/hooks/useServerSyncedData";
-import { isDemoModeActive } from "@/lib/demo-mode";
+import { isSampleDataActive } from "@/lib/demo-mode";
 import { useDemoStore } from "@/lib/demo-store";
 
 interface DashboardClientProps {
@@ -32,7 +32,7 @@ export function DashboardClient({ initialData }: DashboardClientProps) {
 	const recentTransactions = isDemo ? demoTransactions : data.recentTransactions;
 
 	useEffect(() => {
-		setIsDemo(isDemoModeActive());
+		setIsDemo(isSampleDataActive());
 	}, []);
 
 	// Dialog states for empty state actions

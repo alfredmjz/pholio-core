@@ -16,7 +16,8 @@ import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
 import { MinimalTiptap } from "@/components/ui/shadcn-io/minimal-tiptap";
 import { updateAccount } from "../../../actions";
-import type { AccountWithType, AccountFieldConfig } from "../../../types";
+import { isSampleDataActive } from "@/lib/demo-mode";
+import type { AccountWithType, AccountFieldConfig, UpdateAccountInput } from "../../../types";
 import { sanitizeDecimalInput, sanitizeIntegerInput } from "@/lib/input-utils";
 import { Switch } from "@/components/ui/switch";
 import { getFieldVisibility } from "../../../field-visibility";
@@ -106,7 +107,7 @@ export function EditAccountDialog({ open, onOpenChange, account, onSuccess }: Ed
 		setIsSubmitting(true);
 
 		try {
-			const result = await updateAccount(account.id, {
+			const updates: UpdateAccountInput = {
 				name: formData.name,
 				institution: formData.institution || null,
 				current_balance: parseFloat(formData.current_balance) || 0,
@@ -123,7 +124,9 @@ export function EditAccountDialog({ open, onOpenChange, account, onSuccess }: Ed
 				annual_contribution_limit: formData.annual_contribution_limit
 					? parseFloat(formData.annual_contribution_limit)
 					: null,
-			});
+			};
+			// Sample data: the account page keeps the change in the demo store (via onSuccess).
+			const result = isSampleDataActive() ? updates : await updateAccount(account.id, updates);
 
 			if (result) {
 				toast.success("Account updated successfully");

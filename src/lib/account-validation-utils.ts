@@ -128,6 +128,22 @@ export function calculateAccountStanding(
 }
 
 /**
+ * Ledger `transaction_type` for an income/expense on an account: the explicit type when one
+ * was chosen, otherwise the default for the account class (same defaults as
+ * `createUnifiedTransaction`).
+ */
+export function resolveAccountTransactionType(
+	account: AccountWithType,
+	intent: "income" | "expense",
+	transactionType: string | undefined
+): string {
+	const isAsset = account.account_type?.class !== "liability";
+	return intent === "income"
+		? transactionType || (isAsset ? "deposit" : "payment")
+		: transactionType || (isAsset ? "withdrawal" : "adjustment");
+}
+
+/**
  * Signed effect a transaction has on an account's balance, mirroring the exact
  * convention used by `createUnifiedTransaction` so client validation can never drift
  * from what the server writes.
@@ -150,10 +166,7 @@ export function calculateSignedDelta(
 		return isAsset ? -abs : abs;
 	}
 
-	const txType =
-		intent === "income"
-			? transactionType || (isAsset ? "deposit" : "payment")
-			: transactionType || (isAsset ? "withdrawal" : "adjustment");
+	const txType = resolveAccountTransactionType(account, intent, transactionType);
 
 	if (isAsset) {
 		return ["deposit", "contribution", "refund", "interest"].includes(txType) ? abs : -abs;

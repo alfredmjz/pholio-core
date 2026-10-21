@@ -1,6 +1,6 @@
 "use client";
 
-import { useState, useEffect } from "react";
+import { useState, useEffect, useMemo } from "react";
 import Link from "next/link";
 import { useRouter } from "next/navigation";
 import { ArrowLeft, Trash2 } from "lucide-react";
@@ -24,31 +24,77 @@ import { EditAccountDialog } from "./components/EditAccountDialog";
 import { AccountTransactionDialog } from "./components/AccountTransactionDialog";
 
 import { deleteAccount, getAccountTransactions, getAccountById } from "../../actions";
+import { AccountDetailLoadingSkeleton } from "../../components/account-detail-loading-skeleton";
 import { useServerSyncedData } from "@/hooks/useServerSyncedData";
+import { isSampleDataActive } from "@/lib/demo-mode";
+import { useDemoStore } from "@/lib/demo-store";
 import type { AccountWithType, AccountTransaction } from "../../types";
 
 interface AccountDetailClientProps {
-	account: AccountWithType;
+	accountId: string;
+	/** Null in sample-data mode when the account exists only in the browser's demo store. */
+	account: AccountWithType | null;
 	transactions: AccountTransaction[];
 	otherAccounts: AccountWithType[];
 }
 
 export function AccountDetailClient({
+	accountId,
 	account: initialAccount,
 	transactions: initialTransactions,
-	otherAccounts,
+	otherAccounts: serverOtherAccounts,
 }: AccountDetailClientProps) {
 	const router = useRouter();
 
-	const { data: account, setData: setAccount } = useServerSyncedData<AccountWithType | null>(
+	// Sample data (demo session or `dev:mock`): the server only knows the static sample set, so
+	// the account, its ledger and the other accounts come from the in-browser demo store, which
+	// also holds accounts and transactions created during the session. Resolved after mount
+	// because the store lives in sessionStorage.
+	const [dataSource, setDataSource] = useState<"pending" | "demo" | "server">("pending");
+	useEffect(() => {
+		setDataSource(isSampleDataActive() ? "demo" : "server");
+	}, []);
+	const isDemo = dataSource === "demo";
+
+	const { data: serverAccount, setData: setServerAccount } = useServerSyncedData<AccountWithType | null>(
 		initialAccount,
-		() => getAccountById(initialAccount.id)
+		() => getAccountById(accountId),
+		{ refreshOnFocus: dataSource === "server" }
 	);
-	const { data: transactions, setData: setTransactions } = useServerSyncedData<AccountTransaction[]>(
+	const { data: serverTransactions, setData: setTransactions } = useServerSyncedData<AccountTransaction[]>(
 		initialTransactions,
-		() => getAccountTransactions(initialAccount.id)
+		() => getAccountTransactions(accountId),
+		{ refreshOnFocus: dataSource === "server" }
 	);
 	const [isLoadingTransactions, setIsLoadingTransactions] = useState(false);
+
+	const demoAccounts = useDemoStore((state) => state.accounts);
+	const demoLedger = useDemoStore((state) => state.accountTransactions);
+	const demoAccount = useMemo(
+		() => demoAccounts.find((acc) => acc.id === accountId) ?? null,
+		[demoAccounts, accountId]
+	);
+	const demoTransactions = useMemo(
+		() =>
+			demoLedger
+				.filter((txn) => txn.account_id === accountId)
+				.sort(
+					(a, b) => b.transaction_date.localeCompare(a.transaction_date) || b.created_at.localeCompare(a.created_at)
+				),
+		[demoLedger, accountId]
+	);
+	const demoOtherAccounts = useMemo(
+		() => demoAccounts.filter((acc) => acc.id !== accountId),
+		[demoAccounts, accountId]
+	);
+
+	const account = isDemo ? demoAccount : serverAccount;
+	const transactions = isDemo ? demoTransactions : serverTransactions;
+	const otherAccounts = isDemo ? demoOtherAccounts : serverOtherAccounts;
+	const setAccount = (updated: AccountWithType) => {
+		if (isDemo) useDemoStore.getState().updateAccount(updated);
+		else setServerAccount(updated);
+	};
 
 	// Dialog states
 	const [editDialogOpen, setEditDialogOpen] = useState(false);
@@ -60,18 +106,20 @@ export function AccountDetailClient({
 	const [editTransactionDialogOpen, setEditTransactionDialogOpen] = useState(false);
 	const [editingTransaction, setEditingTransaction] = useState<AccountTransaction | null>(null);
 
-	// If the account was deleted (here or in another tab), go back to the balance sheet.
+	// If the account was deleted (here or in another tab), or is in neither the server data
+	// nor the demo store, go back to the balance sheet.
 	useEffect(() => {
-		if (account === null) router.replace("/balancesheet");
-	}, [account, router]);
+		if (dataSource !== "pending" && account === null) router.replace("/balancesheet");
+	}, [dataSource, account, router]);
 
-	if (!account) return null;
+	if (!account) return dataSource === "pending" ? <AccountDetailLoadingSkeleton /> : null;
 
 	const accountClass = account.account_type?.class;
 
 	const handleDelete = async () => {
 		const success = await deleteAccount(account.id);
 		if (success) {
+			if (isDemo) useDemoStore.getState().removeAccount(account.id);
 			toast.success("Account deleted");
 			router.push("/balancesheet");
 		} else {
@@ -83,7 +131,7 @@ export function AccountDetailClient({
 
 	const handleAccountUpdated = (updatedAccount: AccountWithType) => {
 		setAccount(updatedAccount);
-		router.refresh();
+		if (!isDemo) router.refresh();
 	};
 
 	const handleRecordDeposit = () => {
@@ -99,6 +147,9 @@ export function AccountDetailClient({
 	};
 
 	const handleTransactionSuccess = async () => {
+		// Demo: the dialog already recorded the transaction in the store, which this page reads.
+		if (isDemo) return;
+
 		// Refresh transactions and account balance
 		setIsLoadingTransactions(true);
 		try {
@@ -108,7 +159,7 @@ export function AccountDetailClient({
 			]);
 			setTransactions(txns);
 			if (updatedAccount) {
-				setAccount(updatedAccount);
+				setServerAccount(updatedAccount);
 			}
 			router.refresh();
 		} finally {

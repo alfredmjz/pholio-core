@@ -1,5 +1,6 @@
 import { redirect } from "next/navigation";
 import { getAccountById, getAccountTransactions, getAccounts } from "../../actions";
+import { isSampleDataMode } from "@/lib/demo-mode.server";
 import { AccountDetailClient } from "./AccountDetailClient";
 
 interface AccountDetailPageProps {
@@ -9,14 +10,17 @@ interface AccountDetailPageProps {
 export default async function AccountDetailPage({ params }: AccountDetailPageProps) {
 	const { id } = await params;
 
-	const [account, transactions, allAccounts] = await Promise.all([
+	const [account, transactions, allAccounts, sampleMode] = await Promise.all([
 		getAccountById(id),
 		getAccountTransactions(id),
 		getAccounts(),
+		isSampleDataMode(),
 	]);
 
-	if (!account) {
-		// Account was deleted (or never existed) — send the user back to the parent page.
+	// Account was deleted (or never existed) — send the user back to the parent page.
+	// In sample-data mode the account may exist only in the browser's demo store (created
+	// during the demo session), so the client resolves it and redirects if it is missing there too.
+	if (!account && !sampleMode) {
 		redirect("/balancesheet");
 	}
 
@@ -25,7 +29,7 @@ export default async function AccountDetailPage({ params }: AccountDetailPagePro
 
 	return (
 		<div className="flex-1 w-full flex flex-col gap-6 px-4 py-8">
-			<AccountDetailClient account={account} transactions={transactions} otherAccounts={otherAccounts} />
+			<AccountDetailClient accountId={id} account={account} transactions={transactions} otherAccounts={otherAccounts} />
 		</div>
 	);
 }

@@ -126,17 +126,34 @@ SQL editor; production is updated manually after a PR merges.
 
 ### Testing & linting
 
-- **The only automated tests are the Playwright E2E suite in `src/e2e/`** (spec:
-  `docs/e2e-testing-spec.md`). There are no unit tests and no ESLint config; do not invent
-  `bun test` / `bun run lint` commands.
+Three automated suites. There is no ESLint config; do not invent `bun run lint`.
+
+| Suite | Command (from `src/`) | Covers |
+| ----- | --------------------- | ------ |
+| Unit (runtime calculations) | `bun test` (`bun run test:watch`) | Pure TypeScript calculations in `src/tests/` |
+| Database (pgTAP) | `bun run test:db` | SQL functions in `supabase/tests/*.test.sql` |
+| E2E (Playwright) | `bun run e2e` / `bun run e2e:smoke` | User flows in `src/e2e/` |
+
+- **Unit tests** use Bun's built-in runner (`bun:test`, no extra dependency). `src/bunfig.toml`
+  sets the test root to `src/tests/` so Playwright `*.spec.ts` files are never picked up. Mirror
+  the source path (`src/lib/x.ts` → `src/tests/lib/x.test.ts`); shared fixtures live in
+  `src/tests/support/`. Keep calculation logic in plain `.ts` modules (not components) so it can
+  be tested — e.g. `src/lib/contribution-room-meter.ts`, `src/app/balancesheet/contribution-room-form.ts`.
+- **Database tests** run through `supabase test db` against the local Supabase (needs Docker).
+  Each file wraps its fixtures in `BEGIN … ROLLBACK`, so nothing persists. Add a test file when you
+  add or change a derived-state function (balances, promotions, contribution room), with
+  expected values worked out by hand.
+- Any change to an algorithm or metric (money, dates, room, caps, progress) needs unit and/or
+  database tests that pin the expected numbers.
 - E2E needs Docker and the local Supabase (`cd src && bun run e2e:db`). It builds the app into
   `src/.next-e2e`, serves it on :3100 and runs on desktop (1440px), Android (412px) and
   iPhone (375px). `bun run e2e:smoke` runs tests tagged `@smoke`; `bun run e2e` runs everything.
   Each run signs in a fresh user, so no DB reset is needed. Tests refuse non-local Supabase URLs.
 - New signed-in pages go in `src/e2e/support/routes.ts` so the layout smoke test covers them.
-- `.githooks/pre-push` runs the smoke tier (enable per clone with `bun run hooks:install`).
-- CI (`.github/workflows/ci.yml`) runs `bun run build` and the full E2E suite in `src/` for PRs
-  targeting `main`/`development`.
+- `.githooks/pre-push` runs the unit tests, database tests and smoke tier (enable per clone with
+  `bun run hooks:install`).
+- CI (`.github/workflows/ci.yml`) runs `bun test` and `bun run build`, then the database tests
+  and the full E2E suite against a local Supabase, for PRs targeting `main`/`development`.
 - Optional dead-code sweep used on this project:
   `cd src && bunx tsc --noEmit --noUnusedLocals --noUnusedParameters --pretty false`.
   The repo is **not** clean under those flags — compare against the pre-existing baseline
@@ -152,6 +169,9 @@ A change is considered build-verified when **both** exit `0`:
 cd src && bunx tsc --noEmit
 cd src && bun run build
 ```
+
+Calculation changes additionally need `cd src && bun test` (and `bun run test:db` for SQL) to
+pass, with tests added for the new behaviour.
 
 UI-affecting work additionally needs manual browser verification at **mobile (375px)** and
 **desktop (1440px)**. `bun run dev:mock` is the fastest way to exercise UI without a database.

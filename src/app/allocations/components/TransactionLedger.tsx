@@ -15,6 +15,7 @@ import { SHORTCUTS, ShortcutId } from "@/lib/keyboard-shortcuts";
 import { ShortcutHint } from "@/components/common/shortcut-hint";
 import type { AccountWithType } from "@/app/balancesheet/types";
 import type { AllocationCategory, Transaction } from "../types";
+import { getTransferAccountIds } from "../utils/transfer-accounts";
 import type { TransactionType } from "./TransactionTypeIcon";
 import { inferTransactionType, TRANSACTION_TYPE_CONFIG, TransactionTypeIcon } from "./TransactionTypeIcon";
 import { getCategoryColor } from "./CategoryPerformance";
@@ -58,14 +59,10 @@ function resolveAccountLabel(transaction: Transaction, accounts: AccountWithType
 	};
 
 	if (transaction.source === "transfer") {
-		const linked = transaction.linked_account_transactions ?? [];
-		const sourceTxId = transaction.linked_account_transaction?.id;
-		const sourceId = transaction.linked_account_transaction?.account_id ?? transaction.account_id ?? null;
-		const destinationId =
-			linked.find((entry) => entry.id !== sourceTxId && entry.account_id !== sourceId)?.account_id ?? null;
+		const { fromAccountId, toAccountId } = getTransferAccountIds(transaction);
 
-		const from = accountName(sourceId) ?? "External";
-		const to = accountName(destinationId) ?? "External";
+		const from = accountName(fromAccountId) ?? "External";
+		const to = accountName(toAccountId) ?? "External";
 		return `${from} → ${to}`;
 	}
 

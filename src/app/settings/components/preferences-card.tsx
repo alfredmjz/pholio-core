@@ -55,17 +55,17 @@ export default function PreferencesCard() {
 			return Intl.supportedValuesOf("timeZone");
 		} catch {
 			return [
-				"UTC",
-				"America/New_York",
 				"America/Chicago",
 				"America/Denver",
 				"America/Los_Angeles",
+				"America/New_York",
 				"America/Toronto",
+				"Asia/Shanghai",
+				"Asia/Tokyo",
+				"Australia/Sydney",
 				"Europe/London",
 				"Europe/Paris",
-				"Asia/Tokyo",
-				"Asia/Shanghai",
-				"Australia/Sydney",
+				"UTC",
 			];
 		}
 	}, []);
@@ -201,21 +201,21 @@ export default function PreferencesCard() {
 						className="grid grid-cols-3 gap-3 sm:flex sm:flex-wrap sm:justify-start sm:gap-4"
 					>
 						<ToggleGroupItem
-							value="light"
-							aria-label="Light Code"
-							className="h-24 w-full flex flex-col gap-2 rounded-lg border-2 sm:max-w-[140px] border-muted text-primary hover:border-primary hover:bg-transparent data-[state=on]:border-primary data-[state=on]:bg-primary/5 data-[state=on]:text-primary"
-						>
-							<Sun className="h-6 w-6" />
-							<span className="text-xs font-medium">Light</span>
-						</ToggleGroupItem>
-
-						<ToggleGroupItem
 							value="dark"
 							aria-label="Dark Mode"
 							className="h-24 w-full flex flex-col gap-2 rounded-lg border-2 sm:max-w-[140px] border-muted text-primary hover:border-primary hover:bg-transparent data-[state=on]:border-primary data-[state=on]:bg-primary/5 data-[state=on]:text-primary"
 						>
 							<Moon className="h-6 w-6" />
 							<span className="text-xs font-medium">Dark</span>
+						</ToggleGroupItem>
+
+						<ToggleGroupItem
+							value="light"
+							aria-label="Light Code"
+							className="h-24 w-full flex flex-col gap-2 rounded-lg border-2 sm:max-w-[140px] border-muted text-primary hover:border-primary hover:bg-transparent data-[state=on]:border-primary data-[state=on]:bg-primary/5 data-[state=on]:text-primary"
+						>
+							<Sun className="h-6 w-6" />
+							<span className="text-xs font-medium">Light</span>
 						</ToggleGroupItem>
 
 						<ToggleGroupItem
@@ -259,8 +259,8 @@ export default function PreferencesCard() {
 								<SelectContent>
 									<SelectItem value="dialog">Ask me each time</SelectItem>
 									<SelectItem value="import_previous">Import from previous month</SelectItem>
-									<SelectItem value="template">Use default template</SelectItem>
 									<SelectItem value="fresh">Start fresh (blank)</SelectItem>
+									<SelectItem value="template">Use default template</SelectItem>
 								</SelectContent>
 							</Select>
 							<p className="text-xs text-muted-foreground">
@@ -376,11 +376,11 @@ export default function PreferencesCard() {
 										<SelectValue placeholder="Select currency" />
 									</SelectTrigger>
 									<SelectContent>
-										<SelectItem value="USD">USD ($)</SelectItem>
 										<SelectItem value="CAD">CAD ($)</SelectItem>
 										<SelectItem value="EUR">EUR (€)</SelectItem>
 										<SelectItem value="GBP">GBP (£)</SelectItem>
 										<SelectItem value="JPY">JPY (¥)</SelectItem>
+										<SelectItem value="USD">USD ($)</SelectItem>
 									</SelectContent>
 								</Select>
 							</div>
@@ -394,10 +394,10 @@ export default function PreferencesCard() {
 										<SelectValue placeholder="Select language" />
 									</SelectTrigger>
 									<SelectContent>
-										<SelectItem value="en">English</SelectItem>
-										<SelectItem value="fr">Français</SelectItem>
-										<SelectItem value="es">Español</SelectItem>
 										<SelectItem value="de">Deutsch</SelectItem>
+										<SelectItem value="en">English</SelectItem>
+										<SelectItem value="es">Español</SelectItem>
+										<SelectItem value="fr">Français</SelectItem>
 									</SelectContent>
 								</Select>
 							</div>

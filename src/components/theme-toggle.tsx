@@ -45,20 +45,20 @@ export function ThemeToggle({ isCollapsed }: ThemeToggleProps) {
 						<Button
 							variant="ghost"
 							size="sm"
-							onClick={() => setTheme("light")}
-							className={cn("justify-start gap-2 h-8 px-2 w-full", theme === "light" && "bg-secondary text-primary")}
-						>
-							<Sun className="h-4 w-4" />
-							<span>Light</span>
-						</Button>
-						<Button
-							variant="ghost"
-							size="sm"
 							onClick={() => setTheme("dark")}
 							className={cn("justify-start gap-2 h-8 px-2 w-full", theme === "dark" && "bg-secondary text-primary")}
 						>
 							<Moon className="h-4 w-4" />
 							<span>Dark</span>
+						</Button>
+						<Button
+							variant="ghost"
+							size="sm"
+							onClick={() => setTheme("light")}
+							className={cn("justify-start gap-2 h-8 px-2 w-full", theme === "light" && "bg-secondary text-primary")}
+						>
+							<Sun className="h-4 w-4" />
+							<span>Light</span>
 						</Button>
 						<Button
 							variant="ghost"
@@ -81,19 +81,6 @@ export function ThemeToggle({ isCollapsed }: ThemeToggleProps) {
 				variant="ghost"
 				size="icon"
 				type="button"
-				onClick={() => setTheme("light")}
-				className={cn(
-					"relative h-auto w-auto p-1.5 rounded-full text-primary transition-all duration-200 hover:bg-card hover:text-primary",
-					theme === "light" && "bg-background shadow-sm ring-1 ring-border/60"
-				)}
-				aria-label="Light theme"
-			>
-				<Sun className="h-4 w-4" />
-			</Button>
-			<Button
-				variant="ghost"
-				size="icon"
-				type="button"
 				onClick={() => setTheme("dark")}
 				className={cn(
 					"relative h-auto w-auto p-1.5 rounded-full text-primary transition-all duration-200 hover:bg-card hover:text-primary",
@@ -102,6 +89,19 @@ export function ThemeToggle({ isCollapsed }: ThemeToggleProps) {
 				aria-label="Dark theme"
 			>
 				<Moon className="h-4 w-4" />
+			</Button>
+			<Button
+				variant="ghost"
+				size="icon"
+				type="button"
+				onClick={() => setTheme("light")}
+				className={cn(
+					"relative h-auto w-auto p-1.5 rounded-full text-primary transition-all duration-200 hover:bg-card hover:text-primary",
+					theme === "light" && "bg-background shadow-sm ring-1 ring-border/60"
+				)}
+				aria-label="Light theme"
+			>
+				<Sun className="h-4 w-4" />
 			</Button>
 			<Button
 				variant="ghost"

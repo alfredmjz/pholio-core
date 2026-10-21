@@ -49,8 +49,8 @@ export function BillCardHeader({ bill, isAutomated, isDeleting, onPayFuture, onE
 					</Button>
 				</DropdownMenuTrigger>
 				<DropdownMenuContent align="end">
-					{!isAutomated && <DropdownMenuItem onClick={onPayFuture}>Pay Future Bill</DropdownMenuItem>}
 					<DropdownMenuItem onClick={onEdit}>Edit</DropdownMenuItem>
+					{!isAutomated && <DropdownMenuItem onClick={onPayFuture}>Pay Future Bill</DropdownMenuItem>}
 					<DropdownMenuSeparator />
 					<DropdownMenuItem className="text-error" onClick={onDelete} disabled={isDeleting}>
 						Delete

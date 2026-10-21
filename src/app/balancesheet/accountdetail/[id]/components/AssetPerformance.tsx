@@ -2,8 +2,8 @@
 
 import { useMemo } from "react";
 import { Card } from "@/components/ui/card";
-import { AlertCircle, AlertTriangle } from "lucide-react";
 import { parseLocalDate } from "@/lib/date-utils";
+import { isInvestmentAccount } from "@/lib/account-validation-utils";
 import type { AccountWithType, AccountTransaction } from "../../../types";
 
 interface AssetPerformanceProps {
@@ -41,42 +41,7 @@ export function AssetPerformance({ account, transactions, formatCurrency }: Asse
 
 		const annualGrowthRate = account.current_balance > 0 ? (thisMonthInterest * 12) / account.current_balance : 0;
 
-		const thisYearContributions = transactions
-			.filter((t) => {
-				const d = parseLocalDate(t.transaction_date);
-				return (
-					(t.transaction_type === "deposit" || t.transaction_type === "contribution") &&
-					d.getFullYear() === now.getFullYear()
-				);
-			})
-			.reduce((sum, t) => sum + Math.abs(t.amount), 0);
-
-		const isInvestment =
-			account.account_type?.category === "investment" ||
-			(account.account_type?.category as string | undefined) === "retirement";
-
-		/** Contribution limit warnings for investment/retirement accounts. */
-		let annualLimitWarning: "approaching" | "exceeded" | null = null;
-		let totalRoomWarning: "approaching" | "exceeded" | null = null;
-
-		if (isInvestment && account.track_contribution_room) {
-			if (account.annual_contribution_limit) {
-				if (thisYearContributions > account.annual_contribution_limit) {
-					annualLimitWarning = "exceeded";
-				} else if (thisYearContributions >= account.annual_contribution_limit * 0.9) {
-					annualLimitWarning = "approaching";
-				}
-			}
-
-			/** Total room is checked against all-time deposits since we only track those in-app. */
-			if (account.contribution_room) {
-				if (totalDeposits > account.contribution_room) {
-					totalRoomWarning = "exceeded";
-				} else if (totalDeposits >= account.contribution_room * 0.9) {
-					totalRoomWarning = "approaching";
-				}
-			}
-		}
+		const isInvestment = isInvestmentAccount(account);
 
 		return {
 			interestEarned,
@@ -85,9 +50,6 @@ export function AssetPerformance({ account, transactions, formatCurrency }: Asse
 			monthlyInterestEstimate,
 			annualGrowthRate,
 			isInvestment,
-			thisYearContributions,
-			annualLimitWarning,
-			totalRoomWarning,
 		};
 	}, [transactions, account]);
 
@@ -129,57 +91,6 @@ export function AssetPerformance({ account, transactions, formatCurrency }: Asse
 							<span className="text-sm font-medium text-muted-foreground">
 								{formatCurrency(stats.monthlyInterestEstimate)}
 							</span>
-						</div>
-					</>
-				)}
-
-				{stats.isInvestment && account.track_contribution_room && (
-					<>
-						<div className="flex flex-col gap-1 pt-2 border-t border-border/50">
-							<div className="flex items-center justify-between">
-								<span className="text-sm text-primary font-medium">Annual Limit</span>
-								<div className="flex flex-col items-end">
-									<span className="text-sm font-medium text-muted-foreground">
-										{account.annual_contribution_limit ? formatCurrency(account.annual_contribution_limit) : "Not Set"}
-									</span>
-								</div>
-							</div>
-							{stats.annualLimitWarning === "exceeded" && (
-								<div className="flex items-center gap-1.5 text-xs text-red-500 mt-1">
-									<AlertCircle className="w-3.5 h-3.5" />
-									<span>
-										Annual limit exceeded by{" "}
-										{formatCurrency(stats.thisYearContributions - (account.annual_contribution_limit || 0))}!
-									</span>
-								</div>
-							)}
-							{stats.annualLimitWarning === "approaching" && (
-								<div className="flex items-center gap-1.5 text-xs text-amber-500 mt-1">
-									<AlertTriangle className="w-3.5 h-3.5" />
-									<span>Approaching annual limit ({formatCurrency(stats.thisYearContributions)} contributed)</span>
-								</div>
-							)}
-						</div>
-
-						<div className="flex flex-col gap-1">
-							<div className="flex items-center justify-between">
-								<span className="text-sm text-primary">Total Contribution Room</span>
-								<span className="text-sm font-medium">
-									{account.contribution_room ? formatCurrency(account.contribution_room) : "Not Set"}
-								</span>
-							</div>
-							{stats.totalRoomWarning === "exceeded" && (
-								<div className="flex items-center gap-1.5 text-xs text-red-500 mt-1">
-									<AlertCircle className="w-3.5 h-3.5" />
-									<span>Total contribution room exceeded!</span>
-								</div>
-							)}
-							{stats.totalRoomWarning === "approaching" && (
-								<div className="flex items-center gap-1.5 text-xs text-amber-500 mt-1">
-									<AlertTriangle className="w-3.5 h-3.5" />
-									<span>Approaching total contribution limit.</span>
-								</div>
-							)}
 						</div>
 					</>
 				)}

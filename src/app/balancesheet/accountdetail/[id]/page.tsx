@@ -1,5 +1,6 @@
 import { redirect } from "next/navigation";
 import { getAccountById, getAccountTransactions, getAccounts } from "../../actions";
+import { getAccountContributionSummary } from "@/lib/actions/contribution-actions";
 import { AccountDetailClient } from "./AccountDetailClient";
 
 interface AccountDetailPageProps {
@@ -9,10 +10,11 @@ interface AccountDetailPageProps {
 export default async function AccountDetailPage({ params }: AccountDetailPageProps) {
 	const { id } = await params;
 
-	const [account, transactions, allAccounts] = await Promise.all([
+	const [account, transactions, allAccounts, contribution] = await Promise.all([
 		getAccountById(id),
 		getAccountTransactions(id),
 		getAccounts(),
+		getAccountContributionSummary(id),
 	]);
 
 	if (!account) {
@@ -25,7 +27,12 @@ export default async function AccountDetailPage({ params }: AccountDetailPagePro
 
 	return (
 		<div className="flex-1 w-full flex flex-col gap-6 px-4 py-8">
-			<AccountDetailClient account={account} transactions={transactions} otherAccounts={otherAccounts} />
+			<AccountDetailClient
+				account={account}
+				transactions={transactions}
+				otherAccounts={otherAccounts}
+				contribution={contribution}
+			/>
 		</div>
 	);
 }

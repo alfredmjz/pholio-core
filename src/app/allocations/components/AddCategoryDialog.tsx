@@ -7,20 +7,33 @@ import { CancelShortcut, SubmitShortcut } from "@/components/common/dialog-short
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
+import { Switch } from "@/components/ui/switch";
 
 import { CATEGORY_PALETTE, COLOR_NAME_MAP, getNextAvailableColor } from "../utils/colors";
 import { cn } from "@/lib/utils";
 import { AlertCircle } from "lucide-react";
 import { sanitizeDecimalInput } from "@/lib/input-utils";
+import { ContributionPlanPicker } from "./ContributionPlanPicker";
+import { ContributionRoomMeter } from "./ContributionRoomMeter";
+import type { RegisteredPlan } from "@/app/balancesheet/types";
+import type { ContributionSummary } from "@/lib/types/contribution";
 
 interface AddCategoryDialogProps {
 	open: boolean;
 	onOpenChange: (open: boolean) => void;
-	onSubmit: (name: string, budgetCap: number, color?: string) => void;
+	onSubmit: (name: string, budgetCap: number, color?: string, contributionPlan?: RegisteredPlan | null) => void;
 	unallocatedFunds: number;
 	usedColors?: string[];
 	usedNames?: string[];
+	/** Contribution room per plan, for the live preview. */
+	contributionPools?: ContributionSummary[];
+	/** Plans already linked to a category this month. */
+	linkedPlans?: RegisteredPlan[];
+	year: number;
 }
+
+const formatPreviewCurrency = (value: number) =>
+	`$${value.toLocaleString("en-US", { minimumFractionDigits: 0, maximumFractionDigits: 0 })}`;
 
 export function AddCategoryDialog({
 	open,
@@ -29,12 +42,17 @@ export function AddCategoryDialog({
 	unallocatedFunds,
 	usedColors = [],
 	usedNames = [],
+	contributionPools = [],
+	linkedPlans = [],
+	year,
 }: AddCategoryDialogProps) {
 	const [name, setName] = useState("");
 	const [budgetCap, setBudgetCap] = useState("");
 	const [selectedColor, setSelectedColor] = useState<string | null>(null);
 	const [nameError, setNameError] = useState("");
 	const [budgetError, setBudgetError] = useState("");
+	const [tracksRoom, setTracksRoom] = useState(false);
+	const [contributionPlan, setContributionPlan] = useState<RegisteredPlan | null>(null);
 
 	useEffect(() => {
 		if (!open) {
@@ -43,6 +61,8 @@ export function AddCategoryDialog({
 			setSelectedColor(null);
 			setNameError("");
 			setBudgetError("");
+			setTracksRoom(false);
+			setContributionPlan(null);
 		}
 	}, [open]);
 
@@ -88,7 +108,7 @@ export function AddCategoryDialog({
 
 		if (isNameValid && isBudgetValid) {
 			const finalColor = selectedColor || getNextAvailableColor(usedColors);
-			onSubmit(name.trim(), parseFloat(budgetCap), finalColor);
+			onSubmit(name.trim(), parseFloat(budgetCap), finalColor, tracksRoom ? contributionPlan : null);
 			onOpenChange(false);
 		}
 	};
@@ -100,10 +120,13 @@ export function AddCategoryDialog({
 		!isNaN(parseFloat(budgetCap)) &&
 		parseFloat(budgetCap) >= 0 &&
 		(!selectedColor || !usedColors.includes(selectedColor)) &&
-		!usedNames.some((n) => n.toLowerCase() === name.trim().toLowerCase());
+		!usedNames.some((n) => n.toLowerCase() === name.trim().toLowerCase()) &&
+		(!tracksRoom || contributionPlan !== null);
 
 	const budgetNum = parseFloat(budgetCap) || 0;
 	const isOverAllocated = budgetNum > unallocatedFunds;
+	const previewColorName = selectedColor || getNextAvailableColor(usedColors);
+	const previewColor = CATEGORY_PALETTE[COLOR_NAME_MAP[previewColorName] ?? 0];
 
 	return (
 		<ControlBasedDialog
@@ -174,6 +197,39 @@ export function AddCategoryDialog({
 							<p className="text-xs text-primary" aria-describedby="budget-cap">
 								You have ${unallocatedFunds.toFixed(2)} unallocated
 							</p>
+						)}
+					</div>
+
+					<div className="grid gap-3 rounded-lg border border-border p-3">
+						<div className="flex items-start justify-between gap-3">
+							<div className="space-y-0.5">
+								<Label htmlFor="category-track-room">Count toward contribution room</Label>
+								<p className="type-caption text-muted-foreground">
+									Shows this budget against your TFSA, RRSP, FHSA or RESP room. Only real deposits use the room.
+								</p>
+							</div>
+							<Switch id="category-track-room" checked={tracksRoom} onCheckedChange={setTracksRoom} />
+						</div>
+						{tracksRoom && (
+							<>
+								<ContributionPlanPicker
+									value={contributionPlan}
+									onChange={setContributionPlan}
+									takenPlans={linkedPlans}
+								/>
+								{contributionPlan ? (
+									<ContributionRoomMeter
+										plan={contributionPlan}
+										pool={contributionPools.find((pool) => pool.pool_key === contributionPlan)}
+										budget={budgetNum}
+										color={previewColor}
+										year={year}
+										formatCurrency={formatPreviewCurrency}
+									/>
+								) : (
+									<p className="type-caption text-muted-foreground">Choose the plan this budget goes into.</p>
+								)}
+							</>
 						)}
 					</div>
 

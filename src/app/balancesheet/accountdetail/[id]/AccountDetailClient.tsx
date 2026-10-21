@@ -14,6 +14,7 @@ import { UnifiedTransactionDialog } from "@/components/dialogs/UnifiedTransactio
 import { BalanceCard } from "./components/BalanceCard";
 import { AccountStandingCard } from "./components/AccountStandingCard";
 import { PromotionsTrackerCard } from "./components/PromotionsTrackerCard";
+import { ContributionRoomCard } from "./components/ContributionRoomCard";
 import { QuickActionsCard } from "./components/QuickActionsCard";
 import { InsightsCard } from "./components/InsightsCard";
 import { PerformanceCard } from "./components/PerformanceCard";
@@ -25,18 +26,22 @@ import { AccountTransactionDialog } from "./components/AccountTransactionDialog"
 
 import { deleteAccount, getAccountTransactions, getAccountById } from "../../actions";
 import { useServerSyncedData } from "@/hooks/useServerSyncedData";
+import { isInvestmentAccount } from "@/lib/account-validation-utils";
 import type { AccountWithType, AccountTransaction } from "../../types";
+import type { AccountContribution } from "@/lib/types/contribution";
 
 interface AccountDetailClientProps {
 	account: AccountWithType;
 	transactions: AccountTransaction[];
 	otherAccounts: AccountWithType[];
+	contribution: AccountContribution | null;
 }
 
 export function AccountDetailClient({
 	account: initialAccount,
 	transactions: initialTransactions,
 	otherAccounts,
+	contribution,
 }: AccountDetailClientProps) {
 	const router = useRouter();
 
@@ -181,6 +186,11 @@ export function AccountDetailClient({
 							}}
 						/>
 
+						{/* Investment deposits and contribution room */}
+						{(isInvestmentAccount(account) || account.track_contribution_room) && (
+							<ContributionRoomCard account={account} contribution={contribution} />
+						)}
+
 						{/* Welcome Bonuses & Promotions Tracker */}
 						<PromotionsTrackerCard accountId={account.id} formatCurrency={formatCurrency} />
 
@@ -247,7 +257,9 @@ export function AccountDetailClient({
 					if (!open) setPayRemainingAmount(null);
 				}}
 				categories={[]}
-				accounts={payRemainingAmount !== null ? [account, ...otherAccounts] : [account]}
+				// Every account is selectable so transfers can come from, or go to, any other account;
+				// this account stays the default.
+				accounts={[account, ...otherAccounts]}
 				defaultAccountId={account.id}
 				defaultToAccountId={payRemainingAmount !== null ? account.id : undefined}
 				defaultAmount={payRemainingAmount ?? undefined}

@@ -6,6 +6,7 @@ import { toast } from "sonner";
 import { useAllocationSync } from "@/hooks/useAllocationSync";
 import { useServerSyncedData } from "@/hooks/useServerSyncedData";
 import { getAccountsForSelector } from "@/lib/actions/unified-transaction-actions";
+import { getAllocationContributions } from "@/lib/actions/contribution-actions";
 import {
 	createCategory,
 	getOrCreateAllocation,
@@ -21,8 +22,9 @@ import { SaveTemplateDialog } from "./components/SaveTemplateDialog";
 
 import type { TransactionType } from "./components/TransactionTypeIcon";
 import type { MonthYear, AllocationSummary, Transaction, IncomeVerificationResult } from "./types";
-import type { AccountWithType } from "@/app/balancesheet/types";
+import type { AccountWithType, RegisteredPlan } from "@/app/balancesheet/types";
 import type { AllocationNewMonthDefault } from "@/app/settings/actions";
+import type { AllocationContributions } from "@/lib/types/contribution";
 
 interface AllocationClientProps {
 	initialYear: number;
@@ -30,6 +32,7 @@ interface AllocationClientProps {
 	initialSummary: AllocationSummary | null;
 	initialTransactions: Transaction[];
 	initialAccounts: AccountWithType[];
+	initialContributions: AllocationContributions;
 	previousMonthData?: {
 		categoryCount: number;
 		totalBudget: number;
@@ -74,6 +77,7 @@ export function AllocationClient({
 	initialSummary,
 	initialTransactions,
 	initialAccounts,
+	initialContributions,
 	previousMonthData,
 	historicalPace,
 	incomeVerification,
@@ -89,6 +93,10 @@ export function AllocationClient({
 		year: initialYear,
 		month: initialMonth,
 	});
+	const { data: contributions, refresh: refreshContributions } = useServerSyncedData<AllocationContributions>(
+		initialContributions,
+		() => getAllocationContributions(currentMonth.year, currentMonth.month)
+	);
 	const [addCategoryDialogOpen, setAddCategoryDialogOpen] = useState(false);
 	const [templateDialogOpen, setTemplateDialogOpen] = useState(false);
 	const [saveTemplateDialogOpen, setSaveTemplateDialogOpen] = useState(false);
@@ -123,14 +131,28 @@ export function AllocationClient({
 		router.push(`/allocations?year=${newMonth.year}&month=${newMonth.month}`);
 	};
 
-	const handleAddCategorySubmit = async (name: string, budgetCap: number, color?: string) => {
+	const handleAddCategorySubmit = async (
+		name: string,
+		budgetCap: number,
+		color?: string,
+		contributionPlan: RegisteredPlan | null = null
+	) => {
 		if (!summary) return;
 
 		const previousSummary = summary;
-		const newCategory = await createCategory(summary.allocation.id, name, budgetCap, false, undefined, color);
+		const newCategory = await createCategory(
+			summary.allocation.id,
+			name,
+			budgetCap,
+			false,
+			undefined,
+			color,
+			contributionPlan
+		);
 
 		if (newCategory) {
 			toast.success("Category created");
+			if (contributionPlan) void refreshContributions();
 		} else {
 			toast.error("Creation Failed", {
 				description: `Failed to create category "${name}". Please try again.`,
@@ -273,6 +295,8 @@ export function AllocationClient({
 				categories={categories}
 				transactions={transactions}
 				accounts={accounts}
+				contributions={contributions}
+				onContributionsChanged={() => void refreshContributions()}
 				typeFilter={typeFilter}
 				onMonthChange={handleMonthChange}
 				onExport={() => setExportDialogOpen(true)}

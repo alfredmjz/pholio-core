@@ -144,11 +144,6 @@ export function AddAccountDialog({ open, onOpenChange, onSuccess }: AddAccountDi
 			isValid = false;
 		}
 
-		if (!formData.current_balance.trim()) {
-			newErrors.current_balance = "Current balance is required";
-			isValid = false;
-		}
-
 		const contributionError = validateContributionRoom(contribution);
 		if (contributionError) {
 			newErrors.contribution_room = contributionError;
@@ -176,7 +171,7 @@ export function AddAccountDialog({ open, onOpenChange, onSuccess }: AddAccountDi
 		setLoading(true);
 
 		try {
-			const planRoom = toPlanRoomSetting(contribution);
+			const planRoom = toPlanRoomSetting(contribution, planRooms);
 			if (planRoom && !(await saveContributionRoom(planRoom))) {
 				toast.error("Creation Failed", { description: "Could not save your contribution room. Please try again." });
 				return;
@@ -185,7 +180,8 @@ export function AddAccountDialog({ open, onOpenChange, onSuccess }: AddAccountDi
 			const input: CreateAccountInput = {
 				name: formData.name,
 				account_type_id: formData.account_type_id,
-				current_balance: parseFloat(formData.current_balance),
+				// A blank balance means the account starts at zero.
+				current_balance: formData.current_balance.trim() ? parseFloat(formData.current_balance) : 0,
 				interest_rate: formData.interest_rate ? parseFloat(formData.interest_rate) / 100 : null,
 				interest_type: formData.interest_rate ? "compound" : null,
 				target_balance: formData.target_balance ? parseFloat(formData.target_balance) : null,
@@ -373,7 +369,7 @@ export function AddAccountDialog({ open, onOpenChange, onSuccess }: AddAccountDi
 						<div className="grid grid-cols-1 gap-4 sm:grid-cols-2">
 							<div className="space-y-2">
 								<Label htmlFor="balance">
-									Current Balance <span className="text-error">*</span>
+									Current Balance
 								</Label>
 								<ProminentAmountInput
 									id="balance"

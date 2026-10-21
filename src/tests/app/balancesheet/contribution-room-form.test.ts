@@ -1,11 +1,13 @@
 import { describe, expect, test } from "bun:test";
 import {
 	EMPTY_CONTRIBUTION_ROOM_VALUES,
+	getRoomYear,
 	startOfCurrentYear,
 	toContributionRoomInput,
 	toPlanRoomSetting,
 	validateContributionRoom,
 	withPlanRoom,
+	withRoomChange,
 	type ContributionRoomFormValues,
 } from "@/app/balancesheet/contribution-room-form";
 import type { ContributionRoomSetting } from "@/lib/types/contribution";
@@ -21,6 +23,20 @@ const TFSA_ROOM: ContributionRoomSetting = { plan: "tfsa", room: 25000, room_as_
 describe("startOfCurrentYear", () => {
 	test("is 1 January of the given year", () => {
 		expect(startOfCurrentYear(new Date(2026, 9, 20))).toBe("2026-01-01");
+	});
+});
+
+describe("room date", () => {
+	test("editing the room dates it 1 January of the current year", () => {
+		expect(withRoomChange("8000", new Date(2026, 9, 21))).toEqual({
+			contribution_room: "8000",
+			contribution_room_as_of: "2026-01-01",
+		});
+	});
+
+	test("getRoomYear reads the year the room was entered for", () => {
+		expect(getRoomYear({ contribution_room_as_of: "2025-01-01" })).toBe(2025);
+		expect(getRoomYear({ contribution_room_as_of: "" })).toBeNull();
 	});
 });
 
@@ -47,6 +63,11 @@ describe("validateContributionRoom", () => {
 });
 
 describe("withPlanRoom", () => {
+	test("ignores a saved annual override; registered plans use CRA limits", () => {
+		const withOverride = { ...TFSA_ROOM, annual_limit: 9999 };
+		expect(withPlanRoom(form({ contribution_plan: "tfsa" }), [withOverride]).annual_contribution_limit).toBe("");
+	});
+
 	test("prefills the fields from the plan's saved room", () => {
 		expect(withPlanRoom(form({ contribution_plan: "tfsa" }), [TFSA_ROOM])).toMatchObject({
 			contribution_room: "25000",
@@ -116,6 +137,44 @@ describe("toPlanRoomSetting", () => {
 			plan: "tfsa",
 			room: null,
 			room_as_of: startOfCurrentYear(),
+			annual_limit: null,
+		});
+	});
+
+	test("never saves an annual override for a registered plan", () => {
+		expect(
+			toPlanRoomSetting(form({ contribution_plan: "tfsa", contribution_room: "100", annual_contribution_limit: "500" }))
+				?.annual_limit
+		).toBeNull();
+	});
+
+	test("nothing to save when the room is unchanged, so last year's figure keeps its date", () => {
+		const lastYear: ContributionRoomSetting = {
+			plan: "tfsa",
+			room: 6000,
+			room_as_of: "2025-01-01",
+			annual_limit: null,
+		};
+		const values = withPlanRoom(form({ contribution_plan: "tfsa" }), [lastYear]);
+		expect(values.contribution_room_as_of).toBe("2025-01-01");
+		expect(toPlanRoomSetting(values, [lastYear])).toBeNull();
+	});
+
+	test("a changed room is saved and dated this year", () => {
+		const lastYear: ContributionRoomSetting = {
+			plan: "tfsa",
+			room: 6000,
+			room_as_of: "2025-01-01",
+			annual_limit: null,
+		};
+		const values = {
+			...withPlanRoom(form({ contribution_plan: "tfsa" }), [lastYear]),
+			...withRoomChange("13000", new Date(2026, 0, 15)),
+		};
+		expect(toPlanRoomSetting(values, [lastYear])).toEqual({
+			plan: "tfsa",
+			room: 13000,
+			room_as_of: "2026-01-01",
 			annual_limit: null,
 		});
 	});

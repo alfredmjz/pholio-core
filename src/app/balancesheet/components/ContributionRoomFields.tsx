@@ -4,7 +4,6 @@ import Link from "next/link";
 import { Label } from "@/components/ui/label";
 import { Switch } from "@/components/ui/switch";
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
-import { DatePicker } from "@/components/ui/date-picker";
 import { ProminentAmountInput } from "@/components/ProminentAmountInput";
 import {
 	CONTRIBUTION_PLAN_OPTIONS,
@@ -12,8 +11,14 @@ import {
 	getContributionPlanLabel,
 	isRegisteredPlan,
 } from "@/lib/contribution-plans";
-import { startOfCurrentYear, withPlanRoom, type ContributionRoomFormValues } from "../contribution-room-form";
-import type { ContributionPlan } from "../types";
+import {
+	getRoomYear,
+	startOfCurrentYear,
+	withPlanRoom,
+	withRoomChange,
+	type ContributionRoomFormValues,
+} from "../contribution-room-form";
+import type { ContributionPlan, RegisteredPlan } from "../types";
 import type { ContributionRoomSetting } from "@/lib/types/contribution";
 
 interface ContributionRoomFieldsProps {
@@ -24,15 +29,50 @@ interface ContributionRoomFieldsProps {
 	error?: string;
 }
 
+/** The field label, using CRA's own name for each plan's figure. */
+function roomLabel(plan: RegisteredPlan | "other"): string {
+	switch (plan) {
+		case "tfsa":
+			return "Current TFSA contribution room";
+		case "rrsp":
+			return "Current RRSP deduction limit";
+		case "fhsa":
+			return "Current FHSA participation room";
+		case "resp":
+			return "Current RESP contribution room";
+		default:
+			return "Current contribution room";
+	}
+}
+
+/** Where CRA shows each figure, for the year it applies to. */
+function roomHint(plan: RegisteredPlan | "other", year: number): string {
+	switch (plan) {
+		case "tfsa":
+			return `Your available contribution room at the start of ${year}. In CRA My Account, go to View TFSA details, then Contribution room.`;
+		case "rrsp":
+			return `Your RRSP/PRPP deduction limit for ${year}, from your Notice of Assessment or CRA My Account.`;
+		case "fhsa":
+			return `Your FHSA participation room for ${year}, from CRA My Account.`;
+		case "resp":
+			return "The $50,000 lifetime limit per beneficiary, minus what has already been contributed. CRA does not show this figure.";
+		default:
+			return "The room you have left in this account.";
+	}
+}
+
 /**
- * Registered-plan settings for investment accounts: which CRA rules apply, the room copied
- * from CRA My Account, the date it applies to, and an optional annual figure. For TFSA, RRSP,
- * FHSA and RESP the room is shared by every account of that plan.
+ * Registered-plan settings for investment accounts: which CRA rules apply and the room copied
+ * from CRA My Account. The room is dated 1 January of the year it is entered, and registered
+ * plans use CRA's published annual limits, so neither is typed in. For TFSA, RRSP, FHSA and
+ * RESP the room is shared by every account of that plan.
  */
 export function ContributionRoomFields({ values, onChange, planRooms, error }: ContributionRoomFieldsProps) {
 	const selectedPlan = CONTRIBUTION_PLAN_OPTIONS.find((option) => option.value === values.contribution_plan);
 	const isShared = isRegisteredPlan(values.contribution_plan);
 	const planLabel = getContributionPlanLabel(values.contribution_plan || null);
+	const currentYear = new Date().getFullYear();
+	const roomYear = getRoomYear(values);
 
 	return (
 		<div className="flex flex-col gap-4">
@@ -90,42 +130,46 @@ export function ContributionRoomFields({ values, onChange, planRooms, error }: C
 								</p>
 							)}
 
-							<div className="grid grid-cols-1 gap-4 sm:grid-cols-2">
-								<div className="space-y-2">
-									<Label htmlFor="contribution_room">
-										{isShared ? `Your ${planLabel} Room` : "Available Contribution Room"}
-									</Label>
-									<ProminentAmountInput
-										id="contribution_room"
-										value={values.contribution_room}
-										onChange={(val) => onChange({ contribution_room: val })}
-										hasError={!!error}
-									/>
-									{error && <p className="type-caption text-error">{error}</p>}
-								</div>
-								<div className="space-y-2">
-									<Label htmlFor="contribution_room_as_of">Room As Of</Label>
-									<DatePicker
-										id="contribution_room_as_of"
-										value={values.contribution_room_as_of}
-										onChange={(date) => onChange({ contribution_room_as_of: date })}
-									/>
-									<p className="type-caption text-muted-foreground">CRA shows TFSA room as of 1 January.</p>
-								</div>
+							<div className="space-y-2">
+								<Label htmlFor="contribution_room">
+									{roomLabel(isShared ? (values.contribution_plan as RegisteredPlan) : "other")}
+								</Label>
+								<ProminentAmountInput
+									id="contribution_room"
+									value={values.contribution_room}
+									onChange={(val) => onChange(withRoomChange(val))}
+									hasError={!!error}
+								/>
+								{error ? (
+									<p className="type-caption text-error">{error}</p>
+								) : (
+									<p className="type-caption text-muted-foreground">
+										{roomHint(isShared ? (values.contribution_plan as RegisteredPlan) : "other", currentYear)}
+									</p>
+								)}
+								{roomYear !== null && roomYear < currentYear && values.contribution_room && (
+									<p className="type-caption text-muted-foreground">
+										{values.contribution_plan === "tfsa"
+											? `Entered for ${roomYear}. Each new year's CRA limit and last year's withdrawals are added automatically; update it when CRA shows a new figure.`
+											: `Entered for ${roomYear}. Copy your ${currentYear} figure from CRA to keep this accurate.`}
+									</p>
+								)}
 							</div>
 
-							<div className="space-y-2">
-								<Label htmlFor="annual_limit">Annual Limit (optional)</Label>
-								<ProminentAmountInput
-									id="annual_limit"
-									value={values.annual_contribution_limit}
-									onChange={(val) => onChange({ annual_contribution_limit: val })}
-									hasError={false}
-								/>
-								<p className="type-caption text-muted-foreground">
-									Leave blank to use the CRA limit for each year. Applies only to the year of the date above.
-								</p>
-							</div>
+							{!isShared && (
+								<div className="space-y-2">
+									<Label htmlFor="annual_limit">Annual Limit (optional)</Label>
+									<ProminentAmountInput
+										id="annual_limit"
+										value={values.annual_contribution_limit}
+										onChange={(val) => onChange({ annual_contribution_limit: val })}
+										hasError={false}
+									/>
+									<p className="type-caption text-muted-foreground">
+										Your own yearly limit for this account. Registered plans use CRA&apos;s limits automatically.
+									</p>
+								</div>
+							)}
 
 							<p className="type-caption text-muted-foreground">
 								CRA does not share contribution room with apps. Copy your figures from{" "}

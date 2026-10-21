@@ -63,10 +63,11 @@ INSERT INTO auth.users (id, email, instance_id, aud, role)
 VALUES ('55555555-0000-0000-0000-000000000005', 'edit@edit-signs-test.test', '00000000-0000-0000-0000-000000000000', 'authenticated', 'authenticated');
 SELECT set_config('request.jwt.claims', json_build_object('sub', '55555555-0000-0000-0000-000000000005', 'role', 'authenticated')::text, true);
 
--- c5..01 chequing 1000, c5..02 credit card 500 debt, c5..03 line of credit 300 debt
+-- c5..01 chequing 1000, c5..02 credit card 500 debt, c5..03 line of credit 300 debt, c5..04 credit card 500 debt
 SELECT pg_temp.make_account('c5000000-0000-0000-0000-000000000001', '55555555-0000-0000-0000-000000000005', 'chequing', 1000);
 SELECT pg_temp.make_account('c5000000-0000-0000-0000-000000000002', '55555555-0000-0000-0000-000000000005', 'credit_card', 500);
 SELECT pg_temp.make_account('c5000000-0000-0000-0000-000000000003', '55555555-0000-0000-0000-000000000005', 'line_of_credit', 300);
+SELECT pg_temp.make_account('c5000000-0000-0000-0000-000000000004', '55555555-0000-0000-0000-000000000005', 'credit_card', 500);
 
 SET LOCAL ROLE authenticated;
 
@@ -161,6 +162,35 @@ SELECT pg_temp.record('d5000000-0000-0000-0000-000000000005', 'c5000000-0000-000
 SELECT ok(pg_temp.edit('d5000000-0000-0000-0000-000000000005', 'c5000000-0000-0000-0000-000000000001', 'expense', 60), 're-saving a chequing withdrawal succeeds');
 SELECT is(pg_temp.balance('c5000000-0000-0000-0000-000000000001'), 1020.00, 're-saving an unchanged withdrawal leaves chequing alone');
 SELECT is((SELECT amount FROM pg_temp.ledger('d5000000-0000-0000-0000-000000000005')), -60.00, 'withdrawal stays negative');
+
+-- ---------------------------------------------------------------------------
+-- A liability payment recorded with expense intent (migration 018)
+-- (the account page used to list Payment under Expense: budget row -40, ledger 'payment' -40)
+-- ---------------------------------------------------------------------------
+SELECT pg_temp.record('d5000000-0000-0000-0000-000000000006', 'c5000000-0000-0000-0000-000000000004', 'payment', -40, -40);
+SELECT is(pg_temp.balance('c5000000-0000-0000-0000-000000000004'), 460.00, 'an expense-intent card payment reduces the debt');
+
+SELECT ok(pg_temp.edit('d5000000-0000-0000-0000-000000000006', 'c5000000-0000-0000-0000-000000000004', 'expense', 40), 're-saving an expense-intent card payment succeeds');
+SELECT is(pg_temp.balance('c5000000-0000-0000-0000-000000000004'), 460.00, 're-saving an unchanged expense-intent payment leaves the debt alone');
+SELECT is((SELECT amount FROM pg_temp.ledger('d5000000-0000-0000-0000-000000000006')), -40.00, 'the expense-intent payment stays negative');
+SELECT is((SELECT transaction_type FROM pg_temp.ledger('d5000000-0000-0000-0000-000000000006')), 'payment', 'the expense-intent payment stays a payment');
+SELECT is((SELECT amount FROM public.transactions WHERE id = 'd5000000-0000-0000-0000-000000000006'), -40.00, 'its budget row stays an expense');
+
+SELECT ok(pg_temp.edit('d5000000-0000-0000-0000-000000000006', 'c5000000-0000-0000-0000-000000000004', 'expense', 50), 'raising an expense-intent card payment succeeds');
+SELECT is(pg_temp.balance('c5000000-0000-0000-0000-000000000004'), 450.00, 'a larger expense-intent payment reduces the debt by the difference');
+SELECT is((SELECT amount FROM pg_temp.ledger('d5000000-0000-0000-0000-000000000006')), -50.00, 'the edited expense-intent payment is stored as -50');
+
+SELECT ok(pg_temp.edit('d5000000-0000-0000-0000-000000000006', 'c5000000-0000-0000-0000-000000000004', 'income', 50), 'switching the payment to income succeeds');
+SELECT is(pg_temp.balance('c5000000-0000-0000-0000-000000000004'), 450.00, 'switching the payment to income leaves the debt alone');
+SELECT is((SELECT amount FROM pg_temp.ledger('d5000000-0000-0000-0000-000000000006')), -50.00, 'the payment stays negative as income');
+SELECT is((SELECT transaction_type FROM pg_temp.ledger('d5000000-0000-0000-0000-000000000006')), 'payment', 'the payment stays a payment as income');
+SELECT is((SELECT amount FROM public.transactions WHERE id = 'd5000000-0000-0000-0000-000000000006'), 50.00, 'its budget row becomes income');
+
+-- An intent change on a type that does not fit the new intent still falls back to the default.
+SELECT pg_temp.record('d5000000-0000-0000-0000-000000000007', 'c5000000-0000-0000-0000-000000000001', 'withdrawal', -20, -20);
+SELECT ok(pg_temp.edit('d5000000-0000-0000-0000-000000000007', 'c5000000-0000-0000-0000-000000000001', 'income', 20), 'switching a withdrawal to income succeeds');
+SELECT is((SELECT transaction_type FROM pg_temp.ledger('d5000000-0000-0000-0000-000000000007')), 'deposit', 'a withdrawal switched to income becomes a deposit');
+SELECT is(pg_temp.balance('c5000000-0000-0000-0000-000000000001'), 1040.00, 'the new deposit adds to chequing');
 
 RESET ROLE;
 

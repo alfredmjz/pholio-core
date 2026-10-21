@@ -10,11 +10,11 @@ import { Label } from "@/components/ui/label";
 import { Switch } from "@/components/ui/switch";
 
 import { CATEGORY_PALETTE, COLOR_NAME_MAP, getNextAvailableColor } from "../utils/colors";
-import { cn } from "@/lib/utils";
-import { AlertCircle } from "lucide-react";
+import { AlertTriangle } from "lucide-react";
 import { sanitizeDecimalInput } from "@/lib/input-utils";
 import { ContributionPlanPicker } from "./ContributionPlanPicker";
 import { ContributionRoomMeter } from "./ContributionRoomMeter";
+import { CategoryColorPicker } from "./category-color-picker";
 import type { RegisteredPlan } from "@/app/balancesheet/types";
 import type { ContributionSummary } from "@/lib/types/contribution";
 
@@ -132,15 +132,14 @@ export function AddCategoryDialog({
 		<ControlBasedDialog
 			open={open}
 			onOpenChange={onOpenChange}
-			title="Add Category"
-			description="Create a new budget category to track your spending."
-			className="sm:max-w-[425px]"
+			title="Add category"
+			description="Give part of this month's income a job."
 		>
 			<form onSubmit={handleSubmit}>
-				<div className="grid gap-4 py-4">
+				<div className="grid gap-5">
 					<div className="grid gap-2">
 						<Label htmlFor="category-name">
-							Category Name <span className="text-error">*</span>
+							Name <span className="text-error">*</span>
 						</Label>
 						<Input
 							id="category-name"
@@ -150,7 +149,7 @@ export function AddCategoryDialog({
 								if (nameError) validateName(e.target.value);
 							}}
 							onBlur={(e) => validateName(e.target.value)}
-							placeholder="e.g., Housing, Groceries, Entertainment"
+							placeholder="e.g. Groceries"
 							maxLength={100}
 							className={nameError ? "border-error" : ""}
 						/>
@@ -163,11 +162,11 @@ export function AddCategoryDialog({
 
 					<div className="grid gap-2">
 						<Label htmlFor="budget-cap">
-							Budget Cap <span className="text-error">*</span>
+							Monthly budget <span className="text-error">*</span>
 						</Label>
-						<div className="relative">
-							<span className="absolute left-3 top-1/2 -translate-y-1/2 text-primary">$</span>
+						<div>
 							<Input
+								startAdornment="$"
 								id="budget-cap"
 								type="text"
 								inputMode="decimal"
@@ -179,7 +178,7 @@ export function AddCategoryDialog({
 								}}
 								onBlur={(e) => validateBudget(e.target.value)}
 								placeholder="0.00"
-								className={`pl-7 ${budgetError ? "border-error" : ""}`}
+								className={budgetError ? "border-error" : ""}
 							/>
 						</div>
 						{budgetError && (
@@ -188,19 +187,19 @@ export function AddCategoryDialog({
 							</p>
 						)}
 						{!budgetError && isOverAllocated && (
-							<p className="text-xs text-warning flex items-center gap-1" role="alert">
-								<span>⚠</span>
-								<span>This exceeds your unallocated funds by {(budgetNum - unallocatedFunds).toFixed(2)}</span>
+							<p className="type-body-xs flex items-center gap-1.5 text-warning" role="alert">
+								<AlertTriangle className="h-3.5 w-3.5 shrink-0" aria-hidden />$
+								{(budgetNum - unallocatedFunds).toFixed(2)} more than the income you haven&apos;t budgeted yet
 							</p>
 						)}
 						{!budgetError && !isOverAllocated && budgetNum > 0 && (
-							<p className="text-xs text-primary" aria-describedby="budget-cap">
-								You have ${unallocatedFunds.toFixed(2)} unallocated
+							<p className="type-body-xs text-muted-foreground" aria-describedby="budget-cap">
+								${unallocatedFunds.toFixed(2)} of this month&apos;s income isn&apos;t budgeted yet
 							</p>
 						)}
 					</div>
 
-					<div className="grid gap-3 rounded-lg border border-border p-3">
+					<div className="grid gap-3 rounded-2xl border border-border/70 bg-card-muted/40 p-4">
 						<div className="flex items-start justify-between gap-3">
 							<div className="space-y-0.5">
 								<Label htmlFor="category-track-room">Count toward contribution room</Label>
@@ -233,53 +232,12 @@ export function AddCategoryDialog({
 						)}
 					</div>
 
-					<div className="grid gap-2">
-						<Label>Category Color</Label>
-						<div className="flex flex-wrap gap-2 pt-1">
-							{CATEGORY_PALETTE.map((color) => {
-								const colorName = Object.keys(COLOR_NAME_MAP).find(
-									(key) => COLOR_NAME_MAP[key] === CATEGORY_PALETTE.indexOf(color)
-								);
-								if (!colorName) return null;
-
-								const isSelected = selectedColor === colorName;
-								const isUsed = usedColors.includes(colorName);
-
-								return (
-									<button
-										key={colorName}
-										type="button"
-										onClick={() => setSelectedColor(colorName)}
-										disabled={isUsed}
-										className={cn(
-											"w-8 h-8 rounded-full transition-all border-2 relative",
-											color.bg,
-											isSelected ? "border-primary scale-110 shadow-sm" : "border-transparent",
-											isUsed ? "opacity-30 cursor-not-allowed" : "hover:scale-105"
-										)}
-										title={isUsed ? `${colorName} (Already in use)` : colorName}
-									>
-										{isSelected && (
-											<div className="w-full h-full flex items-center justify-center">
-												<div className="w-2 h-2 rounded-full bg-white shadow-sm" />
-											</div>
-										)}
-										{isUsed && (
-											<div className="absolute inset-0 flex items-center justify-center">
-												<div className="w-[1px] h-[80%] bg-white/50 rotate-45" />
-											</div>
-										)}
-									</button>
-								);
-							})}
-						</div>
-						{selectedColor && usedColors.includes(selectedColor) && (
-							<p className="text-xs text-error mt-1 flex items-center gap-1">
-								<AlertCircle className="h-3 w-3" />
-								This color is already in use by another category.
-							</p>
-						)}
-					</div>
+					<CategoryColorPicker
+						value={selectedColor}
+						onChange={setSelectedColor}
+						usedColors={usedColors}
+						fallback={previewColorName}
+					/>
 				</div>
 
 				<DialogFooter>
@@ -288,7 +246,7 @@ export function AddCategoryDialog({
 						<CancelShortcut />
 					</Button>
 					<Button type="submit" disabled={!isFormValid}>
-						Add Category
+						Add category
 						<SubmitShortcut />
 					</Button>
 				</DialogFooter>

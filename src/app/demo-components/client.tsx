@@ -50,14 +50,7 @@ import {
 	DropdownMenuSeparator,
 	DropdownMenuTrigger,
 } from "@/components/ui/dropdown-menu";
-import {
-	Loader2,
-	TrendingUp,
-	Wallet,
-	CreditCard,
-	PiggyBank,
-	Info,
-} from "lucide-react";
+import { Loader2, TrendingUp, Wallet, CreditCard, PiggyBank, Info } from "lucide-react";
 
 import { ProminentAmountInput } from "@/components/ProminentAmountInput";
 import { FloatingLabelInput } from "@/components/floating-label-input";
@@ -71,18 +64,12 @@ import { DeleteConfirmDialog } from "@/components/dialogs/DeleteConfirmDialog";
 import { WelcomeCelebration } from "@/components/welcome-celebration";
 import { MetricCard } from "@/app/dashboard/components/MetricCard";
 import { AccountCard } from "@/app/balancesheet/components/AccountCard";
-import { BudgetSummaryCards } from "@/app/allocations/components/BudgetSummaryCards";
 import { SettingsNav } from "@/app/settings/components/settings-nav";
 import { ServiceLogo } from "@/components/service-logo";
 import { ServiceAutocomplete } from "@/components/service-autocomplete";
 import { StatusBadge } from "@/components/ui/status-badge";
 
-import {
-	MOCK_DONUT_DATA,
-	MOCK_BUDGET_SUMMARY_DATA,
-	MOCK_ACCOUNT_DATA,
-	MOCK_ACCOUNT_LIABILITY,
-} from "./data/mock-data";
+import { MOCK_DONUT_DATA, MOCK_ACCOUNT_DATA, MOCK_ACCOUNT_LIABILITY } from "./data/mock-data";
 
 export function DemoComponentsClient() {
 	const { theme, setTheme } = useTheme();
@@ -411,7 +398,6 @@ export function DemoComponentsClient() {
 							<h3 className="text-lg font-semibold text-primary">Feature Components</h3>
 							<div className="space-y-4">
 								<MetricCardDemo />
-								<BudgetSummaryCardsDemo />
 								<AccountCardDemo />
 							</div>
 						</div>
@@ -662,17 +648,6 @@ function MetricCardDemo() {
 				variant="warning"
 			/>
 		</div>
-	);
-}
-
-function BudgetSummaryCardsDemo() {
-	return (
-		<BudgetSummaryCards
-			expectedIncome={MOCK_BUDGET_SUMMARY_DATA.expectedIncome}
-			totalBudgetAllocated={MOCK_BUDGET_SUMMARY_DATA.totalBudgetAllocated}
-			totalSpent={MOCK_BUDGET_SUMMARY_DATA.totalSpent}
-			incomeVerification={{ status: "verified", consecutiveMatches: 4, drift: null }}
-		/>
 	);
 }
 

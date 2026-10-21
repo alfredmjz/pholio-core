@@ -54,38 +54,38 @@ export function MonthSelector({ currentMonth, onMonthChange }: MonthSelectorProp
 	};
 
 	return (
-		<div className="flex min-w-0 items-center gap-2 sm:gap-4">
-			<Button
-				variant="outline"
-				size="icon"
-				onClick={handlePrevMonth}
-				className="h-9 w-9 shrink-0"
-				aria-label="Previous month"
-			>
-				<ChevronLeft className="h-4 w-4" />
-			</Button>
+		<div className="flex min-w-0 flex-wrap items-center gap-x-3 gap-y-2">
+			<h1 className="type-h3 whitespace-nowrap text-primary sm:type-h2">
+				{MONTH_NAMES[currentMonth.month - 1]} <span className="text-muted-foreground">{currentMonth.year}</span>
+			</h1>
 
-			<div className="min-w-0 flex-1 truncate text-center text-xl font-bold text-primary sm:text-2xl">
-				{MONTH_NAMES[currentMonth.month - 1]} {currentMonth.year}
+			<div className="flex shrink-0 items-center rounded-full border border-border/70 bg-card/60 p-0.5 backdrop-blur-sm">
+				<Button
+					variant="ghost"
+					size="icon"
+					onClick={handlePrevMonth}
+					className="h-8 w-8 rounded-full"
+					aria-label="Previous month"
+				>
+					<ChevronLeft className="h-4 w-4" />
+				</Button>
+				<MonthPicker
+					date={currentDate}
+					setDate={handleDateChange}
+					customLabel={<CalendarIcon className="h-4 w-4 text-foreground" />}
+					className="h-8 w-8 shrink-0 justify-center rounded-full border-0 bg-transparent p-0 shadow-none hover:bg-hover"
+					align="start"
+				/>
+				<Button
+					variant="ghost"
+					size="icon"
+					onClick={handleNextMonth}
+					className="h-8 w-8 rounded-full"
+					aria-label="Next month"
+				>
+					<ChevronRight className="h-4 w-4" />
+				</Button>
 			</div>
-
-			<Button
-				variant="outline"
-				size="icon"
-				onClick={handleNextMonth}
-				className="h-9 w-9 shrink-0"
-				aria-label="Next month"
-			>
-				<ChevronRight className="h-4 w-4" />
-			</Button>
-
-			<MonthPicker
-				date={currentDate}
-				setDate={handleDateChange}
-				customLabel={<CalendarIcon className="h-4 w-4 text-foreground" />}
-				className="h-9 w-9 shrink-0 p-0 justify-center aspect-square"
-				align="end"
-			/>
 		</div>
 	);
 }

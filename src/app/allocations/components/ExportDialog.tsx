@@ -36,6 +36,10 @@ const MONTHS = [
 	{ value: 12, label: "December" },
 ];
 
+/** Underline tabs, matching the transaction dialog's mode switch. */
+const TAB_CLASS =
+	"type-control -mb-px h-10 rounded-none border-b-2 border-transparent px-0 text-muted-foreground shadow-none data-[state=active]:border-primary data-[state=active]:bg-transparent data-[state=active]:text-primary data-[state=active]:shadow-none";
+
 export function ExportDialog({ open, onOpenChange, currentYear, currentMonth }: ExportDialogProps) {
 	const [isExporting, setIsExporting] = useState(false);
 	const [isGoogleExporting, setIsGoogleExporting] = useState(false);
@@ -223,55 +227,62 @@ export function ExportDialog({ open, onOpenChange, currentYear, currentMonth }: 
 		<ControlBasedDialog
 			open={open}
 			onOpenChange={onOpenChange}
-			title="Export Transactions"
-			description="Download your transaction history as an Excel file or open in Google Sheets."
-			className="sm:max-w-[625px]"
+			title="Export transactions"
+			description="Download them as an Excel file, or open them in Google Sheets."
+			className="sm:max-w-[560px]"
 		>
-			<div className="min-h-[300px]">
+			<div>
 				<Tabs defaultValue="quick" value={activeTab} onValueChange={setActiveTab} className="w-full">
-					<TabsList className="grid w-full grid-cols-2">
-						<TabsTrigger value="quick">Current Month</TabsTrigger>
-						<TabsTrigger value="custom">Custom Range</TabsTrigger>
+					<TabsList className="flex h-auto w-full justify-start gap-6 rounded-none border-b border-border/70 bg-transparent p-0">
+						<TabsTrigger value="quick" className={TAB_CLASS}>
+							This month
+						</TabsTrigger>
+						<TabsTrigger value="custom" className={TAB_CLASS}>
+							Range of months
+						</TabsTrigger>
 					</TabsList>
 
 					<TabsContent value="quick" className="space-y-4 py-4">
-						<div className="flex flex-col items-center justify-center p-6 border-2 border-dashed rounded-lg bg-muted/30 min-h-[220px]">
-							<div className="h-12 w-12 rounded-full bg-primary/10 flex items-center justify-center mb-3">
-								<FileText className="h-6 w-6 text-primary" />
+						<div className="flex items-center gap-4 rounded-2xl bg-card-muted/50 p-4">
+							<div className="flex h-10 w-10 shrink-0 items-center justify-center rounded-full bg-card text-primary">
+								<FileText className="h-5 w-5" />
 							</div>
-							<h3 className="font-medium text-lg">
-								{currentMonthName} {currentYear}
-							</h3>
-							<p className="text-sm text-primary text-center mt-1">
-								Export all transactions for the currently viewed month.
-							</p>
+							<div>
+								<h3 className="type-body font-medium text-primary">
+									{currentMonthName} {currentYear}
+								</h3>
+								<p className="type-body-sm text-muted-foreground">
+									Every transaction in the month you&apos;re viewing.
+								</p>
+							</div>
 						</div>
 					</TabsContent>
 
 					<TabsContent value="custom" className="space-y-4 py-4">
 						<div className="grid grid-cols-1 gap-4 sm:grid-cols-2">
 							<div className="space-y-2">
-								<div className="text-sm font-medium">Start Month</div>
+								<div className="type-label text-primary">From</div>
 								<MonthPicker date={startDate} setDate={setStartDate} placeholder="Select start month" />
 							</div>
 
 							<div className="space-y-2">
-								<div className="text-sm font-medium">End Month</div>
+								<div className="type-label text-primary">To</div>
 								<MonthPicker date={endDate} setDate={setEndDate} placeholder="Select end month" />
 							</div>
 						</div>
 
-						<div className="flex items-center justify-center gap-2 px-4 py-2 mt-4 mx-auto w-fit rounded-full bg-blue-50 text-blue-700 text-sm max-w-full">
+						<div className="type-body-sm mt-2 flex w-fit max-w-full items-center gap-2 rounded-full bg-card-muted/60 px-3.5 py-1.5 text-text-secondary">
 							<Calendar className="h-4 w-4 shrink-0" />
 							<span className="font-medium truncate">
-								{startDate ? formatMonthYear(startDate) : "..."} - {endDate ? formatMonthYear(endDate) : "..."}
+								{startDate ? formatMonthYear(startDate) : "Pick a start"} to{" "}
+								{endDate ? formatMonthYear(endDate) : "an end"}
 							</span>
 						</div>
 					</TabsContent>
 				</Tabs>
 			</div>
 
-			<DialogFooter className="flex-col sm:flex-row gap-2">
+			<DialogFooter>
 				<Button variant="outline" onClick={() => onOpenChange(false)} className="sm:mr-auto">
 					Cancel
 				</Button>

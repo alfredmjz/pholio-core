@@ -1,8 +1,7 @@
 import { Button } from "@/components/ui/button";
-import { Card } from "@/components/ui/card";
-import { FileText, Plus } from "lucide-react";
+import { Plus } from "lucide-react";
 import { AllocationsHeader } from "./AllocationsHeader";
-import { PageShell } from "@/components/layout/page-shell";
+import { SurfacePage } from "@/components/layout/surface-page";
 import { ExportDialog } from "./ExportDialog";
 import type { MonthYear, AllocationCategory } from "@/app/allocations/types";
 import type { AccountWithType } from "@/app/balancesheet/types";
@@ -36,7 +35,7 @@ export function AllocationsEmptyView({
 	setExportDialogOpen,
 }: AllocationsEmptyViewProps) {
 	return (
-		<PageShell>
+		<SurfacePage>
 			<AllocationsHeader
 				currentMonth={currentMonth}
 				onMonthChange={onMonthChange}
@@ -47,22 +46,16 @@ export function AllocationsEmptyView({
 				onSaveTemplate={() => {}}
 			/>
 
-			{/* Empty State Card */}
-			<Card className="p-12 text-center mt-6">
-				<div className="max-w-md mx-auto">
-					<div className="w-20 h-20 rounded-full bg-muted flex items-center justify-center mx-auto mb-6">
-						<FileText className="h-10 w-10 text-primary" />
-					</div>
-					<h2 className="text-2xl font-bold text-primary mb-2">
-						No Budget for {monthName} {currentMonth.year}
-					</h2>
-					<p className="text-primary mb-6">Set up your budget for this month to start tracking your spending.</p>
-					<Button onClick={onSetupBudget} className="gap-2">
-						<Plus className="h-4 w-4" />
-						Set Up Budget
-					</Button>
-				</div>
-			</Card>
+			<section className="surface-sheet surface-sheet-pad flex flex-col items-start gap-4 py-10 md:py-14">
+				<h2 className="type-h2 text-primary">Plan {monthName}</h2>
+				<p className="type-body-lg max-w-xl text-muted-foreground">
+					Give every dollar of {monthName}&apos;s income a job. Start from last month, a template, or a blank budget.
+				</p>
+				<Button onClick={onSetupBudget} className="mt-2 h-10 gap-2 rounded-full px-5">
+					<Plus className="h-4 w-4" aria-hidden />
+					Set up {monthName}&apos;s budget
+				</Button>
+			</section>
 
 			<ExportDialog
 				open={exportDialogOpen}
@@ -70,6 +63,6 @@ export function AllocationsEmptyView({
 				currentYear={currentMonth.year}
 				currentMonth={currentMonth.month}
 			/>
-		</PageShell>
+		</SurfacePage>
 	);
 }

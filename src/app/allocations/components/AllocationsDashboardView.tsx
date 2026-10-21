@@ -3,14 +3,13 @@
 import { Badge } from "@/components/ui/badge";
 import { WifiOff, Loader2 } from "lucide-react";
 import { AllocationsHeader } from "./AllocationsHeader";
-import { BudgetSummaryCards } from "./BudgetSummaryCards";
-import { CategoryPerformance } from "./CategoryPerformance";
-import { SpendingAllocation } from "./SpendingAllocation";
+import { BudgetPlanCard } from "./budget-plan-card";
+import { CategoryList } from "./category-list";
 import { TransactionLedger } from "./TransactionLedger";
 import { AddCategoryDialog } from "./AddCategoryDialog";
 import { ImportTemplateDialog } from "./ImportTemplateDialog";
 import { ExportDialog } from "./ExportDialog";
-import { PageShell, PageContent } from "@/components/layout/page-shell";
+import { SurfacePage } from "@/components/layout/surface-page";
 
 import type {
 	MonthYear,
@@ -115,19 +114,20 @@ export function AllocationsDashboardView({
 	const usedNames = categories.map((c) => c.name);
 
 	return (
-		<PageShell>
-			{!isConnected && (
-				<Badge variant="destructive" className="absolute top-0 right-0 z-10 gap-1.5">
-					<WifiOff className="h-3 w-3" />
-					Offline
-				</Badge>
-			)}
-			{isRefetching && isConnected && (
-				<div className="absolute top-0 right-0 z-10">
-					<Badge variant="secondary" className="gap-1.5">
-						<Loader2 className="h-3 w-3 animate-spin" />
-						Syncing...
-					</Badge>
+		<SurfacePage className="gap-8 md:gap-10">
+			{(!isConnected || isRefetching) && (
+				<div className="fixed bottom-24 right-4 z-40 lg:bottom-6">
+					{!isConnected ? (
+						<Badge variant="destructive" className="gap-1.5 rounded-full px-3 py-1 shadow-raised">
+							<WifiOff className="h-3 w-3" />
+							Offline
+						</Badge>
+					) : (
+						<Badge variant="secondary" className="gap-1.5 rounded-full px-3 py-1 shadow-raised">
+							<Loader2 className="h-3 w-3 animate-spin" />
+							Syncing
+						</Badge>
+					)}
 				</div>
 			)}
 
@@ -142,39 +142,33 @@ export function AllocationsDashboardView({
 				onImportTemplate={() => setTemplateDialogOpen(true)}
 			/>
 
-			<PageContent>
-				<div className="flex flex-col gap-6">
-					<BudgetSummaryCards
-						expectedIncome={summary.allocation.expected_income}
-						totalBudgetAllocated={summary.summary.total_budget_caps}
-						totalSpent={summary.summary.total_actual_spend}
-						incomeVerification={incomeVerification}
-						allocationId={summary.allocation.id}
-					/>
+			<BudgetPlanCard
+				expectedIncome={summary.allocation.expected_income}
+				categories={categories}
+				contributions={contributions}
+				incomeVerification={incomeVerification}
+				allocationId={summary.allocation.id}
+			/>
 
-					<SpendingAllocation categories={categories} />
+			<CategoryList
+				categories={categories}
+				onAddCategory={() => setAddCategoryDialogOpen(true)}
+				usedColors={usedColors}
+				usedNames={usedNames}
+				contributions={contributions}
+				year={currentMonth.year}
+				onContributionPlanChanged={onContributionsChanged}
+			/>
 
-					<CategoryPerformance
-						categories={categories}
-						onAddCategory={() => setAddCategoryDialogOpen(true)}
-						usedColors={usedColors}
-						usedNames={usedNames}
-						contributions={contributions}
-						year={currentMonth.year}
-						onContributionPlanChanged={onContributionsChanged}
-					/>
-				</div>
-
-				<TransactionLedger
-					transactions={transactions}
-					categories={categories}
-					accounts={accounts}
-					externalTypeFilter={typeFilter}
-					onClearExternalFilter={() => onSetTypeFilter(null)}
-					onTransactionSuccess={onTransactionSuccess}
-					currentMonth={currentMonth}
-				/>
-			</PageContent>
+			<TransactionLedger
+				transactions={transactions}
+				categories={categories}
+				accounts={accounts}
+				externalTypeFilter={typeFilter}
+				onClearExternalFilter={() => onSetTypeFilter(null)}
+				onTransactionSuccess={onTransactionSuccess}
+				currentMonth={currentMonth}
+			/>
 
 			<AddCategoryDialog
 				open={addCategoryDialogOpen}
@@ -206,6 +200,6 @@ export function AllocationsDashboardView({
 				currentYear={currentMonth.year}
 				currentMonth={currentMonth.month}
 			/>
-		</PageShell>
+		</SurfacePage>
 	);
 }

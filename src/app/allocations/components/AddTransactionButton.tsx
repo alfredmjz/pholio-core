@@ -38,9 +38,14 @@ export function AddTransactionButton({
 
 	return (
 		<>
-			<Button onClick={() => setOpen(true)} className={cn("gap-2", className)} variant={variant} size={size}>
-				<Plus className="h-4 w-4 md:hidden" />
-				Add Transaction
+			<Button
+				onClick={() => setOpen(true)}
+				className={cn("h-10 w-10 gap-2 rounded-full p-0 sm:w-auto sm:pl-3.5 sm:pr-4", className)}
+				variant={variant}
+				size={size}
+			>
+				<Plus className="h-5 w-5 sm:h-4 sm:w-4" aria-hidden />
+				<span className="sr-only sm:not-sr-only">Add transaction</span>
 				<ShortcutHint
 					keys={SHORTCUTS[ShortcutId.OpenTransaction].keys}
 					keyClassName="border-current bg-transparent text-current"

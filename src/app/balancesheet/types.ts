@@ -28,6 +28,18 @@ export type AccountTypeCode =
 	| "other";
 
 /**
+ * Registered-plan code that decides which contribution rules apply to an account
+ * (stored in `accounts.contribution_plan`). "other" uses only the limits the user enters.
+ */
+export type ContributionPlan = "tfsa" | "rrsp" | "fhsa" | "resp" | "other";
+
+/**
+ * CRA registered plans. Their room belongs to the person, so it is stored once per plan
+ * (`contribution_rooms`) and shared by every tracked account of that plan.
+ */
+export type RegisteredPlan = Exclude<ContributionPlan, "other">;
+
+/**
  * Per-account field configuration, used by the fully-customisable "Other" account type.
  */
 export interface AccountFieldConfig {
@@ -92,7 +104,9 @@ export interface Account {
 	field_visibility?: AccountFieldConfig | null;
 	// Contribution room tracking (user choice)
 	track_contribution_room: boolean;
+	contribution_plan: ContributionPlan | null;
 	contribution_room: number | null;
+	contribution_room_as_of: string | null;
 	annual_contribution_limit: number | null;
 	// Display
 	notes: string | null;
@@ -245,7 +259,9 @@ export interface CreateAccountInput {
 	payment_due_date?: number | null;
 	target_balance?: number | null;
 	track_contribution_room?: boolean;
+	contribution_plan?: ContributionPlan | null;
 	contribution_room?: number | null;
+	contribution_room_as_of?: string | null;
 	annual_contribution_limit?: number | null;
 	notes?: string | null;
 	color?: string | null;
@@ -264,7 +280,9 @@ export interface UpdateAccountInput {
 	payment_due_date?: number | null;
 	target_balance?: number | null;
 	track_contribution_room?: boolean;
+	contribution_plan?: ContributionPlan | null;
 	contribution_room?: number | null;
+	contribution_room_as_of?: string | null;
 	annual_contribution_limit?: number | null;
 	notes?: string | null;
 	color?: string | null;

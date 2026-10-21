@@ -30,6 +30,11 @@ export function makePool(overrides: Partial<ContributionSummary> = {}): Contribu
 		room_remaining: 20000,
 		lifetime_limit: null,
 		room_needs_update: false,
+		excess_amount: 0,
+		tax_this_month: 0,
+		tax_this_year: 0,
+		tax_total: 0,
+		taxed_months: 0,
 		...overrides,
 	};
 }

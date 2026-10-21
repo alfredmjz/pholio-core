@@ -47,6 +47,11 @@ export function getSampleContributionSummaries(
 			room_remaining: TFSA_ROOM_ON_JAN_1 - yearContributions,
 			lifetime_limit: null,
 			room_needs_update: false,
+			excess_amount: 0,
+			tax_this_month: 0,
+			tax_this_year: 0,
+			tax_total: 0,
+			taxed_months: 0,
 		},
 	];
 }

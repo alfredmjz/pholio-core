@@ -1,4 +1,4 @@
-import { getContributionPlanLabel } from "@/lib/contribution-plans";
+import { estimateMonthlyOverContributionTax, getContributionPlanLabel, getRoomTerm } from "@/lib/contribution-plans";
 import type { RegisteredPlan } from "@/app/balancesheet/types";
 import type { ContributionSummary } from "@/lib/types/contribution";
 
@@ -7,7 +7,7 @@ import type { ContributionSummary } from "@/lib/types/contribution";
  * It only chooses and compares figures already derived by get_contribution_summaries().
  */
 export interface RoomMeterModel {
-	/** Which figure is measured, in lower case: "2026 annual TFSA room" or "total TFSA room". */
+	/** Which figure is measured, in lower case: "2026 annual TFSA room" or "total TFSA contribution room". */
 	label: string;
 	/** Room available this period: the annual limit, or less when the total room is smaller. */
 	total: number;
@@ -62,7 +62,7 @@ export function buildRoomMeter(
 
 	if (totalLeft !== null) {
 		return {
-			label: `total ${planLabel} room`,
+			label: `total ${getRoomTerm(plan)}`,
 			total: (pool.room_entered ?? 0) + (pool.room_added ?? 0),
 			used: pool.room_used ?? 0,
 			left: totalLeft,
@@ -93,13 +93,17 @@ export function getRoomMeterNote(
 	year: number,
 	formatCurrency: (amount: number) => string
 ): RoomMeterNote | null {
-	const planLabel = getContributionPlanLabel(plan);
-	// TFSA and RRSP room carries forward, so going past the annual limit is fine while the
-	// total room still covers it; for other plans the annual figure is the real limit.
-	const carriesForward = plan === "tfsa" || plan === "rrsp";
+	const roomTerm = getRoomTerm(plan);
+	// TFSA and RRSP room carries forward, and FHSA participation room includes carried-forward
+	// room, so going past the yearly figure is fine while the total room still covers it.
+	// RESP has no yearly limit.
+	const carriesForward = plan === "tfsa" || plan === "rrsp" || plan === "fhsa";
 
 	if (meter.totalLeft !== null && meter.totalLeft < 0) {
-		return { level: "over", text: `${formatCurrency(Math.abs(meter.totalLeft))} over your total ${planLabel} room` };
+		const excess = Math.abs(meter.totalLeft);
+		const monthlyTax = estimateMonthlyOverContributionTax(plan, excess);
+		const tax = monthlyTax > 0 ? `, about ${formatCurrency(monthlyTax)} a month in CRA tax` : "";
+		return { level: "over", text: `${formatCurrency(excess)} over your total ${roomTerm}${tax}` };
 	}
 	if (meter.overAnnual > 0) {
 		return carriesForward
@@ -107,7 +111,10 @@ export function getRoomMeterNote(
 					level: "info",
 					text: `${formatCurrency(meter.overAnnual)} above the ${year} limit, covered by room from earlier years`,
 				}
-			: { level: "over", text: `${formatCurrency(meter.overAnnual)} over the ${year} ${planLabel} limit` };
+			: {
+					level: "over",
+					text: `${formatCurrency(meter.overAnnual)} over the ${year} ${getContributionPlanLabel(plan)} limit`,
+				};
 	}
 	if (meter.leftAfterBudget < 0) {
 		return {
@@ -116,7 +123,7 @@ export function getRoomMeterNote(
 		};
 	}
 	if (meter.cappedByTotal) {
-		return { level: "info", text: `Limited by your total ${planLabel} room` };
+		return { level: "info", text: `Limited by your total ${roomTerm}` };
 	}
 	return null;
 }

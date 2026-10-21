@@ -4,6 +4,7 @@ import { cn } from "@/lib/utils";
 import { formatFullDate } from "@/lib/date-utils";
 import {
 	CRA_MY_ACCOUNT_URL,
+	capitalizeRoomTerm,
 	getContributionNotices,
 	getContributionPlanLabel,
 	type ContributionNotice,
@@ -57,6 +58,8 @@ interface ContributionDetailsProps {
 	formatCurrency: (amount: number) => string;
 	/** Label for the month figure, e.g. "This month" or "October". */
 	monthLabel?: string;
+	/** Label for the room line; defaults to CRA's term, e.g. "RRSP deduction limit left". */
+	roomLabel?: string;
 	showCraLink?: boolean;
 }
 
@@ -70,9 +73,11 @@ export function ContributionDetails({
 	share,
 	formatCurrency,
 	monthLabel = "This month",
+	roomLabel,
 	showCraLink = false,
 }: ContributionDetailsProps) {
 	const planLabel = getContributionPlanLabel(summary.contribution_plan);
+	const roomLineLabel = roomLabel ?? `${capitalizeRoomTerm(summary.contribution_plan)} left`;
 	const notices = getContributionNotices(summary, formatCurrency);
 	const availableRoom = (summary.room_entered ?? 0) + (summary.room_added ?? 0);
 	const isShared = summary.account_ids.length > 1;
@@ -139,10 +144,10 @@ export function ContributionDetails({
 						)}
 					</div>
 
-					{/* Lifetime contribution room */}
+					{/* Room left, across every account of the plan */}
 					<div className="flex flex-col gap-1.5">
 						<div className="flex items-baseline justify-between gap-2">
-							<span className="type-label">Lifetime room left</span>
+							<span className="type-label">{roomLineLabel}</span>
 							<span
 								className={cn(
 									"type-body-sm",
@@ -154,11 +159,7 @@ export function ContributionDetails({
 						</div>
 						{summary.room_remaining !== null && (
 							<>
-								<ProgressBar
-									used={summary.room_used ?? 0}
-									total={availableRoom}
-									label={`${planLabel} lifetime contribution room`}
-								/>
+								<ProgressBar used={summary.room_used ?? 0} total={availableRoom} label={roomLineLabel} />
 								<span className="type-caption text-muted-foreground">
 									{formatCurrency(summary.room_used ?? 0)} used of {formatCurrency(availableRoom)}
 									{summary.room_as_of ? ` since ${formatFullDate(summary.room_as_of)}` : ""}
@@ -169,6 +170,24 @@ export function ContributionDetails({
 							</>
 						)}
 					</div>
+
+					{((summary.excess_amount ?? 0) > 0 || (summary.tax_this_year ?? 0) > 0) && (
+						<div className="flex flex-col gap-1 rounded-md bg-error-muted px-3 py-2" data-testid="contribution-tax">
+							<div className="flex items-baseline justify-between gap-2">
+								<span className="type-label text-error">Estimated CRA tax this year</span>
+								<span className="type-body-sm tabular-nums text-error">
+									{formatCurrency(summary.tax_this_year ?? 0)}
+								</span>
+							</div>
+							<span className="type-caption text-muted-foreground">
+								1% a month on the excess
+								{(summary.tax_this_month ?? 0) > 0 ? ` · ${formatCurrency(summary.tax_this_month!)} this month` : ""}
+								{(summary.excess_amount ?? 0) > 0
+									? ` · stops once you withdraw ${formatCurrency(summary.excess_amount!)}`
+									: ""}
+							</span>
+						</div>
+					)}
 
 					<ContributionNotices notices={notices} />
 

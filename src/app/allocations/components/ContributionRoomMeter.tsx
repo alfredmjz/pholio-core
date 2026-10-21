@@ -1,6 +1,6 @@
 import Link from "next/link";
 import { cn } from "@/lib/utils";
-import { getContributionPlanLabel } from "@/lib/contribution-plans";
+import { formatContributionAmount, getContributionPlanLabel } from "@/lib/contribution-plans";
 import {
 	buildRoomMeter,
 	getBudgetProgressPercent,
@@ -106,8 +106,10 @@ export function ContributionRoomMeter({
 	}
 
 	const leftLabel = `${meter.label.charAt(0).toUpperCase()}${meter.label.slice(1)} left`;
-	const leftAmount = formatCurrency(Math.max(0, meter.left));
-	const note = getRoomMeterNote(meter, plan, year, formatCurrency);
+	// Room and tax are CRA figures, tracked to the cent; the budget keeps the card's format.
+	const formatRoom = (amount: number) => formatContributionAmount(amount);
+	const leftAmount = formatRoom(Math.max(0, meter.left));
+	const note = getRoomMeterNote(meter, plan, year, formatRoom);
 	const isOver = note?.level === "over";
 
 	if (compact) {
@@ -133,7 +135,7 @@ export function ContributionRoomMeter({
 				<div
 					className="h-1 w-full overflow-hidden rounded-full bg-muted"
 					role="img"
-					aria-label={`${leftLabel}: ${leftAmount} (${formatCurrency(meter.used)} used of ${formatCurrency(meter.total)})`}
+					aria-label={`${leftLabel}: ${leftAmount} (${formatRoom(meter.used)} used of ${formatRoom(meter.total)})`}
 				>
 					<div
 						className={cn(
@@ -141,7 +143,7 @@ export function ContributionRoomMeter({
 							isOver ? "bg-error" : "bg-muted-foreground"
 						)}
 						style={{ width: `${getRoomUsedPercent(meter)}%` }}
-						title={`Room used: ${formatCurrency(meter.used)} of ${formatCurrency(meter.total)}`}
+						title={`Room used: ${formatRoom(meter.used)} of ${formatRoom(meter.total)}`}
 					/>
 				</div>
 				{note && <p className={cn("type-caption", NOTE_TONE[note.level])}>{note.text}</p>}

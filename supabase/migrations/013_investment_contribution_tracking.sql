@@ -11,9 +11,10 @@
 --   * `allocation_categories.contribution_plan` links a budget category to a plan so the
 --     Allocations page can show the budget against the remaining room.
 --   * `contribution_limits` is a read-only reference table of CRA limits per plan and year.
---   * `get_contribution_summaries()` derives deposits, annual progress and remaining room
---     per plan from `account_transactions` on read, so the figures never drift from the
---     ledger (edits and deletes are reflected automatically).
+--   * `get_contribution_summaries()` derives deposits, annual progress, remaining room and
+--     the estimated CRA over-contribution tax per plan from `account_transactions` on read
+--     (via `contribution_room_walk()`), so the figures never drift from the ledger (edits
+--     and deletes are reflected automatically).
 --
 -- ADDITIVE AND IDEMPOTENT: safe to re-run.
 -- ============================================================================
@@ -181,7 +182,152 @@ AS $$
 $$;
 
 -- ---------------------------------------------------------------------------
--- 5. Contribution summaries per plan
+-- 5. Room and over-contribution tax walk
+-- ---------------------------------------------------------------------------
+-- Walks one pool's contributions and withdrawals month by month from the room date to the
+-- end of the requested period. Inputs are plain values so the CRA rules can be tested on
+-- their own; p_flows is a JSON array of {"d": "YYYY-MM-DD", "a": signed amount}.
+--
+--   contribution c: uses room; anything beyond the room left becomes excess.
+--   withdrawal   w: first reduces any excess (that stops the tax). For TFSA, the rest is
+--                   added back to room on 1 January of the next year; the part that cleared
+--                   an excess is not.
+--   1 January (TFSA): the new year's CRA dollar limit plus restorable withdrawals are added,
+--                   and absorb any excess first. RRSP, FHSA and RESP room is not rolled
+--                   forward (it depends on income / Schedule 15 / the beneficiary).
+--   tax: CRA charges 1% per month on the excess while it lasts:
+--          TFSA, FHSA -> the highest excess at any time in the month;
+--          RRSP       -> the excess at month end above the $2,000 buffer;
+--          RESP       -> the excess at month end.
+--        "Other" accounts have no CRA tax.
+--
+--   room_used      = contributions since the room date, minus withdrawals that cleared an excess
+--   room_remaining = room + room_added - room_used (negative = the current excess)
+CREATE OR REPLACE FUNCTION public.contribution_room_walk(
+    p_plan TEXT,
+    p_room DECIMAL,
+    p_room_date DATE,
+    p_period_end DATE,
+    p_flows JSONB
+)
+RETURNS TABLE (
+    room_added DECIMAL(15, 2),
+    room_used DECIMAL(15, 2),
+    room_remaining DECIMAL(15, 2),
+    excess_amount DECIMAL(15, 2),
+    tax_this_month DECIMAL(15, 2),
+    tax_this_year DECIMAL(15, 2),
+    tax_total DECIMAL(15, 2),
+    taxed_months INTEGER
+)
+LANGUAGE plpgsql
+STABLE
+SET search_path = public
+AS $$
+DECLARE
+    v_taxable BOOLEAN := COALESCE(p_plan IN ('tfsa', 'rrsp', 'fhsa', 'resp'), false);
+    v_room NUMERIC := COALESCE(p_room, 0);
+    v_excess NUMERIC := 0;
+    v_restorable NUMERIC := 0;
+    v_added NUMERIC := 0;
+    v_used NUMERIC := 0;
+    v_month_high NUMERIC;
+    v_base NUMERIC;
+    v_tax NUMERIC;
+    v_new_room NUMERIC;
+    v_absorbed NUMERIC;
+    v_cleared NUMERIC;
+    v_tax_month NUMERIC := 0;
+    v_tax_year NUMERIC := 0;
+    v_tax_total NUMERIC := 0;
+    v_months INTEGER := 0;
+    v_first_month DATE := date_trunc('month', p_room_date)::date;
+    v_last_month DATE := date_trunc('month', p_period_end)::date;
+    v_month DATE;
+    v_flow RECORD;
+BEGIN
+    IF p_room_date IS NULL OR p_period_end < p_room_date THEN
+        RETURN QUERY SELECT 0::DECIMAL(15, 2), 0::DECIMAL(15, 2), v_room::DECIMAL(15, 2),
+            0::DECIMAL(15, 2), 0::DECIMAL(15, 2), 0::DECIMAL(15, 2), 0::DECIMAL(15, 2), 0;
+        RETURN;
+    END IF;
+
+    FOR v_month IN SELECT gs::date FROM generate_series(v_first_month, v_last_month, INTERVAL '1 month') AS gs LOOP
+        -- 1 January: TFSA gets the new year's limit and last year's withdrawals back.
+        IF p_plan = 'tfsa' AND v_month > v_first_month AND EXTRACT(MONTH FROM v_month) = 1 THEN
+            SELECT COALESCE(l.annual_limit, 0) + v_restorable INTO v_new_room
+            FROM public.contribution_limit_for('tfsa', EXTRACT(YEAR FROM v_month)::int) l;
+            v_new_room := COALESCE(v_new_room, v_restorable);
+            v_restorable := 0;
+            v_added := v_added + v_new_room;
+            v_absorbed := LEAST(v_excess, v_new_room);
+            v_excess := v_excess - v_absorbed;
+            v_room := v_room + v_new_room - v_absorbed;
+        END IF;
+
+        v_month_high := v_excess;
+
+        -- Same-day order: contributions before withdrawals.
+        FOR v_flow IN
+            SELECT (f->>'a')::numeric AS amount
+            FROM jsonb_array_elements(COALESCE(p_flows, '[]'::jsonb)) AS f
+            WHERE (f->>'d')::date BETWEEN GREATEST(v_month, p_room_date)
+                AND LEAST((v_month + INTERVAL '1 month' - INTERVAL '1 day')::date, p_period_end)
+            ORDER BY (f->>'d')::date, (f->>'a')::numeric DESC
+        LOOP
+            IF v_flow.amount > 0 THEN
+                v_used := v_used + v_flow.amount;
+                IF v_room >= v_flow.amount THEN
+                    v_room := v_room - v_flow.amount;
+                ELSE
+                    v_excess := v_excess + v_flow.amount - v_room;
+                    v_room := 0;
+                END IF;
+                v_month_high := GREATEST(v_month_high, v_excess);
+            ELSIF v_flow.amount < 0 THEN
+                v_cleared := LEAST(v_excess, -v_flow.amount);
+                v_excess := v_excess - v_cleared;
+                v_used := v_used - v_cleared;
+                IF p_plan = 'tfsa' THEN
+                    v_restorable := v_restorable + (-v_flow.amount - v_cleared);
+                END IF;
+            END IF;
+        END LOOP;
+
+        IF v_taxable THEN
+            v_base := CASE p_plan
+                WHEN 'rrsp' THEN GREATEST(0, v_excess - 2000)
+                WHEN 'resp' THEN v_excess
+                ELSE v_month_high
+            END;
+            IF v_base > 0 THEN
+                v_tax := ROUND(v_base * 0.01, 2);
+                v_months := v_months + 1;
+                v_tax_total := v_tax_total + v_tax;
+                IF EXTRACT(YEAR FROM v_month) = EXTRACT(YEAR FROM p_period_end) THEN
+                    v_tax_year := v_tax_year + v_tax;
+                END IF;
+                IF v_month = v_last_month THEN
+                    v_tax_month := v_tax;
+                END IF;
+            END IF;
+        END IF;
+    END LOOP;
+
+    RETURN QUERY SELECT
+        v_added::DECIMAL(15, 2),
+        v_used::DECIMAL(15, 2),
+        (v_room - v_excess)::DECIMAL(15, 2),
+        v_excess::DECIMAL(15, 2),
+        v_tax_month::DECIMAL(15, 2),
+        v_tax_year::DECIMAL(15, 2),
+        v_tax_total::DECIMAL(15, 2),
+        v_months;
+END;
+$$;
+
+-- ---------------------------------------------------------------------------
+-- 6. Contribution summaries per plan
 -- ---------------------------------------------------------------------------
 -- One row per "pool" of the calling user, as at the last day of the given month:
 --   * registered plans (TFSA, RRSP, FHSA, RESP): every tracked account of that plan plus
@@ -197,14 +343,11 @@ $$;
 --   room. Interest, refunds and adjustments are growth or corrections and never count.
 --
 --   annual_remaining = annual_limit - contributions from 1 January to period end
---   room_remaining   = room
---                      - contributions since room_as_of
---                      + (TFSA) withdrawals since then made in earlier calendar years
---                        (CRA adds them back on 1 January of the following year)
---                      + (TFSA) the dollar limit of every year after the as-of year
+--   room figures and the over-contribution tax come from contribution_room_walk().
 --   RRSP and FHSA room depends on income / Schedule 15, so it is not rolled forward;
 --   room_needs_update flags when the user should copy a fresh figure from CRA.
 DROP FUNCTION IF EXISTS public.get_contribution_summaries(INTEGER, INTEGER, UUID);
+DROP FUNCTION IF EXISTS public.get_contribution_summaries(INTEGER, INTEGER);
 
 CREATE OR REPLACE FUNCTION public.get_contribution_summaries(p_year INTEGER, p_month INTEGER)
 RETURNS TABLE (
@@ -227,7 +370,12 @@ RETURNS TABLE (
     room_used DECIMAL(15, 2),
     room_remaining DECIMAL(15, 2),
     lifetime_limit DECIMAL(15, 2),
-    room_needs_update BOOLEAN
+    room_needs_update BOOLEAN,
+    excess_amount DECIMAL(15, 2),
+    tax_this_month DECIMAL(15, 2),
+    tax_this_year DECIMAL(15, 2),
+    tax_total DECIMAL(15, 2),
+    taxed_months INTEGER
 )
 LANGUAGE sql
 STABLE
@@ -334,6 +482,7 @@ AS $$
         SELECT
             s.pool_key,
             COALESCE(s.room_as_of_set, s.first_created, b.year_start) AS room_date,
+            b.period_end,
             COALESCE(SUM(f.amount) FILTER (
                 WHERE f.amount > 0 AND f.transaction_date BETWEEN b.month_start AND b.period_end), 0) AS month_in,
             COALESCE(SUM(-f.amount) FILTER (
@@ -344,41 +493,40 @@ AS $$
                 WHERE f.amount < 0 AND f.transaction_date BETWEEN b.year_start AND b.period_end), 0) AS year_out,
             COALESCE(SUM(f.amount) FILTER (
                 WHERE f.amount > 0 AND f.transaction_date <= b.period_end), 0) AS lifetime_in,
-            COALESCE(SUM(f.amount) FILTER (
-                WHERE f.amount > 0
-                  AND f.transaction_date BETWEEN COALESCE(s.room_as_of_set, s.first_created, b.year_start) AND b.period_end
-            ), 0) AS since_in,
-            COALESCE(SUM(-f.amount) FILTER (
-                WHERE f.amount < 0
-                  AND f.transaction_date >= COALESCE(s.room_as_of_set, s.first_created, b.year_start)
-                  AND f.transaction_date < b.year_start
-            ), 0) AS restored_out
+            COALESCE(
+                jsonb_agg(jsonb_build_object('d', f.transaction_date, 'a', f.amount)) FILTER (WHERE f.amount IS NOT NULL),
+                '[]'::jsonb
+            ) AS flow_list
         FROM settings s
         CROSS JOIN bounds b
         LEFT JOIN flows f ON f.pool_key = s.pool_key
-        GROUP BY s.pool_key, s.room_as_of_set, s.first_created, b.year_start
+        GROUP BY s.pool_key, s.room_as_of_set, s.first_created, b.year_start, b.period_end
     ),
     resolved AS (
         SELECT
             s.pool_key, s.plan, s.tracks_room, s.registered, s.account_ids, s.room, s.room_as_of_set, s.annual_override,
-            t.room_date, t.month_in, t.month_out, t.year_in, t.year_out, t.lifetime_in, t.since_in,
+            t.room_date, t.month_in, t.month_out, t.year_in, t.year_out, t.lifetime_in,
             cra.annual_limit AS cra_annual_limit,
             cra.lifetime_limit AS cra_lifetime_limit,
-            -- The user's own annual figure applies to the year it was copied for.
+            -- A registered plan's own annual figure (legacy rows) applies to the year it was
+            -- copied for; an "Other" account's annual limit applies every year.
             (s.annual_override IS NOT NULL
-                AND (s.room_as_of_set IS NULL OR EXTRACT(YEAR FROM s.room_as_of_set)::int = p_year)) AS use_override,
-            CASE
-                WHEN s.plan = 'tfsa' THEN (
-                    SELECT COALESCE(SUM(l.annual_limit), 0)
-                    FROM generate_series(EXTRACT(YEAR FROM t.room_date)::int + 1, p_year) AS y(year)
-                    CROSS JOIN LATERAL public.contribution_limit_for('tfsa', y.year) l
-                ) + t.restored_out
-                ELSE 0
-            END AS added
+                AND (NOT s.registered OR s.room_as_of_set IS NULL
+                     OR EXTRACT(YEAR FROM s.room_as_of_set)::int = p_year)) AS use_override,
+            w.room_added AS walk_added,
+            w.room_used AS walk_used,
+            w.room_remaining AS walk_remaining,
+            w.excess_amount,
+            w.tax_this_month,
+            w.tax_this_year,
+            w.tax_total,
+            w.taxed_months
         FROM settings s
         JOIN totals t ON t.pool_key = s.pool_key
         LEFT JOIN LATERAL public.contribution_limit_for(s.plan, p_year) cra
             ON s.plan IN ('tfsa', 'rrsp', 'fhsa', 'resp')
+        LEFT JOIN LATERAL public.contribution_room_walk(s.plan, s.room, t.room_date, t.period_end, t.flow_list) w
+            ON s.tracks_room AND s.room IS NOT NULL
     )
     SELECT
         r.pool_key,
@@ -424,18 +572,22 @@ AS $$
         END AS annual_remaining,
         CASE WHEN r.tracks_room THEN r.room_date END AS room_as_of,
         CASE WHEN r.tracks_room THEN r.room END AS room_entered,
-        CASE WHEN r.tracks_room AND r.room IS NOT NULL THEN r.added::DECIMAL(15, 2) END AS room_added,
-        CASE WHEN r.tracks_room AND r.room IS NOT NULL THEN r.since_in::DECIMAL(15, 2) END AS room_used,
-        CASE
-            WHEN r.tracks_room AND r.room IS NOT NULL THEN (r.room + r.added - r.since_in)::DECIMAL(15, 2)
-        END AS room_remaining,
+        r.walk_added AS room_added,
+        r.walk_used AS room_used,
+        r.walk_remaining AS room_remaining,
         CASE WHEN r.tracks_room THEN r.cra_lifetime_limit END AS lifetime_limit,
         (r.tracks_room AND r.registered AND r.plan IN ('rrsp', 'fhsa') AND r.room IS NOT NULL
-            AND EXTRACT(YEAR FROM r.room_date)::int < p_year) AS room_needs_update
+            AND EXTRACT(YEAR FROM r.room_date)::int < p_year) AS room_needs_update,
+        r.excess_amount,
+        r.tax_this_month,
+        r.tax_this_year,
+        r.tax_total,
+        r.taxed_months
     FROM resolved r;
 $$;
 
 GRANT EXECUTE ON FUNCTION public.contribution_limit_for(TEXT, INTEGER) TO authenticated;
+GRANT EXECUTE ON FUNCTION public.contribution_room_walk(TEXT, DECIMAL, DATE, DATE, JSONB) TO authenticated;
 GRANT EXECUTE ON FUNCTION public.get_contribution_summaries(INTEGER, INTEGER) TO authenticated;
 
 NOTIFY pgrst, 'reload schema';

@@ -10,7 +10,7 @@ import { Check, Sparkles } from "lucide-react";
 
 import { sendMagicLink, startDemo } from "@/app/(auth-pages)/login/actions";
 import { useDemoStore } from "@/lib/demo-store";
-import { LedgerField } from "./components/ledger-field";
+import { LedgerField } from "@/components/common/ledger-field";
 
 const NET_WORTH = 248910;
 
@@ -116,7 +116,7 @@ export default function Page() {
 
 	return (
 		<div className="login-page theme-paper relative isolate min-h-dvh w-full overflow-x-hidden">
-			<LedgerField />
+			<LedgerField className="login-field-canvas" />
 			<div className="login-paper-edge" aria-hidden />
 			<div className="login-paper-grain" aria-hidden />
 			<div className="login-page-frame" aria-hidden />

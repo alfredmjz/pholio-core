@@ -18,8 +18,22 @@ type FieldLine = {
 
 type Pointer = { x: number; y: number } | null;
 
+// Defaults match the paper login. A page can recolor the field by setting `--ledger-ink` and
+// `--ledger-tint` (RGB triplets, e.g. "44, 40, 34") and scale every line with `--ledger-strength`.
 const INK = "44, 40, 34";
 const RUST = "145, 72, 44";
+
+type Palette = { ink: string; tint: string; strength: number };
+
+function readPalette(element: Element): Palette {
+	const style = getComputedStyle(element);
+	const strength = Number.parseFloat(style.getPropertyValue("--ledger-strength"));
+	return {
+		ink: style.getPropertyValue("--ledger-ink").trim() || INK,
+		tint: style.getPropertyValue("--ledger-tint").trim() || RUST,
+		strength: Number.isFinite(strength) ? strength : 1,
+	};
+}
 
 function createRandom(seed: number) {
 	let value = seed >>> 0;
@@ -89,6 +103,10 @@ function tracePath(points: Array<[number, number]>) {
 	return path;
 }
 
+/**
+ * Slow plotter lines drifting across the page, pulled gently toward the pointer.
+ * Pauses while the tab is hidden and draws one still frame when reduced motion is on.
+ */
 export function LedgerField({ className = "" }: { className?: string }) {
 	const canvasRef = useRef<HTMLCanvasElement>(null);
 
@@ -110,6 +128,7 @@ export function LedgerField({ className = "" }: { className?: string }) {
 		let last = 0;
 		let start = 0;
 		let running = true;
+		let palette = readPalette(canvas);
 
 		const resize = () => {
 			const rect = canvas.getBoundingClientRect();
@@ -134,11 +153,12 @@ export function LedgerField({ className = "" }: { className?: string }) {
 			for (const line of lines) {
 				const { points, length } = buildPath(line, width, height, pointer, time);
 				const path = tracePath(points);
-				const tint = line.tint === "ink" ? INK : RUST;
+				const tint = line.tint === "ink" ? palette.ink : palette.tint;
+				const strength = palette.strength;
 
 				context.setLineDash([]);
 				context.lineWidth = 1;
-				context.strokeStyle = `rgba(${tint}, ${line.alpha * fade})`;
+				context.strokeStyle = `rgba(${tint}, ${line.alpha * fade * strength})`;
 				context.stroke(path);
 
 				if (reduceMotion.matches) continue;
@@ -151,11 +171,11 @@ export function LedgerField({ className = "" }: { className?: string }) {
 				context.lineDashOffset = offset;
 
 				context.lineWidth = 5;
-				context.strokeStyle = `rgba(${tint}, ${0.045 * fade})`;
+				context.strokeStyle = `rgba(${tint}, ${0.045 * fade * strength})`;
 				context.stroke(path);
 
 				context.lineWidth = 1.1;
-				context.strokeStyle = `rgba(${tint}, ${(line.tint === "ink" ? 0.42 : 0.26) * fade})`;
+				context.strokeStyle = `rgba(${tint}, ${(line.tint === "ink" ? 0.42 : 0.26) * fade * strength})`;
 				context.stroke(path);
 			}
 
@@ -171,17 +191,18 @@ export function LedgerField({ className = "" }: { className?: string }) {
 			for (const line of lines) {
 				const { points, length } = buildPath(line, width, height, null, 0);
 				const path = tracePath(points);
-				const tint = line.tint === "ink" ? INK : RUST;
+				const tint = line.tint === "ink" ? palette.ink : palette.tint;
+				const strength = palette.strength;
 
 				context.setLineDash([]);
 				context.lineWidth = 1;
-				context.strokeStyle = `rgba(${tint}, ${line.alpha * 1.6})`;
+				context.strokeStyle = `rgba(${tint}, ${line.alpha * 1.6 * strength})`;
 				context.stroke(path);
 
 				context.setLineDash([line.segment, length + line.segment]);
 				context.lineDashOffset = -length * 0.42;
 				context.lineWidth = 1.1;
-				context.strokeStyle = `rgba(${tint}, ${line.tint === "ink" ? 0.4 : 0.26})`;
+				context.strokeStyle = `rgba(${tint}, ${(line.tint === "ink" ? 0.4 : 0.26) * strength})`;
 				context.stroke(path);
 			}
 
@@ -250,6 +271,13 @@ export function LedgerField({ className = "" }: { className?: string }) {
 			if (reduceMotion.matches) drawStatic();
 		});
 
+		// Pick up light/dark theme switches, which change the CSS colors.
+		const themeObserver = new MutationObserver(() => {
+			palette = readPalette(canvas);
+			if (reduceMotion.matches) drawStatic();
+		});
+		themeObserver.observe(document.documentElement, { attributes: true, attributeFilter: ["class"] });
+
 		resize();
 		observer.observe(canvas.parentElement ?? canvas);
 
@@ -268,6 +296,7 @@ export function LedgerField({ className = "" }: { className?: string }) {
 			running = false;
 			cancelAnimationFrame(frame);
 			observer.disconnect();
+			themeObserver.disconnect();
 			window.removeEventListener("pointermove", handlePointerMove);
 			window.removeEventListener("pointerleave", handlePointerLeave);
 			document.removeEventListener("visibilitychange", handleVisibility);
@@ -275,5 +304,5 @@ export function LedgerField({ className = "" }: { className?: string }) {
 		};
 	}, []);
 
-	return <canvas ref={canvasRef} aria-hidden className={`login-field-canvas ${className}`.trim()} />;
+	return <canvas ref={canvasRef} aria-hidden className={className} />;
 }

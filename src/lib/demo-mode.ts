@@ -26,3 +26,13 @@ export function isDemoModeActive(): boolean {
 	if (typeof document === "undefined") return false;
 	return document.cookie.split(";").some((part) => part.trim() === `${DEMO_COOKIE}=1`);
 }
+
+/**
+ * Client counterpart of `isSampleDataMode()`: true when the server is serving sample data,
+ * either for a demo session or because of the build-time sample-data flag (`dev:mock`).
+ * In that mode mutations are kept in the in-browser demo store (`@/lib/demo-store`).
+ * Client-only for the demo session (the flag alone is readable everywhere).
+ */
+export function isSampleDataActive(): boolean {
+	return process.env.NEXT_PUBLIC_USE_SAMPLE_DATA === "true" || isDemoModeActive();
+}

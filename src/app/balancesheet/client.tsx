@@ -41,7 +41,7 @@ import {
 } from "@dnd-kit/sortable";
 import { toast } from "sonner";
 import { restrictToVerticalAxis } from "@dnd-kit/modifiers";
-import { isDemoModeActive } from "@/lib/demo-mode";
+import { isSampleDataActive } from "@/lib/demo-mode";
 import { useDemoStore } from "@/lib/demo-store";
 
 interface BalanceSheetClientProps {
@@ -68,7 +68,7 @@ export function BalanceSheetClient({
 	const accounts = isDemo ? demoAccounts : serverAccounts;
 
 	useEffect(() => {
-		setIsDemo(isDemoModeActive());
+		setIsDemo(isSampleDataActive());
 	}, []);
 
 	const [selectedAccount, setSelectedAccount] = useState<AccountWithType | null>(initialAccounts[0] || null);

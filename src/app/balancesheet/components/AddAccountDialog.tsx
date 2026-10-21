@@ -39,7 +39,7 @@ import {
 } from "../contribution-room-form";
 import { getContributionRooms, saveContributionRoom } from "@/lib/actions/contribution-actions";
 import type { ContributionRoomSetting } from "@/lib/types/contribution";
-import { isDemoModeActive } from "@/lib/demo-mode";
+import { isSampleDataActive } from "@/lib/demo-mode";
 import { useDemoStore } from "@/lib/demo-store";
 
 interface AddAccountDialogProps {
@@ -200,7 +200,7 @@ export function AddAccountDialog({ open, onOpenChange, onSuccess }: AddAccountDi
 			if (result) {
 				// Demo mode: the server returns a mock account without persisting; record it
 				// in-memory so it appears for the duration of the session.
-				if (isDemoModeActive()) {
+				if (isSampleDataActive()) {
 					useDemoStore.getState().addAccount(result);
 				}
 				toast.success("Account created successfully");

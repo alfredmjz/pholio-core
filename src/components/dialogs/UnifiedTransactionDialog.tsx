@@ -44,8 +44,8 @@ import { formatAccountDisplayName, sortAccounts } from "@/lib/account-utils";
 import { getAccountTransactionTypeOptions, getDefaultAccountTransactionType } from "@/lib/account-transaction-types";
 import { compareAlphabetically, sortAlphabetically } from "@/lib/sort-utils";
 import { ManagePresetsDialog } from "./ManagePresetsDialog";
-import { isDemoModeActive } from "@/lib/demo-mode";
-import { useDemoStore } from "@/lib/demo-store";
+import { isSampleDataActive } from "@/lib/demo-mode";
+import { createDemoId, recordDemoUnifiedTransaction, useDemoStore } from "@/lib/demo-store";
 import {
 	calculateAccountStanding,
 	checkTransactionCaps,
@@ -378,12 +378,12 @@ export function UnifiedTransactionDialog({
 			};
 
 			// Demo mode: record in-memory instead of persisting to the server.
-			if (isDemoModeActive()) {
+			if (isSampleDataActive()) {
 				const categoryName =
 					type === "transfer" ? "Transfer" : categories.find((c) => c.id === categoryId)?.name || "Uncategorized";
 				const accountName = accounts.find((a) => a.id === accountId)?.name;
 				useDemoStore.getState().addTransaction({
-					id: `demo-${Date.now()}-${Math.random().toString(36).slice(2, 8)}`,
+					id: createDemoId("demo"),
 					date,
 					description: finalDescription,
 					category: categoryName,
@@ -391,6 +391,7 @@ export function UnifiedTransactionDialog({
 					type: type === "transfer" ? "expense" : type,
 					account: accountName,
 				});
+				recordDemoUnifiedTransaction(input);
 				toast.success(type === "transfer" ? "Transfer created" : "Transaction added");
 				onOpenChange(false);
 				onSuccess?.();

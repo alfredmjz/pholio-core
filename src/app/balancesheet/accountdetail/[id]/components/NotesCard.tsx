@@ -6,6 +6,7 @@ import { Card } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
 import { MinimalTiptap } from "@/components/ui/shadcn-io/minimal-tiptap";
 import { updateAccount } from "../../../actions";
+import { isSampleDataActive } from "@/lib/demo-mode";
 import type { AccountWithType } from "../../../types";
 
 import { Maximize2 } from "lucide-react";
@@ -27,7 +28,8 @@ export function NotesCard({ account, onAccountUpdated }: NotesCardProps) {
 	const handleSave = async () => {
 		setIsSaving(true);
 		try {
-			const result = await updateAccount(account.id, { notes });
+			// Sample data: the account page keeps the change in the demo store (via onAccountUpdated).
+			const result = isSampleDataActive() || (await updateAccount(account.id, { notes }));
 			if (result) {
 				toast.success("Notes updated");
 				setIsEditing(false);

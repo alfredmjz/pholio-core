@@ -51,7 +51,10 @@ export function useServerSyncedData<T>(
 	const refresh = useCallback(async () => {
 		setIsRefreshing(true);
 		try {
-			setData(await fetcherRef.current());
+			const next = await fetcherRef.current();
+			// A server action from an older deployment (or a dev rebuild) resolves to undefined
+			// instead of throwing; keep the data we have rather than blanking the page.
+			if (next !== undefined) setData(next);
 		} catch {
 			// Background refresh must never disrupt the page.
 		} finally {

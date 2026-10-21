@@ -20,6 +20,11 @@ jobs:
         working-directory: ./src
         run: bun install
 
+      # Runtime calculation tests (src/tests, bun test)
+      - name: Unit tests
+        working-directory: ./src
+        run: bun test
+
       - name: Build
         working-directory: ./src
         run: bun run build
@@ -54,6 +59,11 @@ jobs:
       - name: Start local Supabase
         working-directory: ./src
         run: bunx supabase start --workdir .. -x studio,imgproxy,edge-runtime,logflare,vector,postgres-meta,supavisor
+
+      # Database calculation tests (supabase/tests, pgTAP)
+      - name: Database tests
+        working-directory: ./src
+        run: bun run test:db
 
       - name: Run E2E suite
         working-directory: ./src

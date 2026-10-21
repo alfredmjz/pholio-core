@@ -11,6 +11,7 @@ import type {
 	Transaction,
 	IncomeVerificationResult,
 } from "./types";
+import type { RegisteredPlan } from "@/app/balancesheet/types";
 import { sampleAllocationSummary, sampleTransactions } from "@/mock-data/allocations";
 import { Logger } from "@/lib/logger";
 import { isSampleDataMode } from "@/lib/demo-mode.server";
@@ -861,6 +862,7 @@ export async function importPreviousMonthCategories(
 		color: cat.color,
 		icon: cat.icon,
 		notes: cat.notes,
+		contribution_plan: cat.contribution_plan ?? null,
 	}));
 
 	const { error: insertError } = await supabase
@@ -898,7 +900,8 @@ export async function createCategory(
 	budgetCap: number,
 	isRecurring: boolean = false,
 	displayOrder?: number,
-	color?: string
+	color?: string,
+	contributionPlan: RegisteredPlan | null = null
 ): Promise<AllocationCategory | null> {
 	const supabase = await createClient();
 
@@ -929,6 +932,7 @@ export async function createCategory(
 			is_recurring: isRecurring,
 			display_order: displayOrder,
 			color,
+			contribution_plan: contributionPlan,
 		})
 		.select()
 		.single();
@@ -977,6 +981,30 @@ export async function updateCategoryColor(categoryId: string, color: string): Pr
 
 	if (error) {
 		Logger.error("Error updating category color", { error });
+		return false;
+	}
+
+	revalidatePath("/allocations");
+	return true;
+}
+
+/**
+ * Links a budget category to a registered plan (or unlinks it with null). The budget is then
+ * shown against that plan's contribution room; only real deposits use the room.
+ */
+export async function updateCategoryContributionPlan(
+	categoryId: string,
+	contributionPlan: RegisteredPlan | null
+): Promise<boolean> {
+	const supabase = await createClient();
+
+	const { error } = await supabase
+		.from("allocation_categories")
+		.update({ contribution_plan: contributionPlan })
+		.eq("id", categoryId);
+
+	if (error) {
+		Logger.error("Error updating category contribution plan", { error });
 		return false;
 	}
 
@@ -1263,8 +1291,50 @@ export async function applyTemplateToAllocation(templateId: string, allocationId
 		return false;
 	}
 
+	await copyTemplateContributionPlans(supabase, templateId, allocationId);
+
 	revalidatePath("/allocations");
 	return true;
+}
+
+/**
+ * apply_template_to_allocation() predates contribution plans, so carry each template
+ * category's plan over to the matching (same name) allocation category afterwards.
+ */
+async function copyTemplateContributionPlans(
+	supabase: Awaited<ReturnType<typeof createClient>>,
+	templateId: string,
+	allocationId: string
+) {
+	const { data: linked } = await supabase
+		.from("template_categories")
+		.select("name, contribution_plan")
+		.eq("template_id", templateId)
+		.not("contribution_plan", "is", null);
+
+	if (!linked || linked.length === 0) return;
+
+	const { data: categories } = await supabase
+		.from("allocation_categories")
+		.select("id, name")
+		.eq("allocation_id", allocationId);
+
+	const updates = (categories ?? []).flatMap((category) => {
+		const match = linked.find((t) => t.name.toLowerCase() === category.name.toLowerCase());
+		return match
+			? [
+					supabase
+						.from("allocation_categories")
+						.update({ contribution_plan: match.contribution_plan })
+						.eq("id", category.id),
+				]
+			: [];
+	});
+
+	const results = await Promise.all(updates);
+	if (results.some((result) => result.error)) {
+		Logger.error("Error copying template contribution plans");
+	}
 }
 
 export async function createTemplateFromAllocation(
@@ -1321,6 +1391,7 @@ export async function createTemplateFromAllocation(
 			color: cat.color,
 			icon: cat.icon,
 			notes: cat.notes,
+			contribution_plan: cat.contribution_plan ?? null,
 		}));
 
 		const { error: categoriesError } = await supabase.from("template_categories").insert(templateCategories);

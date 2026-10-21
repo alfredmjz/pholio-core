@@ -4,14 +4,25 @@ import { useState, useEffect } from "react";
 import { Card } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
-import { Pencil, Trash2, Check, X, AlertCircle } from "lucide-react";
+import { Pencil, Trash2, Check, X, AlertCircle, ShieldCheck } from "lucide-react";
 import { cn } from "@/lib/utils";
-import { updateCategoryBudget, updateCategoryName, deleteCategory, updateCategoryColor } from "../actions";
+import {
+	updateCategoryBudget,
+	updateCategoryName,
+	deleteCategory,
+	updateCategoryColor,
+	updateCategoryContributionPlan,
+} from "../actions";
 import { toast } from "sonner";
 import { getCategoryColor, CATEGORY_PALETTE, COLOR_NAME_MAP } from "../utils/colors";
 import { sanitizeDecimalInput } from "@/lib/input-utils";
 import { DeleteCategoryDialog } from "./DeleteCategoryDialog";
+import { ContributionRoomMeter } from "./ContributionRoomMeter";
+import { ContributionPlanPicker } from "./ContributionPlanPicker";
+import { getContributionPlanLabel } from "@/lib/contribution-plans";
 import type { AllocationCategory } from "../types";
+import type { RegisteredPlan } from "@/app/balancesheet/types";
+import type { ContributionSummary } from "@/lib/types/contribution";
 import { useSortable } from "@dnd-kit/sortable";
 import { CSS } from "@dnd-kit/utilities";
 
@@ -19,14 +30,36 @@ export interface CategoryCardProps {
 	category: AllocationCategory;
 	usedColors: string[];
 	usedNames: string[];
+	/** Registered plan this budget counts toward, if any. */
+	contributionPlan?: RegisteredPlan | null;
+	/** That plan's contribution room (all accounts of the plan). */
+	contributionPool?: ContributionSummary | null;
+	/** Plans already linked to other categories this month. */
+	takenPlans?: RegisteredPlan[];
+	year: number;
+	onContributionPlanChanged?: () => void;
 }
 
-export function CategoryCard({ category, usedColors, usedNames }: CategoryCardProps) {
+export function CategoryCard({
+	category,
+	usedColors,
+	usedNames,
+	contributionPlan = null,
+	contributionPool,
+	takenPlans = [],
+	year,
+	onContributionPlanChanged,
+}: CategoryCardProps) {
 	const [isEditing, setIsEditing] = useState(false);
 	const [deleteDialogOpen, setDeleteDialogOpen] = useState(false);
 	const [budgetValue, setBudgetValue] = useState(category.budget_cap.toString());
 	const [nameValue, setNameValue] = useState(category.name);
 	const [selectedColor, setSelectedColor] = useState<string | null>(category.color || null);
+	const [planValue, setPlanValue] = useState<RegisteredPlan | null>(contributionPlan);
+
+	useEffect(() => {
+		setPlanValue(contributionPlan);
+	}, [contributionPlan]);
 
 	const [isPressed, setIsPressed] = useState(false);
 	const [isMobile, setIsMobile] = useState(false);
@@ -49,11 +82,17 @@ export function CategoryCard({ category, usedColors, usedNames }: CategoryCardPr
 		position: "relative" as const,
 	};
 
-	const actualSpend = category.actual_spend || 0;
+	// A category linked to a registered plan measures real contributions into that plan's
+	// accounts (from the database), since those are what use contribution room.
+	const isLinked = !!contributionPlan && !isUncategorized;
+	const actualSpend = isLinked ? (contributionPool?.month_contributions ?? 0) : category.actual_spend || 0;
+	// Linked categories spell out the period: the figures are this month's contributions
+	// against this month's budget (room is shown separately below the budget bar).
 	// Effective budget folds in the system-managed recurring contribution. The
 	// user-editable budget stays category.budget_cap.
 	const effectiveBudget = category.budget_cap + (category.recurring_budget_cap ?? 0);
 	const utilization = effectiveBudget > 0 ? (actualSpend / effectiveBudget) * 100 : 0;
+	const progressText = isLinked ? "Contributed this month" : `${Math.min(100, Math.round(utilization))}% used`;
 	const isOverBudget = utilization > 100;
 	const amountRemainingOrOver = Math.abs(effectiveBudget - actualSpend);
 
@@ -98,15 +137,19 @@ export function CategoryCard({ category, usedColors, usedNames }: CategoryCardPr
 			return;
 		}
 
-		const [budgetSuccess, nameSuccess, colorSuccess] = await Promise.all([
+		const planChanged = planValue !== contributionPlan;
+		const [budgetSuccess, nameSuccess, colorSuccess, planSuccess] = await Promise.all([
 			updateCategoryBudget(category.id, newBudget),
 			updateCategoryName(category.id, newName),
 			selectedColor !== category.color && selectedColor
 				? updateCategoryColor(category.id, selectedColor)
 				: Promise.resolve(true),
+			planChanged ? updateCategoryContributionPlan(category.id, planValue) : Promise.resolve(true),
 		]);
 
-		if (budgetSuccess && nameSuccess && colorSuccess) {
+		if (planChanged && planSuccess) onContributionPlanChanged?.();
+
+		if (budgetSuccess && nameSuccess && colorSuccess && planSuccess) {
 			toast.success("Category updated");
 			setIsEditing(false);
 		} else {
@@ -125,6 +168,11 @@ export function CategoryCard({ category, usedColors, usedNames }: CategoryCardPr
 					description: "Failed to update the category color. Please try again.",
 				});
 			}
+			if (!planSuccess) {
+				toast.error("Contribution Room Update Failed", {
+					description: "Failed to change the plan this category counts toward. Please try again.",
+				});
+			}
 		}
 	};
 
@@ -132,8 +180,26 @@ export function CategoryCard({ category, usedColors, usedNames }: CategoryCardPr
 		setBudgetValue(category.budget_cap.toString());
 		setNameValue(category.name);
 		setSelectedColor(category.color || null);
+		setPlanValue(contributionPlan);
 		setIsEditing(false);
 	};
+
+	const planChip = isLinked && (
+		<span
+			className="inline-flex shrink-0 items-center gap-0.5 rounded-full bg-success-muted px-1.5 py-0.5 type-caption leading-none text-success"
+			title={`Counts toward your ${getContributionPlanLabel(contributionPlan)} room`}
+		>
+			<ShieldCheck className="h-2.5 w-2.5" />
+			{getContributionPlanLabel(contributionPlan)}
+		</span>
+	);
+
+	const planPicker = !isUncategorized && (
+		<div className="flex flex-col gap-1" onPointerDown={(event) => event.stopPropagation()}>
+			<span className="type-caption text-muted-foreground">Counts toward room</span>
+			<ContributionPlanPicker value={planValue} onChange={setPlanValue} takenPlans={takenPlans} allowNone size="sm" />
+		</div>
+	);
 
 	const handleConfirmDelete = async () => {
 		setDeleteDialogOpen(false);
@@ -233,14 +299,18 @@ export function CategoryCard({ category, usedColors, usedNames }: CategoryCardPr
 												);
 											})}
 										</div>
+										{planPicker}
 									</div>
 								</div>
 							) : (
 								<div className="flex justify-between items-end w-full">
 									<div className="flex flex-col">
-										<span className="text-sm font-semibold text-foreground truncate">{category.name}</span>
+										<span className="flex min-w-0 items-center gap-1.5">
+											<span className="text-sm font-semibold text-foreground truncate">{category.name}</span>
+											{planChip}
+										</span>
 										<span className="text-[10px] text-muted-foreground whitespace-nowrap pt-0.5">
-											{isUncategorized ? "Unbudgeted" : `${Math.min(100, Math.round(utilization))}% used`}
+											{isUncategorized ? "Unbudgeted" : progressText}
 										</span>
 									</div>
 									<div className="flex items-baseline gap-1 flex-shrink-0 pl-2">
@@ -259,7 +329,19 @@ export function CategoryCard({ category, usedColors, usedNames }: CategoryCardPr
 							)}
 
 							{/* Progress Bar under name on mobile */}
-							{!isEditing && (
+							{!isEditing && isLinked && contributionPlan && (
+								<ContributionRoomMeter
+									plan={contributionPlan}
+									pool={contributionPool}
+									budget={effectiveBudget}
+									color={color}
+									year={year}
+									formatCurrency={formatCurrency}
+									compact
+									className="mt-2"
+								/>
+							)}
+							{!isEditing && !isLinked && (
 								<div className="flex items-center gap-2 mt-2 w-full">
 									<div className="h-1 flex-1 bg-muted rounded-full overflow-hidden">
 										<div
@@ -341,9 +423,12 @@ export function CategoryCard({ category, usedColors, usedNames }: CategoryCardPr
 										</div>
 									) : (
 										<>
-											<span className="text-sm font-bold text-foreground truncate">{category.name}</span>
+											<span className="flex min-w-0 items-center gap-1.5">
+												<span className="text-sm font-bold text-foreground truncate">{category.name}</span>
+												{planChip}
+											</span>
 											<span className="text-xs text-muted-foreground mt-0.5">
-												{isUncategorized ? "No budget set" : `${Math.min(100, Math.round(utilization))}% used`}
+												{isUncategorized ? "No budget set" : progressText}
 											</span>
 										</>
 									)}
@@ -421,17 +506,33 @@ export function CategoryCard({ category, usedColors, usedNames }: CategoryCardPr
 								)}
 							</div>
 						)}
+						{isEditing && planPicker}
 
-						{/* Progress Bar */}
-						<div className="h-1.5 w-full bg-muted rounded-full overflow-hidden mt-1">
-							<div
-								className={cn(
-									"h-full rounded-full transition-all duration-500",
-									!isUncategorized && isOverBudget ? "bg-error" : isUncategorized ? "bg-muted-foreground/30" : color.bg
-								)}
-								style={{ width: `${isUncategorized ? 100 : Math.min(utilization, 100)}%` }}
+						{/* Progress Bar (linked categories show the plan's contribution room instead) */}
+						{isLinked && contributionPlan ? (
+							<ContributionRoomMeter
+								plan={contributionPlan}
+								pool={contributionPool}
+								budget={effectiveBudget}
+								color={color}
+								year={year}
+								formatCurrency={formatCurrency}
 							/>
-						</div>
+						) : (
+							<div className="h-1.5 w-full bg-muted rounded-full overflow-hidden mt-1">
+								<div
+									className={cn(
+										"h-full rounded-full transition-all duration-500",
+										!isUncategorized && isOverBudget
+											? "bg-error"
+											: isUncategorized
+												? "bg-muted-foreground/30"
+												: color.bg
+									)}
+									style={{ width: `${isUncategorized ? 100 : Math.min(utilization, 100)}%` }}
+								/>
+							</div>
+						)}
 					</div>
 
 					{/* Footer: Status and Actions */}
@@ -439,7 +540,7 @@ export function CategoryCard({ category, usedColors, usedNames }: CategoryCardPr
 						<div className="flex items-center text-xs font-medium">
 							{isUncategorized ? (
 								<span className="text-muted-foreground">Unbudgeted</span>
-							) : isOverBudget ? (
+							) : isLinked ? null : isOverBudget ? (
 								<span className="text-error flex items-center gap-1">{formatCurrency(amountRemainingOrOver)} over</span>
 							) : (
 								<span className="text-success">{formatCurrency(amountRemainingOrOver)} left</span>
@@ -485,7 +586,7 @@ export function CategoryCard({ category, usedColors, usedNames }: CategoryCardPr
 						</div>
 
 						{/* Warning icon if over budget - static visual marker */}
-						{!isEditing && !isUncategorized && isOverBudget && (
+						{!isEditing && !isUncategorized && !isLinked && isOverBudget && (
 							<div className="absolute right-4 bottom-4 pointer-events-none text-error opacity-80 group-hover:opacity-0 transition-opacity">
 								<AlertCircle className="h-3.5 w-3.5" />
 							</div>

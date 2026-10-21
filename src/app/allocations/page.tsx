@@ -10,6 +10,7 @@ import {
 	getIncomeVerification,
 } from "./actions";
 import { getAccountsForSelector } from "@/lib/actions/unified-transaction-actions";
+import { getAllocationContributions } from "@/lib/actions/contribution-actions";
 import { getAllocationSettings } from "@/app/settings/actions";
 import { AllocationsLoadingSkeleton } from "./components/allocations-loading-skeleton";
 import { isSampleDataMode } from "@/lib/demo-mode.server";
@@ -49,10 +50,11 @@ async function AllocationsLoader({ year, month }: { year: number; month: number 
 	let accounts: any[] = [];
 	let previousMonthData: { categoryCount: number; totalBudget: number; hasData: boolean } | null = null;
 
-	const [userSettings, userTemplates, incomeVerification] = await Promise.all([
+	const [userSettings, userTemplates, incomeVerification, contributions] = await Promise.all([
 		getAllocationSettings(),
 		getUserTemplates(),
 		getIncomeVerification(year, month),
+		getAllocationContributions(year, month),
 	]);
 
 	if (sampleMode) {
@@ -105,6 +107,7 @@ async function AllocationsLoader({ year, month }: { year: number; month: number 
 			initialSummary={summary}
 			initialTransactions={transactions}
 			initialAccounts={accounts}
+			initialContributions={contributions}
 			previousMonthData={previousMonthData}
 			incomeVerification={incomeVerification}
 			userSettings={userSettings}

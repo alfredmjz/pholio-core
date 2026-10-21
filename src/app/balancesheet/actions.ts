@@ -381,7 +381,9 @@ function buildSampleAccount(input: CreateAccountInput, id = `account-sample-${Da
 		target_balance: input.target_balance ?? null,
 		field_visibility: input.field_visibility ?? null,
 		track_contribution_room: input.track_contribution_room ?? false,
+		contribution_plan: input.contribution_plan ?? null,
 		contribution_room: input.contribution_room ?? null,
+		contribution_room_as_of: input.contribution_room_as_of ?? null,
 		annual_contribution_limit: input.annual_contribution_limit ?? null,
 		notes: input.notes ?? null,
 		color: input.color ?? null,
@@ -515,8 +517,6 @@ export async function recordTransaction(input: RecordTransactionInput): Promise<
 		.select(
 			`
 			current_balance,
-			track_contribution_room,
-			contribution_room,
 			account_type:account_types(class)
 		`
 		)
@@ -552,14 +552,9 @@ export async function recordTransaction(input: RecordTransactionInput): Promise<
 		}
 	}
 
-	let updateData: any = { current_balance: newBalance };
-	if (
-		account.track_contribution_room &&
-		input.transaction_type === "contribution" &&
-		account.contribution_room !== null
-	) {
-		updateData.contribution_room = account.contribution_room - input.amount;
-	}
+	// Contribution room is derived from the ledger by get_contribution_summaries(), so only
+	// the balance is stored here.
+	const updateData = { current_balance: newBalance };
 
 	const { data: transaction, error: transactionError } = await supabase
 		.from("account_transactions")

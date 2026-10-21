@@ -19,7 +19,8 @@ import type {
 	Transaction,
 	IncomeVerificationResult,
 } from "@/app/allocations/types";
-import type { AccountWithType } from "@/app/balancesheet/types";
+import type { AccountWithType, RegisteredPlan } from "@/app/balancesheet/types";
+import type { AllocationContributions } from "@/lib/types/contribution";
 import type { TransactionType } from "./TransactionTypeIcon";
 
 interface AllocationsDashboardViewProps {
@@ -33,6 +34,8 @@ interface AllocationsDashboardViewProps {
 	categories: AllocationCategory[];
 	transactions: Transaction[];
 	accounts: AccountWithType[];
+	contributions: AllocationContributions;
+	onContributionsChanged: () => void;
 
 	// State
 	typeFilter: TransactionType | null;
@@ -46,7 +49,12 @@ interface AllocationsDashboardViewProps {
 	// Dialog Handlers & State
 	addCategoryDialogOpen: boolean;
 	setAddCategoryDialogOpen: (open: boolean) => void;
-	handleAddCategorySubmit: (name: string, budgetCap: number, color?: string) => Promise<void>;
+	handleAddCategorySubmit: (
+		name: string,
+		budgetCap: number,
+		color?: string,
+		contributionPlan?: RegisteredPlan | null
+	) => Promise<void>;
 
 	templateDialogOpen: boolean;
 	setTemplateDialogOpen: (open: boolean) => void;
@@ -79,6 +87,8 @@ export function AllocationsDashboardView({
 	categories,
 	transactions,
 	accounts,
+	contributions,
+	onContributionsChanged,
 	typeFilter,
 	onMonthChange,
 	onExport,
@@ -149,6 +159,9 @@ export function AllocationsDashboardView({
 						onAddCategory={() => setAddCategoryDialogOpen(true)}
 						usedColors={usedColors}
 						usedNames={usedNames}
+						contributions={contributions}
+						year={currentMonth.year}
+						onContributionPlanChanged={onContributionsChanged}
 					/>
 				</div>
 
@@ -170,6 +183,9 @@ export function AllocationsDashboardView({
 				unallocatedFunds={summary.summary.unallocated_funds}
 				usedColors={usedColors}
 				usedNames={usedNames}
+				contributionPools={contributions.pools}
+				linkedPlans={Object.values(contributions.categoryPlans)}
+				year={currentMonth.year}
 			/>
 
 			<ImportTemplateDialog

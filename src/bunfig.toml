@@ -1,0 +1,5 @@
+# Unit tests for runtime calculations live in tests/ and run with `bun test`.
+# Playwright E2E specs stay in e2e/ and run with `bun run e2e`; keeping the roots apart stops
+# Bun from picking up the *.spec.ts files.
+[test]
+root = "./tests"

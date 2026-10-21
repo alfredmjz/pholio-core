@@ -1,18 +1,31 @@
 "use server";
 
 import { createClient } from "@/lib/supabase/server";
-import type { DashboardData, CashflowSummary, AllCashflowData, NetWorthData, Transaction, Period } from "./types";
 import { Logger } from "@/lib/logger";
 import { isSampleDataMode } from "@/lib/demo-mode.server";
-import { getSampleDashboardData, getSampleRecentTransactions } from "@/mock-data/dashboard";
+import { getTodayDateString, parseLocalDate } from "@/lib/date-utils";
+import { getSampleDashboardData } from "@/mock-data/dashboard";
+import { getTimezone } from "@/app/settings/actions";
+import { getAllocationSummary, getHistoricalPace } from "@/app/allocations/actions";
+import { getRecurringExpenses, type RecurringExpense } from "@/app/recurring/actions";
+import type { AccountWithType } from "@/app/balancesheet/types";
+import type { AllocationSummary } from "@/app/allocations/types";
+import type { DashboardAccount, DashboardData, Transaction } from "./types";
+import { buildNetWorthSeries, rangeStartDate, type BalanceRecord } from "./net-worth-series";
+import { computeMonthPace } from "./month-pace";
+import { buildMonthlyCashflow, cashflowWindowStart, isTransfer } from "./cashflow";
+import { buildHeadsUp, selectUpcomingBills, type BillInput, type HeadsUpPromotion } from "./heads-up";
+
+const CASHFLOW_MONTHS = 6;
+const RECENT_LIMIT = 8;
 
 /**
- * Fetch all dashboard data for the current user
+ * Fetch all dashboard data for the current user.
+ * Reads only: nothing here creates allocations or syncs recurring items.
  */
 export async function getDashboardData(): Promise<DashboardData> {
-	// Handle sample data / demo mode
 	if (await isSampleDataMode()) {
-		return getSampleDashboardData();
+		return getSampleDashboardData(undefined, (await getRecurringExpenses()).map(toBillInput));
 	}
 
 	const supabase = await createClient();
@@ -20,104 +33,139 @@ export async function getDashboardData(): Promise<DashboardData> {
 		data: { user },
 	} = await supabase.auth.getUser();
 
+	const timezone = user ? await getTimezone() : null;
+	const today = getTodayDateString(timezone ?? undefined);
+
 	if (!user) {
-		return getEmptyDashboardData();
+		return getEmptyDashboardData(today);
 	}
 
-	// Fetch accounts with their types for net worth calculation
-	const { data: accounts } = await supabase
-		.from("accounts")
-		.select(`*, account_type:account_types(*)`)
-		.eq("user_id", user.id)
-		.eq("is_active", true);
+	const todayDate = parseLocalDate(today);
+	const year = todayDate.getFullYear();
+	const month = todayDate.getMonth() + 1;
 
-	// Fetch categories for the dashboard transaction dialog
-	const { data: categories } = await supabase
-		.from("allocation_categories")
-		.select("*")
-		.eq("user_id", user.id);
+	const [accountsResult, historyResult, transactionsResult, allocationResult, promotionsResult] = await Promise.all([
+		supabase.from("accounts").select(`*, account_type:account_types(*)`).eq("user_id", user.id).eq("is_active", true),
+		supabase
+			.from("account_history")
+			.select("account_id, balance, recorded_at")
+			.eq("user_id", user.id)
+			.gte("recorded_at", rangeStartDate("1Y", today))
+			.order("recorded_at", { ascending: true }),
+		supabase
+			.from("transactions")
+			.select("amount, transaction_date, source")
+			.eq("user_id", user.id)
+			.gte("transaction_date", cashflowWindowStart(today, CASHFLOW_MONTHS))
+			.lte("transaction_date", today),
+		supabase.from("allocations").select("id").eq("user_id", user.id).eq("year", year).eq("month", month).maybeSingle(),
+		supabase
+			.from("account_promotions")
+			.select(
+				"id, account_id, promotion_type, target_amount, current_amount, reward_description, end_date, is_completed, account:accounts(name)"
+			)
+			.eq("user_id", user.id)
+			.eq("is_completed", false)
+			.gte("end_date", today),
+	]);
 
-	// Fetch account history for trend data
-	const { data: history } = await supabase
-		.from("account_history")
-		.select("balance, recorded_at")
-		.eq("user_id", user.id)
-		.order("recorded_at", { ascending: true })
-		.limit(180); // ~6 months of daily data
+	for (const [label, result] of Object.entries({
+		accounts: accountsResult,
+		history: historyResult,
+		transactions: transactionsResult,
+		allocation: allocationResult,
+		promotions: promotionsResult,
+	})) {
+		if (result.error) Logger.error(`Dashboard: error fetching ${label}`, { error: result.error });
+	}
 
-	// Compute net worth from accounts
-	const netWorthData = computeNetWorthFromAccounts(accounts || [], history || []);
+	const accounts = (accountsResult.data ?? []) as AccountWithType[];
+	const allocationId = (allocationResult.data as { id: string } | null)?.id;
 
-	// Get current month transactions for metrics
-	const now = new Date();
-	const startOfMonth = `${now.getFullYear()}-${String(now.getMonth() + 1).padStart(2, "0")}-01`;
-	const { data: monthlyTxs } = await supabase
-		.from("transactions")
-		.select("amount, transaction_date, source, name, notes")
-		.eq("user_id", user.id)
-		.gte("transaction_date", startOfMonth);
+	const [summary, typicalPace, recurring, recentTransactions] = await Promise.all([
+		allocationId ? getAllocationSummary(allocationId) : Promise.resolve<AllocationSummary | null>(null),
+		getHistoricalPace(year, month),
+		getRecurringExpenses(),
+		getRecentTransactions(RECENT_LIMIT),
+	]);
 
-	// Compute metrics from transactions
-	const metrics = computeMetrics(monthlyTxs || [], netWorthData.netWorth);
+	const balanceAccounts = accounts.map((a) => ({
+		id: a.id,
+		class: a.account_type?.class === "liability" ? ("liability" as const) : ("asset" as const),
+		balance: Number(a.current_balance),
+	}));
+	const records: BalanceRecord[] = (historyResult.data ?? []).map((h) => ({
+		accountId: h.account_id,
+		balance: Number(h.balance),
+		date: String(h.recorded_at).slice(0, 10),
+	}));
+	const history = buildNetWorthSeries(balanceAccounts, records, today);
+	const latest = history[history.length - 1];
 
-	// Compute cashflow data from historical transactions
-	const cashflow = await computeCashflowData(supabase, user.id);
+	const transactions = (transactionsResult.data ?? []).map((t) => ({
+		date: String(t.transaction_date).slice(0, 10),
+		amount: Number(t.amount),
+		source: t.source as string | null,
+	}));
 
-	// Get recent transactions
-	const recentTransactions = await getRecentTransactions(10);
+	const monthPrefix = today.slice(0, 7);
+	const monthPace =
+		summary && summary.summary.total_budget_caps > 0
+			? computeMonthPace({
+					year,
+					month,
+					today,
+					budget: Number(summary.summary.total_budget_caps),
+					expenses: transactions
+						.filter((t) => t.amount < 0 && !isTransfer(t) && t.date.startsWith(monthPrefix))
+						.map((t) => ({ date: t.date, amount: Math.abs(t.amount) })),
+					typicalCurve: typicalPace.hasEnoughData ? typicalPace.dailyAmounts : null,
+				})
+			: null;
+
+	const bills = recurring.map(toBillInput);
+
+	const promotions: HeadsUpPromotion[] = (promotionsResult.data ?? []).map((p: any) => ({
+		id: p.id,
+		accountId: p.account_id,
+		accountName: p.account?.name ?? "this account",
+		type: p.promotion_type,
+		target: Number(p.target_amount),
+		current: Number(p.current_amount),
+		reward: p.reward_description,
+		endDate: String(p.end_date).slice(0, 10),
+		isCompleted: Boolean(p.is_completed),
+	}));
+
+	const categories = summary?.categories ?? [];
 
 	return {
-		metrics,
-		cashflow,
-		netWorth: netWorthData,
+		today,
+		netWorth: {
+			current: latest.value,
+			totalAssets: latest.assets,
+			totalLiabilities: latest.liabilities,
+			history,
+		},
+		accountsSummary: accounts.map(toDashboardAccount),
+		monthPace,
+		cashflow: buildMonthlyCashflow(transactions, today, CASHFLOW_MONTHS),
+		upcomingBills: selectUpcomingBills(bills, today),
+		headsUp: buildHeadsUp({
+			today,
+			bills,
+			categories: categories.map((c) => ({
+				id: c.id,
+				name: c.name,
+				budget: Number(c.budget_cap),
+				spent: Number(c.actual_spend),
+			})),
+			promotions,
+		}),
 		recentTransactions,
-		accounts: (accounts as any[]) || [],
-		categories: (categories as any[]) || [],
+		accounts,
+		categories,
 	};
-}
-
-/**
- * Fetch cashflow data for a specific period
- */
-export async function getCashflowData(period: Period): Promise<CashflowSummary> {
-	const supabase = await createClient();
-	const {
-		data: { user },
-	} = await supabase.auth.getUser();
-
-	if (!user) {
-		return getEmptyCashflowData(period);
-	}
-
-	// If explicitly asked for sample data
-	if (await isSampleDataMode()) {
-		return getSampleDashboardData().cashflow[period];
-	}
-
-	// Return empty data until implemented
-	return getEmptyCashflowData(period);
-}
-
-/**
- * Fetch net worth data
- */
-export async function getNetWorthData(): Promise<NetWorthData> {
-	const supabase = await createClient();
-	const {
-		data: { user },
-	} = await supabase.auth.getUser();
-
-	if (!user) {
-		return getEmptyNetWorthData();
-	}
-
-	// If explicitly asked for sample data
-	if (await isSampleDataMode()) {
-		return getSampleDashboardData().netWorth;
-	}
-
-	// Return empty data until implemented
-	return getEmptyNetWorthData();
 }
 
 /**
@@ -133,7 +181,6 @@ export async function getRecentTransactions(limit: number = 10): Promise<Transac
 		return [];
 	}
 
-	// Query actual transactions from the database
 	const { data: transactions, error } = await supabase
 		.from("transactions")
 		.select(
@@ -143,301 +190,68 @@ export async function getRecentTransactions(limit: number = 10): Promise<Transac
 			amount,
 			transaction_date,
 			source,
-			notes,
 			allocation_categories (
-				name,
-				color
+				name
 			)
 		`
 		)
 		.eq("user_id", user.id)
 		.order("transaction_date", { ascending: false })
+		.order("created_at", { ascending: false })
 		.limit(limit);
 
 	if (error || !transactions) {
 		Logger.error("Error fetching transactions", { error });
-		if (await isSampleDataMode()) {
-			return getSampleRecentTransactions();
-		}
 		return [];
 	}
 
-	return transactions.map((t: any) => {
-		const isTransfer = isTransferTransaction(t);
-		return {
-			id: t.id,
-			date: t.transaction_date,
-			description: t.name,
-			category: t.allocation_categories?.name || "Uncategorized",
-			amount: Math.abs(t.amount),
-			type: t.amount > 0 && !isTransfer ? ("income" as const) : ("expense" as const),
-		};
-	});
-}
-
-// ============================================================================
-// Helper Functions - Compute Real Data
-// ============================================================================
-
-interface AccountWithType {
-	id: string;
-	current_balance: number;
-	account_type: {
-		class: "asset" | "liability";
-		category: string;
-		name: string;
-	} | null;
-	name: string;
-}
-
-interface HistoryRecord {
-	balance: number;
-	recorded_at: string;
-}
-
-interface TransactionRecord {
-	amount: number;
-	transaction_date: string;
-	source?: string;
-	name?: string;
-	notes?: string;
-}
-
-function isTransferTransaction(t: TransactionRecord): boolean {
-	if (t.source === "transfer") return true;
-	const name = (t.name || "").toLowerCase();
-	const notes = (t.notes || "").toLowerCase();
-	return name.includes("transfer") || notes.includes("transfer");
-}
-
-/**
- * Compute net worth data from accounts and history
- */
-function computeNetWorthFromAccounts(accounts: AccountWithType[], history: HistoryRecord[]): NetWorthData {
-	const assetAccounts = accounts.filter((a) => a.account_type?.class === "asset");
-	const liabilityAccounts = accounts.filter((a) => a.account_type?.class === "liability");
-
-	const totalAssets = assetAccounts.reduce((sum, a) => sum + Number(a.current_balance), 0);
-	const totalLiabilities = liabilityAccounts.reduce((sum, a) => sum + Number(a.current_balance), 0);
-	const netWorth = totalAssets - totalLiabilities;
-
-	// Group accounts by category for breakdown
-	const assetBreakdown = groupAccountsByCategory(assetAccounts);
-	const liabilityBreakdown = groupAccountsByCategory(liabilityAccounts);
-
-	// Compute trend data from history (aggregate by month)
-	const trendData = computeTrendData(history);
-
-	return {
-		netWorth,
-		totalAssets,
-		totalLiabilities,
-		assetBreakdown,
-		liabilityBreakdown,
-		trendData,
-	};
-}
-
-function groupAccountsByCategory(accounts: AccountWithType[]) {
-	const grouped: Record<string, { category: string; value: number; accounts: { name: string; value: number }[] }> = {};
-
-	for (const account of accounts) {
-		const category = account.account_type?.category || "other";
-		if (!grouped[category]) {
-			grouped[category] = { category, value: 0, accounts: [] };
-		}
-		grouped[category].value += Number(account.current_balance);
-		grouped[category].accounts.push({
-			name: account.name,
-			value: Number(account.current_balance),
-		});
-	}
-
-	return Object.values(grouped);
-}
-
-function computeTrendData(history: HistoryRecord[]): { date: string; value: number }[] {
-	if (history.length === 0) return [];
-
-	// Group by month and sum balances
-	const monthlyTotals: Record<string, number> = {};
-	for (const h of history) {
-		const month = h.recorded_at.substring(0, 7); // YYYY-MM
-		monthlyTotals[month] = (monthlyTotals[month] || 0) + Number(h.balance);
-	}
-
-	// Take last 6 months
-	const sortedMonths = Object.keys(monthlyTotals).sort().slice(-6);
-	return sortedMonths.map((month) => ({
-		date: new Date(month + "-01").toLocaleDateString("en-US", { month: "short" }),
-		value: monthlyTotals[month],
+	return transactions.map((t: any) => ({
+		id: t.id,
+		date: String(t.transaction_date).slice(0, 10),
+		description: t.name,
+		category: isTransfer(t) ? "Transfer" : t.allocation_categories?.name || "Uncategorized",
+		amount: Math.abs(Number(t.amount)),
+		type: isTransfer(t) ? ("transfer" as const) : t.amount > 0 ? ("income" as const) : ("expense" as const),
 	}));
 }
 
-/**
- * Compute metrics from monthly transactions
- */
-function computeMetrics(transactions: TransactionRecord[], netWorth: number): DashboardData["metrics"] {
-	const monthlyIncome = transactions
-		.filter((t) => t.amount > 0 && !isTransferTransaction(t))
-		.reduce((sum, t) => sum + Number(t.amount), 0);
-
-	const monthlyExpenses = transactions
-		.filter((t) => t.amount < 0 && !isTransferTransaction(t))
-		.reduce((sum, t) => sum + Math.abs(Number(t.amount)), 0);
-
-	const savingsRate = monthlyIncome - monthlyExpenses;
-
+function toBillInput(expense: RecurringExpense): BillInput {
 	return {
-		netWorth: { label: "Net Worth", value: netWorth },
-		monthlyIncome: { label: "Monthly Income", value: monthlyIncome },
-		monthlyExpenses: { label: "Monthly Expenses", value: monthlyExpenses },
-		savingsRate: { label: "Savings Rate", value: savingsRate },
+		id: expense.id,
+		name: expense.name,
+		amount: Number(expense.amount),
+		dueDate: expense.next_due_date,
+		status: expense.status,
+		isActive: expense.is_active,
+		serviceProvider: expense.service_provider,
 	};
 }
 
-/**
- * Compute cashflow data from historical transactions
- */
-async function computeCashflowData(
-	supabase: Awaited<ReturnType<typeof createClient>>,
-	userId: string
-): Promise<AllCashflowData> {
-	const now = new Date();
-
-	// Fetch last 12 months of transactions for all periods
-	const startDate = new Date(now.getFullYear() - 1, now.getMonth(), 1);
-	const { data: transactions } = await supabase
-		.from("transactions")
-		.select("amount, transaction_date, source, name, notes")
-		.eq("user_id", userId)
-		.gte("transaction_date", startDate.toISOString().split("T")[0])
-		.order("transaction_date", { ascending: true });
-
-	const txs = transactions || [];
-
+function toDashboardAccount(account: AccountWithType): DashboardAccount {
 	return {
-		month: computeCashflowForPeriod(txs, "month"),
-		quarter: computeCashflowForPeriod(txs, "quarter"),
-		year: computeCashflowForPeriod(txs, "year"),
+		id: account.id,
+		name: account.name,
+		institution: account.institution,
+		typeName: account.account_type?.name ?? "Account",
+		class: account.account_type?.class === "liability" ? "liability" : "asset",
+		balance: Number(account.current_balance),
 	};
 }
 
-function computeCashflowForPeriod(transactions: TransactionRecord[], period: Period): CashflowSummary {
-	const now = new Date();
-	const grouped: Record<string, { income: number; expenses: number }> = {};
-
-	for (const tx of transactions) {
-		if (isTransferTransaction(tx)) {
-			// Skip internal transfers from income and expenses totals
-			continue;
-		}
-
-		const date = new Date(tx.transaction_date);
-		let key: string;
-		let label: string;
-
-		if (period === "month") {
-			key = `${date.getFullYear()}-${String(date.getMonth() + 1).padStart(2, "0")}`;
-			label = date.toLocaleDateString("en-US", { month: "short" });
-		} else if (period === "quarter") {
-			const quarter = Math.floor(date.getMonth() / 3) + 1;
-			key = `${date.getFullYear()}-Q${quarter}`;
-			label = `Q${quarter} ${date.getFullYear()}`;
-		} else {
-			key = String(date.getFullYear());
-			label = String(date.getFullYear());
-		}
-
-		if (!grouped[key]) {
-			grouped[key] = { income: 0, expenses: 0 };
-		}
-
-		if (tx.amount > 0) {
-			grouped[key].income += Number(tx.amount);
-		} else {
-			grouped[key].expenses += Math.abs(Number(tx.amount));
-		}
-	}
-
-	// Convert to array and take last N entries based on period
-	const limit = period === "month" ? 6 : period === "quarter" ? 4 : 3;
-	const sortedKeys = Object.keys(grouped).sort().slice(-limit);
-
-	const data = sortedKeys.map((key) => {
-		let label: string;
-		if (period === "month") {
-			const [year, month] = key.split("-");
-			label = new Date(Number(year), Number(month) - 1).toLocaleDateString("en-US", { month: "short" });
-		} else if (period === "quarter") {
-			label = key.replace("-", " ");
-		} else {
-			label = key;
-		}
-
-		return {
-			date: key,
-			label,
-			income: grouped[key].income,
-			expenses: grouped[key].expenses,
-		};
-	});
-
-	const totalIncome = data.reduce((sum, d) => sum + d.income, 0);
-	const totalExpenses = data.reduce((sum, d) => sum + d.expenses, 0);
-
+function getEmptyDashboardData(today: string): DashboardData {
 	return {
-		totalIncome,
-		totalExpenses,
-		netCashflow: totalIncome - totalExpenses,
-		period,
-		data,
-	};
-}
-
-// ============================================================================
-// Helper Functions - Empty Data
-// ============================================================================
-
-function getEmptyDashboardData(): DashboardData {
-	return {
-		metrics: {
-			netWorth: { label: "Net Worth", value: 0 },
-			monthlyIncome: { label: "Monthly Income", value: 0 },
-			monthlyExpenses: { label: "Monthly Expenses", value: 0 },
-			savingsRate: { label: "Savings Rate", value: 0 },
+		today,
+		netWorth: {
+			current: 0,
+			totalAssets: 0,
+			totalLiabilities: 0,
+			history: [{ date: today, value: 0, assets: 0, liabilities: 0 }],
 		},
-		cashflow: getEmptyAllCashflowData(),
-		netWorth: getEmptyNetWorthData(),
+		accountsSummary: [],
+		monthPace: null,
+		cashflow: buildMonthlyCashflow([], today, CASHFLOW_MONTHS),
+		upcomingBills: [],
+		headsUp: [],
 		recentTransactions: [],
-	};
-}
-
-function getEmptyCashflowData(period: Period): CashflowSummary {
-	return {
-		totalIncome: 0,
-		totalExpenses: 0,
-		netCashflow: 0,
-		period,
-		data: [],
-	};
-}
-
-function getEmptyAllCashflowData(): AllCashflowData {
-	return {
-		month: getEmptyCashflowData("month"),
-		quarter: getEmptyCashflowData("quarter"),
-		year: getEmptyCashflowData("year"),
-	};
-}
-
-function getEmptyNetWorthData(): NetWorthData {
-	return {
-		netWorth: 0,
-		totalAssets: 0,
-		totalLiabilities: 0,
-		assetBreakdown: [],
-		liabilityBreakdown: [],
-		trendData: [],
 	};
 }

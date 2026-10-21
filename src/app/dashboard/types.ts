@@ -1,82 +1,14 @@
 /**
  * Dashboard Types
- * Defines all TypeScript interfaces for dashboard data structures
+ * Everything the dashboard page renders, assembled on the server by `getDashboardData`.
  */
 
 import type { AccountWithType } from "@/app/balancesheet/types";
 import type { AllocationCategory } from "@/app/allocations/types";
-
-export type Period = "month" | "quarter" | "year";
-
-export type ChartType = "donut" | "trend";
-
-export type TrendDirection = "up" | "down" | "neutral";
-
-export interface Trend {
-	value: number;
-	direction: TrendDirection;
-	period: string; // e.g., "vs last month"
-}
-
-export interface MetricCardData {
-	label: string;
-	value: number;
-	trend?: Trend;
-	icon?: React.ComponentType<{ className?: string }>;
-	variant?: "default" | "success" | "error" | "warning" | "info";
-}
-
-export interface CashflowDataPoint {
-	date: string; // YYYY-MM-DD or YYYY-MM or YYYY
-	label: string; // e.g., "Jan", "Q1", "2024"
-	income: number;
-	expenses: number;
-}
-
-export interface CashflowSummary {
-	totalIncome: number;
-	totalExpenses: number;
-	netCashflow: number;
-	period: Period;
-	data: CashflowDataPoint[];
-}
-
-export interface AllCashflowData {
-	month: CashflowSummary;
-	quarter: CashflowSummary;
-	year: CashflowSummary;
-}
-
-export interface AssetBreakdown {
-	category: string;
-	value: number;
-	accounts: {
-		name: string;
-		value: number;
-	}[];
-}
-
-export interface LiabilityBreakdown {
-	category: string;
-	value: number;
-	accounts: {
-		name: string;
-		value: number;
-	}[];
-}
-
-export interface NetWorthData {
-	netWorth: number;
-	totalAssets: number;
-	totalLiabilities: number;
-	trend?: Trend;
-	assetBreakdown: AssetBreakdown[];
-	liabilityBreakdown: LiabilityBreakdown[];
-	trendData?: {
-		date: string;
-		value: number;
-	}[];
-}
+import type { NetWorthPoint } from "./net-worth-series";
+import type { MonthPace } from "./month-pace";
+import type { CashflowMonth } from "./cashflow";
+import type { HeadsUpItem, UpcomingBill } from "./heads-up";
 
 export interface Transaction {
 	id: string;
@@ -84,19 +16,35 @@ export interface Transaction {
 	description: string;
 	category: string;
 	amount: number;
-	type: "income" | "expense";
+	type: "income" | "expense" | "transfer";
 	account?: string;
 }
 
+export interface DashboardAccount {
+	id: string;
+	name: string;
+	institution: string | null;
+	typeName: string;
+	class: "asset" | "liability";
+	balance: number;
+}
+
 export interface DashboardData {
-	metrics: {
-		netWorth: MetricCardData;
-		monthlyIncome: MetricCardData;
-		monthlyExpenses: MetricCardData;
-		savingsRate: MetricCardData;
+	/** YYYY-MM-DD the data was computed for. */
+	today: string;
+	netWorth: {
+		current: number;
+		totalAssets: number;
+		totalLiabilities: number;
+		/** Up to a year of history, ending today. */
+		history: NetWorthPoint[];
 	};
-	cashflow: AllCashflowData;
-	netWorth: NetWorthData;
+	accountsSummary: DashboardAccount[];
+	/** Null when there is no budget for this month yet. */
+	monthPace: MonthPace | null;
+	cashflow: CashflowMonth[];
+	upcomingBills: UpcomingBill[];
+	headsUp: HeadsUpItem[];
 	recentTransactions: Transaction[];
 	/** Raw account/category lists for the dashboard's transaction dialog. */
 	accounts?: AccountWithType[];

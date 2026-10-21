@@ -1,0 +1,174 @@
+/*
+ * Dashboard visual language: "Running thread".
+ * The login's plotter lines keep drifting behind the whole page, and the user's own net worth
+ * is drawn as the one solid line among them. Content sits on translucent sheets so the lines
+ * stay faintly visible without competing with the numbers.
+ * Scoped to the pages that import this file.
+ */
+
+.dash {
+	--ledger-ink: 44, 40, 34;
+	--ledger-tint: 15, 107, 80;
+	--ledger-strength: 1;
+	--dash-sheet-radius: 22px;
+}
+
+.dark .dash {
+	--ledger-ink: 236, 228, 212;
+	--ledger-tint: 94, 214, 170;
+	--ledger-strength: 0.5;
+}
+
+/* ---------------------------------------------------------------- backdrop */
+
+/* Sticky + negative margin keeps the canvas pinned to the visible area while the page scrolls. */
+.dash-backdrop {
+	position: sticky;
+	top: 0;
+	z-index: 0;
+	height: 100dvh;
+	margin-bottom: -100dvh;
+	overflow: hidden;
+	pointer-events: none;
+	-webkit-mask-image: linear-gradient(to bottom, black 0%, black 70%, transparent 100%);
+	mask-image: linear-gradient(to bottom, black 0%, black 70%, transparent 100%);
+}
+
+.dash-backdrop-canvas {
+	display: block;
+	width: 100%;
+	height: 100%;
+	mix-blend-mode: multiply;
+}
+
+.dark .dash-backdrop-canvas {
+	mix-blend-mode: screen;
+}
+
+/* ------------------------------------------------------------------ sheets */
+
+.dash-sheet {
+	position: relative;
+	min-width: 0;
+	border: 1px solid hsl(var(--border) / 0.85);
+	border-radius: var(--dash-sheet-radius);
+	background: hsl(var(--card) / 0.8);
+	box-shadow: var(--shadow-card);
+	-webkit-backdrop-filter: blur(12px) saturate(1.15);
+	backdrop-filter: blur(12px) saturate(1.15);
+}
+
+.dash-sheet-pad {
+	padding: 20px;
+}
+
+@media (min-width: 768px) {
+	.dash-sheet-pad {
+		padding: 24px 26px;
+	}
+}
+
+/* --------------------------------------------------------------- the figure */
+
+.dash-figure {
+	display: flex;
+	align-items: flex-start;
+	font-size: clamp(2.75rem, 9vw, 5.5rem);
+	font-weight: 560;
+	line-height: 0.95;
+	letter-spacing: -0.05em;
+	font-variant-numeric: tabular-nums;
+	color: hsl(var(--foreground));
+}
+
+.dash-figure-cents {
+	margin-left: 0.06em;
+	padding-top: 0.12em;
+	font-size: 0.38em;
+	font-weight: 500;
+	letter-spacing: -0.01em;
+	color: hsl(var(--text-muted));
+}
+
+/* -------------------------------------------------------------- the thread */
+
+.dash-thread {
+	touch-action: pan-y;
+	cursor: crosshair;
+	outline: none;
+}
+
+.dash-thread:focus-visible {
+	border-radius: 12px;
+	box-shadow: 0 0 0 2px hsl(var(--ring) / 0.6);
+}
+
+.dash-thread-line {
+	fill: none;
+	stroke: hsl(var(--foreground));
+	stroke-width: 2;
+	stroke-linecap: round;
+	stroke-linejoin: round;
+	stroke-dasharray: 1;
+	stroke-dashoffset: 1;
+	animation: dash-draw 1.5s cubic-bezier(0.3, 1, 0.35, 1) 0.1s forwards;
+}
+
+.dash-thread-shadow {
+	stroke: hsl(var(--foreground) / 0.1);
+	stroke-width: 7;
+}
+
+.dash-thread-baseline {
+	stroke: hsl(var(--foreground) / 0.28);
+	stroke-width: 1;
+	stroke-dasharray: 3 5;
+}
+
+.dash-thread-scrub {
+	stroke: hsl(var(--foreground) / 0.35);
+	stroke-width: 1;
+}
+
+.dash-live-dot {
+	fill: hsl(var(--accent));
+	stroke: hsl(var(--card));
+	stroke-width: 2;
+}
+
+.dash-live-ring {
+	fill: hsl(var(--accent) / 0.22);
+	transform-box: fill-box;
+	transform-origin: center;
+	animation: dash-ring 2.8s ease-out 1.6s infinite;
+	opacity: 0;
+}
+
+@keyframes dash-draw {
+	to {
+		stroke-dashoffset: 0;
+	}
+}
+
+@keyframes dash-ring {
+	0% {
+		opacity: 0.9;
+		transform: scale(0.6);
+	}
+	70%,
+	100% {
+		opacity: 0;
+		transform: scale(2.4);
+	}
+}
+
+@media (prefers-reduced-motion: reduce) {
+	.dash-thread-line {
+		animation: none;
+		stroke-dashoffset: 0;
+	}
+
+	.dash-live-ring {
+		animation: none;
+	}
+}

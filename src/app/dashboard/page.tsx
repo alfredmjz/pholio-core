@@ -1,7 +1,6 @@
 import { getDashboardData } from "./actions";
 import { DashboardClient } from "./client";
-import { getSampleDashboardData } from "@/mock-data/dashboard";
-import { isSampleDataMode } from "@/lib/demo-mode.server";
+import { getUserProfile } from "@/lib/getUserProfile";
 
 export const metadata = {
 	title: "Dashboard | Pholio",
@@ -9,16 +8,8 @@ export const metadata = {
 };
 
 export default async function DashboardPage() {
-	let dashboardData;
-	if (await isSampleDataMode()) {
-		dashboardData = getSampleDashboardData();
-	} else {
-		dashboardData = await getDashboardData();
-	}
+	const [dashboardData, profile] = await Promise.all([getDashboardData(), getUserProfile()]);
+	const firstName = profile?.full_name?.trim().split(/\s+/)[0] || null;
 
-	return (
-		<div className="flex-1 w-full flex flex-col gap-6 p-4 md:p-6">
-			<DashboardClient initialData={dashboardData} />
-		</div>
-	);
+	return <DashboardClient initialData={dashboardData} firstName={firstName} />;
 }

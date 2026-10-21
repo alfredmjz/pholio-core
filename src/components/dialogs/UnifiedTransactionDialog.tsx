@@ -41,6 +41,7 @@ import { getTodayDateString, parseLocalDate, formatDateString } from "@/lib/date
 import { handleEnterSubmit } from "@/lib/enter-submit";
 import { VIRTUAL_UNCATEGORIZED_ID } from "@/app/allocations/types";
 import { formatAccountDisplayName, sortAccounts } from "@/lib/account-utils";
+import { getAccountTransactionTypeOptions, getDefaultAccountTransactionType } from "@/lib/account-transaction-types";
 import { compareAlphabetically, sortAlphabetically } from "@/lib/sort-utils";
 import { ManagePresetsDialog } from "./ManagePresetsDialog";
 import { isDemoModeActive } from "@/lib/demo-mode";
@@ -156,7 +157,12 @@ export function UnifiedTransactionDialog({
 			if (defaultAmount && defaultAmount > 0) {
 				setAmount(defaultAmount.toFixed(2));
 			}
-			setTransactionType(defaultType === "income" ? "deposit" : "withdrawal");
+			setTransactionType(
+				getDefaultAccountTransactionType(
+					accounts.find((a) => a.id === defaultAccountId)?.account_type?.class === "liability",
+					defaultType === "income" ? "income" : "expense"
+				)
+			);
 			setNotes("");
 			setSuggestedAccountInfo(null);
 			setErrors({});
@@ -181,13 +187,17 @@ export function UnifiedTransactionDialog({
 		setSelectedDatesMap({});
 	}, [selectedPresetId]);
 
+	// The account type options depend on the selected account's class; reset an option that no
+	// longer applies when the intent or the account changes.
+	const accountIsLiability = accounts.find((a) => a.id === accountId)?.account_type?.class === "liability";
+	const transactionTypeOptions = type === "transfer" ? [] : getAccountTransactionTypeOptions(accountIsLiability, type);
+
 	useEffect(() => {
-		if (type === "income" && !["deposit", "contribution", "refund"].includes(transactionType)) {
-			setTransactionType("deposit");
-		} else if (type === "expense" && !["withdrawal", "payment", "interest"].includes(transactionType)) {
-			setTransactionType("withdrawal");
+		if (type === "transfer") return;
+		if (!transactionTypeOptions.some((option) => option.value === transactionType)) {
+			setTransactionType(getDefaultAccountTransactionType(accountIsLiability, type));
 		}
-	}, [type]);
+	}, [type, accountIsLiability, transactionType]);
 
 	useEffect(() => {
 		if (type === "transfer" || !categoryId || categoryId === VIRTUAL_UNCATEGORIZED_ID) {
@@ -500,19 +510,11 @@ export function UnifiedTransactionDialog({
 												<SelectValue placeholder="Select type" />
 											</SelectTrigger>
 											<SelectContent>
-												{type === "income" ? (
-													<>
-														<SelectItem value="contribution">➕ Contribution</SelectItem>
-														<SelectItem value="deposit">💰 Deposit</SelectItem>
-														<SelectItem value="refund">🔄 Refund</SelectItem>
-													</>
-												) : (
-													<>
-														<SelectItem value="interest">📈 Interest</SelectItem>
-														<SelectItem value="payment">💳 Payment</SelectItem>
-														<SelectItem value="withdrawal">💸 Withdrawal</SelectItem>
-													</>
-												)}
+												{transactionTypeOptions.map((option) => (
+													<SelectItem key={option.value} value={option.value}>
+														{option.label}
+													</SelectItem>
+												))}
 											</SelectContent>
 										</Select>
 									</div>

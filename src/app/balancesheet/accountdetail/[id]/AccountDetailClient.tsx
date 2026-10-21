@@ -196,6 +196,7 @@ export function AccountDetailClient({
 						<ActivityCard
 							transactions={transactions}
 							isLoading={isLoadingTransactions}
+							isLiability={accountClass === "liability"}
 							formatCurrency={formatCurrency}
 							onTransactionClick={handleTransactionClick}
 						/>
@@ -205,6 +206,7 @@ export function AccountDetailClient({
 					<div className="w-full lg:w-80 flex flex-col gap-6 shrink-0">
 						{/* Quick Actions */}
 						<QuickActionsCard
+							isLiability={accountClass === "liability"}
 							onAddDeposit={handleRecordDeposit}
 							onRecordWithdrawal={handleRecordWithdrawal}
 							onEditDetails={() => setEditDialogOpen(true)}

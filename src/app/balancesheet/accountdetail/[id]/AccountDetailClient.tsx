@@ -14,6 +14,7 @@ import { UnifiedTransactionDialog } from "@/components/dialogs/UnifiedTransactio
 import { BalanceCard } from "./components/BalanceCard";
 import { AccountStandingCard } from "./components/AccountStandingCard";
 import { PromotionsTrackerCard } from "./components/PromotionsTrackerCard";
+import { ContributionRoomCard } from "./components/ContributionRoomCard";
 import { QuickActionsCard } from "./components/QuickActionsCard";
 import { InsightsCard } from "./components/InsightsCard";
 import { PerformanceCard } from "./components/PerformanceCard";
@@ -25,6 +26,7 @@ import { AccountTransactionDialog } from "./components/AccountTransactionDialog"
 
 import { deleteAccount, getAccountTransactions, getAccountById } from "../../actions";
 import { useServerSyncedData } from "@/hooks/useServerSyncedData";
+import { isInvestmentAccount } from "@/lib/account-validation-utils";
 import type { AccountWithType, AccountTransaction } from "../../types";
 
 interface AccountDetailClientProps {
@@ -180,6 +182,11 @@ export function AccountDetailClient({
 								setTransactionDialogOpen(true);
 							}}
 						/>
+
+						{/* Investment deposits and contribution room */}
+						{(isInvestmentAccount(account) || account.track_contribution_room) && (
+							<ContributionRoomCard account={account} transactions={transactions} formatCurrency={formatCurrency} />
+						)}
 
 						{/* Welcome Bonuses & Promotions Tracker */}
 						<PromotionsTrackerCard accountId={account.id} formatCurrency={formatCurrency} />

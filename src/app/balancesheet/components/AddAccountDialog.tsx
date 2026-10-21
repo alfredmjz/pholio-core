@@ -29,6 +29,16 @@ import { ProminentAmountInput } from "@/components/ProminentAmountInput";
 import { Switch } from "@/components/ui/switch";
 import { getFieldVisibility } from "../field-visibility";
 import { AccountFieldConfigurator } from "./AccountFieldConfigurator";
+import { ContributionRoomFields } from "./ContributionRoomFields";
+import {
+	EMPTY_CONTRIBUTION_ROOM_VALUES,
+	toContributionRoomInput,
+	toPlanRoomSetting,
+	validateContributionRoom,
+	type ContributionRoomFormValues,
+} from "../contribution-room-form";
+import { getContributionRooms, saveContributionRoom } from "@/lib/actions/contribution-actions";
+import type { ContributionRoomSetting } from "@/lib/types/contribution";
 import { isDemoModeActive } from "@/lib/demo-mode";
 import { useDemoStore } from "@/lib/demo-store";
 
@@ -43,6 +53,7 @@ interface ValidationErrors {
 	account_type_id?: string;
 	current_balance?: string;
 	target_balance?: string;
+	contribution_room?: string;
 }
 
 export function AddAccountDialog({ open, onOpenChange, onSuccess }: AddAccountDialogProps) {
@@ -58,9 +69,6 @@ export function AddAccountDialog({ open, onOpenChange, onSuccess }: AddAccountDi
 		payment_due_date: string;
 		credit_limit: string;
 		loan_term_months: string;
-		track_contribution_room: boolean;
-		contribution_room: string;
-		annual_contribution_limit: string;
 	}
 
 	const [loading, setLoading] = useState(false);
@@ -78,10 +86,9 @@ export function AddAccountDialog({ open, onOpenChange, onSuccess }: AddAccountDi
 		payment_due_date: "",
 		credit_limit: "",
 		loan_term_months: "",
-		track_contribution_room: false,
-		contribution_room: "",
-		annual_contribution_limit: "",
 	});
+	const [contribution, setContribution] = useState<ContributionRoomFormValues>(EMPTY_CONTRIBUTION_ROOM_VALUES);
+	const [planRooms, setPlanRooms] = useState<ContributionRoomSetting[]>([]);
 
 	// Clear irrelevant fields when category changes
 	useEffect(() => {
@@ -97,10 +104,8 @@ export function AddAccountDialog({ open, onOpenChange, onSuccess }: AddAccountDi
 			interest_rate: vis.showInterestRate ? prev.interest_rate : "",
 			loan_term_months: vis.showLoanTerm ? prev.loan_term_months : "",
 			payment_due_date: vis.showDueDate ? prev.payment_due_date : "",
-			track_contribution_room: vis.showContributionRoom ? prev.track_contribution_room : false,
-			contribution_room: vis.showContributionRoom ? prev.contribution_room : "",
-			annual_contribution_limit: vis.showContributionRoom ? prev.annual_contribution_limit : "",
 		}));
+		if (!vis.showContributionRoom) setContribution(EMPTY_CONTRIBUTION_ROOM_VALUES);
 		// eslint-disable-next-line react-hooks/exhaustive-deps
 	}, [formData.account_type_id]);
 	const [errors, setErrors] = useState<ValidationErrors>({});
@@ -116,6 +121,14 @@ export function AddAccountDialog({ open, onOpenChange, onSuccess }: AddAccountDi
 		};
 		fetchTypes();
 	}, []);
+
+	// Plan rooms are shared across accounts, so reload them each time the dialog opens.
+	useEffect(() => {
+		if (!open) return;
+		getContributionRooms()
+			.then(setPlanRooms)
+			.catch(() => setPlanRooms([]));
+	}, [open]);
 
 	const validateForm = (): boolean => {
 		const newErrors: ValidationErrors = {};
@@ -133,6 +146,12 @@ export function AddAccountDialog({ open, onOpenChange, onSuccess }: AddAccountDi
 
 		if (!formData.current_balance.trim()) {
 			newErrors.current_balance = "Current balance is required";
+			isValid = false;
+		}
+
+		const contributionError = validateContributionRoom(contribution);
+		if (contributionError) {
+			newErrors.contribution_room = contributionError;
 			isValid = false;
 		}
 
@@ -157,6 +176,12 @@ export function AddAccountDialog({ open, onOpenChange, onSuccess }: AddAccountDi
 		setLoading(true);
 
 		try {
+			const planRoom = toPlanRoomSetting(contribution);
+			if (planRoom && !(await saveContributionRoom(planRoom))) {
+				toast.error("Creation Failed", { description: "Could not save your contribution room. Please try again." });
+				return;
+			}
+
 			const input: CreateAccountInput = {
 				name: formData.name,
 				account_type_id: formData.account_type_id,
@@ -170,12 +195,8 @@ export function AddAccountDialog({ open, onOpenChange, onSuccess }: AddAccountDi
 				payment_due_date: formData.payment_due_date ? parseInt(formData.payment_due_date) : null,
 				credit_limit: formData.credit_limit ? parseFloat(formData.credit_limit) : null,
 				loan_term_months: formData.loan_term_months ? parseInt(formData.loan_term_months) : null,
-				track_contribution_room: formData.track_contribution_room,
 				field_visibility: isOtherType ? fieldConfig : null,
-				contribution_room: formData.contribution_room ? parseFloat(formData.contribution_room) : null,
-				annual_contribution_limit: formData.annual_contribution_limit
-					? parseFloat(formData.annual_contribution_limit)
-					: null,
+				...toContributionRoomInput(contribution),
 			};
 
 			const result = await createAccount(input);
@@ -202,10 +223,8 @@ export function AddAccountDialog({ open, onOpenChange, onSuccess }: AddAccountDi
 					payment_due_date: "",
 					credit_limit: "",
 					loan_term_months: "",
-					track_contribution_room: false,
-					contribution_room: "",
-					annual_contribution_limit: "",
 				});
+				setContribution(EMPTY_CONTRIBUTION_ROOM_VALUES);
 				setErrors({});
 				setSearchValue("");
 			} else {
@@ -535,41 +554,17 @@ export function AddAccountDialog({ open, onOpenChange, onSuccess }: AddAccountDi
 						{/* Contribution Room (Investment/Retirement) */}
 						{visibility.showContributionRoom && (
 							<>
-								<div className="flex flex-row items-center justify-between rounded-lg border p-4 mt-4">
-									<div className="space-y-0.5">
-										<Label>Track Contribution Room</Label>
-										<p className="text-sm text-muted-foreground">
-											Track your maximum allowable contributions (e.g., for TFSA, RRSP, FHSA).
-										</p>
-									</div>
-									<Switch
-										checked={formData.track_contribution_room}
-										onCheckedChange={(checked) => setFormData({ ...formData, track_contribution_room: checked })}
+								<div className="mt-4">
+									<ContributionRoomFields
+										values={contribution}
+										planRooms={planRooms}
+										onChange={(changes) => {
+											setContribution((prev) => ({ ...prev, ...changes }));
+											if (errors.contribution_room) setErrors({ ...errors, contribution_room: undefined });
+										}}
+										error={errors.contribution_room}
 									/>
 								</div>
-
-								{formData.track_contribution_room && (
-									<div className="grid grid-cols-1 gap-4 sm:grid-cols-2 mt-4">
-										<div className="space-y-2">
-											<Label htmlFor="contribution_room">Total Contribution Room</Label>
-											<ProminentAmountInput
-												id="contribution_room"
-												value={formData.contribution_room}
-												onChange={(val) => setFormData({ ...formData, contribution_room: val })}
-												hasError={false}
-											/>
-										</div>
-										<div className="space-y-2">
-											<Label htmlFor="annual_limit">Annual Limit (e.g., 7000 for TFSA)</Label>
-											<ProminentAmountInput
-												id="annual_limit"
-												value={formData.annual_contribution_limit}
-												onChange={(val) => setFormData({ ...formData, annual_contribution_limit: val })}
-												hasError={false}
-											/>
-										</div>
-									</div>
-								)}
 
 								<div className="space-y-2 mt-4">
 									<Label htmlFor="institution">{visibility.institutionLabel}</Label>

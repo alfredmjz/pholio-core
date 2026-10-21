@@ -11,6 +11,7 @@ import { cn } from "@/lib/utils";
 import { formatShortDate, parseLocalDate } from "@/lib/date-utils";
 import { sanitizeDecimalInput } from "@/lib/input-utils";
 import { formatAccountDisplayName } from "@/lib/account-utils";
+import { sortAlphabetically } from "@/lib/sort-utils";
 import { SHORTCUTS, ShortcutId } from "@/lib/keyboard-shortcuts";
 import { ShortcutHint } from "@/components/common/shortcut-hint";
 import type { AccountWithType } from "@/app/balancesheet/types";
@@ -269,7 +270,7 @@ export function TransactionLedger({
 						</SelectTrigger>
 						<SelectContent>
 							<SelectItem value="all">All Categories</SelectItem>
-							{categories.map((cat) => (
+							{sortAlphabetically(categories, (cat) => cat.name).map((cat) => (
 								<SelectItem key={cat.id} value={cat.id}>
 									{cat.name}
 								</SelectItem>
@@ -291,14 +292,16 @@ export function TransactionLedger({
 						</SelectTrigger>
 						<SelectContent>
 							<SelectItem value="all">All Types</SelectItem>
-							{Object.entries(TRANSACTION_TYPE_CONFIG).map(([type, config]) => (
-								<SelectItem key={type} value={type}>
-									<div className="flex items-center gap-2">
-										<config.icon className={cn("h-4 w-4", config.textColor)} />
-										{config.label}
-									</div>
-								</SelectItem>
-							))}
+							{sortAlphabetically(Object.entries(TRANSACTION_TYPE_CONFIG), ([, config]) => config.label).map(
+								([type, config]) => (
+									<SelectItem key={type} value={type}>
+										<div className="flex items-center gap-2">
+											<config.icon className={cn("h-4 w-4", config.textColor)} />
+											{config.label}
+										</div>
+									</SelectItem>
+								)
+							)}
 						</SelectContent>
 					</Select>
 

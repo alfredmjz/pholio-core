@@ -1,11 +1,12 @@
 import type { DashboardData, Transaction } from "@/app/dashboard/types";
+import type { AllocationSummary } from "@/app/allocations/types";
 import { buildNetWorthSeries, type BalanceRecord } from "@/app/dashboard/net-worth-series";
 import { computeMonthPace, type PaceExpense } from "@/app/dashboard/month-pace";
 import { buildMonthlyCashflow, type CashflowTransaction } from "@/app/dashboard/cashflow";
 import { buildHeadsUp, selectUpcomingBills, type BillInput, type HeadsUpPromotion } from "@/app/dashboard/heads-up";
 import { getDaysInMonth } from "@/lib/date-utils";
 import { sampleAccounts } from "./balancesheet";
-import { sampleAllocationSummary } from "./allocations";
+import { getSmartMockData } from "./allocations";
 import { getDemoNow, daysBefore, toDateOnly } from "./demo-date";
 
 /** Recent transactions dated relative to `now`, so the demo always looks current. */
@@ -208,7 +209,8 @@ export function getSampleDashboardData(now: Date = getDemoNow(), bills: BillInpu
 	);
 	const latest = history[history.length - 1];
 
-	const summary = sampleAllocationSummary;
+	// The same month the Allocations demo shows, so both pages tell one story.
+	const summary: AllocationSummary = getSmartMockData(now.getFullYear(), now.getMonth() + 1).summary;
 	const budget = summary.summary.total_budget_caps;
 	const expenses = sampleMonthExpenses(now, budget);
 

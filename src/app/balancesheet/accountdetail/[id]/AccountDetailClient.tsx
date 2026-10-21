@@ -28,17 +28,20 @@ import { deleteAccount, getAccountTransactions, getAccountById } from "../../act
 import { useServerSyncedData } from "@/hooks/useServerSyncedData";
 import { isInvestmentAccount } from "@/lib/account-validation-utils";
 import type { AccountWithType, AccountTransaction } from "../../types";
+import type { AccountContribution } from "@/lib/types/contribution";
 
 interface AccountDetailClientProps {
 	account: AccountWithType;
 	transactions: AccountTransaction[];
 	otherAccounts: AccountWithType[];
+	contribution: AccountContribution | null;
 }
 
 export function AccountDetailClient({
 	account: initialAccount,
 	transactions: initialTransactions,
 	otherAccounts,
+	contribution,
 }: AccountDetailClientProps) {
 	const router = useRouter();
 
@@ -185,7 +188,7 @@ export function AccountDetailClient({
 
 						{/* Investment deposits and contribution room */}
 						{(isInvestmentAccount(account) || account.track_contribution_room) && (
-							<ContributionRoomCard account={account} transactions={transactions} />
+							<ContributionRoomCard account={account} contribution={contribution} />
 						)}
 
 						{/* Welcome Bonuses & Promotions Tracker */}

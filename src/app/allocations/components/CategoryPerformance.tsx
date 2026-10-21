@@ -24,6 +24,7 @@ import { arrayMove, SortableContext, sortableKeyboardCoordinates } from "@dnd-ki
 import { rectSortingStrategy } from "@dnd-kit/sortable";
 import { restrictToParentElement } from "@dnd-kit/modifiers";
 import { getCategoryColor } from "../utils/colors";
+import type { AllocationContributions } from "@/lib/types/contribution";
 
 export interface CategoryPerformanceProps {
 	categories: AllocationCategory[];
@@ -31,6 +32,10 @@ export interface CategoryPerformanceProps {
 	className?: string;
 	usedColors?: string[];
 	usedNames?: string[];
+	/** Contribution room per plan and which category counts toward which plan. */
+	contributions: AllocationContributions;
+	year: number;
+	onContributionPlanChanged: () => void;
 }
 
 export function CategoryPerformance({
@@ -39,6 +44,9 @@ export function CategoryPerformance({
 	className,
 	usedColors: propUsedColors,
 	usedNames: propUsedNames,
+	contributions,
+	year,
+	onContributionPlanChanged,
 }: CategoryPerformanceProps) {
 	const [activeId, setActiveId] = useState<string | null>(null);
 	const { optimisticallyReorderCategories } = useAllocationContext();
@@ -152,9 +160,24 @@ export function CategoryPerformance({
 			>
 				<div className="flex flex-col gap-3 md:grid md:grid-cols-2 lg:grid-cols-3 xl:grid-cols-4 md:gap-4">
 					<SortableContext items={displayCategories.map((c) => c.id)} strategy={rectSortingStrategy}>
-						{displayCategories.map((category) => (
-							<CategoryCard key={category.id} category={category} usedColors={usedColors} usedNames={usedNames} />
-						))}
+						{displayCategories.map((category) => {
+							const plan = contributions.categoryPlans[category.id] ?? null;
+							return (
+								<CategoryCard
+									key={category.id}
+									category={category}
+									usedColors={usedColors}
+									usedNames={usedNames}
+									contributionPlan={plan}
+									contributionPool={plan ? contributions.pools.find((pool) => pool.pool_key === plan) : null}
+									takenPlans={Object.entries(contributions.categoryPlans)
+										.filter(([id]) => id !== category.id)
+										.map(([, linked]) => linked)}
+									year={year}
+									onContributionPlanChanged={onContributionPlanChanged}
+								/>
+							);
+						})}
 					</SortableContext>
 				</div>
 			</DndContext>

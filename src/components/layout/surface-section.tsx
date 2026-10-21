@@ -1,24 +1,35 @@
 import Link from "next/link";
 import { cn } from "@/lib/utils";
 
-interface DashboardSectionProps {
+interface SurfaceSectionProps {
 	id: string;
 	title: string;
 	/** One short line under the title, e.g. the period the section covers. */
 	note?: string;
 	action?: { label: string; href: string };
+	/** Buttons for the heading row, used instead of `action` when the section needs controls. */
+	headerActions?: React.ReactNode;
 	/** Stretch to the height of the grid cell, giving the extra room to the body. */
 	fill?: boolean;
 	className?: string;
 	children: React.ReactNode;
 }
 
-/** A dashboard module on a translucent sheet, with a consistent heading row. */
-export function DashboardSection({ id, title, note, action, fill, className, children }: DashboardSectionProps) {
+/** A page module on a translucent sheet, with a consistent heading row. */
+export function SurfaceSection({
+	id,
+	title,
+	note,
+	action,
+	headerActions,
+	fill,
+	className,
+	children,
+}: SurfaceSectionProps) {
 	return (
 		<section
 			aria-labelledby={id}
-			className={cn("dash-sheet dash-sheet-pad", fill && "flex h-full flex-col", className)}
+			className={cn("surface-sheet surface-sheet-pad", fill && "flex h-full flex-col", className)}
 		>
 			<div className="flex items-baseline justify-between gap-4">
 				<div className="min-w-0">
@@ -27,6 +38,7 @@ export function DashboardSection({ id, title, note, action, fill, className, chi
 					</h2>
 					{note && <p className="type-body-sm mt-0.5 text-muted-foreground">{note}</p>}
 				</div>
+				{headerActions && <div className="flex shrink-0 items-center gap-2">{headerActions}</div>}
 				{action && (
 					<Link
 						href={action.href}

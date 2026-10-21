@@ -4,7 +4,7 @@ import { useState } from "react";
 import { cn } from "@/lib/utils";
 import { formatCurrency } from "@/app/dashboard/utils";
 import type { CashflowMonth } from "../cashflow";
-import { DashboardSection } from "./dashboard-section";
+import { SurfaceSection } from "@/components/layout/surface-section";
 
 /** Smallest chart height; the chart grows to fill its grid cell on desktop. */
 const MIN_CHART_HEIGHT = 168;
@@ -28,7 +28,7 @@ export function CashFlowChart({ months }: { months: CashflowMonth[] }) {
 			: `You spent ${formatCurrency(Math.abs(totalNet))} more than you earned over ${months.length} months.`;
 
 	return (
-		<DashboardSection id="cashflow-heading" title="Cash flow" note={summary} fill>
+		<SurfaceSection id="cashflow-heading" title="Cash flow" note={summary} fill>
 			<div className="flex flex-1 gap-1 sm:gap-2" role="radiogroup" aria-label="Month">
 				{months.map((m, index) => {
 					// Each bar can use half the chart (minus a little headroom) at the peak month.
@@ -103,6 +103,6 @@ export function CashFlowChart({ months }: { months: CashflowMonth[] }) {
 					</dd>
 				</div>
 			</dl>
-		</DashboardSection>
+		</SurfaceSection>
 	);
 }

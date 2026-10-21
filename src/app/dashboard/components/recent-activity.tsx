@@ -3,7 +3,7 @@ import { cn } from "@/lib/utils";
 import { differenceInDays, formatShortDate, parseLocalDate } from "@/lib/date-utils";
 import { formatCurrency } from "@/app/dashboard/utils";
 import type { Transaction } from "../types";
-import { DashboardSection } from "./dashboard-section";
+import { SurfaceSection } from "@/components/layout/surface-section";
 
 function dayLabel(date: string, today: string): string {
 	const days = differenceInDays(parseLocalDate(today), parseLocalDate(date));
@@ -29,7 +29,7 @@ export function RecentActivity({ transactions, today }: { transactions: Transact
 	const groups = groupByDay(sorted);
 
 	return (
-		<DashboardSection
+		<SurfaceSection
 			id="recent-heading"
 			title="Recent activity"
 			action={{ label: "All transactions", href: "/allocations" }}
@@ -81,6 +81,6 @@ export function RecentActivity({ transactions, today }: { transactions: Transact
 					))}
 				</div>
 			)}
-		</DashboardSection>
+		</SurfaceSection>
 	);
 }

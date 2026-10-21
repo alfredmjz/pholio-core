@@ -4,7 +4,7 @@ import "@/styles/dashboard.css";
 import { useEffect, useState } from "react";
 import { useRouter } from "next/navigation";
 import { UnifiedTransactionDialog } from "@/components/dialogs/UnifiedTransactionDialog";
-import { LedgerField } from "@/components/common/ledger-field";
+import { SurfacePage } from "@/components/layout/surface-page";
 import type { DashboardData } from "./types";
 import { getDashboardData } from "./actions";
 import { useServerSyncedData } from "@/hooks/useServerSyncedData";
@@ -45,51 +45,41 @@ export function DashboardClient({ initialData, firstName }: DashboardClientProps
 	};
 
 	return (
-		<div className="dash relative isolate min-h-full w-full">
-			<div className="dash-backdrop" aria-hidden>
-				<LedgerField className="dash-backdrop-canvas" />
-			</div>
+		<SurfacePage>
+			<DashboardHeader today={data.today} firstName={firstName} onAddTransaction={() => setAddTransactionOpen(true)} />
 
-			<div className="relative z-10 mx-auto flex w-full max-w-[1240px] flex-col gap-8 px-4 pb-16 pt-6 md:gap-10 md:px-8 md:pt-10">
-				<DashboardHeader
-					today={data.today}
-					firstName={firstName}
-					onAddTransaction={() => setAddTransactionOpen(true)}
-				/>
+			<NetWorthHero
+				today={data.today}
+				history={data.netWorth.history}
+				totalAssets={data.netWorth.totalAssets}
+				totalLiabilities={data.netWorth.totalLiabilities}
+			/>
 
-				<NetWorthHero
-					today={data.today}
-					history={data.netWorth.history}
-					totalAssets={data.netWorth.totalAssets}
-					totalLiabilities={data.netWorth.totalLiabilities}
-				/>
+			<HeadsUpList items={data.headsUp} />
 
-				<HeadsUpList items={data.headsUp} />
-
-				{/*
-				 * Two columns on desktop, stretched to the same height: cash flow grows to match the
-				 * right column. On smaller screens the column wrappers dissolve (display: contents) so
-				 * `order` can interleave the modules by importance.
-				 */}
-				<div className="grid grid-cols-1 gap-5 lg:grid-cols-12 lg:gap-6">
-					<div className="contents lg:col-span-7 lg:flex lg:flex-col lg:gap-6">
-						<MonthPaceCard pace={data.monthPace} today={data.today} />
-						<div className="order-3 lg:order-none lg:flex-1">
-							<CashFlowChart months={data.cashflow} />
-						</div>
-					</div>
-					<div className="contents lg:col-span-5 lg:flex lg:flex-col lg:gap-6">
-						<div className="order-2 lg:order-none">
-							<UpcomingBills bills={data.upcomingBills} />
-						</div>
-						<div className="order-4 lg:order-none">
-							<AccountMix accounts={data.accountsSummary} />
-						</div>
+			{/*
+			 * Two columns on desktop, stretched to the same height: cash flow grows to match the
+			 * right column. On smaller screens the column wrappers dissolve (display: contents) so
+			 * `order` can interleave the modules by importance.
+			 */}
+			<div className="grid grid-cols-1 gap-5 lg:grid-cols-12 lg:gap-6">
+				<div className="contents lg:col-span-7 lg:flex lg:flex-col lg:gap-6">
+					<MonthPaceCard pace={data.monthPace} today={data.today} />
+					<div className="order-3 lg:order-none lg:flex-1">
+						<CashFlowChart months={data.cashflow} />
 					</div>
 				</div>
-
-				<RecentActivity transactions={recentTransactions} today={data.today} />
+				<div className="contents lg:col-span-5 lg:flex lg:flex-col lg:gap-6">
+					<div className="order-2 lg:order-none">
+						<UpcomingBills bills={data.upcomingBills} />
+					</div>
+					<div className="order-4 lg:order-none">
+						<AccountMix accounts={data.accountsSummary} />
+					</div>
+				</div>
 			</div>
+
+			<RecentActivity transactions={recentTransactions} today={data.today} />
 
 			<UnifiedTransactionDialog
 				open={addTransactionOpen}
@@ -98,6 +88,6 @@ export function DashboardClient({ initialData, firstName }: DashboardClientProps
 				accounts={data.accounts ?? []}
 				onSuccess={handleAddTransactionSuccess}
 			/>
-		</div>
+		</SurfacePage>
 	);
 }

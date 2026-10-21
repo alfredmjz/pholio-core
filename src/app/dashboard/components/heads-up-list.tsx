@@ -26,7 +26,7 @@ export function HeadsUpList({ items }: { items: HeadsUpItem[] }) {
 						<li key={item.id} className="min-w-0">
 							<Link
 								href={item.href}
-								className="dash-sheet card-interactive flex h-full items-start gap-3 rounded-2xl px-4 py-3.5"
+								className="surface-sheet card-interactive flex h-full items-start gap-3 rounded-2xl px-4 py-3.5"
 							>
 								<span
 									className={cn("mt-0.5 flex h-8 w-8 shrink-0 items-center justify-center rounded-full", style.tone)}

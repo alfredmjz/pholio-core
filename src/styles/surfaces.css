@@ -1,0 +1,143 @@
+/*
+ * Shared surfaces for the redesigned pages ("running thread").
+ * The login's plotter lines drift behind the whole page, and content sits on translucent
+ * sheets so the lines stay faintly visible without competing with the numbers.
+ * Use through <SurfacePage> and <SurfaceSection> (src/components/layout/).
+ */
+
+.surface {
+	--ledger-ink: 44, 40, 34;
+	--ledger-tint: 15, 107, 80;
+	--ledger-strength: 1;
+	--surface-radius: 22px;
+}
+
+.dark .surface {
+	--ledger-ink: 236, 228, 212;
+	--ledger-tint: 94, 214, 170;
+	--ledger-strength: 0.5;
+}
+
+/* ---------------------------------------------------------------- backdrop */
+
+/* Sticky + negative margin keeps the canvas pinned to the visible area while the page scrolls. */
+.surface-backdrop {
+	position: sticky;
+	top: 0;
+	z-index: 0;
+	height: 100dvh;
+	margin-bottom: -100dvh;
+	overflow: hidden;
+	pointer-events: none;
+	-webkit-mask-image: linear-gradient(to bottom, black 0%, black 70%, transparent 100%);
+	mask-image: linear-gradient(to bottom, black 0%, black 70%, transparent 100%);
+}
+
+.surface-backdrop-canvas {
+	display: block;
+	width: 100%;
+	height: 100%;
+	mix-blend-mode: multiply;
+}
+
+.dark .surface-backdrop-canvas {
+	mix-blend-mode: screen;
+}
+
+/* ------------------------------------------------------------------ sheets */
+
+.surface-sheet {
+	position: relative;
+	min-width: 0;
+	border: 1px solid hsl(var(--border) / 0.85);
+	border-radius: var(--surface-radius, 22px);
+	background: hsl(var(--card) / 0.8);
+	box-shadow: var(--shadow-card);
+	-webkit-backdrop-filter: blur(12px) saturate(1.15);
+	backdrop-filter: blur(12px) saturate(1.15);
+}
+
+.surface-sheet-pad {
+	padding: 20px;
+}
+
+@media (min-width: 768px) {
+	.surface-sheet-pad {
+		padding: 24px 26px;
+	}
+}
+
+/* --------------------------------------------------------------- amount field */
+
+/* The hero amount in dialogs: large figures on a single animated rule, like the login field. */
+.field-amount {
+	position: relative;
+	display: flex;
+	align-items: baseline;
+	gap: 0.15em;
+	padding-bottom: 6px;
+}
+
+.field-amount::before,
+.field-amount::after {
+	content: "";
+	position: absolute;
+	left: 0;
+	right: 0;
+	bottom: 0;
+	height: 1px;
+	pointer-events: none;
+}
+
+.field-amount::before {
+	background: hsl(var(--border-strong) / 0.7);
+}
+
+.field-amount::after {
+	height: 2px;
+	background: hsl(var(--field-focus));
+	transform: scaleX(0);
+	transform-origin: left center;
+	transition: transform 0.35s cubic-bezier(0.22, 1, 0.36, 1);
+}
+
+.field-amount:focus-within::after {
+	transform: scaleX(1);
+}
+
+.field-amount[data-invalid="true"]::before,
+.field-amount[data-invalid="true"]::after {
+	background: hsl(var(--error));
+}
+
+.field-amount-currency {
+	font-size: clamp(1.25rem, 4vw, 1.6rem);
+	font-weight: 500;
+	color: hsl(var(--text-muted));
+}
+
+.field-amount-input {
+	width: 100%;
+	min-width: 0;
+	border: 0;
+	background: transparent;
+	padding: 0;
+	font-family: inherit;
+	font-size: clamp(2.1rem, 7vw, 2.75rem);
+	font-weight: 560;
+	line-height: 1.1;
+	letter-spacing: -0.04em;
+	font-variant-numeric: tabular-nums;
+	color: hsl(var(--foreground));
+	outline: none;
+}
+
+.field-amount-input::placeholder {
+	color: hsl(var(--field-placeholder) / 0.6);
+}
+
+@media (prefers-reduced-motion: reduce) {
+	.field-amount::after {
+		transition: none;
+	}
+}

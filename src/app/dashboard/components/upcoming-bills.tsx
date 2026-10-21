@@ -4,7 +4,7 @@ import { parseLocalDate } from "@/lib/date-utils";
 import { formatCurrency } from "@/app/dashboard/utils";
 import { ServiceLogo } from "@/components/service-logo";
 import { UPCOMING_WINDOW_DAYS, type UpcomingBill } from "../heads-up";
-import { DashboardSection } from "./dashboard-section";
+import { SurfaceSection } from "@/components/layout/surface-section";
 
 function whenLabel(daysUntil: number): string {
 	if (daysUntil < -1) return `${Math.abs(daysUntil)} days overdue`;
@@ -23,7 +23,7 @@ export function UpcomingBills({ bills }: { bills: UpcomingBill[] }) {
 	const hidden = bills.length - shown.length;
 
 	return (
-		<DashboardSection
+		<SurfaceSection
 			id="upcoming-heading"
 			title="Coming up"
 			note={
@@ -86,6 +86,6 @@ export function UpcomingBills({ bills }: { bills: UpcomingBill[] }) {
 					{hidden} more due later
 				</Link>
 			)}
-		</DashboardSection>
+		</SurfaceSection>
 	);
 }

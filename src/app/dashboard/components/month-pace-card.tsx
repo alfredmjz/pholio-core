@@ -2,7 +2,7 @@ import Link from "next/link";
 import { cn } from "@/lib/utils";
 import { formatCurrency } from "@/app/dashboard/utils";
 import type { MonthPace, PaceStatus } from "../month-pace";
-import { DashboardSection } from "./dashboard-section";
+import { SurfaceSection } from "@/components/layout/surface-section";
 import { PaceChart } from "./pace-chart";
 
 const MONTH_NAMES = [
@@ -52,7 +52,7 @@ export function MonthPaceCard({ pace, today }: MonthPaceCardProps) {
 
 	if (!pace || pace.status === "no_budget") {
 		return (
-			<DashboardSection id="month-pace-heading" title={`${monthName} so far`}>
+			<SurfaceSection id="month-pace-heading" title={`${monthName} so far`}>
 				<p className="type-body text-muted-foreground">
 					Set a budget for {monthName} to see whether your spending is on track.
 				</p>
@@ -62,7 +62,7 @@ export function MonthPaceCard({ pace, today }: MonthPaceCardProps) {
 				>
 					Set up {monthName}&apos;s budget
 				</Link>
-			</DashboardSection>
+			</SurfaceSection>
 		);
 	}
 
@@ -70,7 +70,7 @@ export function MonthPaceCard({ pace, today }: MonthPaceCardProps) {
 	const gap = Math.abs(pace.difference);
 
 	return (
-		<DashboardSection
+		<SurfaceSection
 			id="month-pace-heading"
 			title={`${monthName} so far`}
 			note={`Day ${pace.dayOfMonth} of ${pace.daysInMonth}`}
@@ -97,6 +97,6 @@ export function MonthPaceCard({ pace, today }: MonthPaceCardProps) {
 				{guidance(pace)}
 				{pace.usesTypicalCurve && " Expected spending follows your usual pattern from past months."}
 			</p>
-		</DashboardSection>
+		</SurfaceSection>
 	);
 }

@@ -5,6 +5,7 @@
 @tailwind utilities;
 
 @import "./animations.css";
+@import "./surfaces.css";
 
 /* --------------------------------------------------------------------------
  * Typography system

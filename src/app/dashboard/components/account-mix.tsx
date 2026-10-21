@@ -1,7 +1,7 @@
 import Link from "next/link";
 import { formatCurrency } from "@/app/dashboard/utils";
 import type { DashboardAccount } from "../types";
-import { DashboardSection } from "./dashboard-section";
+import { SurfaceSection } from "@/components/layout/surface-section";
 
 function AccountGroup({ title, accounts, tone }: { title: string; accounts: DashboardAccount[]; tone: "own" | "owe" }) {
 	if (accounts.length === 0) return null;
@@ -58,7 +58,7 @@ export function AccountMix({ accounts }: { accounts: DashboardAccount[] }) {
 	const owed = accounts.filter((a) => a.class === "liability");
 
 	return (
-		<DashboardSection id="accounts-heading" title="Accounts" action={{ label: "Balance sheet", href: "/balancesheet" }}>
+		<SurfaceSection id="accounts-heading" title="Accounts" action={{ label: "Balance sheet", href: "/balancesheet" }}>
 			{accounts.length === 0 ? (
 				<p className="type-body-sm text-muted-foreground">
 					Add your chequing, savings, cards and loans to see your net worth take shape.{" "}
@@ -72,6 +72,6 @@ export function AccountMix({ accounts }: { accounts: DashboardAccount[] }) {
 					<AccountGroup title="You owe" accounts={owed} tone="owe" />
 				</div>
 			)}
-		</DashboardSection>
+		</SurfaceSection>
 	);
 }

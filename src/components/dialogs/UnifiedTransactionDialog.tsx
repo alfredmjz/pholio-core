@@ -17,7 +17,7 @@ import { DatePicker } from "@/components/ui/date-picker";
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
 import { Calendar } from "@/components/ui/calendar";
 import { toast } from "sonner";
-import { Loader2, TrendingUp, TrendingDown, Info, Settings2, PlusCircle, Trash2 } from "lucide-react";
+import { Loader2, Info, Settings2, PlusCircle, Trash2 } from "lucide-react";
 import {
 	createUnifiedTransaction,
 	getSuggestedAccountForCategory,
@@ -34,7 +34,7 @@ import type { AccountWithType } from "@/app/balancesheet/types";
 import type { UnifiedTransactionInput } from "@/lib/types/unified-transaction";
 import { FormSection } from "@/components/FormSection";
 import { ProminentAmountInput } from "@/components/ProminentAmountInput";
-import { CardSelector } from "@/components/CardSelector";
+import { TransactionTypeSwitch } from "@/components/dialogs/transaction-type-switch";
 import { CancelShortcut, SubmitShortcut } from "@/components/common/dialog-shortcuts";
 import { cn } from "@/lib/utils";
 import { getTodayDateString, parseLocalDate, formatDateString } from "@/lib/date-utils";
@@ -45,10 +45,7 @@ import { compareAlphabetically, sortAlphabetically } from "@/lib/sort-utils";
 import { ManagePresetsDialog } from "./ManagePresetsDialog";
 import { isDemoModeActive } from "@/lib/demo-mode";
 import { useDemoStore } from "@/lib/demo-store";
-import {
-	calculateAccountStanding,
-	checkTransactionCaps,
-} from "@/lib/account-validation-utils";
+import { calculateAccountStanding, checkTransactionCaps } from "@/lib/account-validation-utils";
 import { getAccountContributionSummary } from "@/lib/actions/contribution-actions";
 import { getContributionNotices } from "@/lib/contribution-plans";
 import { ContributionNotices } from "@/components/common/ContributionDetails";
@@ -81,6 +78,10 @@ interface ValidationErrors {
 	fromAccountId?: string;
 	toAccountId?: string;
 }
+
+/** "Enter details / From a preset" as plain underline tabs, so they read apart from the type switch. */
+const MODE_TAB_CLASS =
+	"type-control -mb-px h-10 rounded-none border-b-2 border-transparent px-0 text-muted-foreground shadow-none data-[state=active]:border-primary data-[state=active]:bg-transparent data-[state=active]:text-primary data-[state=active]:shadow-none";
 
 export function UnifiedTransactionDialog({
 	open,
@@ -203,9 +204,9 @@ export function UnifiedTransactionDialog({
 			if (suggestion && suggestion.accountId) {
 				setAccountId(suggestion.accountId);
 				if (suggestion.reason === "linked_savings_goal") {
-					setSuggestedAccountInfo("💰 Auto-selected savings account");
+					setSuggestedAccountInfo("Picked the savings account for this category");
 				} else if (suggestion.reason === "linked_debt_payment") {
-					setSuggestedAccountInfo("💳 Auto-selected payment account");
+					setSuggestedAccountInfo("Picked the payment account for this category");
 				}
 			} else {
 				setSuggestedAccountInfo(null);
@@ -283,9 +284,7 @@ export function UnifiedTransactionDialog({
 	}, [open, contributionTargetId, contributionYear, contributionMonth]);
 
 	const contributionNotices =
-		contributionTargetId &&
-		contributionSummary?.account_ids.includes(contributionTargetId) &&
-		parseFloat(amount) > 0
+		contributionTargetId && contributionSummary?.account_ids.includes(contributionTargetId) && parseFloat(amount) > 0
 			? getContributionNotices(
 					contributionSummary,
 					(value) => new Intl.NumberFormat("en-CA", { style: "currency", currency: "CAD" }).format(value),
@@ -518,40 +517,30 @@ export function UnifiedTransactionDialog({
 					}}
 				>
 					<DialogHeader>
-						<DialogTitle>Add Transaction</DialogTitle>
-						<DialogDescription>Enter transaction details to update your budget and account balance.</DialogDescription>
+						<DialogTitle>Add transaction</DialogTitle>
+						<DialogDescription>
+							Updates your budget, and the account&apos;s balance when you pick one.
+						</DialogDescription>
 					</DialogHeader>
 
 					<Tabs value={activeTab} onValueChange={setActiveTab} className="w-full mt-2">
-						<TabsList className="grid w-full grid-cols-2 mb-4 gap-2">
-							<TabsTrigger value="manual">Manual Entry</TabsTrigger>
-							<TabsTrigger value="presets">Use Preset</TabsTrigger>
+						<TabsList className="mb-6 flex h-auto w-full justify-start gap-6 rounded-none border-b border-border/70 bg-transparent p-0">
+							<TabsTrigger value="manual" className={MODE_TAB_CLASS}>
+								Enter details
+							</TabsTrigger>
+							<TabsTrigger value="presets" className={MODE_TAB_CLASS}>
+								From a preset
+							</TabsTrigger>
 						</TabsList>
 
 						<TabsContent value="manual" className="mt-0">
 							<form onSubmit={handleSubmit} className="flex flex-col gap-6">
-								<FormSection
-									icon={type === "expense" ? <TrendingDown /> : type === "income" ? <TrendingUp /> : <Info />}
-									title="Transaction Type"
-									variant="subtle"
-								>
-									<CardSelector
-										className="grid-cols-1 sm:grid-cols-3"
-										options={[
-											{ value: "expense", label: "Expense", icon: "📉", color: "bg-red-100" },
-											{ value: "income", label: "Income", icon: "📈", color: "bg-green-100" },
-											{ value: "transfer", label: "Transfer", icon: "🔄", color: "bg-blue-100" },
-										]}
-										value={type}
-										onChange={(val) => setType(val as any)}
-										selectedBorderColor="border-blue-200"
-									/>
-								</FormSection>
+								<TransactionTypeSwitch value={type} onChange={setType} />
 
 								{!isAllocationsContext && type !== "transfer" && (
 									<div className="space-y-2">
 										<Label htmlFor="transactionType">
-											{type === "income" ? "Income Type" : "Expense Type"} (Account)
+											{type === "income" ? "Income type" : "Expense type"} for the account
 										</Label>
 										<Select value={transactionType} onValueChange={setTransactionType}>
 											<SelectTrigger className="h-10">
@@ -560,15 +549,15 @@ export function UnifiedTransactionDialog({
 											<SelectContent>
 												{type === "income" ? (
 													<>
-														<SelectItem value="contribution">➕ Contribution</SelectItem>
-														<SelectItem value="deposit">💰 Deposit</SelectItem>
-														<SelectItem value="refund">🔄 Refund</SelectItem>
+														<SelectItem value="contribution">Contribution</SelectItem>
+														<SelectItem value="deposit">Deposit</SelectItem>
+														<SelectItem value="refund">Refund</SelectItem>
 													</>
 												) : (
 													<>
-														<SelectItem value="interest">📈 Interest</SelectItem>
-														<SelectItem value="payment">💳 Payment</SelectItem>
-														<SelectItem value="withdrawal">💸 Withdrawal</SelectItem>
+														<SelectItem value="interest">Interest</SelectItem>
+														<SelectItem value="payment">Payment</SelectItem>
+														<SelectItem value="withdrawal">Withdrawal</SelectItem>
 													</>
 												)}
 											</SelectContent>
@@ -578,23 +567,23 @@ export function UnifiedTransactionDialog({
 
 								{isAllocationsContext && type === "income" && (
 									<div className="space-y-2">
-										<Label htmlFor="incomeSource">Income Source</Label>
+										<Label htmlFor="incomeSource">Income source</Label>
 										<Select value={incomeSource} onValueChange={setIncomeSource}>
 											<SelectTrigger className="h-10">
 												<SelectValue placeholder="Select source" />
 											</SelectTrigger>
 											<SelectContent>
-												<SelectItem value="external">🎁 External / One-time</SelectItem>
-												<SelectItem value="salary">💼 Salary / Expected</SelectItem>
+												<SelectItem value="external">External or one-time</SelectItem>
+												<SelectItem value="salary">Salary (expected income)</SelectItem>
 											</SelectContent>
 										</Select>
 									</div>
 								)}
 
-								<FormSection icon={<Info />} title="Transaction Details" variant="subtle">
+								<div className="flex flex-col gap-5">
 									<div className="space-y-2">
-										<Label htmlFor="amount">
-											Amount <span className="text-error">*</span>
+										<Label htmlFor="amount" className="type-label text-muted-foreground">
+											Amount
 										</Label>
 										<ProminentAmountInput
 											value={amount}
@@ -614,63 +603,63 @@ export function UnifiedTransactionDialog({
 											</div>
 										)}
 										{selectedTargetAccount && selectedAccountStanding && (
-												<div className="mt-2 text-xs rounded-lg p-2.5 bg-muted/60 border border-border/60 flex flex-col gap-1.5">
-													<div className="flex items-center justify-between font-medium">
-														{selectedAccountStanding.accountClass === "liability" ? (
-															<>
-																<span className="text-muted-foreground">💳 Remaining Debt (as of today):</span>
-																<span className="font-bold text-red-600 dark:text-red-400">
-																	${selectedAccountStanding.remainingDebt.toFixed(2)}
-																</span>
-															</>
-														) : (
-															<>
-																<span className="text-muted-foreground">🏦 Available Balance:</span>
-																<span className="font-bold text-primary">
-																	${selectedAccountStanding.availableBalance.toFixed(2)}
-																</span>
-															</>
-														)}
-													</div>
-
-													{!validationResult.isValid && (
-														<div className="mt-1 p-2.5 rounded-lg bg-amber-500/10 border border-amber-500/30 text-amber-700 dark:text-amber-400 flex flex-col gap-2">
-															<div className="flex items-start gap-1.5">
-																<Info className="h-4 w-4 shrink-0 mt-0.5 text-amber-600 dark:text-amber-400" />
-																<span className="text-xs">{validationResult.warning}</span>
-															</div>
-															<div className="flex items-center justify-between pt-1 border-t border-amber-500/20">
-																{validationResult.maxAllowed !== undefined && (
-																	<Button
-																		type="button"
-																		variant="outline"
-																		size="sm"
-																		data-dialog-ignore-enter=""
-																		className="h-7 text-xs font-medium border-amber-500/40 hover:bg-amber-500/20 text-amber-800 dark:text-amber-300"
-																		onClick={() => {
-																			setAmount(validationResult.maxAllowed!.toFixed(2));
-																			if (errors.amount) setErrors({ ...errors, amount: undefined });
-																		}}
-																	>
-																		Set to Max (${validationResult.maxAllowed.toFixed(2)})
-																	</Button>
-																)}
-																{validationResult.overridable && (
-																	<label className="flex items-center gap-1.5 text-[11px] cursor-pointer font-medium text-amber-800 dark:text-amber-300">
-																		<input
-																			type="checkbox"
-																			checked={allowOverpayment}
-																			onChange={(e) => setAllowOverpayment(e.target.checked)}
-																			className="rounded border-amber-400 text-amber-600 focus:ring-amber-500"
-																		/>
-																		Allow Overpayment
-																	</label>
-																)}
-															</div>
-														</div>
+											<div className="mt-3 flex flex-col gap-1.5 rounded-xl bg-card-muted/50 px-3 py-2.5 type-body-xs">
+												<div className="flex items-center justify-between font-medium">
+													{selectedAccountStanding.accountClass === "liability" ? (
+														<>
+															<span className="text-muted-foreground">Debt left today</span>
+															<span className="type-value text-error">
+																${selectedAccountStanding.remainingDebt.toFixed(2)}
+															</span>
+														</>
+													) : (
+														<>
+															<span className="text-muted-foreground">Available balance</span>
+															<span className="type-value text-primary">
+																${selectedAccountStanding.availableBalance.toFixed(2)}
+															</span>
+														</>
 													)}
 												</div>
-											)}
+
+												{!validationResult.isValid && (
+													<div className="mt-1 flex flex-col gap-2 rounded-lg border border-warning/30 bg-warning-muted p-2.5 text-warning">
+														<div className="flex items-start gap-1.5">
+															<Info className="mt-0.5 h-4 w-4 shrink-0" />
+															<span className="text-xs">{validationResult.warning}</span>
+														</div>
+														<div className="flex items-center justify-between border-t border-warning/20 pt-1">
+															{validationResult.maxAllowed !== undefined && (
+																<Button
+																	type="button"
+																	variant="outline"
+																	size="sm"
+																	data-dialog-ignore-enter=""
+																	className="h-7 border-warning/40 text-xs font-medium text-warning hover:bg-warning/15"
+																	onClick={() => {
+																		setAmount(validationResult.maxAllowed!.toFixed(2));
+																		if (errors.amount) setErrors({ ...errors, amount: undefined });
+																	}}
+																>
+																	Use the most allowed (${validationResult.maxAllowed.toFixed(2)})
+																</Button>
+															)}
+															{validationResult.overridable && (
+																<label className="flex cursor-pointer items-center gap-1.5 type-caption">
+																	<input
+																		type="checkbox"
+																		checked={allowOverpayment}
+																		onChange={(e) => setAllowOverpayment(e.target.checked)}
+																		className="rounded border-warning/60 accent-[hsl(var(--warning))]"
+																	/>
+																	Allow overpayment
+																</label>
+															)}
+														</div>
+													</div>
+												)}
+											</div>
+										)}
 										{errors.amount && <p className="text-sm text-error">{errors.amount}</p>}
 									</div>
 
@@ -720,19 +709,19 @@ export function UnifiedTransactionDialog({
 											{errors.description && <p className="text-sm text-error">{errors.description}</p>}
 										</div>
 									</div>
-								</FormSection>
+								</div>
 
 								{type === "transfer" ? (
 									<>
-										<div className="p-3 bg-muted/60 rounded-lg text-xs text-muted-foreground flex items-start gap-2 border">
-											<Info className="h-4 w-4 shrink-0 mt-0.5 text-primary" />
-											<span>Transfers move money directly between accounts and do not require a budget category.</span>
-										</div>
+										<p className="type-body-xs -mt-1 flex items-start gap-2 text-muted-foreground">
+											<Info className="mt-0.5 h-3.5 w-3.5 shrink-0" />
+											Transfers move money between your accounts, so they don&apos;t need a budget category.
+										</p>
 
 										<div className="grid grid-cols-1 gap-4 sm:grid-cols-2">
 											<div className="space-y-2">
 												<Label htmlFor="fromAccount">
-													From Account (Source) <span className="text-error">*</span>
+													From <span className="text-error">*</span>
 												</Label>
 												<Select
 													value={fromAccountId}
@@ -759,7 +748,7 @@ export function UnifiedTransactionDialog({
 
 											<div className="space-y-2">
 												<Label htmlFor="toAccount">
-													To Account (Destination) <span className="text-error">*</span>
+													To <span className="text-error">*</span>
 												</Label>
 												<Select
 													value={toAccountId}
@@ -786,10 +775,10 @@ export function UnifiedTransactionDialog({
 										</div>
 									</>
 								) : (
-									<>
+									<div className="grid grid-cols-1 gap-x-4 gap-y-5 sm:grid-cols-2">
 										<div className="space-y-2">
 											<Label htmlFor="category">
-												Budget Category{categoryRequired && <span className="text-error"> *</span>}
+												Budget category{categoryRequired && <span className="text-error"> *</span>}
 												{showCategoryBadge && !categoryDisabled && (
 													<span className="ml-2 text-xs text-primary">
 														{selectedCategory?.category_type === "savings_goal" && "(Savings Goal)"}
@@ -822,7 +811,11 @@ export function UnifiedTransactionDialog({
 										<div className="space-y-2">
 											<Label htmlFor="account">
 												Account
-												{accountRequired ? <span className="text-error">*</span> : " (Optional)"}
+												{accountRequired ? (
+													<span className="text-error"> *</span>
+												) : (
+													<span className="font-normal text-muted-foreground"> (optional)</span>
+												)}
 											</Label>
 											<Select
 												value={accountId}
@@ -835,7 +828,7 @@ export function UnifiedTransactionDialog({
 													<SelectValue placeholder={accountRequired ? "Select an account" : "No account selected"} />
 												</SelectTrigger>
 												<SelectContent>
-													{!accountRequired && <SelectItem value="none">No Account</SelectItem>}
+													{!accountRequired && <SelectItem value="none">No account</SelectItem>}
 													{sortAccounts(accounts).map((acc) => (
 														<SelectItem key={acc.id} value={acc.id}>
 															{formatAccountDisplayName(acc)}
@@ -848,27 +841,27 @@ export function UnifiedTransactionDialog({
 										</div>
 
 										{accountId === "none" && categoryId !== VIRTUAL_UNCATEGORIZED_ID && (
-											<p className="text-sm text-primary flex items-start gap-2 p-3 bg-muted rounded-lg">
-												<Info className="h-4 w-4 shrink-0 mt-0.5" />
-												<span>
-													Budget-only transaction: Your budget will update, but no account balance will change.
-												</span>
+											<p className="type-body-xs flex items-start gap-2 text-muted-foreground sm:col-span-2">
+												<Info className="mt-0.5 h-3.5 w-3.5 shrink-0" />
+												Budget only: your budget updates, but no account balance changes.
 											</p>
 										)}
-									</>
+									</div>
 								)}
 
 								{notes && (
 									<FormSection variant="subtle">
 										<div className="space-y-2">
-											<Label htmlFor="notes">Notes (Optional)</Label>
+											<Label htmlFor="notes">
+												Notes <span className="font-normal text-muted-foreground">(optional)</span>
+											</Label>
 											<Textarea
 												id="notes"
 												placeholder="Add any additional details..."
 												value={notes}
 												onChange={(e) => setNotes(e.target.value)}
 												rows={3}
-												className="bg-secondary border-border/60 resize-none"
+												className="resize-none"
 											/>
 										</div>
 									</FormSection>
@@ -886,7 +879,7 @@ export function UnifiedTransactionDialog({
 										<CancelShortcut />
 									</Button>
 									<Button type="submit" className="w-full sm:w-auto" disabled={isLoading}>
-										{isLoading && <Loader2 className="mr-2 h-4 w-4 animate-spin" />} Add Transaction
+										{isLoading && <Loader2 className="mr-2 h-4 w-4 animate-spin" />} Add transaction
 										<SubmitShortcut />
 									</Button>
 								</DialogFooter>
@@ -896,17 +889,19 @@ export function UnifiedTransactionDialog({
 						<TabsContent value="presets" className="mt-0 flex flex-col gap-6">
 							<div className="flex flex-col gap-2">
 								<div className="flex justify-between items-center">
-									<Label>Select Preset</Label>
+									<Label>Preset</Label>
 									<Button variant="ghost" size="sm" className="h-8 px-2" onClick={() => setIsManagePresetsOpen(true)}>
 										<Settings2 className="h-4 w-4 mr-1" /> Manage
 									</Button>
 								</div>
 
 								{presets.length === 0 ? (
-									<div className="text-center p-6 border border-dashed rounded-lg bg-muted/30">
-										<p className="text-sm text-muted-foreground mb-4">You don't have any presets yet.</p>
+									<div className="rounded-2xl border border-dashed border-border p-6 text-center">
+										<p className="type-body-sm mb-4 text-muted-foreground">
+											Save transactions you repeat, like a transit fare, and add them in a few taps.
+										</p>
 										<Button onClick={() => setIsManagePresetsOpen(true)} size="sm">
-											<PlusCircle className="h-4 w-4 mr-2" /> Create Preset
+											<PlusCircle className="mr-2 h-4 w-4" /> Create a preset
 										</Button>
 									</div>
 								) : (
@@ -927,22 +922,20 @@ export function UnifiedTransactionDialog({
 
 							{selectedPreset && (
 								<div className="flex flex-col gap-4">
-									<div className="bg-muted/50 p-3 rounded-lg border text-sm">
+									<div className="rounded-xl bg-card-muted/50 p-3 type-body-sm">
 										<p>
 											<strong>{selectedPreset.description}</strong>
 										</p>
 										<p className="text-muted-foreground mt-1">
-											{selectedPreset.type === "expense" ? "📉" : "📈"} ${selectedPreset.amount.toFixed(2)} •{" "}
-											{selectedPreset.transaction_type}
+											{selectedPreset.type === "expense" ? "Expense" : "Income"} of ${selectedPreset.amount.toFixed(2)},
+											recorded as {selectedPreset.transaction_type}
 										</p>
-										<p className="text-xs text-primary mt-2">
-											<span className="font-medium">Instructions:</span> Click dates on the calendar below to select.
-											Click a date multiple times to add multiple items on that day. Adjust totals in the list below
-											before confirming.
+										<p className="type-body-xs mt-2 text-muted-foreground">
+											Pick the days on the calendar. Use + and − in the list to add more than one on a day.
 										</p>
 									</div>
 
-									<div className="flex justify-center border rounded-lg p-2 bg-background relative">
+									<div className="relative flex justify-center rounded-2xl border border-border/70 p-2">
 										{isAddingFromPreset && (
 											<div className="absolute inset-0 bg-background/50 backdrop-blur-[1px] flex items-center justify-center z-10 rounded-lg">
 												<Loader2 className="h-6 w-6 animate-spin text-primary" />
@@ -976,16 +969,14 @@ export function UnifiedTransactionDialog({
 
 									{/* Selected Dates summary */}
 									{Object.keys(selectedDatesMap).length > 0 && (
-										<div className="flex flex-col gap-2 max-h-[160px] overflow-y-auto border rounded-lg p-2 bg-muted/20">
-											<p className="text-xs font-semibold text-muted-foreground uppercase tracking-wider px-1">
-												Selected Days
-											</p>
+										<div className="flex max-h-[160px] flex-col gap-2 overflow-y-auto rounded-2xl border border-border/70 p-2">
+											<p className="type-label px-1 text-muted-foreground">Selected days</p>
 											{selectedDateEntries.map(([dateStr, count]) => {
 												const subtotal = selectedPreset.amount * count;
 												return (
 													<div
 														key={dateStr}
-														className="flex justify-between items-center bg-background border p-2 rounded-md text-xs"
+														className="flex items-center justify-between rounded-lg border border-border/70 bg-card p-2 text-xs"
 													>
 														<div className="flex flex-col gap-0.5">
 															<span className="font-medium">{formatDisplayDate(dateStr)}</span>

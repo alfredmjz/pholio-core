@@ -10,7 +10,7 @@ import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@
 import { Textarea } from "@/components/ui/textarea";
 import { DatePicker } from "@/components/ui/date-picker";
 
-import { Loader2, Info, TrendingDown, Trash2, Ban } from "lucide-react";
+import { Loader2, Info, Trash2, Ban } from "lucide-react";
 import { toast } from "sonner";
 import {
 	updateUnifiedTransaction,
@@ -24,7 +24,7 @@ import type { Transaction, AllocationCategory } from "../types";
 import { getTransferAccountIds } from "../utils/transfer-accounts";
 import type { AccountWithType } from "@/app/balancesheet/types";
 import { FormSection } from "@/components/FormSection";
-import { CardSelector } from "@/components/CardSelector";
+import { TransactionTypeSwitch } from "@/components/dialogs/transaction-type-switch";
 import { ProminentAmountInput } from "@/components/ProminentAmountInput";
 import { ShortcutHint } from "@/components/common/shortcut-hint";
 import { ShortcutKey } from "@/lib/keyboard-shortcuts";
@@ -242,8 +242,10 @@ export function TransactionDialog({
 		<ControlBasedDialog
 			open={open}
 			onOpenChange={onOpenChange}
-			title={transaction ? "Edit Transaction" : "Add Transaction"}
-			description={transaction ? "Modify transaction details below." : "Enter details for new transaction."}
+			title={transaction ? "Edit transaction" : "Add transaction"}
+			description={
+				transaction ? "Changes update your budget and any linked account." : "Updates your budget for this month."
+			}
 			className="sm:max-w-[600px]"
 			showCloseButton={false}
 		>
@@ -260,79 +262,54 @@ export function TransactionDialog({
 				)}
 
 				{transaction?.is_recurring_stopped && (
-					<div className="flex items-start gap-2.5 p-3 rounded-lg bg-amber-500/10 border border-amber-500/30 text-amber-800 dark:text-amber-300 text-xs">
-						<Ban className="h-4 w-4 text-amber-600 dark:text-amber-400 shrink-0 mt-0.5" />
+					<div className="flex items-start gap-2.5 rounded-xl border border-warning/30 bg-warning-muted p-3 text-warning">
+						<Ban className="mt-0.5 h-4 w-4 shrink-0" />
 						<div>
-							<span className="font-semibold">Recurring Stopped — Final Record</span>
-							<p className="text-amber-700/90 dark:text-amber-400/90 mt-0.5">
-								The recurring bill/subscription for this transaction was paused or deleted. Future transactions will not
-								be generated automatically.
+							<p className="type-body-sm font-medium">This is the last payment of a stopped recurring item</p>
+							<p className="type-body-xs mt-0.5 opacity-90">
+								Its bill or subscription was paused or deleted, so no more payments will be added automatically.
 							</p>
 						</div>
 					</div>
 				)}
 
-				<FormSection icon={<TrendingDown />} title="Transaction Type" variant="subtle">
-					<CardSelector
-						options={[
-							{
-								value: "expense",
-								label: "Expense",
-								icon: "📉",
-								color: "bg-red-100",
-							},
-							{
-								value: "income",
-								label: "Income",
-								icon: "📈",
-								color: "bg-green-100",
-							},
-							{
-								value: "transfer",
-								label: "Transfer",
-								icon: "🔄",
-								color: "bg-blue-100",
-							},
-						]}
-						value={type}
-						onChange={(val) => setType(val as any)}
-						selectedBorderColor="border-blue-200"
-					/>
-				</FormSection>
+				<TransactionTypeSwitch value={type} onChange={setType} />
 
-				<FormSection icon={<Info />} title="Transaction Details" variant="subtle">
+				<div className="flex flex-col gap-5">
 					<div className="space-y-2">
-						<Label htmlFor="amount">Amount</Label>
+						<Label htmlFor="amount" className="type-label text-muted-foreground">
+							Amount
+						</Label>
 						<ProminentAmountInput id="amount" value={amount} onChange={setAmount} hasError={false} />
 					</div>
 
 					{!capCheck.isValid && (
-						<div className="p-2.5 rounded-lg bg-amber-500/10 border border-amber-500/30 text-amber-700 dark:text-amber-400 flex flex-col gap-2">
+						<div className="flex flex-col gap-2 rounded-lg border border-warning/30 bg-warning-muted p-2.5 text-warning">
 							<div className="flex items-start gap-1.5">
-								<Info className="h-4 w-4 shrink-0 mt-0.5 text-amber-600 dark:text-amber-400" />
+								<Info className="mt-0.5 h-4 w-4 shrink-0" />
 								<span className="text-xs">{firstViolation?.message}</span>
 							</div>
-							<div className="flex items-center justify-between pt-1 border-t border-amber-500/20">
+							<div className="flex items-center justify-between border-t border-warning/20 pt-1">
 								{maxAllowed !== undefined && (
 									<Button
 										type="button"
 										variant="outline"
 										size="sm"
-										className="h-7 text-xs font-medium border-amber-500/40 hover:bg-amber-500/20 text-amber-800 dark:text-amber-300"
+										className="h-7 border-warning/40 text-xs font-medium text-warning hover:bg-warning/15"
 										onClick={() => setAmount(maxAllowed.toFixed(2))}
 									>
-										Set to Max (${maxAllowed.toFixed(2)})
+										Use the most allowed (${maxAllowed.toFixed(2)})
 									</Button>
 								)}
 								{overridable && (
-									<label className="flex items-center gap-1.5 text-[11px] cursor-pointer font-medium text-amber-800 dark:text-amber-300">
+									<label className="flex cursor-pointer items-center gap-1.5 type-caption">
 										<input
 											type="checkbox"
 											checked={allowOverpayment}
 											onChange={(e) => setAllowOverpayment(e.target.checked)}
-											className="rounded border-amber-400 text-amber-600 focus:ring-amber-500"
+											className="rounded border-warning/60 accent-[hsl(var(--warning))]"
 										/>
-										Allow Overpayment
+										Allow overpayment
 									</label>
 								)}
 							</div>
@@ -363,7 +340,7 @@ export function TransactionDialog({
 								</div>
 								<div className="flex-1 space-y-2">
 									<Label htmlFor="name">
-										Description <span className="text-muted-foreground font-normal">(Optional)</span>
+										Description <span className="font-normal text-muted-foreground">(optional)</span>
 									</Label>
 									<AutocompleteInput
 										id="name"
@@ -376,31 +353,31 @@ export function TransactionDialog({
 								</div>
 							</div>
 
-							<div className="p-3 bg-muted/60 rounded-lg text-xs text-muted-foreground flex items-start gap-2 border">
-								<Info className="h-4 w-4 shrink-0 mt-0.5 text-primary" />
-								<span>Transfers move money directly between accounts and do not require a budget category.</span>
-							</div>
+							<p className="type-body-xs flex items-start gap-2 text-muted-foreground">
+								<Info className="mt-0.5 h-3.5 w-3.5 shrink-0" />
+								Transfers move money between your accounts, so they don&apos;t need a budget category.
+							</p>
 
 							<div className="grid grid-cols-1 gap-4 sm:grid-cols-2">
 								<div className="space-y-2">
-									<Label htmlFor="fromAccount">From Account (Source)</Label>
+									<Label htmlFor="fromAccount">From</Label>
 									<Select value={fromAccountId} onValueChange={setFromAccountId}>
 										<SelectTrigger>
 											<SelectValue placeholder="Select source account" />
 										</SelectTrigger>
-									<SelectContent>
-										{sortAccounts(accounts)
-											.filter((acc) => acc.id !== toAccountId)
-											.map((acc) => (
-												<SelectItem key={acc.id} value={acc.id}>
-													{formatAccountDisplayName(acc)}
-												</SelectItem>
-											))}
-									</SelectContent>
-								</Select>
-							</div>
-							<div className="space-y-2">
-								<Label htmlFor="toAccount">To Account (Destination)</Label>
+										<SelectContent>
+											{sortAccounts(accounts)
+												.filter((acc) => acc.id !== toAccountId)
+												.map((acc) => (
+													<SelectItem key={acc.id} value={acc.id}>
+														{formatAccountDisplayName(acc)}
+													</SelectItem>
+												))}
+										</SelectContent>
+									</Select>
+								</div>
+								<div className="space-y-2">
+									<Label htmlFor="toAccount">To</Label>
 									<Select value={toAccountId} onValueChange={setToAccountId}>
 										<SelectTrigger>
 											<SelectValue placeholder="Select destination account" />
@@ -460,14 +437,14 @@ export function TransactionDialog({
 
 							<div className="space-y-2">
 								<Label htmlFor="account">
-									Account <span className="text-muted-foreground font-normal">(Optional)</span>
+									Account <span className="font-normal text-muted-foreground">(optional)</span>
 								</Label>
 								<Select value={accountId} onValueChange={setAccountId}>
 									<SelectTrigger>
 										<SelectValue placeholder="Select an account" />
 									</SelectTrigger>
 									<SelectContent>
-										<SelectItem value="none">No Account</SelectItem>
+										<SelectItem value="none">No account</SelectItem>
 										{sortAccounts(accounts).map((acc) => (
 											<SelectItem key={acc.id} value={acc.id}>
 												{formatAccountDisplayName(acc)}
@@ -491,38 +468,47 @@ export function TransactionDialog({
 							</div>
 						</>
 					)}
-				</FormSection>
+				</div>
 
 				{notes && (
 					<FormSection variant="subtle">
 						<div className="space-y-2">
-							<Label htmlFor="notes">Notes (Optional)</Label>
+							<Label htmlFor="notes">
+								Notes <span className="font-normal text-muted-foreground">(optional)</span>
+							</Label>
 							<Textarea
 								id="notes"
 								placeholder="Add any additional details..."
 								value={notes}
 								onChange={(e) => setNotes(e.target.value)}
 								rows={3}
-								className="bg-secondary border-border/60 resize-none"
+								className="resize-none"
 							/>
 						</div>
 					</FormSection>
 				)}
 
-				<DialogFooter className="flex items-center justify-between sm:justify-between w-full">
+				<DialogFooter className="flex-row items-center justify-between sm:justify-between">
 					{transaction ? (
 						<AlertDialog>
 							<AlertDialogTrigger asChild>
-								<Button type="button" variant="destructive" size="icon" disabled={isLoading || isDeleting}>
+								<Button
+									type="button"
+									variant="ghost"
+									size="icon"
+									className="text-error hover:bg-error-muted hover:text-error"
+									disabled={isLoading || isDeleting}
+									aria-label="Delete transaction"
+								>
 									<Trash2 className="h-4 w-4" />
 								</Button>
 							</AlertDialogTrigger>
 							<AlertDialogContent>
 								<AlertDialogHeader>
-									<AlertDialogTitle>Delete Transaction?</AlertDialogTitle>
+									<AlertDialogTitle>Delete this transaction?</AlertDialogTitle>
 									<AlertDialogDescription>
-										This will permanently delete this transaction from your budget history.
-										{accountId !== "none" && " It will also be removed from the linked account balance."}
+										It&apos;s removed from this month&apos;s budget for good.
+										{accountId !== "none" && " The linked account's balance is adjusted back."}
 									</AlertDialogDescription>
 								</AlertDialogHeader>
 								<AlertDialogFooter>
@@ -544,7 +530,7 @@ export function TransactionDialog({
 						</Button>
 						<Button type="submit" disabled={isLoading}>
 							{isLoading && <Loader2 className="mr-2 h-4 w-4 animate-spin" />}
-							{transaction ? "Save Changes" : "Create Transaction"}
+							{transaction ? "Save changes" : "Add transaction"}
 							<ShortcutHint keys={[ShortcutKey.Enter]} keyClassName="border-current bg-transparent text-current" />
 						</Button>
 					</div>

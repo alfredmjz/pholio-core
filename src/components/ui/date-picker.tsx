@@ -48,12 +48,12 @@ export function DatePicker({
 					disabled={disabled}
 					id={id}
 					className={cn(
-						"w-full justify-start text-left font-normal h-10 active:scale-100",
+						"h-10 w-full justify-start rounded-[10px] border-field-border bg-field text-left font-normal text-primary hover:bg-field active:scale-100",
 						!value && "text-muted-foreground",
 						className
 					)}
 				>
-					<CalendarIcon className="mr-2 h-4 w-4" />
+					<CalendarIcon className="mr-2 h-4 w-4 text-muted-foreground" />
 					{selectedDate ? formatLongDate(selectedDate) : placeholder}
 				</Button>
 			</PopoverTrigger>

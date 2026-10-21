@@ -15,7 +15,7 @@ import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
 import { toast } from "sonner";
-import { Loader2, Plus, Edit2, Trash2 } from "lucide-react";
+import { ArrowDownLeft, ArrowUpRight, Loader2, Plus, Edit2, Trash2 } from "lucide-react";
 import type { AllocationCategory } from "@/app/allocations/types";
 import type { AccountWithType } from "@/app/balancesheet/types";
 import { formatAccountDisplayName, sortAccounts } from "@/lib/account-utils";
@@ -247,8 +247,8 @@ export function ManagePresetsDialog({
 						<FormSection title="Transaction Details" variant="subtle">
 							<CardSelector
 								options={[
-									{ value: "expense", label: "Expense", icon: "📉", color: "bg-red-100" },
-									{ value: "income", label: "Income", icon: "📈", color: "bg-green-100" },
+									{ value: "expense", label: "Expense", icon: <ArrowUpRight /> },
+									{ value: "income", label: "Income", icon: <ArrowDownLeft /> },
 								]}
 								value={type}
 								onChange={(v) => {
@@ -268,13 +268,13 @@ export function ManagePresetsDialog({
 									<SelectContent>
 										{type === "expense" ? (
 											<>
-												<SelectItem value="payment">💳 Payment</SelectItem>
-												<SelectItem value="withdrawal">💸 Withdrawal</SelectItem>
+												<SelectItem value="payment">Payment</SelectItem>
+												<SelectItem value="withdrawal">Withdrawal</SelectItem>
 											</>
 										) : (
 											<>
-												<SelectItem value="deposit">💰 Deposit</SelectItem>
-												<SelectItem value="refund">🔄 Refund</SelectItem>
+												<SelectItem value="deposit">Deposit</SelectItem>
+												<SelectItem value="refund">Refund</SelectItem>
 											</>
 										)}
 									</SelectContent>

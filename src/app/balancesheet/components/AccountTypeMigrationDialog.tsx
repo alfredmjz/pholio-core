@@ -8,7 +8,7 @@ import { Button } from "@/components/ui/button";
 import { Label } from "@/components/ui/label";
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
 import { CardSelector } from "@/components/CardSelector";
-import { AlertTriangle, Loader2 } from "lucide-react";
+import { AlertTriangle, CreditCard, Loader2, PiggyBank } from "lucide-react";
 import { toast } from "sonner";
 import { getAccountTypes, migrateAccountTypes } from "../actions";
 import type {
@@ -151,8 +151,8 @@ export function AccountTypeMigrationDialog({ open, onOpenChange, items, onComple
 									<Label>Class</Label>
 									<CardSelector
 										options={[
-											{ value: "asset" as AccountClass, label: "Asset", icon: "💰", color: "green-100" },
-											{ value: "liability" as AccountClass, label: "Liability", icon: "💳", color: "red-100" },
+											{ value: "asset" as AccountClass, label: "Asset", icon: <PiggyBank /> },
+											{ value: "liability" as AccountClass, label: "Liability", icon: <CreditCard /> },
 										]}
 										value={row.accountClass}
 										onChange={(value) => handleClassChange(row, value)}

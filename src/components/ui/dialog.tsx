@@ -3,6 +3,7 @@ import * as DialogPrimitive from "@radix-ui/react-dialog";
 import { X } from "lucide-react";
 
 import { cn } from "@/lib/utils";
+import { DIALOG_BODY_PAD, DIALOG_CONTENT_CLASS, DIALOG_HANDLE_CLASS, DIALOG_OVERLAY_CLASS } from "./dialog-surface";
 
 const Dialog = DialogPrimitive.Root;
 
@@ -16,14 +17,7 @@ const DialogOverlay = React.forwardRef<
 	React.ElementRef<typeof DialogPrimitive.Overlay>,
 	React.ComponentPropsWithoutRef<typeof DialogPrimitive.Overlay>
 >(({ className, ...props }, ref) => (
-	<DialogPrimitive.Overlay
-		ref={ref}
-		className={cn(
-			"fixed inset-0 z-50 bg-overlay/50 data-[state=open]:animate-in data-[state=closed]:animate-out data-[state=closed]:fade-out-0 data-[state=open]:fade-in-0",
-			className
-		)}
-		{...props}
-	/>
+	<DialogPrimitive.Overlay ref={ref} className={cn(DIALOG_OVERLAY_CLASS, className)} {...props} />
 ));
 DialogOverlay.displayName = DialogPrimitive.Overlay.displayName;
 
@@ -32,35 +26,39 @@ const DialogContent = React.forwardRef<
 	React.ComponentPropsWithoutRef<typeof DialogPrimitive.Content> & { showCloseButton?: boolean }
 >(({ className, children, showCloseButton = true, ...props }, ref) => (
 	<DialogPortal>
-		<DialogPrimitive.Overlay className="fixed inset-0 z-50 bg-overlay/50" />
-		<DialogPrimitive.Content
-			ref={ref}
-			className={cn(
-				"fixed left-[50%] top-[50%] z-50 w-[calc(100%-1rem)] max-w-lg translate-x-[-50%] translate-y-[-50%] max-h-[calc(100dvh-2rem)] overflow-y-auto sm:w-full",
-				className
+		<DialogOverlay />
+		<DialogPrimitive.Content ref={ref} className={cn(DIALOG_CONTENT_CLASS, className)} {...props}>
+			<span className={DIALOG_HANDLE_CLASS} aria-hidden />
+			{showCloseButton && (
+				<DialogPrimitive.Close className="absolute right-3 top-3 z-20 rounded-full p-2 text-muted-foreground transition-colors hover:bg-hover hover:text-primary focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring sm:right-4 sm:top-4">
+					<X className="h-4 w-4" />
+					<span className="sr-only">Close</span>
+				</DialogPrimitive.Close>
 			)}
-			{...props}
-		>
-			<div className="relative rounded-lg border border-border bg-card text-card-foreground shadow-raised">
-				{showCloseButton && (
-					<DialogPrimitive.Close className="absolute right-6 top-6 rounded-full hover:bg-secondary p-2 transition-colors">
-						<X className="h-4 w-4 text-muted-foreground" />
-					</DialogPrimitive.Close>
-				)}
-				<div className="p-4 sm:p-6">{children}</div>
-			</div>
+			<div className={DIALOG_BODY_PAD}>{children}</div>
 		</DialogPrimitive.Content>
 	</DialogPortal>
 ));
 DialogContent.displayName = DialogPrimitive.Content.displayName;
 
 const DialogHeader = ({ className, ...props }: React.HTMLAttributes<HTMLDivElement>) => (
-	<div className={cn("flex flex-col gap-3 mb-6", className)} {...props} />
+	<div className={cn("mb-6 flex flex-col gap-1.5 pr-10", className)} {...props} />
 );
 DialogHeader.displayName = "DialogHeader";
 
+/**
+ * Pinned to the bottom of the dialog while its content scrolls, so the actions stay in reach
+ * (thumb reach on the phone sheet).
+ */
 const DialogFooter = ({ className, ...props }: React.HTMLAttributes<HTMLDivElement>) => (
-	<div className={cn("flex flex-col-reverse sm:flex-row sm:justify-end sm:gap-3", className)} {...props} />
+	<div
+		className={cn(
+			"sticky bottom-0 z-10 -mx-5 -mb-5 mt-6 flex flex-col-reverse gap-2 border-t border-border/70 bg-card/95 px-5 py-4 backdrop-blur-sm",
+			"sm:-mx-7 sm:-mb-7 sm:flex-row sm:justify-end sm:gap-3 sm:px-7",
+			className
+		)}
+		{...props}
+	/>
 );
 DialogFooter.displayName = "DialogFooter";
 
@@ -68,7 +66,7 @@ const DialogTitle = React.forwardRef<
 	React.ElementRef<typeof DialogPrimitive.Title>,
 	React.ComponentPropsWithoutRef<typeof DialogPrimitive.Title>
 >(({ className, ...props }, ref) => (
-	<DialogPrimitive.Title ref={ref} className={cn("type-h4", className)} {...props} />
+	<DialogPrimitive.Title ref={ref} className={cn("type-h3 text-primary", className)} {...props} />
 ));
 DialogTitle.displayName = DialogPrimitive.Title.displayName;
 

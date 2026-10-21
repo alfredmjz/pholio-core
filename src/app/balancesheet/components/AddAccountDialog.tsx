@@ -17,7 +17,7 @@ import { Popover, PopoverContent, PopoverTrigger } from "@/components/ui/popover
 import { Command, CommandEmpty, CommandGroup, CommandInput, CommandItem, CommandList } from "@/components/ui/command";
 import { MinimalTiptap } from "@/components/ui/shadcn-io/minimal-tiptap";
 import { toast } from "sonner";
-import { Check, ChevronsUpDown, Wallet, Info } from "lucide-react";
+import { Check, ChevronsUpDown, Wallet, Info, PiggyBank, CreditCard } from "lucide-react";
 import { createAccount, getAccountTypes } from "../actions";
 import type { CreateAccountInput, AccountType, AccountClass, AccountWithType, AccountFieldConfig } from "../types";
 import { cn } from "@/lib/utils";
@@ -266,14 +266,12 @@ export function AddAccountDialog({ open, onOpenChange, onSuccess }: AddAccountDi
 								{
 									value: "asset" as AccountClass,
 									label: "Asset",
-									icon: "💰",
-									color: "bg-green-100",
+									icon: <PiggyBank />,
 								},
 								{
 									value: "liability" as AccountClass,
 									label: "Liability",
-									icon: "💳",
-									color: "bg-red-100",
+									icon: <CreditCard />,
 								},
 							]}
 							value={accountType}

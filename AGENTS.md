@@ -355,10 +355,14 @@ Keep components focused; extract form sections and sub-components. Existing file
 
 ### Ordering (ADR-003)
 
-- Option lists shown in dialogs/selects are sorted alphabetically by the label the user reads,
-  using `src/lib/sort-utils.ts` (`sortAlphabetically`, `compareAlphabetically`, case-insensitive,
-  leading emoji ignored). Accounts use `sortAccounts()` (sorts by the formatted
-  "Institution - Name" label); account types use `sortAccountTypes()`.
+- Every dropdown, select, segmented picker and filter lists its options alphabetically by the
+  label the user reads, using `src/lib/sort-utils.ts` (`sortAlphabetically`,
+  `compareAlphabetically`, case-insensitive, leading emoji ignored). This includes ledger
+  filters, settings pickers and theme pickers. Accounts use `sortAccounts()` (sorts by the
+  formatted "Institution - Name" label); account types use `sortAccountTypes()`.
+- A pinned catch-all entry ("All …", "None", "No Account", "Uncategorized", "Default") stays
+  first. Action menus sort within each group; destructive actions (Delete) and Sign Out sit in
+  their own group last.
 - Documented exceptions that must stay in their natural order: recurrence units
   (Days → Weeks → Months → Years), `ServiceAutocomplete` (logo.dev relevance order),
   chronological month selectors, and migration `sort_order` seeds.

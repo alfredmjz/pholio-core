@@ -126,17 +126,34 @@ SQL editor; production is updated manually after a PR merges.
 
 ### Testing & linting
 
-- **The only automated tests are the Playwright E2E suite in `src/e2e/`** (spec:
-  `docs/e2e-testing-spec.md`). There are no unit tests and no ESLint config; do not invent
-  `bun test` / `bun run lint` commands.
+Three automated suites. There is no ESLint config; do not invent `bun run lint`.
+
+| Suite | Command (from `src/`) | Covers |
+| ----- | --------------------- | ------ |
+| Unit (runtime calculations) | `bun test` (`bun run test:watch`) | Pure TypeScript calculations in `src/tests/` |
+| Database (pgTAP) | `bun run test:db` | SQL functions in `supabase/tests/*.test.sql` |
+| E2E (Playwright) | `bun run e2e` / `bun run e2e:smoke` | User flows in `src/e2e/` |
+
+- **Unit tests** use Bun's built-in runner (`bun:test`, no extra dependency). `src/bunfig.toml`
+  sets the test root to `src/tests/` so Playwright `*.spec.ts` files are never picked up. Mirror
+  the source path (`src/lib/x.ts` → `src/tests/lib/x.test.ts`); shared fixtures live in
+  `src/tests/support/`. Keep calculation logic in plain `.ts` modules (not components) so it can
+  be tested — e.g. `src/lib/contribution-room-meter.ts`, `src/app/balancesheet/contribution-room-form.ts`.
+- **Database tests** run through `supabase test db` against the local Supabase (needs Docker).
+  Each file wraps its fixtures in `BEGIN … ROLLBACK`, so nothing persists. Add a test file when you
+  add or change a derived-state function (balances, promotions, contribution room), with
+  expected values worked out by hand.
+- Any change to an algorithm or metric (money, dates, room, caps, progress) needs unit and/or
+  database tests that pin the expected numbers.
 - E2E needs Docker and the local Supabase (`cd src && bun run e2e:db`). It builds the app into
   `src/.next-e2e`, serves it on :3100 and runs on desktop (1440px), Android (412px) and
   iPhone (375px). `bun run e2e:smoke` runs tests tagged `@smoke`; `bun run e2e` runs everything.
   Each run signs in a fresh user, so no DB reset is needed. Tests refuse non-local Supabase URLs.
 - New signed-in pages go in `src/e2e/support/routes.ts` so the layout smoke test covers them.
-- `.githooks/pre-push` runs the smoke tier (enable per clone with `bun run hooks:install`).
-- CI (`.github/workflows/ci.yml`) runs `bun run build` and the full E2E suite in `src/` for PRs
-  targeting `main`/`development`.
+- `.githooks/pre-push` runs the unit tests, database tests and smoke tier (enable per clone with
+  `bun run hooks:install`).
+- CI (`.github/workflows/ci.yml`) runs `bun test` and `bun run build`, then the database tests
+  and the full E2E suite against a local Supabase, for PRs targeting `main`/`development`.
 - Optional dead-code sweep used on this project:
   `cd src && bunx tsc --noEmit --noUnusedLocals --noUnusedParameters --pretty false`.
   The repo is **not** clean under those flags — compare against the pre-existing baseline
@@ -152,6 +169,9 @@ A change is considered build-verified when **both** exit `0`:
 cd src && bunx tsc --noEmit
 cd src && bun run build
 ```
+
+Calculation changes additionally need `cd src && bun test` (and `bun run test:db` for SQL) to
+pass, with tests added for the new behaviour.
 
 UI-affecting work additionally needs manual browser verification at **mobile (375px)** and
 **desktop (1440px)**. `bun run dev:mock` is the fastest way to exercise UI without a database.
@@ -335,10 +355,14 @@ Keep components focused; extract form sections and sub-components. Existing file
 
 ### Ordering (ADR-003)
 
-- Option lists shown in dialogs/selects are sorted alphabetically by the label the user reads,
-  using `src/lib/sort-utils.ts` (`sortAlphabetically`, `compareAlphabetically`, case-insensitive,
-  leading emoji ignored). Accounts use `sortAccounts()` (sorts by the formatted
-  "Institution - Name" label); account types use `sortAccountTypes()`.
+- Every dropdown, select, segmented picker and filter lists its options alphabetically by the
+  label the user reads, using `src/lib/sort-utils.ts` (`sortAlphabetically`,
+  `compareAlphabetically`, case-insensitive, leading emoji ignored). This includes ledger
+  filters, settings pickers and theme pickers. Accounts use `sortAccounts()` (sorts by the
+  formatted "Institution - Name" label); account types use `sortAccountTypes()`.
+- A pinned catch-all entry ("All …", "None", "No Account", "Uncategorized", "Default") stays
+  first. Action menus sort within each group; destructive actions (Delete) and Sign Out sit in
+  their own group last.
 - Documented exceptions that must stay in their natural order: recurrence units
   (Days → Weeks → Months → Years), `ServiceAutocomplete` (logo.dev relevance order),
   chronological month selectors, and migration `sort_order` seeds.
@@ -365,7 +389,9 @@ Keep components focused; extract form sections and sub-components. Existing file
 ## 9. Things Agents Must Not Do
 
 - **Do not commit, push, rebase, or open PRs unless explicitly asked.** This repo is often in a
-  long-lived dirty working tree; committing mid-feature has caused rework.
+  long-lived dirty working tree; committing mid-feature has caused rework. When a request is out
+  of scope for the current branch, follow the scope-change workflow in §13 instead of starting
+  the work on this branch.
 - Do not stage or discard uncommitted work to "clean up" — inspect `git status` first and treat
   the working tree as the source of truth.
 - Do not edit `supabase/generated/**` (gitignored build output) or `supabase/signing_keys.json`.
@@ -468,6 +494,23 @@ still follow the same routing logic.
 
 Expected workflow for a feature: spec in `docs/<feature>-spec.md`, implementation,
 type-check + build, manual UI verification at 375px/1440px, review, PR.
+
+**Scope changes (new feature out of scope for the current branch):**
+
+A branch covers one feature (its issue). When the user asks for a new feature that is outside
+that scope, do not start it on the current branch. Instead:
+
+1. Say that the request is out of scope for the current branch, and ask the user to confirm
+   committing the current work. Do not commit until they confirm.
+2. After they confirm, commit the current work (conventions above), push the branch and open a
+   PR for it (title `feat:`/`fix:`, **Summary** and **Key changes** sections, base `main` or
+   `development`). Show the user the PR link.
+3. Create a new branch for the new feature from the PR's base branch, named after its issue
+   like the existing branches (e.g. `121-feature-investment-deposit-tracking`), and do the new
+   work there.
+
+Follow-ups, fixes and corrections to the feature already on the branch are in scope: keep them
+on the current branch.
 
 ---
 

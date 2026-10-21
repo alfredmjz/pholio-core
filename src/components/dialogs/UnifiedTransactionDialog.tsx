@@ -17,7 +17,7 @@ import { DatePicker } from "@/components/ui/date-picker";
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
 import { Calendar } from "@/components/ui/calendar";
 import { toast } from "sonner";
-import { Loader2, TrendingUp, TrendingDown, Info, Settings2, PlusCircle, Trash2 } from "lucide-react";
+import { Loader2, TrendingUp, TrendingDown, Info, Settings2, PlusCircle, Trash2, ArrowLeftRight, X } from "lucide-react";
 import {
 	createUnifiedTransaction,
 	getSuggestedAccountForCategory,
@@ -41,6 +41,7 @@ import { getTodayDateString, parseLocalDate, formatDateString } from "@/lib/date
 import { handleEnterSubmit } from "@/lib/enter-submit";
 import { VIRTUAL_UNCATEGORIZED_ID } from "@/app/allocations/types";
 import { formatAccountDisplayName, sortAccounts } from "@/lib/account-utils";
+import { getAccountTransactionTypeOptions, getDefaultAccountTransactionType } from "@/lib/account-transaction-types";
 import { compareAlphabetically, sortAlphabetically } from "@/lib/sort-utils";
 import { ManagePresetsDialog } from "./ManagePresetsDialog";
 import { isSampleDataActive } from "@/lib/demo-mode";
@@ -49,6 +50,10 @@ import {
 	calculateAccountStanding,
 	checkTransactionCaps,
 } from "@/lib/account-validation-utils";
+import { getAccountContributionSummary } from "@/lib/actions/contribution-actions";
+import { getContributionNotices } from "@/lib/contribution-plans";
+import { ContributionNotices } from "@/components/common/ContributionDetails";
+import type { ContributionSummary } from "@/lib/types/contribution";
 
 interface UnifiedTransactionDialogProps {
 	open: boolean;
@@ -156,7 +161,12 @@ export function UnifiedTransactionDialog({
 			if (defaultAmount && defaultAmount > 0) {
 				setAmount(defaultAmount.toFixed(2));
 			}
-			setTransactionType(defaultType === "income" ? "deposit" : "withdrawal");
+			setTransactionType(
+				getDefaultAccountTransactionType(
+					accounts.find((a) => a.id === defaultAccountId)?.account_type?.class === "liability",
+					defaultType === "income" ? "income" : "expense"
+				)
+			);
 			setNotes("");
 			setSuggestedAccountInfo(null);
 			setErrors({});
@@ -181,13 +191,17 @@ export function UnifiedTransactionDialog({
 		setSelectedDatesMap({});
 	}, [selectedPresetId]);
 
+	// The account type options depend on the selected account's class; reset an option that no
+	// longer applies when the intent or the account changes.
+	const accountIsLiability = accounts.find((a) => a.id === accountId)?.account_type?.class === "liability";
+	const transactionTypeOptions = type === "transfer" ? [] : getAccountTransactionTypeOptions(accountIsLiability, type);
+
 	useEffect(() => {
-		if (type === "income" && !["deposit", "contribution", "refund"].includes(transactionType)) {
-			setTransactionType("deposit");
-		} else if (type === "expense" && !["withdrawal", "payment", "interest"].includes(transactionType)) {
-			setTransactionType("withdrawal");
+		if (type === "transfer") return;
+		if (!transactionTypeOptions.some((option) => option.value === transactionType)) {
+			setTransactionType(getDefaultAccountTransactionType(accountIsLiability, type));
 		}
-	}, [type]);
+	}, [type, accountIsLiability, transactionType]);
 
 	useEffect(() => {
 		if (type === "transfer" || !categoryId || categoryId === VIRTUAL_UNCATEGORIZED_ID) {
@@ -234,6 +248,60 @@ export function UnifiedTransactionDialog({
 					transactionType,
 				})
 			: { isValid: true, violations: [] as ReturnType<typeof checkTransactionCaps>["violations"] };
+
+	// Contribution room warnings (issue #121): money going into an account that tracks room.
+	// A direct transfer between two accounts of the same registered plan does not use room
+	// (and so does not warn), since both accounts share one plan room.
+	const contributionTarget = (() => {
+		if (type === "transfer") {
+			if (!toAccount?.track_contribution_room) return null;
+			const samePlan =
+				!!toAccount.contribution_plan &&
+				toAccount.contribution_plan !== "other" &&
+				fromAccount?.contribution_plan === toAccount.contribution_plan;
+			return samePlan ? null : toAccount;
+		}
+		if (type === "income" && ["deposit", "contribution"].includes(transactionType)) {
+			const target = accounts.find((a) => a.id === accountId);
+			return target?.track_contribution_room ? target : null;
+		}
+		return null;
+	})();
+	const contributionTargetId = contributionTarget?.id ?? null;
+	const [contributionSummary, setContributionSummary] = useState<ContributionSummary | null>(null);
+	const contributionDate = parseLocalDate(date);
+	const contributionYear = contributionDate.getFullYear();
+	const contributionMonth = contributionDate.getMonth() + 1;
+
+	useEffect(() => {
+		if (!open || !contributionTargetId) {
+			setContributionSummary(null);
+			return;
+		}
+		let cancelled = false;
+		getAccountContributionSummary(contributionTargetId, contributionYear, contributionMonth)
+			.then((contribution) => {
+				// Warn against the whole plan pool: every TFSA (etc.) shares one room.
+				if (!cancelled) setContributionSummary(contribution?.pool ?? null);
+			})
+			.catch(() => {
+				if (!cancelled) setContributionSummary(null);
+			});
+		return () => {
+			cancelled = true;
+		};
+	}, [open, contributionTargetId, contributionYear, contributionMonth]);
+
+	const contributionNotices =
+		contributionTargetId &&
+		contributionSummary?.account_ids.includes(contributionTargetId) &&
+		parseFloat(amount) > 0
+			? getContributionNotices(
+					contributionSummary,
+					(value) => new Intl.NumberFormat("en-CA", { style: "currency", currency: "CAD" }).format(value),
+					parseFloat(amount)
+				)
+			: [];
 
 	const firstViolation = capCheck.violations[0];
 	const validationResult = {
@@ -501,19 +569,11 @@ export function UnifiedTransactionDialog({
 												<SelectValue placeholder="Select type" />
 											</SelectTrigger>
 											<SelectContent>
-												{type === "income" ? (
-													<>
-														<SelectItem value="contribution">➕ Contribution</SelectItem>
-														<SelectItem value="deposit">💰 Deposit</SelectItem>
-														<SelectItem value="refund">🔄 Refund</SelectItem>
-													</>
-												) : (
-													<>
-														<SelectItem value="interest">📈 Interest</SelectItem>
-														<SelectItem value="payment">💳 Payment</SelectItem>
-														<SelectItem value="withdrawal">💸 Withdrawal</SelectItem>
-													</>
-												)}
+												{transactionTypeOptions.map((option) => (
+													<SelectItem key={option.value} value={option.value}>
+														{option.label}
+													</SelectItem>
+												))}
 											</SelectContent>
 										</Select>
 									</div>
@@ -548,6 +608,14 @@ export function UnifiedTransactionDialog({
 											id="amount"
 											hasError={!!errors.amount}
 										/>
+										{contributionNotices.length > 0 && (
+											<div
+												className="mt-2 rounded-lg border border-border/60 bg-muted/60 p-2.5"
+												data-testid="contribution-room-warning"
+											>
+												<ContributionNotices notices={contributionNotices} />
+											</div>
+										)}
 										{selectedTargetAccount && selectedAccountStanding && (
 												<div className="mt-2 text-xs rounded-lg p-2.5 bg-muted/60 border border-border/60 flex flex-col gap-1.5">
 													<div className="flex items-center justify-between font-medium">
@@ -680,13 +748,18 @@ export function UnifiedTransactionDialog({
 														<SelectValue placeholder="Select source account" />
 													</SelectTrigger>
 													<SelectContent>
-														{sortAccounts(accounts)
-															.filter((acc) => acc.id !== toAccountId)
-															.map((acc) => (
-																<SelectItem key={acc.id} value={acc.id}>
-																	{formatAccountDisplayName(acc)}
-																</SelectItem>
-															))}
+														{/* The account picked as the destination stays in the list but hidden, so
+														    Swap can move it here without Radix dropping the value. */}
+														{sortAccounts(accounts).map((acc) => (
+															<SelectItem
+																key={acc.id}
+																value={acc.id}
+																disabled={acc.id === toAccountId}
+																className={cn(acc.id === toAccountId && "hidden")}
+															>
+																{formatAccountDisplayName(acc)}
+															</SelectItem>
+														))}
 													</SelectContent>
 												</Select>
 												{errors.fromAccountId && <p className="text-sm text-error">{errors.fromAccountId}</p>}
@@ -707,18 +780,56 @@ export function UnifiedTransactionDialog({
 														<SelectValue placeholder="Select destination account" />
 													</SelectTrigger>
 													<SelectContent>
-														{sortAccounts(accounts)
-															.filter((acc) => acc.id !== fromAccountId)
-															.map((acc) => (
-																<SelectItem key={acc.id} value={acc.id}>
-																	{formatAccountDisplayName(acc)}
-																</SelectItem>
-															))}
+														{sortAccounts(accounts).map((acc) => (
+															<SelectItem
+																key={acc.id}
+																value={acc.id}
+																disabled={acc.id === fromAccountId}
+																className={cn(acc.id === fromAccountId && "hidden")}
+															>
+																{formatAccountDisplayName(acc)}
+															</SelectItem>
+														))}
 													</SelectContent>
 												</Select>
 												{errors.toAccountId && <p className="text-sm text-error">{errors.toAccountId}</p>}
 											</div>
 										</div>
+
+										{/* Each list hides the account picked in the other, so offer a way out of a wrong pick. */}
+										{(fromAccountId !== "none" || toAccountId !== "none") && (
+											<div className="-mt-2 flex justify-end gap-2">
+												<Button
+													type="button"
+													variant="ghost"
+													size="sm"
+													data-dialog-ignore-enter=""
+													className="h-7 gap-1 px-2 text-xs"
+													onClick={() => {
+														setFromAccountId(toAccountId);
+														setToAccountId(fromAccountId);
+														setErrors({ ...errors, fromAccountId: undefined, toAccountId: undefined });
+													}}
+												>
+													<ArrowLeftRight className="h-3.5 w-3.5" />
+													Swap
+												</Button>
+												<Button
+													type="button"
+													variant="ghost"
+													size="sm"
+													data-dialog-ignore-enter=""
+													className="h-7 gap-1 px-2 text-xs"
+													onClick={() => {
+														setFromAccountId("none");
+														setToAccountId("none");
+													}}
+												>
+													<X className="h-3.5 w-3.5" />
+													Clear
+												</Button>
+											</div>
+										)}
 									</>
 								) : (
 									<>

@@ -1,6 +1,6 @@
 "use client";
 
-import { useState } from "react";
+import { useEffect, useState } from "react";
 import { toast } from "sonner";
 import {
 	Dialog,
@@ -19,9 +19,19 @@ import { updateAccount } from "../../../actions";
 import { isSampleDataActive } from "@/lib/demo-mode";
 import type { AccountWithType, AccountFieldConfig, UpdateAccountInput } from "../../../types";
 import { sanitizeDecimalInput, sanitizeIntegerInput } from "@/lib/input-utils";
-import { Switch } from "@/components/ui/switch";
 import { getFieldVisibility } from "../../../field-visibility";
 import { AccountFieldConfigurator } from "../../../components/AccountFieldConfigurator";
+import { ContributionRoomFields } from "../../../components/ContributionRoomFields";
+import {
+	toContributionRoomInput,
+	toPlanRoomSetting,
+	validateContributionRoom,
+	withPlanRoom,
+	type ContributionRoomFormValues,
+} from "../../../contribution-room-form";
+import { getContributionRooms, saveContributionRoom } from "@/lib/actions/contribution-actions";
+import { isRegisteredPlan } from "@/lib/contribution-plans";
+import type { ContributionRoomSetting } from "@/lib/types/contribution";
 
 interface EditAccountDialogProps {
 	open: boolean;
@@ -35,6 +45,7 @@ interface ValidationErrors {
 	current_balance?: string;
 	target_balance?: string;
 	interest_rate?: string;
+	contribution_room?: string;
 }
 
 export function EditAccountDialog({ open, onOpenChange, account, onSuccess }: EditAccountDialogProps) {
@@ -52,10 +63,27 @@ export function EditAccountDialog({ open, onOpenChange, account, onSuccess }: Ed
 		payment_due_date: account.payment_due_date?.toString() || "",
 		credit_limit: account.credit_limit?.toString() || "",
 		loan_term_months: account.loan_term_months?.toString() || "",
+	});
+	const [contribution, setContribution] = useState<ContributionRoomFormValues>({
 		track_contribution_room: account.track_contribution_room || false,
+		contribution_plan: account.contribution_plan ?? "",
 		contribution_room: account.contribution_room?.toString() || "",
+		contribution_room_as_of: account.contribution_room_as_of ?? "",
 		annual_contribution_limit: account.annual_contribution_limit?.toString() || "",
 	});
+	const [planRooms, setPlanRooms] = useState<ContributionRoomSetting[]>([]);
+
+	// Registered plans keep their room in the shared plan room: load it when the dialog opens
+	// and show it in place of the (empty) account columns.
+	useEffect(() => {
+		if (!open) return;
+		getContributionRooms()
+			.then((rooms) => {
+				setPlanRooms(rooms);
+				setContribution((prev) => (isRegisteredPlan(prev.contribution_plan) ? withPlanRoom(prev, rooms) : prev));
+			})
+			.catch(() => setPlanRooms([]));
+	}, [open]);
 
 	// "Other" accounts allow the owner to choose which fields are tracked.
 	const isOtherType = account.account_type?.code === "other";
@@ -69,10 +97,8 @@ export function EditAccountDialog({ open, onOpenChange, account, onSuccess }: Ed
 			newErrors.name = "Account name is required";
 		}
 
-		// Validate Current Balance
-		if (!formData.current_balance.trim()) {
-			newErrors.current_balance = "Current balance is required";
-		} else if (isNaN(parseFloat(formData.current_balance))) {
+		// Validate Current Balance (blank is saved as 0)
+		if (formData.current_balance.trim() && isNaN(parseFloat(formData.current_balance))) {
 			newErrors.current_balance = "Please enter a valid number";
 		}
 
@@ -84,6 +110,11 @@ export function EditAccountDialog({ open, onOpenChange, account, onSuccess }: Ed
 		// Validate Interest Rate (optional, but must be a valid number if provided)
 		if (formData.interest_rate.trim() && isNaN(parseFloat(formData.interest_rate))) {
 			newErrors.interest_rate = "Please enter a valid number";
+		}
+
+		if (visibility.showContributionRoom) {
+			const contributionError = validateContributionRoom(contribution);
+			if (contributionError) newErrors.contribution_room = contributionError;
 		}
 
 		setErrors(newErrors);
@@ -107,6 +138,12 @@ export function EditAccountDialog({ open, onOpenChange, account, onSuccess }: Ed
 		setIsSubmitting(true);
 
 		try {
+			const planRoom = visibility.showContributionRoom ? toPlanRoomSetting(contribution, planRooms) : null;
+			if (planRoom && !(await saveContributionRoom(planRoom))) {
+				toast.error("Update Failed", { description: "Could not save your contribution room. Please try again." });
+				return;
+			}
+
 			const updates: UpdateAccountInput = {
 				name: formData.name,
 				institution: formData.institution || null,
@@ -118,12 +155,8 @@ export function EditAccountDialog({ open, onOpenChange, account, onSuccess }: Ed
 				payment_due_date: formData.payment_due_date ? parseInt(formData.payment_due_date) : null,
 				credit_limit: formData.credit_limit ? parseFloat(formData.credit_limit) : null,
 				loan_term_months: formData.loan_term_months ? parseInt(formData.loan_term_months) : null,
-				track_contribution_room: formData.track_contribution_room,
 				field_visibility: isOtherType ? fieldConfig : null,
-				contribution_room: formData.contribution_room ? parseFloat(formData.contribution_room) : null,
-				annual_contribution_limit: formData.annual_contribution_limit
-					? parseFloat(formData.annual_contribution_limit)
-					: null,
+				...(visibility.showContributionRoom ? toContributionRoomInput(contribution) : {}),
 			};
 			// Sample data: the account page keeps the change in the demo store (via onSuccess).
 			const result = isSampleDataActive() ? updates : await updateAccount(account.id, updates);
@@ -200,7 +233,7 @@ export function EditAccountDialog({ open, onOpenChange, account, onSuccess }: Ed
 					<div className="grid grid-cols-1 gap-4 sm:grid-cols-2">
 						<div className="space-y-2">
 							<Label htmlFor="current_balance">
-								Current Balance <span className="text-error">*</span>
+								Current Balance
 							</Label>
 							<Input
 								id="current_balance"
@@ -371,54 +404,15 @@ export function EditAccountDialog({ open, onOpenChange, account, onSuccess }: Ed
 
 					{/* Investment/Retirement fields */}
 					{visibility.showContributionRoom && (
-						<>
-							<div className="flex flex-row items-center justify-between rounded-lg border p-4">
-								<div className="space-y-0.5">
-									<Label>Track Contribution Room</Label>
-									<p className="text-sm text-muted-foreground">
-										Track your maximum allowable contributions (e.g., for TFSA, RRSP, FHSA).
-									</p>
-								</div>
-								<Switch
-									checked={formData.track_contribution_room}
-									onCheckedChange={(checked) => setFormData({ ...formData, track_contribution_room: checked })}
-								/>
-							</div>
-
-							{formData.track_contribution_room && (
-								<div className="grid grid-cols-1 gap-4 sm:grid-cols-2">
-									<div className="space-y-2">
-										<Label htmlFor="contribution_room">Total Contribution Room</Label>
-										<Input
-											id="contribution_room"
-											type="text"
-											inputMode="decimal"
-											placeholder="e.g., 95000"
-											value={formData.contribution_room}
-											onChange={(e) => {
-												setFormData({ ...formData, contribution_room: sanitizeDecimalInput(e.target.value, 2) });
-											}}
-										/>
-									</div>
-									<div className="space-y-2">
-										<Label htmlFor="annual_limit">Annual Limit</Label>
-										<Input
-											id="annual_limit"
-											type="text"
-											inputMode="decimal"
-											placeholder="e.g., 7000"
-											value={formData.annual_contribution_limit}
-											onChange={(e) => {
-												setFormData({
-													...formData,
-													annual_contribution_limit: sanitizeDecimalInput(e.target.value, 2),
-												});
-											}}
-										/>
-									</div>
-								</div>
-							)}
-						</>
+						<ContributionRoomFields
+							values={contribution}
+							planRooms={planRooms}
+							onChange={(changes) => {
+								setContribution((prev) => ({ ...prev, ...changes }));
+								if (errors.contribution_room) setErrors({ ...errors, contribution_room: undefined });
+							}}
+							error={errors.contribution_room}
+						/>
 					)}
 
 					{/* Default interest rate for banking/property/other */}

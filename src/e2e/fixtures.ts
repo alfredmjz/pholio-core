@@ -8,15 +8,13 @@ const EXTERNAL_PROXY_PATHS = ["/api/logos/"];
 
 /**
  * Browser noise reported as uncaught errors that never affects the user:
- * - WebKit reports Next.js route prefetches (`?_rsc=`) cancelled by a navigation or redirect
- *   as "access control checks" errors.
+ * - WebKit reports any same-origin request cancelled by a navigation or redirect (route
+ *   prefetches with `?_rsc=`, and server-action POSTs to the page being left) as an
+ *   "access control checks" error.
  * - "ResizeObserver loop" is a benign notice when a chart resizes during layout.
  */
 function isBenignBrowserError(message: string) {
-	return (
-		(message.includes("_rsc=") && message.includes("access control checks")) ||
-		message.startsWith("ResizeObserver loop")
-	);
+	return message.includes("due to access control checks") || message.startsWith("ResizeObserver loop");
 }
 
 /**

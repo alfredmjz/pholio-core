@@ -1,5 +1,6 @@
 import { redirect } from "next/navigation";
 import { getAccountById, getAccountTransactions, getAccounts } from "../../actions";
+import { getAccountContributionSummary } from "@/lib/actions/contribution-actions";
 import { isSampleDataMode } from "@/lib/demo-mode.server";
 import { AccountDetailClient } from "./AccountDetailClient";
 
@@ -10,11 +11,12 @@ interface AccountDetailPageProps {
 export default async function AccountDetailPage({ params }: AccountDetailPageProps) {
 	const { id } = await params;
 
-	const [account, transactions, allAccounts, sampleMode] = await Promise.all([
+	const [account, transactions, allAccounts, sampleMode, contribution] = await Promise.all([
 		getAccountById(id),
 		getAccountTransactions(id),
 		getAccounts(),
 		isSampleDataMode(),
+		getAccountContributionSummary(id),
 	]);
 
 	// Account was deleted (or never existed) — send the user back to the parent page.
@@ -29,7 +31,13 @@ export default async function AccountDetailPage({ params }: AccountDetailPagePro
 
 	return (
 		<div className="flex-1 w-full flex flex-col gap-6 px-4 py-8">
-			<AccountDetailClient accountId={id} account={account} transactions={transactions} otherAccounts={otherAccounts} />
+			<AccountDetailClient
+				accountId={id}
+				account={account}
+				transactions={transactions}
+				otherAccounts={otherAccounts}
+				contribution={contribution}
+			/>
 		</div>
 	);
 }

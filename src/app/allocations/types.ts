@@ -1,3 +1,5 @@
+import type { RegisteredPlan } from "@/app/balancesheet/types";
+
 export type CategoryType = "regular" | "savings_goal" | "debt_payment";
 
 export const VIRTUAL_UNCATEGORIZED_ID = "00000000-0000-0000-0000-000000000000";
@@ -29,6 +31,8 @@ export interface AllocationCategory {
 
 	category_type?: CategoryType;
 	linked_account_id?: string | null;
+	/** Registered plan whose contribution room this budget is shown against (not in the summary RPC). */
+	contribution_plan?: RegisteredPlan | null;
 	created_at: string;
 	updated_at: string;
 

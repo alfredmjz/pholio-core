@@ -21,6 +21,7 @@ import {
 import { AutocompleteInput } from "@/components/ui/autocomplete-input";
 import { VIRTUAL_UNCATEGORIZED_ID } from "../types";
 import type { Transaction, AllocationCategory } from "../types";
+import { getTransferAccountIds } from "../utils/transfer-accounts";
 import type { AccountWithType } from "@/app/balancesheet/types";
 import { FormSection } from "@/components/FormSection";
 import { CardSelector } from "@/components/CardSelector";
@@ -85,8 +86,8 @@ export function TransactionDialog({
 				const initialAcct = transaction.account_id || transaction.linked_account_transaction?.account_id || "none";
 				setAccountId(initialAcct);
 				setFromAccountId(initialAcct);
-				setToAccountId("none");
 				const isTransfer = transaction.source === "transfer";
+				setToAccountId((isTransfer && getTransferAccountIds(transaction).toAccountId) || "none");
 				setType(isTransfer ? "transfer" : transaction.amount >= 0 ? "income" : "expense");
 				setNotes(transaction.notes || "");
 			} else {

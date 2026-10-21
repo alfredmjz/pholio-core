@@ -111,6 +111,25 @@ const sampleCategories: AllocationCategory[] = [
 		utilization_percentage: 0,
 		transaction_count: 0,
 	},
+	{
+		// Linked to the TFSA plan (see getSampleCategoryContributionPlans): the card shows the
+		// budget against the TFSA room, while only real deposits use the room.
+		id: "cat-tfsa",
+		allocation_id: "sample-allocation-id",
+		user_id: "user-1",
+		name: "TFSA",
+		budget_cap: 750,
+		is_recurring: false,
+		display_order: 7,
+		color: "teal",
+		icon: "TrendingUp",
+		created_at: new Date().toISOString(),
+		updated_at: new Date().toISOString(),
+		actual_spend: 0,
+		remaining: 750,
+		utilization_percentage: 0,
+		transaction_count: 0,
+	},
 ];
 
 export const sampleAllocationSummary: AllocationSummary = {
@@ -126,9 +145,9 @@ export const sampleAllocationSummary: AllocationSummary = {
 	},
 	categories: sampleCategories,
 	summary: {
-		total_budget_caps: 3700,
+		total_budget_caps: 4450,
 		total_actual_spend: 3330,
-		unallocated_funds: 1300, // 5000 - 3700
+		unallocated_funds: 550, // 5000 - 4450
 		overall_utilization: 90,
 	},
 };

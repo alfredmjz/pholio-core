@@ -10,6 +10,7 @@ import type { AccountTransaction } from "../../../types";
 interface ActivityCardProps {
 	transactions: AccountTransaction[];
 	isLoading: boolean;
+	isLiability?: boolean;
 	formatCurrency: (amount: number) => string;
 	onTransactionClick?: (transaction: AccountTransaction) => void;
 }
@@ -32,8 +33,14 @@ const getTransactionIcon = (type: string) => {
 	}
 };
 
-const getTransactionTitle = (type: string) => {
-	switch (type) {
+const getTransactionTitle = (txn: AccountTransaction, isLiability: boolean) => {
+	// On a liability, an adjustment recorded through the transaction dialog (it has a budget row)
+	// is a purchase that adds to the debt; balance adjustments have no budget row.
+	if (isLiability && txn.transaction_type === "adjustment" && txn.linked_allocation_transaction_id) {
+		return "Purchase / Charge";
+	}
+
+	switch (txn.transaction_type) {
 		case "deposit":
 			return "Direct Deposit";
 		case "contribution":
@@ -44,6 +51,8 @@ const getTransactionTitle = (type: string) => {
 			return "Payment";
 		case "interest":
 			return "Interest Payment";
+		case "refund":
+			return "Refund";
 		case "adjustment":
 			return "Balance Adjustment";
 		case "transfer":
@@ -53,7 +62,13 @@ const getTransactionTitle = (type: string) => {
 	}
 };
 
-export function ActivityCard({ transactions, isLoading, formatCurrency, onTransactionClick }: ActivityCardProps) {
+export function ActivityCard({
+	transactions,
+	isLoading,
+	isLiability = false,
+	formatCurrency,
+	onTransactionClick,
+}: ActivityCardProps) {
 	return (
 		<Card className="p-6">
 			<div className="flex items-center justify-between mb-4">
@@ -104,10 +119,10 @@ export function ActivityCard({ transactions, isLoading, formatCurrency, onTransa
 							{/* Description */}
 							<div className="flex-1 min-w-0">
 								<p className="text-sm font-medium truncate">
-									{txn.description || getTransactionTitle(txn.transaction_type)}
+									{txn.description || getTransactionTitle(txn, isLiability)}
 								</p>
 								{txn.description && (
-									<p className="text-xs text-primary truncate">{getTransactionTitle(txn.transaction_type)}</p>
+									<p className="text-xs text-primary truncate">{getTransactionTitle(txn, isLiability)}</p>
 								)}
 							</div>
 

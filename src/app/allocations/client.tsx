@@ -35,10 +35,6 @@ interface AllocationClientProps {
 		totalBudget: number;
 		hasData: boolean;
 	} | null;
-	historicalPace: {
-		hasEnoughData: boolean;
-		dailyAmounts: number[];
-	};
 	incomeVerification: IncomeVerificationResult;
 	userSettings?: {
 		newMonthDefault: AllocationNewMonthDefault;
@@ -50,7 +46,6 @@ interface AllocationClientProps {
 		categoryCount: number;
 		totalBudget: number;
 	}>;
-	timezone: string | null;
 }
 
 const MONTH_NAMES = [
@@ -75,11 +70,9 @@ export function AllocationClient({
 	initialTransactions,
 	initialAccounts,
 	previousMonthData,
-	historicalPace,
 	incomeVerification,
 	userSettings,
 	templates,
-	timezone,
 }: AllocationClientProps) {
 	const router = useRouter();
 
@@ -285,7 +278,6 @@ export function AllocationClient({
 				setTemplateDialogOpen={setTemplateDialogOpen}
 				monthName={monthName}
 				previousMonthData={getPreviousMonth()}
-				historicalPace={historicalPace}
 				incomeVerification={incomeVerification}
 				onImportPrevious={handleImportPrevious}
 				onUseTemplate={handleUseTemplate}
@@ -295,7 +287,6 @@ export function AllocationClient({
 				setExportDialogOpen={setExportDialogOpen}
 				saveTemplateDialogOpen={saveTemplateDialogOpen}
 				setSaveTemplateDialogOpen={setSaveTemplateDialogOpen}
-				timezone={timezone}
 			/>
 
 			{summary && (

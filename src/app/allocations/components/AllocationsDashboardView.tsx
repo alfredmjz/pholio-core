@@ -5,7 +5,6 @@ import { WifiOff, Loader2 } from "lucide-react";
 import { AllocationsHeader } from "./AllocationsHeader";
 import { BudgetSummaryCards } from "./BudgetSummaryCards";
 import { CategoryPerformance } from "./CategoryPerformance";
-import { SpendingPace } from "./SpendingPace";
 import { SpendingAllocation } from "./SpendingAllocation";
 import { TransactionLedger } from "./TransactionLedger";
 import { AddCategoryDialog } from "./AddCategoryDialog";
@@ -53,7 +52,6 @@ interface AllocationsDashboardViewProps {
 	setTemplateDialogOpen: (open: boolean) => void;
 	monthName: string;
 	previousMonthData: { name: string; year: number; categoryCount: number; totalBudget: number } | null;
-	historicalPace: { hasEnoughData: boolean; dailyAmounts: number[] };
 	incomeVerification: IncomeVerificationResult;
 	onImportPrevious: (income: number) => Promise<void>;
 	onUseTemplate: (id: string, income: number) => Promise<void>;
@@ -71,7 +69,6 @@ interface AllocationsDashboardViewProps {
 
 	saveTemplateDialogOpen: boolean;
 	setSaveTemplateDialogOpen: (open: boolean) => void;
-	timezone?: string | null;
 }
 
 export function AllocationsDashboardView({
@@ -94,7 +91,6 @@ export function AllocationsDashboardView({
 	setTemplateDialogOpen,
 	monthName,
 	previousMonthData,
-	historicalPace,
 	incomeVerification,
 	onImportPrevious,
 	onUseTemplate,
@@ -104,7 +100,6 @@ export function AllocationsDashboardView({
 	setExportDialogOpen,
 	saveTemplateDialogOpen,
 	setSaveTemplateDialogOpen,
-	timezone,
 }: AllocationsDashboardViewProps) {
 	const usedColors = categories.map((c) => c.color).filter(Boolean) as string[];
 	const usedNames = categories.map((c) => c.name);
@@ -139,30 +134,15 @@ export function AllocationsDashboardView({
 
 			<PageContent>
 				<div className="flex flex-col gap-6">
-					<div className="flex flex-col lg:flex-row gap-6">
-						<div className="w-full lg:w-[60%] flex flex-col gap-6">
-							<BudgetSummaryCards
-								expectedIncome={summary.allocation.expected_income}
-								totalBudgetAllocated={summary.summary.total_budget_caps}
-								totalSpent={summary.summary.total_actual_spend}
-								incomeVerification={incomeVerification}
-								allocationId={summary.allocation.id}
-							/>
+					<BudgetSummaryCards
+						expectedIncome={summary.allocation.expected_income}
+						totalBudgetAllocated={summary.summary.total_budget_caps}
+						totalSpent={summary.summary.total_actual_spend}
+						incomeVerification={incomeVerification}
+						allocationId={summary.allocation.id}
+					/>
 
-							<SpendingAllocation categories={categories} />
-						</div>
-
-						<div className="w-full lg:w-[40%] flex flex-col">
-							<SpendingPace
-								currentMonth={currentMonth}
-								transactions={transactions}
-								totalBudget={summary.summary.total_budget_caps}
-								historicalPace={historicalPace}
-								className="flex-1"
-								timezone={timezone}
-							/>
-						</div>
-					</div>
+					<SpendingAllocation categories={categories} />
 
 					<CategoryPerformance
 						categories={categories}

@@ -185,7 +185,7 @@ export function AccountDetailClient({
 
 						{/* Investment deposits and contribution room */}
 						{(isInvestmentAccount(account) || account.track_contribution_room) && (
-							<ContributionRoomCard account={account} transactions={transactions} formatCurrency={formatCurrency} />
+							<ContributionRoomCard account={account} transactions={transactions} />
 						)}
 
 						{/* Welcome Bonuses & Promotions Tracker */}
@@ -252,7 +252,9 @@ export function AccountDetailClient({
 					if (!open) setPayRemainingAmount(null);
 				}}
 				categories={[]}
-				accounts={payRemainingAmount !== null ? [account, ...otherAccounts] : [account]}
+				// Every account is selectable so transfers can come from, or go to, any other account;
+				// this account stays the default.
+				accounts={[account, ...otherAccounts]}
 				defaultAccountId={account.id}
 				defaultToAccountId={payRemainingAmount !== null ? account.id : undefined}
 				defaultAmount={payRemainingAmount ?? undefined}

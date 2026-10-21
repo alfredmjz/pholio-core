@@ -17,7 +17,7 @@ import { DatePicker } from "@/components/ui/date-picker";
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
 import { Calendar } from "@/components/ui/calendar";
 import { toast } from "sonner";
-import { Loader2, TrendingUp, TrendingDown, Info, Settings2, PlusCircle, Trash2 } from "lucide-react";
+import { Loader2, TrendingUp, TrendingDown, Info, Settings2, PlusCircle, Trash2, ArrowLeftRight, X } from "lucide-react";
 import {
 	createUnifiedTransaction,
 	getSuggestedAccountForCategory,
@@ -745,13 +745,18 @@ export function UnifiedTransactionDialog({
 														<SelectValue placeholder="Select source account" />
 													</SelectTrigger>
 													<SelectContent>
-														{sortAccounts(accounts)
-															.filter((acc) => acc.id !== toAccountId)
-															.map((acc) => (
-																<SelectItem key={acc.id} value={acc.id}>
-																	{formatAccountDisplayName(acc)}
-																</SelectItem>
-															))}
+														{/* The account picked as the destination stays in the list but hidden, so
+														    Swap can move it here without Radix dropping the value. */}
+														{sortAccounts(accounts).map((acc) => (
+															<SelectItem
+																key={acc.id}
+																value={acc.id}
+																disabled={acc.id === toAccountId}
+																className={cn(acc.id === toAccountId && "hidden")}
+															>
+																{formatAccountDisplayName(acc)}
+															</SelectItem>
+														))}
 													</SelectContent>
 												</Select>
 												{errors.fromAccountId && <p className="text-sm text-error">{errors.fromAccountId}</p>}
@@ -772,18 +777,56 @@ export function UnifiedTransactionDialog({
 														<SelectValue placeholder="Select destination account" />
 													</SelectTrigger>
 													<SelectContent>
-														{sortAccounts(accounts)
-															.filter((acc) => acc.id !== fromAccountId)
-															.map((acc) => (
-																<SelectItem key={acc.id} value={acc.id}>
-																	{formatAccountDisplayName(acc)}
-																</SelectItem>
-															))}
+														{sortAccounts(accounts).map((acc) => (
+															<SelectItem
+																key={acc.id}
+																value={acc.id}
+																disabled={acc.id === fromAccountId}
+																className={cn(acc.id === fromAccountId && "hidden")}
+															>
+																{formatAccountDisplayName(acc)}
+															</SelectItem>
+														))}
 													</SelectContent>
 												</Select>
 												{errors.toAccountId && <p className="text-sm text-error">{errors.toAccountId}</p>}
 											</div>
 										</div>
+
+										{/* Each list hides the account picked in the other, so offer a way out of a wrong pick. */}
+										{(fromAccountId !== "none" || toAccountId !== "none") && (
+											<div className="-mt-2 flex justify-end gap-2">
+												<Button
+													type="button"
+													variant="ghost"
+													size="sm"
+													data-dialog-ignore-enter=""
+													className="h-7 gap-1 px-2 text-xs"
+													onClick={() => {
+														setFromAccountId(toAccountId);
+														setToAccountId(fromAccountId);
+														setErrors({ ...errors, fromAccountId: undefined, toAccountId: undefined });
+													}}
+												>
+													<ArrowLeftRight className="h-3.5 w-3.5" />
+													Swap
+												</Button>
+												<Button
+													type="button"
+													variant="ghost"
+													size="sm"
+													data-dialog-ignore-enter=""
+													className="h-7 gap-1 px-2 text-xs"
+													onClick={() => {
+														setFromAccountId("none");
+														setToAccountId("none");
+													}}
+												>
+													<X className="h-3.5 w-3.5" />
+													Clear
+												</Button>
+											</div>
+										)}
 									</>
 								) : (
 									<>

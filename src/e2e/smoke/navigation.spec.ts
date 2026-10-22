@@ -9,7 +9,12 @@ test("main navigation reaches every section", { tag: "@smoke" }, async ({ page }
 			? page.getByRole("navigation", { name: "Primary" }).getByRole("link", { name: label })
 			: page.getByRole("link", { name: label, exact: true }).first();
 
-		await link.click();
+		// A page can open a first-visit dialog shortly after loading (e.g. Allocations' month setup),
+		// which covers the navigation. Close it and try again rather than racing it.
+		await expect(async () => {
+			if (await page.getByRole("dialog").isVisible()) await page.keyboard.press("Escape");
+			await link.click({ timeout: 2_000 });
+		}).toPass({ timeout: 20_000 });
 		await expect(page).toHaveURL(new RegExp(`${path}$`));
 
 		if (isMobileLayout(page)) {

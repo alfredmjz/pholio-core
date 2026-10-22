@@ -20,18 +20,17 @@ interface CardSelectorProps<T extends string> {
 	selectedBorderColor?: string;
 }
 
-/** A row of choice tiles behaving as one radio group. */
+/** A row of choice tiles; the selected one is marked with aria-pressed. */
 export function CardSelector<T extends string>({ options, value, onChange, className }: CardSelectorProps<T>) {
 	return (
-		<div role="radiogroup" className={cn("grid grid-cols-2 gap-2", className)}>
+		<div role="group" className={cn("grid grid-cols-2 gap-2", className)}>
 			{options.map((option) => {
 				const selected = value === option.value;
 				return (
 					<button
 						key={option.value}
 						type="button"
-						role="radio"
-						aria-checked={selected}
+						aria-pressed={selected}
 						onClick={() => onChange(option.value)}
 						className={cn(
 							"flex items-center gap-2.5 rounded-xl border px-3.5 py-3 text-left transition-colors focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring",

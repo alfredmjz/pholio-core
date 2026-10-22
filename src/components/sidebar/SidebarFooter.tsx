@@ -1,19 +1,19 @@
 "use client";
 
-import { ThemeToggle } from "@/components/theme-toggle";
+import type { UserProfile } from "@/lib/getUserProfile";
+import { UserProfileMenu } from "./UserProfileMenu";
 
 interface SidebarFooterProps {
 	isCollapsed: boolean;
+	userProfile: UserProfile | null;
+	onSignOut: () => void;
 }
 
-import { cn } from "@/lib/utils";
-
-export function SidebarFooter({ isCollapsed }: SidebarFooterProps) {
+/** The signed-in person, pinned to the bottom; settings, theme and sign-out live in their menu. */
+export function SidebarFooter({ isCollapsed, userProfile, onSignOut }: SidebarFooterProps) {
 	return (
-		<div
-			className={cn("py-4 mt-auto border-t border-secondary-border", isCollapsed ? "px-2 flex justify-center" : "px-4")}
-		>
-			<ThemeToggle isCollapsed={isCollapsed} />
+		<div className="px-3 pb-4 pt-3">
+			<UserProfileMenu userProfile={userProfile} onSignOut={onSignOut} isCollapsed={isCollapsed} variant="row" />
 		</div>
 	);
 }

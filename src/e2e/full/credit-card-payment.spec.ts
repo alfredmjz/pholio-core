@@ -6,19 +6,21 @@ import { test, expect, openDialog, uniqueName } from "@/e2e/fixtures";
 test("record a payment and a charge on a credit card", async ({ page }, testInfo) => {
 	const accountName = uniqueName("E2E Credit Card", testInfo.project.name);
 
-	await page.goto("/balancesheet");
-	const addDialog = page.getByRole("dialog", { name: "Add New Account" });
-	await openDialog(page.getByRole("button", { name: /Add Account/ }), addDialog);
-	await addDialog.getByRole("button", { name: /Liability/ }).click();
-	await addDialog.getByLabel(/Account Name/).fill(accountName);
-	await addDialog.getByRole("combobox").click();
-	await page.getByRole("option", { name: "Credit Card", exact: true }).click();
-	await addDialog.getByLabel(/Current Balance/).fill("500");
+	await page.goto("/accounts");
+	const addDialog = page.getByRole("dialog", { name: "Add account" });
+	await openDialog(page.getByRole("button", { name: /Add account/i }), addDialog);
+	await addDialog.getByRole("radio", { name: "What you owe" }).click();
+	// Step 1: the kind of account. Picking a tile moves on to the details.
+	await addDialog.getByRole("radio", { name: "Credit Card", exact: true }).click();
+	await addDialog.getByLabel(/Account name/i).fill(accountName);
+	await addDialog.getByLabel(/Current balance/i).fill("500");
+	await addDialog.getByRole("button", { name: /Continue/ }).click();
+	// Step 3: notes are optional.
 	await addDialog.getByRole("button", { name: /Create Account/ }).click();
 	await expect(page.getByText("Account created successfully")).toBeVisible();
 
 	await page.getByRole("link", { name: new RegExp(accountName) }).click();
-	await expect(page).toHaveURL(/\/balancesheet\/accountdetail\//);
+	await expect(page).toHaveURL(/\/accounts\/[\w-]+$/);
 	await expect(page.getByText("$500.00").first()).toBeVisible();
 
 	const transactionDialog = page.getByRole("dialog", { name: "Add Transaction" });

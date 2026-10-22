@@ -8,7 +8,7 @@ import { SurfacePage } from "@/components/layout/surface-page";
 import type { DashboardData } from "./types";
 import { getDashboardData } from "./actions";
 import { useServerSyncedData } from "@/hooks/useServerSyncedData";
-import { isDemoModeActive } from "@/lib/demo-mode";
+import { isSampleDataActive } from "@/lib/demo-mode";
 import { useDemoStore } from "@/lib/demo-store";
 import { DashboardHeader } from "./components/dashboard-header";
 import { NetWorthHero } from "./components/net-worth-hero";
@@ -34,7 +34,7 @@ export function DashboardClient({ initialData, firstName }: DashboardClientProps
 	const recentTransactions = isDemo ? demoTransactions : data.recentTransactions;
 
 	useEffect(() => {
-		setIsDemo(isDemoModeActive());
+		setIsDemo(isSampleDataActive());
 	}, []);
 
 	const [addTransactionOpen, setAddTransactionOpen] = useState(false);

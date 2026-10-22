@@ -62,7 +62,7 @@ describe("buildRoomMeter", () => {
 		});
 		const meter = buildRoomMeter(pool, "resp", 1000, YEAR)!;
 
-		expect(meter.label).toBe("total RESP room");
+		expect(meter.label).toBe("total RESP contribution room");
 		expect(meter.total).toBe(50000);
 		expect(meter.used).toBe(12000);
 		expect(meter.left).toBe(38000);
@@ -119,7 +119,10 @@ describe("getRoomMeterNote", () => {
 	});
 
 	test("over the total room is an error, even when the annual room is fine", () => {
-		expect(note({ room_remaining: -500 })).toEqual({ level: "over", text: "$500.00 over your total TFSA room" });
+		expect(note({ room_remaining: -500 })).toEqual({
+			level: "over",
+			text: "$500.00 over your total TFSA contribution room, about $5.00 a month in CRA tax",
+		});
 	});
 
 	test("TFSA and RRSP above the annual limit are covered by carry-forward room", () => {
@@ -131,7 +134,7 @@ describe("getRoomMeterNote", () => {
 		expect(note({ ...overrides, pool_key: "rrsp", contribution_plan: "rrsp" }, "rrsp")?.level).toBe("info");
 	});
 
-	test("FHSA above the annual limit is an error", () => {
+	test("FHSA above the yearly figure is covered by carried-forward participation room", () => {
 		expect(
 			note(
 				{
@@ -142,8 +145,15 @@ describe("getRoomMeterNote", () => {
 					room_remaining: 7800,
 				},
 				"fhsa"
-			)
-		).toEqual({ level: "over", text: "$200.00 over the 2026 FHSA limit" });
+			)?.level
+		).toBe("info");
+	});
+
+	test("RRSP within the $2,000 buffer has no tax in the note", () => {
+		expect(note({ pool_key: "rrsp", contribution_plan: "rrsp", room_remaining: -1500 }, "rrsp")).toEqual({
+			level: "over",
+			text: "$1500.00 over your total RRSP deduction limit",
+		});
 	});
 
 	test("warns when the rest of this month's budget does not fit", () => {
@@ -154,7 +164,10 @@ describe("getRoomMeterNote", () => {
 	});
 
 	test("explains when the annual room is limited by the total room", () => {
-		expect(note({ room_remaining: 1000 })).toEqual({ level: "info", text: "Limited by your total TFSA room" });
+		expect(note({ room_remaining: 1000 })).toEqual({
+			level: "info",
+			text: "Limited by your total TFSA contribution room",
+		});
 	});
 
 	test("over the total room wins over every other note", () => {

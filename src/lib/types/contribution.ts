@@ -45,6 +45,16 @@ export interface ContributionSummary {
 	lifetime_limit: number | null;
 	/** RRSP/FHSA room cannot be rolled forward; the user should copy a fresh figure from CRA. */
 	room_needs_update: boolean;
+	/** Amount over the total room right now (null when room is not tracked). */
+	excess_amount: number | null;
+	/** Estimated CRA over-contribution tax (1% a month on the excess) for the requested month. */
+	tax_this_month: number | null;
+	/** Estimated tax for the requested month's calendar year, up to that month. */
+	tax_this_year: number | null;
+	/** Estimated tax since the room date. */
+	tax_total: number | null;
+	/** Months in which an excess was taxed. */
+	taxed_months: number | null;
 }
 
 /** The pool an account belongs to, plus that account's own share. */

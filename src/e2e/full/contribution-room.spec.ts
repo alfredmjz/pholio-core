@@ -4,6 +4,12 @@ import type { Page } from "@playwright/test";
 // Room is pooled per user and plan, and the desktop, Android and iPhone projects share one
 // signed-in user, so each project uses its own plan to keep their pools apart.
 const PLAN_BY_PROJECT: Record<string, string> = { desktop: "TFSA", android: "FHSA", iphone: "RESP" };
+// CRA's own name for each plan's room, as the warnings use it.
+const ROOM_TERM: Record<string, string> = {
+	TFSA: "TFSA contribution room",
+	FHSA: "FHSA participation room",
+	RESP: "RESP contribution room",
+};
 
 async function createRegisteredAccount(page: Page, plan: string, accountName: string, room?: string) {
 	await page.goto("/balancesheet");
@@ -12,11 +18,11 @@ async function createRegisteredAccount(page: Page, plan: string, accountName: st
 	await addDialog.getByLabel(/Account Name/).fill(accountName);
 	await addDialog.getByRole("combobox").click();
 	await page.getByRole("option", { name: "Investment", exact: true }).click();
-	await addDialog.getByLabel(/Current Balance/).fill("0");
+	// Current Balance is left blank on purpose: a blank balance is saved as 0.
 	await addDialog.getByRole("switch", { name: "Track Contribution Room" }).click();
 	await addDialog.getByRole("combobox", { name: "Plan Type" }).click();
 	await page.getByRole("option", { name: plan, exact: true }).click();
-	const roomInput = addDialog.getByLabel(`Your ${plan} Room`);
+	const roomInput = addDialog.getByLabel(new RegExp(`^Current ${plan} `));
 	if (room) {
 		await roomInput.fill(room);
 	} else {
@@ -46,7 +52,8 @@ test("accounts of one plan share contribution room and warn on an over-contribut
 	await expect(page).toHaveURL(/\/balancesheet\/accountdetail\//);
 
 	const card = page.getByTestId("contribution-room-card");
-	await expect(card.getByText("Lifetime room left")).toBeVisible();
+	// The card names the room with CRA's term, e.g. "TFSA contribution room left".
+	await expect(card.getByText(`${ROOM_TERM[plan]} left`)).toBeVisible();
 	await expectNoHorizontalScroll(page);
 
 	let dialog = await deposit(page, "600");
@@ -64,9 +71,7 @@ test("accounts of one plan share contribution room and warn on an over-contribut
 	await expect(card.getByText("$600.00 used of $1,000.00", { exact: false })).toBeVisible();
 
 	dialog = await deposit(page, "600");
-	await expect(dialog.getByTestId("contribution-room-warning")).toContainText(
-		`$200.00 over your ${plan} contribution room`
-	);
+	await expect(dialog.getByTestId("contribution-room-warning")).toContainText(`$200.00 over your ${ROOM_TERM[plan]}`);
 	await dialog.getByLabel(/Description/).fill(`E2E second ${plan} contribution`);
 	await dialog.getByRole("button", { name: "Add Transaction" }).click();
 

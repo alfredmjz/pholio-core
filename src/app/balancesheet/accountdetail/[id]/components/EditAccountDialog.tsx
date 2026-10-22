@@ -16,7 +16,8 @@ import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
 import { MinimalTiptap } from "@/components/ui/shadcn-io/minimal-tiptap";
 import { updateAccount } from "../../../actions";
-import type { AccountWithType, AccountFieldConfig } from "../../../types";
+import { isSampleDataActive } from "@/lib/demo-mode";
+import type { AccountWithType, AccountFieldConfig, UpdateAccountInput } from "../../../types";
 import { sanitizeDecimalInput, sanitizeIntegerInput } from "@/lib/input-utils";
 import { getFieldVisibility } from "../../../field-visibility";
 import { AccountFieldConfigurator } from "../../../components/AccountFieldConfigurator";
@@ -96,10 +97,8 @@ export function EditAccountDialog({ open, onOpenChange, account, onSuccess }: Ed
 			newErrors.name = "Account name is required";
 		}
 
-		// Validate Current Balance
-		if (!formData.current_balance.trim()) {
-			newErrors.current_balance = "Current balance is required";
-		} else if (isNaN(parseFloat(formData.current_balance))) {
+		// Validate Current Balance (blank is saved as 0)
+		if (formData.current_balance.trim() && isNaN(parseFloat(formData.current_balance))) {
 			newErrors.current_balance = "Please enter a valid number";
 		}
 
@@ -139,13 +138,13 @@ export function EditAccountDialog({ open, onOpenChange, account, onSuccess }: Ed
 		setIsSubmitting(true);
 
 		try {
-			const planRoom = visibility.showContributionRoom ? toPlanRoomSetting(contribution) : null;
+			const planRoom = visibility.showContributionRoom ? toPlanRoomSetting(contribution, planRooms) : null;
 			if (planRoom && !(await saveContributionRoom(planRoom))) {
 				toast.error("Update Failed", { description: "Could not save your contribution room. Please try again." });
 				return;
 			}
 
-			const result = await updateAccount(account.id, {
+			const updates: UpdateAccountInput = {
 				name: formData.name,
 				institution: formData.institution || null,
 				current_balance: parseFloat(formData.current_balance) || 0,
@@ -158,7 +157,9 @@ export function EditAccountDialog({ open, onOpenChange, account, onSuccess }: Ed
 				loan_term_months: formData.loan_term_months ? parseInt(formData.loan_term_months) : null,
 				field_visibility: isOtherType ? fieldConfig : null,
 				...(visibility.showContributionRoom ? toContributionRoomInput(contribution) : {}),
-			});
+			};
+			// Sample data: the account page keeps the change in the demo store (via onSuccess).
+			const result = isSampleDataActive() ? updates : await updateAccount(account.id, updates);
 
 			if (result) {
 				toast.success("Account updated successfully");
@@ -232,7 +233,7 @@ export function EditAccountDialog({ open, onOpenChange, account, onSuccess }: Ed
 					<div className="grid grid-cols-1 gap-4 sm:grid-cols-2">
 						<div className="space-y-2">
 							<Label htmlFor="current_balance">
-								Current Balance <span className="text-error">*</span>
+								Current Balance
 							</Label>
 							<Input
 								id="current_balance"

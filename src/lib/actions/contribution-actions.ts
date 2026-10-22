@@ -39,6 +39,11 @@ const NUMERIC_FIELDS = [
 	"room_used",
 	"room_remaining",
 	"lifetime_limit",
+	"excess_amount",
+	"tax_this_month",
+	"tax_this_year",
+	"tax_total",
+	"taxed_months",
 ] as const;
 
 const toNumberOrNull = (value: unknown) => (value === null || value === undefined ? null : Number(value));

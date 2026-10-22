@@ -18,7 +18,7 @@ import type {
 	Transaction,
 	IncomeVerificationResult,
 } from "@/app/allocations/types";
-import type { AccountWithType, RegisteredPlan } from "@/app/balancesheet/types";
+import type { AccountWithType, RegisteredPlan } from "@/app/accounts/types";
 import type { AllocationContributions } from "@/lib/types/contribution";
 import type { TransactionType } from "./TransactionTypeIcon";
 

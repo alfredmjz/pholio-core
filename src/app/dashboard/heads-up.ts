@@ -128,7 +128,7 @@ function promotionItem(promotion: HeadsUpPromotion, today: string): HeadsUpItem 
 		kind: "promotion",
 		title,
 		detail,
-		href: `/balancesheet/accountdetail/${promotion.accountId}`,
+		href: `/accounts/${promotion.accountId}`,
 	};
 }
 

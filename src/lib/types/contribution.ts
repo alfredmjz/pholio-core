@@ -1,7 +1,7 @@
 // Investment contribution tracking types (issue #121).
 // Every figure is derived in PostgreSQL by get_contribution_summaries(); the client only renders it.
 
-import type { ContributionPlan, RegisteredPlan } from "@/app/balancesheet/types";
+import type { ContributionPlan, RegisteredPlan } from "@/app/accounts/types";
 
 /** One account's part of a pool, for "this account" figures. */
 export interface ContributionAccountShare {

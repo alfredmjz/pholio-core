@@ -47,7 +47,7 @@ function roundCents(value: number): number {
 
 /**
  * One point per date on which any balance was recorded, plus a final point for `today` that
- * uses current balances so the line always ends on what the balance sheet shows.
+ * uses current balances so the line always ends on what the Accounts page shows.
  */
 export function buildNetWorthSeries(
 	accounts: BalanceAccount[],

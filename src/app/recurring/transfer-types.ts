@@ -1,5 +1,5 @@
 import { Database } from "@/lib/database.types";
-import { AccountWithType } from "@/app/balancesheet/types";
+import { AccountWithType } from "@/app/accounts/types";
 
 export type RecurringTransferStatus = "paid" | "upcoming" | "overdue" | "due_today";
 

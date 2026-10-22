@@ -63,7 +63,7 @@ import { Banner, BannerClose, BannerIcon, BannerTitle } from "@/components/ui/ba
 import { DeleteConfirmDialog } from "@/components/dialogs/DeleteConfirmDialog";
 import { WelcomeCelebration } from "@/components/welcome-celebration";
 import { MetricCard } from "@/app/dashboard/components/MetricCard";
-import { AccountCard } from "@/app/balancesheet/components/AccountCard";
+import { AccountCard } from "@/app/accounts/components/AccountCard";
 import { SettingsNav } from "@/app/settings/components/settings-nav";
 import { ServiceLogo } from "@/components/service-logo";
 import { ServiceAutocomplete } from "@/components/service-autocomplete";

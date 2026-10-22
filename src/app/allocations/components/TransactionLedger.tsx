@@ -14,7 +14,7 @@ import { sortAlphabetically } from "@/lib/sort-utils";
 import { Popover, PopoverContent, PopoverTrigger } from "@/components/ui/popover";
 import { SurfaceSection } from "@/components/layout/surface-section";
 import { formatCurrency } from "@/app/dashboard/utils";
-import type { AccountWithType } from "@/app/balancesheet/types";
+import type { AccountWithType } from "@/app/accounts/types";
 import type { AllocationCategory, Transaction } from "../types";
 import { getTransferAccountIds } from "../utils/transfer-accounts";
 import type { TransactionType } from "./TransactionTypeIcon";

@@ -1,4 +1,4 @@
-import type { TransactionType } from "@/app/balancesheet/types";
+import type { TransactionType } from "@/app/accounts/types";
 
 export interface AccountTransactionTypeOption {
 	value: TransactionType;

@@ -5,7 +5,7 @@ import {
 	checkTransactionCaps,
 	isInvestmentAccount,
 } from "@/lib/account-validation-utils";
-import type { AccountTransaction } from "@/app/balancesheet/types";
+import type { AccountTransaction } from "@/app/accounts/types";
 import { makeAccount } from "../support/contribution-fixtures";
 
 const chequing = makeAccount({ id: "chq", balance: 1000 });

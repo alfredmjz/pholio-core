@@ -17,7 +17,7 @@ import {
 	getSampleContributionRooms,
 	getSampleContributionSummaries,
 } from "@/mock-data/contributions";
-import type { RegisteredPlan } from "@/app/balancesheet/types";
+import type { RegisteredPlan } from "@/app/accounts/types";
 import type {
 	AccountContribution,
 	AllocationContributions,
@@ -209,7 +209,7 @@ export async function saveContributionRoom(setting: ContributionRoomSetting): Pr
 		return false;
 	}
 
-	revalidatePath("/balancesheet");
+	revalidatePath("/accounts");
 	revalidatePath("/allocations");
 	return true;
 }

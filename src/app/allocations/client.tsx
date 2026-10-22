@@ -22,7 +22,7 @@ import { SaveTemplateDialog } from "./components/SaveTemplateDialog";
 
 import type { TransactionType } from "./components/TransactionTypeIcon";
 import type { MonthYear, AllocationSummary, Transaction, IncomeVerificationResult } from "./types";
-import type { AccountWithType, RegisteredPlan } from "@/app/balancesheet/types";
+import type { AccountWithType, RegisteredPlan } from "@/app/accounts/types";
 import type { AllocationNewMonthDefault } from "@/app/settings/actions";
 import type { AllocationContributions } from "@/lib/types/contribution";
 

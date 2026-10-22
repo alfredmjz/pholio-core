@@ -1,11 +1,7 @@
 "use client";
 
-import { LayoutDashboard, PieChart, Repeat, ScrollText } from "lucide-react";
-import {
-	NavigationMenuItem,
-	NavigationMenuLink,
-	navigationMenuTriggerStyle,
-} from "@/components/ui/navigation-menu";
+import { LayoutDashboard, PieChart, Repeat, Wallet } from "lucide-react";
+import { NavigationMenuItem, NavigationMenuLink, navigationMenuTriggerStyle } from "@/components/ui/navigation-menu";
 import Link from "next/link";
 import { cn } from "@/lib/utils";
 
@@ -48,11 +44,11 @@ export function SidebarNavigation({ isCollapsed }: SidebarNavigationProps) {
 
 			<NavigationMenuLink asChild>
 				<Link
-					href="/balancesheet"
+					href="/accounts"
 					className={cn(navigationMenuTriggerStyle(), "w-full", isCollapsed ? "justify-center px-2" : "justify-start")}
 				>
-					<ScrollText className="w-4 h-4 flex-shrink-0" />
-					{!isCollapsed && <span>Balance Sheet</span>}
+					<Wallet className="w-4 h-4 flex-shrink-0" />
+					{!isCollapsed && <span>Accounts</span>}
 				</Link>
 			</NavigationMenuLink>
 		</NavigationMenuItem>

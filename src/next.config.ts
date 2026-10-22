@@ -8,6 +8,13 @@ const nextConfig: NextConfig = {
 		buildActivity: false,
 		appIsrStatus: false,
 	},
+	// The Balance Sheet was renamed to Accounts; keep old links and bookmarks working.
+	async redirects() {
+		return [
+			{ source: "/balancesheet", destination: "/accounts", permanent: true },
+			{ source: "/balancesheet/accountdetail/:id", destination: "/accounts/:id", permanent: true },
+		];
+	},
 	experimental: {
 		serverActions: {
 			bodySizeLimit: "5mb",

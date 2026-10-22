@@ -10,7 +10,7 @@ import {
 	getRoomTitle,
 } from "@/lib/contribution-plans";
 import { useServerSyncedData } from "@/hooks/useServerSyncedData";
-import type { AccountWithType } from "../../../types";
+import type { AccountWithType } from "../../types";
 import type { AccountContribution } from "@/lib/types/contribution";
 
 interface ContributionRoomCardProps {

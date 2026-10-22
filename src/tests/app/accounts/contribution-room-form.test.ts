@@ -9,7 +9,7 @@ import {
 	withPlanRoom,
 	withRoomChange,
 	type ContributionRoomFormValues,
-} from "@/app/balancesheet/contribution-room-form";
+} from "@/app/accounts/contribution-room-form";
 import type { ContributionRoomSetting } from "@/lib/types/contribution";
 
 const form = (overrides: Partial<ContributionRoomFormValues> = {}): ContributionRoomFormValues => ({

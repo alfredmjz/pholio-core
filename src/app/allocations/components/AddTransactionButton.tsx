@@ -8,7 +8,7 @@ import { ShortcutHint } from "@/components/common/shortcut-hint";
 import { SHORTCUTS, ShortcutId } from "@/lib/keyboard-shortcuts";
 import { useKeyboardShortcut } from "@/hooks/use-keyboard-shortcut";
 import type { AllocationCategory } from "../types";
-import type { AccountWithType } from "@/app/balancesheet/types";
+import type { AccountWithType } from "@/app/accounts/types";
 import { cn } from "@/lib/utils";
 
 interface AddTransactionButtonProps {

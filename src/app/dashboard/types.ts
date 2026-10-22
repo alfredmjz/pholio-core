@@ -3,7 +3,7 @@
  * Everything the dashboard page renders, assembled on the server by `getDashboardData`.
  */
 
-import type { AccountWithType } from "@/app/balancesheet/types";
+import type { AccountWithType } from "@/app/accounts/types";
 import type { AllocationCategory } from "@/app/allocations/types";
 import type { NetWorthPoint } from "./net-worth-series";
 import type { MonthPace } from "./month-pace";

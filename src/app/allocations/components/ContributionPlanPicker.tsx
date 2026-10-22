@@ -1,7 +1,7 @@
 import { ToggleGroup, ToggleGroupItem } from "@/components/ui/toggle-group";
 import { cn } from "@/lib/utils";
 import { REGISTERED_PLANS, getContributionPlanLabel } from "@/lib/contribution-plans";
-import type { RegisteredPlan } from "@/app/balancesheet/types";
+import type { RegisteredPlan } from "@/app/accounts/types";
 
 interface ContributionPlanPickerProps {
 	value: RegisteredPlan | null;

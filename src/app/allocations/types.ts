@@ -1,4 +1,4 @@
-import type { RegisteredPlan } from "@/app/balancesheet/types";
+import type { RegisteredPlan } from "@/app/accounts/types";
 
 export type CategoryType = "regular" | "savings_goal" | "debt_payment";
 

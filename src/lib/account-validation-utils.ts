@@ -1,4 +1,4 @@
-import type { AccountWithType, AccountTransaction } from "@/app/balancesheet/types";
+import type { AccountWithType, AccountTransaction } from "@/app/accounts/types";
 
 export interface AccountStanding {
 	accountClass: "asset" | "liability";

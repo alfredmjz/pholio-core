@@ -15,7 +15,7 @@ import { sanitizeDecimalInput } from "@/lib/input-utils";
 import { ContributionPlanPicker } from "./ContributionPlanPicker";
 import { ContributionRoomMeter } from "./ContributionRoomMeter";
 import { CategoryColorPicker } from "./category-color-picker";
-import type { RegisteredPlan } from "@/app/balancesheet/types";
+import type { RegisteredPlan } from "@/app/accounts/types";
 import type { ContributionSummary } from "@/lib/types/contribution";
 
 interface AddCategoryDialogProps {

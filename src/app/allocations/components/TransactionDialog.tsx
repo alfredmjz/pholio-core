@@ -22,7 +22,7 @@ import { AutocompleteInput } from "@/components/ui/autocomplete-input";
 import { VIRTUAL_UNCATEGORIZED_ID } from "../types";
 import type { Transaction, AllocationCategory } from "../types";
 import { getTransferAccountIds } from "../utils/transfer-accounts";
-import type { AccountWithType } from "@/app/balancesheet/types";
+import type { AccountWithType } from "@/app/accounts/types";
 import { FormSection } from "@/components/FormSection";
 import { TransactionTypeSwitch } from "@/components/dialogs/transaction-type-switch";
 import { ProminentAmountInput } from "@/components/ProminentAmountInput";

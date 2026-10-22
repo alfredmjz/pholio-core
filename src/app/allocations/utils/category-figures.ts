@@ -1,6 +1,6 @@
 import type { AllocationCategory } from "../types";
 import { VIRTUAL_UNCATEGORIZED_ID } from "../types";
-import type { RegisteredPlan } from "@/app/balancesheet/types";
+import type { RegisteredPlan } from "@/app/accounts/types";
 import type { AllocationContributions, ContributionSummary } from "@/lib/types/contribution";
 
 export interface CategoryFigures {

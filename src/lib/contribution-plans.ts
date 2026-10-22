@@ -1,4 +1,4 @@
-import type { ContributionPlan, RegisteredPlan } from "@/app/balancesheet/types";
+import type { ContributionPlan, RegisteredPlan } from "@/app/accounts/types";
 import type { ContributionSummary } from "@/lib/types/contribution";
 import { parseLocalDate } from "@/lib/date-utils";
 

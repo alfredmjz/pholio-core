@@ -1,4 +1,4 @@
-import { processGlobalMonthlyInterest } from "@/app/balancesheet/actions";
+import { processGlobalMonthlyInterest } from "@/app/accounts/actions";
 import { Logger } from "@/lib/logger";
 import { NextResponse } from "next/server";
 

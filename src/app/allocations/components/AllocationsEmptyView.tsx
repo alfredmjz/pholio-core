@@ -4,7 +4,7 @@ import { AllocationsHeader } from "./AllocationsHeader";
 import { SurfacePage } from "@/components/layout/surface-page";
 import { ExportDialog } from "./ExportDialog";
 import type { MonthYear, AllocationCategory } from "@/app/allocations/types";
-import type { AccountWithType } from "@/app/balancesheet/types";
+import type { AccountWithType } from "@/app/accounts/types";
 
 interface AllocationsEmptyViewProps {
 	currentMonth: MonthYear;

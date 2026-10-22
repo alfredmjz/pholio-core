@@ -61,7 +61,7 @@ describe("buildHeadsUp", () => {
 		expect(items[3]).toMatchObject({
 			title: "Spend $1,150 more on Sapphire",
 			detail: "by Nov 12, 23 days left, for 60,000 points",
-			href: "/balancesheet/accountdetail/acc-4",
+			href: "/accounts/acc-4",
 		});
 	});
 

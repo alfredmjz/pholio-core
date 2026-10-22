@@ -208,7 +208,7 @@ export function AccountCard({ account, onClick }: AccountCardProps) {
 					{Content}
 				</button>
 			) : (
-				<Link href={`/balancesheet/accountdetail/${account.id}`} className={cardClasses}>
+				<Link href={`/accounts/${account.id}`} className={cardClasses}>
 					{Content}
 				</Link>
 			)}

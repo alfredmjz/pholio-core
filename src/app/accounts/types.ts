@@ -1,4 +1,4 @@
-// Type definitions for the Balance Sheet feature (Unified Schema)
+// Type definitions for the Accounts feature (Unified Schema)
 
 // ============================================================================
 // Account Types (Customizable)
@@ -225,7 +225,7 @@ export interface HistoricalDataPoint {
 	hasActivity?: boolean;
 }
 
-export interface BalanceSheetSummary {
+export interface AccountsSummary {
 	totalAssets: number;
 	totalLiabilities: number;
 	netWorth: number;

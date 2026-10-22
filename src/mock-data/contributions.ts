@@ -1,4 +1,4 @@
-import type { RegisteredPlan } from "@/app/balancesheet/types";
+import type { RegisteredPlan } from "@/app/accounts/types";
 import type { ContributionRoomSetting, ContributionSummary } from "@/lib/types/contribution";
 import { getDemoNow, toDateOnly } from "./demo-date";
 

@@ -117,7 +117,9 @@ export function AccountTypeMigrationDialog({ open, onOpenChange, items, onComple
 				onOpenChange(false);
 				onComplete();
 			} else {
-				toast.error("Update Failed", { description: "Could not update every account. Please try again." });
+				toast.error("Couldn't update every account", {
+					description: "Could not update every account. Please try again.",
+				});
 			}
 		} finally {
 			setIsSaving(false);
@@ -186,7 +188,7 @@ export function AccountTypeMigrationDialog({ open, onOpenChange, items, onComple
 								)}
 
 								{classChanged && (
-									<p className="flex items-start gap-1.5 text-xs text-amber-600 dark:text-amber-400">
+									<p className="flex items-start gap-1.5 text-xs text-warning">
 										<AlertTriangle className="mt-0.5 h-3.5 w-3.5 shrink-0" />
 										<span>
 											This changes the account from {row.originalClass} to {row.accountClass}, which affects how it

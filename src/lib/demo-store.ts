@@ -2,9 +2,9 @@
 
 import { create } from "zustand";
 import { createJSONStorage, persist } from "zustand/middleware";
-import { sampleAccounts, getSampleAccountTransactions } from "@/mock-data/balancesheet";
+import { sampleAccounts, getSampleAccountTransactions } from "@/mock-data/accounts";
 import { getSampleRecentTransactions } from "@/mock-data/dashboard";
-import type { AccountWithType, AccountTransaction, TransactionType } from "@/app/balancesheet/types";
+import type { AccountWithType, AccountTransaction, TransactionType } from "@/app/accounts/types";
 import type { Transaction } from "@/app/dashboard/types";
 import type { UnifiedTransactionInput } from "@/lib/types/unified-transaction";
 import { calculateSignedDelta, resolveAccountTransactionType } from "@/lib/account-validation-utils";

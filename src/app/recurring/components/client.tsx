@@ -1,24 +1,49 @@
 "use client";
 
 import { useState } from "react";
-import { RecurringExpense } from "../actions";
-import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
-import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
-import { Button } from "@/components/ui/button";
 import { Plus } from "lucide-react";
-import { SubscriptionCard } from "./subscription-card";
-import { BillCard } from "./bill-card";
-import { AddRecurringDialog } from "./add-recurring-dialog";
-import { PageShell, PageHeader, PageContent } from "@/components/layout/page-shell";
-import { useOptimisticRecurring } from "@/hooks/useOptimisticRecurring";
+import { Button } from "@/components/ui/button";
+import { SurfacePage } from "@/components/layout/surface-page";
+import { SurfaceSection } from "@/components/layout/surface-section";
 import { ShortcutHint } from "@/components/common/shortcut-hint";
-import { SHORTCUTS, ShortcutId } from "@/lib/keyboard-shortcuts";
+import { useOptimisticRecurring } from "@/hooks/useOptimisticRecurring";
 import { useKeyboardShortcut } from "@/hooks/use-keyboard-shortcut";
+import { SHORTCUTS, ShortcutId } from "@/lib/keyboard-shortcuts";
+import { getTodayDateString } from "@/lib/date-utils";
+import { formatCurrency } from "@/app/dashboard/utils";
+import { cn } from "@/lib/utils";
+import type { RecurringExpense } from "../actions";
+import { monthlyEquivalent } from "../recurring-schedule";
+import { AddRecurringDialog } from "./add-recurring-dialog";
+import { BillRow } from "./bill-row";
+import { MonthTimeline } from "./month-timeline";
+import { RECURRING_GRID } from "./recurring-row-parts";
+import { SubscriptionRow } from "./subscription-row";
 
 interface RecurringClientProps {
 	initialExpenses: RecurringExpense[];
 	timezone: string | null;
 	categoryOptions?: string[];
+}
+
+const byDueDate = (a: RecurringExpense, b: RecurringExpense) => a.next_due_date.localeCompare(b.next_due_date);
+
+function ColumnHeader({ labels }: { labels: [string, string, string, string] }) {
+	return (
+		<div
+			className={cn(
+				RECURRING_GRID,
+				"type-body-xs hidden border-b border-border/70 px-3 pb-2 text-muted-foreground row-wide:grid"
+			)}
+			aria-hidden
+		>
+			<span>{labels[0]}</span>
+			<span>{labels[1]}</span>
+			<span>{labels[2]}</span>
+			<span className="text-right">{labels[3]}</span>
+			<span />
+		</div>
+	);
 }
 
 export function RecurringClient({ initialExpenses, timezone, categoryOptions = [] }: RecurringClientProps) {
@@ -28,112 +53,108 @@ export function RecurringClient({ initialExpenses, timezone, categoryOptions = [
 
 	useKeyboardShortcut(SHORTCUTS[ShortcutId.AddRecurring].keys, () => setIsAddOpen(true));
 
-	const subscriptions = expenses.filter((e) => e.category === "subscription");
-	const bills = expenses
-		.filter((e) => e.category === "bill")
-		.sort((a, b) => new Date(a.next_due_date).getTime() - new Date(b.next_due_date).getTime());
+	const today = getTodayDateString(timezone || undefined);
+	const bills = expenses.filter((e) => e.category === "bill").sort(byDueDate);
+	// Active subscriptions first, by next payment; paused ones after.
+	const subscriptions = expenses
+		.filter((e) => e.category === "subscription")
+		.sort((a, b) => Number(b.is_active !== false) - Number(a.is_active !== false) || byDueDate(a, b));
 
-	const totalMonthly = expenses
-		.filter((e) => e.is_active)
-		.reduce((sum, e) => {
-			let amount = Number(e.amount);
-			if (e.billing_period === "yearly") amount /= 12;
-			if (e.billing_period === "weekly") amount *= 4;
-			if (e.billing_period === "biweekly") amount *= 2;
-			return sum + amount;
-		}, 0);
+	const active = expenses.filter((e) => e.is_active !== false);
+	const monthlyTotal = active.reduce((sum, e) => sum + monthlyEquivalent(Number(e.amount), e.billing_period), 0);
+	const billsMonthly = active
+		.filter((e) => e.category === "bill")
+		.reduce((sum, e) => sum + monthlyEquivalent(Number(e.amount), e.billing_period), 0);
+	const subscriptionsMonthly = monthlyTotal - billsMonthly;
+	const activeSubscriptions = subscriptions.filter((s) => s.is_active !== false).length;
 
 	return (
-		<PageShell>
-			<PageHeader
-				isSticky={false}
-				className="flex flex-col md:flex-row gap-4 justify-between items-start md:items-center"
-			>
-				<div>
-					<h1 className="type-h1">Recurring</h1>
-					<p className="type-body-sm text-muted-foreground">Manage your subscriptions and recurring bills.</p>
+		<SurfacePage>
+			<header className="flex flex-wrap items-end justify-between gap-4">
+				<div className="min-w-0">
+					<h1 className="type-h2 text-primary">Recurring</h1>
+					<p className="type-body mt-1 text-muted-foreground">
+						<span className="text-primary">{formatCurrency(monthlyTotal, { showCents: true })}</span> a month across{" "}
+						{active.length} active {active.length === 1 ? "item" : "items"}
+					</p>
 				</div>
-				<Button onClick={() => setIsAddOpen(true)} className="gap-2">
-					<Plus className="h-4 w-4 md:hidden" /> Add Recurring
+				<Button onClick={() => setIsAddOpen(true)} className="h-10 gap-2 rounded-full pl-3.5 pr-4">
+					<Plus className="h-4 w-4" aria-hidden />
+					Add recurring
 					<ShortcutHint
 						keys={SHORTCUTS[ShortcutId.AddRecurring].keys}
 						keyClassName="border-current bg-transparent text-current"
 					/>
 				</Button>
-			</PageHeader>
+			</header>
 
-			<PageContent>
-				<div className="grid gap-4 md:grid-cols-3">
-					<Card>
-						<CardHeader className="flex flex-row items-center justify-between space-y-0 pb-2">
-							<CardTitle className="text-sm font-medium">Monthly Fixed Cost</CardTitle>
-							<span className="text-primary">$</span>
-						</CardHeader>
-						<CardContent>
-							<div className="text-2xl font-bold">${totalMonthly.toFixed(2)}</div>
-							<p className="text-xs text-primary">Estimated from active items</p>
-						</CardContent>
-					</Card>
-					<Card>
-						<CardHeader className="flex flex-row items-center justify-between space-y-0 pb-2">
-							<CardTitle className="text-sm font-medium">Active Subscriptions</CardTitle>
-						</CardHeader>
-						<CardContent>
-							<div className="text-2xl font-bold">{subscriptions.filter((s) => s.is_active).length}</div>
-						</CardContent>
-					</Card>
-					<Card>
-						<CardHeader className="flex flex-row items-center justify-between space-y-0 pb-2">
-							<CardTitle className="text-sm font-medium">Active Bills</CardTitle>
-						</CardHeader>
-						<CardContent>
-							<div className="text-2xl font-bold">{bills.filter((b) => b.is_active).length}</div>
-						</CardContent>
-					</Card>
-				</div>
+			<MonthTimeline expenses={expenses} today={today} />
 
-				<Tabs defaultValue="subscriptions" className="space-y-4">
-					<TabsList>
-						<TabsTrigger value="subscriptions">Subscriptions</TabsTrigger>
-						<TabsTrigger value="bills">Bills</TabsTrigger>
-					</TabsList>
-					<TabsContent value="subscriptions" className="space-y-4">
-						{subscriptions.length === 0 ? (
-							<div className="text-center py-12 text-primary">No subscriptions found. Add one to get started.</div>
-						) : (
-							<div className="flex flex-col gap-4">
-								{subscriptions.map((sub) => (
-									<SubscriptionCard
-										key={sub.id}
-										subscription={sub}
-										onDelete={optimisticallyDelete}
-										onUpdate={optimisticallyUpdate}
-										categoryOptions={categoryOptions}
-									/>
-								))}
-							</div>
-						)}
-					</TabsContent>
-					<TabsContent value="bills" className="space-y-4">
-						{bills.length === 0 ? (
-							<div className="text-center py-12 text-primary">No bills found.</div>
-						) : (
-							<div className="grid gap-4 grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 xl:grid-cols-4">
-								{bills.map((bill) => (
-									<BillCard
-										key={bill.id}
-										bill={bill}
-										onDelete={optimisticallyDelete}
-										onUpdate={optimisticallyUpdate}
-										timezone={timezone}
-										categoryOptions={categoryOptions}
-									/>
-								))}
-							</div>
-						)}
-					</TabsContent>
-				</Tabs>
-			</PageContent>
+			<SurfaceSection
+				id="bills-heading"
+				className="rows-container"
+				title="Bills"
+				note={
+					bills.length > 0
+						? `About ${formatCurrency(billsMonthly, { showCents: true })} a month. Pay each one when it's due.`
+						: undefined
+				}
+			>
+				{bills.length === 0 ? (
+					<p className="type-body-sm py-4 text-muted-foreground">
+						No bills yet. Add rent, utilities or a phone plan to see when each one is due.
+					</p>
+				) : (
+					<>
+						<ColumnHeader labels={["Bill", "Next due", "This month", "Amount"]} />
+						<ul className="mt-1 divide-y divide-border/50" aria-label="Bills">
+							{bills.map((bill) => (
+								<BillRow
+									key={bill.id}
+									bill={bill}
+									onDelete={optimisticallyDelete}
+									onUpdate={optimisticallyUpdate}
+									timezone={timezone}
+									categoryOptions={categoryOptions}
+								/>
+							))}
+						</ul>
+					</>
+				)}
+			</SurfaceSection>
+
+			<SurfaceSection
+				id="subscriptions-heading"
+				className="rows-container"
+				title="Subscriptions"
+				note={
+					subscriptions.length > 0
+						? `${activeSubscriptions} active, about ${formatCurrency(subscriptionsMonthly, { showCents: true })} a month. Paid automatically.`
+						: undefined
+				}
+			>
+				{subscriptions.length === 0 ? (
+					<p className="type-body-sm py-4 text-muted-foreground">
+						No subscriptions yet. Add streaming, software or memberships to see what renews and when.
+					</p>
+				) : (
+					<>
+						<ColumnHeader labels={["Subscription", "Next payment", "", "Amount"]} />
+						<ul className="mt-1 divide-y divide-border/50" aria-label="Subscriptions">
+							{subscriptions.map((sub) => (
+								<SubscriptionRow
+									key={sub.id}
+									subscription={sub}
+									timezone={timezone}
+									onDelete={optimisticallyDelete}
+									onUpdate={optimisticallyUpdate}
+									categoryOptions={categoryOptions}
+								/>
+							))}
+						</ul>
+					</>
+				)}
+			</SurfaceSection>
 
 			<AddRecurringDialog
 				open={isAddOpen}
@@ -141,6 +162,6 @@ export function RecurringClient({ initialExpenses, timezone, categoryOptions = [
 				onSuccess={optimisticallyAdd}
 				categoryOptions={categoryOptions}
 			/>
-		</PageShell>
+		</SurfacePage>
 	);
 }

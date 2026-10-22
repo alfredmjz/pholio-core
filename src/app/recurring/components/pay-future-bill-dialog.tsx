@@ -93,12 +93,12 @@ export function PayFutureBillDialog({
 				onSuccess?.();
 				setSelectedCount(0);
 			} else {
-				toast.error("Payment Failed", {
+				toast.error("Couldn't record the payment", {
 					description: "Could not process the future payments.",
 				});
 			}
 		} catch (err) {
-			toast.error("Error", {
+			toast.error("Something went wrong", {
 				description: "An unexpected error occurred.",
 			});
 		} finally {
@@ -110,8 +110,8 @@ export function PayFutureBillDialog({
 		<Dialog open={open} onOpenChange={onOpenChange}>
 			<DialogContent className="sm:max-w-[425px]" onKeyDown={(event) => handleEnterSubmit(event, handlePay)}>
 				<DialogHeader>
-					<DialogTitle>Pay Future Bills</DialogTitle>
-					<DialogDescription>Select upcoming bills to pay in advance.</DialogDescription>
+					<DialogTitle>Pay future bills</DialogTitle>
+					<DialogDescription>Pick the upcoming bills you want to pay early.</DialogDescription>
 				</DialogHeader>
 
 				<div className="py-4 space-y-4">

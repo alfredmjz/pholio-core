@@ -9,12 +9,10 @@ import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
-import { Calendar } from "@/components/ui/calendar";
+import { DatePicker } from "@/components/ui/date-picker";
 import { Switch } from "@/components/ui/switch";
-import { Popover, PopoverContent, PopoverTrigger } from "@/components/ui/popover";
 import { cn } from "@/lib/utils";
-import { formatDateString, formatLongDate } from "@/lib/date-utils";
-import { CalendarIcon } from "lucide-react";
+import { formatDateString, parseLocalDate } from "@/lib/date-utils";
 import { toast } from "sonner";
 import { ProminentAmountInput } from "@/components/ProminentAmountInput";
 
@@ -47,7 +45,6 @@ export function EditRecurringDialog({
 		is_automated: true,
 	});
 	const [isSubmitting, setIsSubmitting] = useState(false);
-	const [isCalendarOpen, setIsCalendarOpen] = useState(false);
 
 	useEffect(() => {
 		if (expense) {
@@ -157,13 +154,13 @@ export function EditRecurringDialog({
 				} as RecurringExpense);
 				onOpenChange(false);
 			} else {
-				toast.error("Update Failed", {
+				toast.error("Couldn't save your changes", {
 					description: "Failed to update expense. Please try again.",
 				});
 			}
 		} catch (err) {
 			const errorMessage = err instanceof Error ? err.message : "An unexpected error occurred while saving.";
-			toast.error("Error", {
+			toast.error("Something went wrong", {
 				description: errorMessage,
 			});
 		} finally {
@@ -250,34 +247,13 @@ export function EditRecurringDialog({
 						</Select>
 					</div>
 					<div className="space-y-2">
-						<Label>Next Due Date</Label>
-						<Popover open={isCalendarOpen} onOpenChange={setIsCalendarOpen}>
-							<PopoverTrigger asChild>
-								<Button
-									variant={"outline"}
-									className={cn(
-										"w-full justify-start text-left font-normal h-10",
-										!formData.next_due_date && "text-primary"
-									)}
-								>
-									<CalendarIcon className="mr-2 h-4 w-4" />
-									{formData.next_due_date ? formatLongDate(formData.next_due_date) : <span>Pick a date</span>}
-								</Button>
-							</PopoverTrigger>
-							<PopoverContent className="w-auto p-0">
-								<Calendar
-									mode="single"
-									selected={formData.next_due_date}
-									onSelect={(date) => {
-										if (date) {
-											setFormData({ ...formData, next_due_date: date });
-											setIsCalendarOpen(false);
-										}
-									}}
-									autoFocus
-								/>
-							</PopoverContent>
-						</Popover>
+						<Label htmlFor="next-due-date">Next Due Date</Label>
+						<DatePicker
+							id="next-due-date"
+							value={formatDateString(formData.next_due_date)}
+							onChange={(date) => setFormData({ ...formData, next_due_date: parseLocalDate(date) })}
+							yearPicker
+						/>
 					</div>
 				</div>
 				<div className="space-y-2">

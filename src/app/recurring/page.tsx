@@ -5,6 +5,11 @@ import { getTimezone } from "@/app/settings/actions";
 import { RecurringClient } from "./components/client";
 import { RecurringLoadingSkeleton } from "./components/recurring-loading-skeleton";
 
+export const metadata = {
+	title: "Recurring | Pholio",
+	description: "Your bills and subscriptions",
+};
+
 export default async function RecurringPage() {
 	await requireAuth();
 
@@ -15,14 +20,8 @@ export default async function RecurringPage() {
 	]);
 
 	return (
-		<div className="flex-1 w-full flex flex-col gap-6 px-4 py-8">
-			<Suspense fallback={<RecurringLoadingSkeleton />}>
-				<RecurringClient
-					initialExpenses={expenses || []}
-					timezone={timezone}
-					categoryOptions={categoryOptions || []}
-				/>
-			</Suspense>
-		</div>
+		<Suspense fallback={<RecurringLoadingSkeleton />}>
+			<RecurringClient initialExpenses={expenses || []} timezone={timezone} categoryOptions={categoryOptions || []} />
+		</Suspense>
 	);
 }

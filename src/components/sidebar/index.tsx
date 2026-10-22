@@ -5,9 +5,11 @@ import type { UserProfile } from "@/lib/getUserProfile";
 import { SidebarHeader } from "./SidebarHeader";
 import { SidebarNavigation } from "./SidebarNavigation";
 import { SidebarFooter } from "./SidebarFooter";
+import { SidebarResizeHandle } from "./sidebar-resize-handle";
 import { signOut } from "@/app/(auth-pages)/login/actions";
 import { useRouter } from "next/navigation";
 import { clearDemoModeCookie } from "@/lib/demo-mode";
+import { cn } from "@/lib/utils";
 
 interface SideBarComponentProps {
 	userProfile: UserProfile | null;
@@ -17,19 +19,21 @@ const SIDEBAR_DEFAULTS = {
 	WIDTH: 14,
 	MIN_WIDTH: 12.5,
 	COLLAPSED_WIDTH: 4,
-	MAX_WIDTH_PERCENTAGE: 0.25,
+	MAX_WIDTH_PERCENTAGE: 0.3,
 	REM_TO_PX: 16,
-	MIN_WIDTH_CALC_DELAY: 100,
 } as const;
 
 export function SideBarComponent({ userProfile }: SideBarComponentProps) {
 	const router = useRouter();
 	const [sidebarWidth, setSidebarWidth] = React.useState<number>(SIDEBAR_DEFAULTS.WIDTH);
-	const [minWidth, setMinWidth] = React.useState<number>(SIDEBAR_DEFAULTS.WIDTH);
 	const [isCollapsed, setIsCollapsed] = React.useState<boolean>(false);
+	const [isResizing, setIsResizing] = React.useState(false);
+	const [maxWidth, setMaxWidth] = React.useState<number>(SIDEBAR_DEFAULTS.WIDTH * 1.5);
 
 	const contentRef = React.useRef<HTMLDivElement>(null);
-	const sidebarWidthRef = React.useRef<number>(SIDEBAR_DEFAULTS.WIDTH);
+	// The width mid-drag. A re-render during a drag (the labels fading) must keep it, not jump back
+	// to the saved width for a frame.
+	const liveRemRef = React.useRef<number | null>(null);
 
 	// Auto-collapse sidebar on mobile/tablet screens
 	React.useEffect(() => {
@@ -52,41 +56,12 @@ export function SideBarComponent({ userProfile }: SideBarComponentProps) {
 
 		if (savedWidth) {
 			const width = parseFloat(savedWidth);
-			setSidebarWidth(width);
-			sidebarWidthRef.current = width;
+			if (Number.isFinite(width)) setSidebarWidth(Math.max(SIDEBAR_DEFAULTS.MIN_WIDTH, width));
 		}
 		if (savedCollapsed && window.innerWidth >= 1024) {
 			setIsCollapsed(savedCollapsed === "true");
 		}
 	}, []);
-
-	// Keep ref in sync with state
-	React.useEffect(() => {
-		sidebarWidthRef.current = sidebarWidth;
-	}, [sidebarWidth]);
-
-	// Calculate minimum width based on content
-	React.useEffect(() => {
-		if (!contentRef.current || isCollapsed) return;
-
-		const timeoutId = setTimeout(() => {
-			const navList = contentRef.current?.querySelector("nav");
-			if (!navList) return;
-
-			const totalWidthPx = navList.scrollWidth;
-			const calculatedMinWidth = Math.ceil(totalWidthPx / SIDEBAR_DEFAULTS.REM_TO_PX);
-			const finalMinWidth = Math.max(SIDEBAR_DEFAULTS.MIN_WIDTH, calculatedMinWidth);
-
-			setMinWidth(finalMinWidth);
-
-			if (sidebarWidth < finalMinWidth) {
-				setSidebarWidth(finalMinWidth);
-				localStorage.setItem("sidebarWidth", finalMinWidth.toString());
-			}
-		}, SIDEBAR_DEFAULTS.MIN_WIDTH_CALC_DELAY);
-
-		return () => clearTimeout(timeoutId);
-	}, [isCollapsed, sidebarWidth]);
 
 	const handleSignOut = React.useCallback(async () => {
 		localStorage.removeItem("sidebarWidth");
@@ -96,70 +71,76 @@ export function SideBarComponent({ userProfile }: SideBarComponentProps) {
 		router.push("/login");
 	}, [router]);
 
-	const handleToggleCollapse = React.useCallback(() => {
-		const newCollapsed = !isCollapsed;
-		setIsCollapsed(newCollapsed);
-		localStorage.setItem("sidebarCollapsed", newCollapsed.toString());
+	// The widest the sidebar may be: 30% of the window, never less than its minimum.
+	React.useEffect(() => {
+		const update = () =>
+			setMaxWidth(
+				Math.max(
+					SIDEBAR_DEFAULTS.MIN_WIDTH,
+					(window.innerWidth * SIDEBAR_DEFAULTS.MAX_WIDTH_PERCENTAGE) / SIDEBAR_DEFAULTS.REM_TO_PX
+				)
+			);
+		update();
+		window.addEventListener("resize", update);
+		return () => window.removeEventListener("resize", update);
+	}, []);
 
-		if (!newCollapsed && sidebarWidth < minWidth) {
-			setSidebarWidth(minWidth);
-			localStorage.setItem("sidebarWidth", minWidth.toString());
-		}
-	}, [isCollapsed, sidebarWidth, minWidth]);
-
-	const handleMouseDown = React.useCallback(
-		(e: React.MouseEvent) => {
-			if (isCollapsed) return;
-
-			document.body.classList.add("select-none");
-
-			const startX = e.clientX;
-			const startWidth = sidebarWidth;
-
-			const handleMouseMove = (moveEvent: MouseEvent) => {
-				const maxWidth = (window.innerWidth * SIDEBAR_DEFAULTS.MAX_WIDTH_PERCENTAGE) / SIDEBAR_DEFAULTS.REM_TO_PX;
-				const delta = (moveEvent.clientX - startX) / SIDEBAR_DEFAULTS.REM_TO_PX;
-				const newWidth = Math.min(maxWidth, Math.max(minWidth, startWidth + delta));
-				setSidebarWidth(newWidth);
-			};
-
-			const handleMouseUp = () => {
-				document.body.classList.remove("select-none");
-				localStorage.setItem("sidebarWidth", sidebarWidthRef.current.toString());
-				document.removeEventListener("mousemove", handleMouseMove);
-				document.removeEventListener("mouseup", handleMouseUp);
-			};
-
-			document.addEventListener("mousemove", handleMouseMove);
-			document.addEventListener("mouseup", handleMouseUp);
+	const handleResizeCommit = React.useCallback(
+		({ widthRem, isCollapsed: collapsed }: { widthRem: number; isCollapsed: boolean }) => {
+			setIsCollapsed(collapsed);
+			localStorage.setItem("sidebarCollapsed", collapsed.toString());
+			if (!collapsed) {
+				setSidebarWidth(widthRem);
+				localStorage.setItem("sidebarWidth", widthRem.toString());
+			}
 		},
-		[isCollapsed, sidebarWidth, minWidth]
+		[]
 	);
 
 	return (
 		<aside
 			ref={contentRef}
-			className="relative hidden h-dvh shrink-0 flex-col border-r border-border bg-background lg:flex"
-			style={{ width: isCollapsed ? `${SIDEBAR_DEFAULTS.COLLAPSED_WIDTH}rem` : `${sidebarWidth}rem` }}
+			// Transparent and above the page, so a redesigned page's backdrop lines run under it.
+			className={cn(
+				"group/sidebar relative z-20 hidden h-dvh shrink-0 flex-col bg-transparent lg:flex",
+				// Width eases when a drag is let go (snapping to the rail or the minimum) and on reset; during
+				// a drag the handle writes it directly every frame, so no transition then.
+				!isResizing && "transition-[width] duration-300 ease-[cubic-bezier(0.22,1,0.36,1)]"
+			)}
+			style={{
+				width:
+					isResizing && liveRemRef.current !== null
+						? `${liveRemRef.current}rem`
+						: isCollapsed
+							? `${SIDEBAR_DEFAULTS.COLLAPSED_WIDTH}rem`
+							: `${sidebarWidth}rem`,
+			}}
 		>
-			<SidebarHeader
-				isCollapsed={isCollapsed}
-				onToggleCollapse={handleToggleCollapse}
-				userProfile={userProfile}
-				onSignOut={handleSignOut}
-			/>
+			<SidebarHeader isCollapsed={isCollapsed} />
 			<SidebarNavigation isCollapsed={isCollapsed} />
 			<div className="mt-auto">
-				<SidebarFooter isCollapsed={isCollapsed} />
+				<SidebarFooter isCollapsed={isCollapsed} userProfile={userProfile} onSignOut={handleSignOut} />
 			</div>
 
-			{/* Resize Handle */}
-			{!isCollapsed && (
-				<div
-					className="absolute top-0 right-0 w-1 h-full cursor-col-resize bg-transparent hover:bg-border transition-colors"
-					onMouseDown={handleMouseDown}
-				/>
-			)}
+			<SidebarResizeHandle
+				targetRef={contentRef}
+				widthRem={sidebarWidth}
+				isCollapsed={isCollapsed}
+				minRem={SIDEBAR_DEFAULTS.MIN_WIDTH}
+				maxRem={maxWidth}
+				collapsedRem={SIDEBAR_DEFAULTS.COLLAPSED_WIDTH}
+				defaultRem={SIDEBAR_DEFAULTS.WIDTH}
+				onDraggingChange={(dragging) => {
+					liveRemRef.current = null;
+					setIsResizing(dragging);
+					document.body.classList.toggle("select-none", dragging);
+				}}
+				onCollapsedPreview={(collapsed, liveRem) => {
+					liveRemRef.current = liveRem;
+					setIsCollapsed(collapsed);
+				}}
+				onCommit={handleResizeCommit}
+			/>
 		</aside>
 	);
 }

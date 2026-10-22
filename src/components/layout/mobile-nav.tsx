@@ -2,14 +2,14 @@
 
 import Link from "next/link";
 import { usePathname } from "next/navigation";
-import { LayoutDashboard, PieChart, Repeat, ScrollText } from "lucide-react";
+import { LayoutDashboard, PieChart, Repeat, Wallet } from "lucide-react";
 import { cn } from "@/lib/utils";
 
 const ITEMS = [
 	{ href: "/dashboard", label: "Dashboard", icon: LayoutDashboard },
 	{ href: "/allocations", label: "Allocations", icon: PieChart },
 	{ href: "/recurring", label: "Recurring", icon: Repeat },
-	{ href: "/balancesheet", label: "Balance Sheet", icon: ScrollText },
+	{ href: "/accounts", label: "Accounts", icon: Wallet },
 ] as const;
 
 /**

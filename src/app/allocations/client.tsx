@@ -22,7 +22,7 @@ import { SaveTemplateDialog } from "./components/SaveTemplateDialog";
 
 import type { TransactionType } from "./components/TransactionTypeIcon";
 import type { MonthYear, AllocationSummary, Transaction, IncomeVerificationResult } from "./types";
-import type { AccountWithType, RegisteredPlan } from "@/app/balancesheet/types";
+import type { AccountWithType, RegisteredPlan } from "@/app/accounts/types";
 import type { AllocationNewMonthDefault } from "@/app/settings/actions";
 import type { AllocationContributions } from "@/lib/types/contribution";
 
@@ -38,10 +38,6 @@ interface AllocationClientProps {
 		totalBudget: number;
 		hasData: boolean;
 	} | null;
-	historicalPace: {
-		hasEnoughData: boolean;
-		dailyAmounts: number[];
-	};
 	incomeVerification: IncomeVerificationResult;
 	userSettings?: {
 		newMonthDefault: AllocationNewMonthDefault;
@@ -53,7 +49,6 @@ interface AllocationClientProps {
 		categoryCount: number;
 		totalBudget: number;
 	}>;
-	timezone: string | null;
 }
 
 const MONTH_NAMES = [
@@ -79,11 +74,9 @@ export function AllocationClient({
 	initialAccounts,
 	initialContributions,
 	previousMonthData,
-	historicalPace,
 	incomeVerification,
 	userSettings,
 	templates,
-	timezone,
 }: AllocationClientProps) {
 	const router = useRouter();
 
@@ -309,7 +302,6 @@ export function AllocationClient({
 				setTemplateDialogOpen={setTemplateDialogOpen}
 				monthName={monthName}
 				previousMonthData={getPreviousMonth()}
-				historicalPace={historicalPace}
 				incomeVerification={incomeVerification}
 				onImportPrevious={handleImportPrevious}
 				onUseTemplate={handleUseTemplate}
@@ -319,7 +311,6 @@ export function AllocationClient({
 				setExportDialogOpen={setExportDialogOpen}
 				saveTemplateDialogOpen={saveTemplateDialogOpen}
 				setSaveTemplateDialogOpen={setSaveTemplateDialogOpen}
-				timezone={timezone}
 			/>
 
 			{summary && (

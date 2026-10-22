@@ -10,7 +10,7 @@
 import { createClient } from "@/lib/supabase/server";
 import { revalidatePath } from "next/cache";
 import { Logger } from "@/lib/logger";
-import type { TransactionType } from "@/app/balancesheet/types";
+import type { TransactionType } from "@/app/accounts/types";
 
 export interface UpdateAccountTransactionInput {
 	description?: string;
@@ -126,7 +126,7 @@ export async function updateAccountTransaction(
 			}
 		}
 
-		revalidatePath("/balancesheet");
+		revalidatePath("/accounts");
 		revalidatePath("/allocations");
 		revalidatePath("/dashboard");
 		return true;
@@ -195,7 +195,7 @@ export async function deleteAccountTransaction(transactionId: string): Promise<b
 			return false;
 		}
 
-		revalidatePath("/balancesheet");
+		revalidatePath("/accounts");
 		revalidatePath("/allocations");
 		revalidatePath("/dashboard");
 		return true;

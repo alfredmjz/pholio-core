@@ -3,12 +3,9 @@
 import { useState } from "react";
 import { ControlBasedDialog } from "@/components/dialogWrapper";
 import { Button } from "@/components/ui/button";
-import { Input } from "@/components/ui/input";
-import { Label } from "@/components/ui/label";
-import { Card } from "@/components/ui/card";
+import { ProminentAmountInput } from "@/components/ProminentAmountInput";
 import { FileText, FolderOpen, Sparkles, ChevronRight, Check } from "lucide-react";
 import { cn } from "@/lib/utils";
-import { sanitizeDecimalInput } from "@/lib/input-utils";
 
 interface ImportTemplateDialogProps {
 	open: boolean;
@@ -34,6 +31,15 @@ interface ImportTemplateDialogProps {
 }
 
 type ImportOption = "previous" | "template" | "fresh";
+
+const ICON_CHIP = "flex h-9 w-9 shrink-0 items-center justify-center rounded-full bg-card-muted text-primary";
+
+function optionClass(selected: boolean) {
+	return cn(
+		"w-full rounded-2xl border p-4 text-left transition-colors focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring",
+		selected ? "border-primary ring-1 ring-primary" : "border-border/80 hover:border-border-strong"
+	);
+}
 
 export function ImportTemplateDialog({
 	open,
@@ -112,65 +118,52 @@ export function ImportTemplateDialog({
 			onOpenChange={onOpenChange}
 			title={
 				<>
-					Set Up {monthName} {year}
+					Set up {monthName} {year}
 				</>
 			}
 			description={
 				step === "choose"
-					? "This month doesn't have a budget yet. How would you like to get started?"
-					: "Set your expected income for this month"
+					? "This month doesn't have a budget yet. Pick a starting point."
+					: "How much do you expect to earn this month?"
 			}
-			className="sm:max-w-[500px]"
 		>
 			{step === "choose" ? (
-				<div className="space-y-3 py-4">
+				<div className="space-y-2.5">
 					{previousMonth && previousMonth.categoryCount > 0 && (
 						<button
 							onClick={() => handleOptionSelect("previous")}
-							className={cn(
-								"w-full text-left p-4 rounded-lg border-2 transition-all",
-								"hover:border-info hover:bg-info/5",
-								selectedOption === "previous" ? "border-info bg-info/5" : "border-border"
-							)}
+							className={optionClass(selectedOption === "previous")}
 						>
 							<div className="flex items-start gap-4">
-								<div className="p-2 rounded-lg bg-blue-100 dark:bg-blue-900/30">
-									<FileText className="h-5 w-5 text-blue-600 dark:text-blue-400" />
+								<div className={ICON_CHIP}>
+									<FileText className="h-4 w-4" />
 								</div>
 								<div className="flex-1">
 									<div className="flex items-center justify-between">
-										<h4 className="font-semibold text-primary">Import from {previousMonth.name}</h4>
-										<ChevronRight className="h-4 w-4 text-primary" />
+										<h4 className="type-body font-medium text-primary">Copy {previousMonth.name}</h4>
+										<ChevronRight className="h-4 w-4 text-muted-foreground" />
 									</div>
-									<p className="text-sm text-primary mt-1">
-										Copy all {previousMonth.categoryCount} categories ({formatCurrency(previousMonth.totalBudget)} total
-										budget)
+									<p className="type-body-sm mt-0.5 text-muted-foreground">
+										All {previousMonth.categoryCount} categories, {formatCurrency(previousMonth.totalBudget)} budgeted
 									</p>
 								</div>
 							</div>
 						</button>
 					)}
 
-					<button
-						onClick={() => handleOptionSelect("template")}
-						className={cn(
-							"w-full text-left p-4 rounded-lg border-2 transition-all",
-							"hover:border-info hover:bg-info/5",
-							selectedOption === "template" ? "border-info bg-info/5" : "border-border"
-						)}
-					>
+					<button onClick={() => handleOptionSelect("template")} className={optionClass(selectedOption === "template")}>
 						<div className="flex items-start gap-4">
-							<div className="p-2 rounded-lg bg-purple-100 dark:bg-purple-900/30">
-								<FolderOpen className="h-5 w-5 text-purple-600 dark:text-purple-400" />
+							<div className={ICON_CHIP}>
+								<FolderOpen className="h-4 w-4" />
 							</div>
 							<div className="flex-1">
 								<div className="flex items-center justify-between">
-									<h4 className="font-semibold text-primary">Use a Template</h4>
-									<ChevronRight className="h-4 w-4 text-primary" />
+									<h4 className="type-body font-medium text-primary">Use a template</h4>
+									<ChevronRight className="h-4 w-4 text-muted-foreground" />
 								</div>
-								<p className="text-sm text-primary mt-1">
+								<p className="type-body-sm mt-0.5 text-muted-foreground">
 									{templates.length > 0
-										? `Select from your ${templates.length} saved templates`
+										? `Choose from your ${templates.length} saved ${templates.length === 1 ? "template" : "templates"}`
 										: "No templates saved yet"}
 								</p>
 							</div>
@@ -178,10 +171,10 @@ export function ImportTemplateDialog({
 					</button>
 
 					{selectedOption === "template" && (
-						<div className="ml-8 space-y-2 animate-in fade-in slide-in-from-top-2">
+						<div className="ml-12 space-y-2 animate-in fade-in slide-in-from-top-2">
 							{templates.length === 0 ? (
-								<p className="text-sm text-primary py-4 text-center">
-									You don't have any saved templates yet. Create a budget and save it as a template for future use.
+								<p className="type-body-sm py-3 text-muted-foreground">
+									Set up a budget once, then use Save as template in the month menu to reuse it.
 								</p>
 							) : (
 								templates.map((template) => (
@@ -189,9 +182,8 @@ export function ImportTemplateDialog({
 										key={template.id}
 										onClick={() => handleTemplateSelect(template.id)}
 										className={cn(
-											"w-full text-left p-3 rounded-lg border transition-all",
-											"hover:border-info hover:bg-info/5",
-											selectedTemplateId === template.id ? "border-info bg-info/5" : "border-border"
+											"w-full rounded-xl border p-3 text-left transition-colors hover:border-border-strong",
+											selectedTemplateId === template.id ? "border-primary ring-1 ring-primary" : "border-border/80"
 										)}
 									>
 										<div className="flex items-center justify-between w-full">
@@ -209,7 +201,7 @@ export function ImportTemplateDialog({
 													<p className="text-xs text-muted-foreground mt-0.5">{template.categoryCount} categories</p>
 												</div>
 												{selectedTemplateId === template.id ? (
-													<Check className="h-4 w-4 text-info" />
+													<Check className="h-4 w-4 text-primary" />
 												) : (
 													<div className="w-4 h-4" />
 												)}
@@ -221,66 +213,51 @@ export function ImportTemplateDialog({
 						</div>
 					)}
 
-					<button
-						onClick={() => handleOptionSelect("fresh")}
-						className={cn(
-							"w-full text-left p-4 rounded-lg border-2 transition-all",
-							"hover:border-info hover:bg-info/5",
-							selectedOption === "fresh" ? "border-info bg-info/5" : "border-border"
-						)}
-					>
+					<button onClick={() => handleOptionSelect("fresh")} className={optionClass(selectedOption === "fresh")}>
 						<div className="flex items-start gap-4">
-							<div className="p-2 rounded-lg bg-green-100 dark:bg-green-900/30">
-								<Sparkles className="h-5 w-5 text-green-600 dark:text-green-400" />
+							<div className={ICON_CHIP}>
+								<Sparkles className="h-4 w-4" />
 							</div>
 							<div className="flex-1">
 								<div className="flex items-center justify-between">
-									<h4 className="font-semibold text-primary">Start Fresh</h4>
-									<ChevronRight className="h-4 w-4 text-primary" />
+									<h4 className="type-body font-medium text-primary">Start blank</h4>
+									<ChevronRight className="h-4 w-4 text-muted-foreground" />
 								</div>
-								<p className="text-sm text-primary mt-1">Create a new budget from scratch</p>
+								<p className="type-body-sm mt-0.5 text-muted-foreground">Add categories yourself</p>
 							</div>
 						</div>
 					</button>
 				</div>
 			) : (
-				<div className="py-4 space-y-4">
+				<div className="space-y-6">
 					<div className="space-y-2">
-						<Label htmlFor="expectedIncome" className="text-sm font-medium">
-							Expected Income for {monthName}
-						</Label>
-						<div className="relative">
-							<span className="absolute left-3 top-1/2 -translate-y-1/2 text-primary">$</span>
-							<Input
-								id="expectedIncome"
-								type="text"
-								inputMode="decimal"
-								placeholder="0.00"
-								value={expectedIncome}
-								onChange={(e) => setExpectedIncome(sanitizeDecimalInput(e.target.value, 2))}
-								className="pl-7 text-lg font-semibold"
-								autoFocus
-							/>
-						</div>
-						<p className="text-xs text-primary">This helps track your budget against your income</p>
+						<ProminentAmountInput
+							id="expectedIncome"
+							label={`Expected income for ${monthName}`}
+							value={expectedIncome}
+							onChange={setExpectedIncome}
+						/>
+						<p className="type-body-xs text-muted-foreground">
+							Your budget is measured against this. You can change it any time.
+						</p>
 					</div>
 
-					<Card className="p-4 bg-muted/50">
-						<h5 className="text-sm font-medium text-primary mb-2">Summary</h5>
-						<div className="space-y-1 text-sm">
+					<div className="rounded-2xl bg-card-muted/50 p-4">
+						<h5 className="type-label mb-2 text-muted-foreground">Starting from</h5>
+						<div className="type-body-sm space-y-1.5">
 							<div className="flex justify-between">
-								<span className="text-primary">Method</span>
+								<span className="text-muted-foreground">Method</span>
 								<span className="font-medium text-primary">
 									{selectedOption === "previous"
-										? `Import from ${previousMonth?.name}`
+										? `Copy of ${previousMonth?.name}`
 										: selectedOption === "template"
 											? templates.find((t) => t.id === selectedTemplateId)?.name
-											: "Start fresh"}
+											: "Blank budget"}
 								</span>
 							</div>
 							{selectedOption !== "fresh" && (
 								<div className="flex justify-between">
-									<span className="text-primary">Categories</span>
+									<span className="text-muted-foreground">Categories</span>
 									<span className="font-medium text-primary">
 										{selectedOption === "previous"
 											? previousMonth?.categoryCount
@@ -289,15 +266,15 @@ export function ImportTemplateDialog({
 								</div>
 							)}
 							<div className="flex justify-between">
-								<span className="text-primary">Expected Income</span>
+								<span className="text-muted-foreground">Expected income</span>
 								<span className="font-medium text-primary">
 									{expectedIncome ? formatCurrency(parseFloat(expectedIncome)) : "Not set"}
 								</span>
 							</div>
 						</div>
-					</Card>
+					</div>
 
-					<div className="flex gap-3 pt-2">
+					<div className="flex gap-3">
 						<Button variant="outline" onClick={handleBack} className="flex-1">
 							Back
 						</Button>

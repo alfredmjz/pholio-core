@@ -11,7 +11,7 @@ import type {
 	Transaction,
 	IncomeVerificationResult,
 } from "./types";
-import type { RegisteredPlan } from "@/app/balancesheet/types";
+import type { RegisteredPlan } from "@/app/accounts/types";
 import { sampleAllocationSummary, sampleTransactions } from "@/mock-data/allocations";
 import { Logger } from "@/lib/logger";
 import { isSampleDataMode } from "@/lib/demo-mode.server";
@@ -240,9 +240,7 @@ async function syncRecurringExpenses(
 		recordedAmountByKey.set(`${marker.recurring_expense_id}:${markerDateStr}`, Number(marker.amount));
 	}
 
-	const hasBills = allRecurring.some(
-		(r) => r.category === "bill" && r.is_active && !customRecurringCategoryName(r)
-	);
+	const hasBills = allRecurring.some((r) => r.category === "bill" && r.is_active && !customRecurringCategoryName(r));
 	const hasSubscriptions = allRecurring.some(
 		(r) => r.category === "subscription" && r.is_active && !customRecurringCategoryName(r)
 	);
@@ -659,14 +657,12 @@ async function syncRecurringExpenses(
 			const custom = customRecurringCategoryName(item.expense);
 			const name = custom ?? (item.expense.category === "bill" ? "Bills" : "Subscriptions");
 			const key = name.toLowerCase();
-			const entry =
-				missedNeeded.get(key) ??
-				{
-					name,
-					total: 0,
-					isDefault: !custom,
-					defaultType: custom ? null : (item.expense.category as "bill" | "subscription"),
-				};
+			const entry = missedNeeded.get(key) ?? {
+				name,
+				total: 0,
+				isDefault: !custom,
+				defaultType: custom ? null : (item.expense.category as "bill" | "subscription"),
+			};
 			entry.total += Math.abs(Number(item.expense.amount));
 			missedNeeded.set(key, entry);
 		}
@@ -714,8 +710,7 @@ async function syncRecurringExpenses(
 				name: item.expense.name,
 				amount: -Math.abs(Number(item.expense.amount)),
 				transaction_date: item.dateStr,
-				category_id:
-					missedCategoryIdByName.get(resolveRecurringCategoryName(item.expense).toLowerCase()) ?? null,
+				category_id: missedCategoryIdByName.get(resolveRecurringCategoryName(item.expense).toLowerCase()) ?? null,
 				source: "recurring",
 				recurring_expense_id: item.expense.id,
 				notes: `Auto-created from recurring ${item.expense.category}`,

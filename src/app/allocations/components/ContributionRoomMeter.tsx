@@ -1,5 +1,6 @@
 import Link from "next/link";
 import { cn } from "@/lib/utils";
+import { ProgressLine } from "@/components/ui/progress-line";
 import { formatContributionAmount, getContributionPlanLabel } from "@/lib/contribution-plans";
 import {
 	buildRoomMeter,
@@ -8,7 +9,7 @@ import {
 	getRoomUsedPercent,
 	type RoomMeterNoteLevel,
 } from "@/lib/contribution-room-meter";
-import type { RegisteredPlan } from "@/app/balancesheet/types";
+import type { RegisteredPlan } from "@/app/accounts/types";
 import type { ContributionSummary } from "@/lib/types/contribution";
 import type { CategoryColor } from "../utils/colors";
 
@@ -94,7 +95,7 @@ export function ContributionRoomMeter({
 				<p className="type-caption text-muted-foreground">
 					No {planLabel} room yet.{" "}
 					<Link
-						href="/balancesheet"
+						href="/accounts"
 						className="underline underline-offset-2 hover:text-primary"
 						onPointerDown={(event) => event.stopPropagation()}
 					>
@@ -132,20 +133,11 @@ export function ContributionRoomMeter({
 					<span className="text-muted-foreground">{leftLabel}</span>
 					<span className={cn("tabular-nums", isOver ? "text-error" : "text-foreground")}>{leftAmount}</span>
 				</div>
-				<div
-					className="h-1 w-full overflow-hidden rounded-full bg-muted"
-					role="img"
-					aria-label={`${leftLabel}: ${leftAmount} (${formatRoom(meter.used)} used of ${formatRoom(meter.total)})`}
-				>
-					<div
-						className={cn(
-							"h-full rounded-full transition-all duration-500",
-							isOver ? "bg-error" : "bg-muted-foreground"
-						)}
-						style={{ width: `${getRoomUsedPercent(meter)}%` }}
-						title={`Room used: ${formatRoom(meter.used)} of ${formatRoom(meter.total)}`}
-					/>
-				</div>
+				<ProgressLine
+					value={getRoomUsedPercent(meter)}
+					tone={isOver ? "bg-error" : "bg-muted-foreground"}
+					label={`${leftLabel}: ${leftAmount} (${formatRoom(meter.used)} used of ${formatRoom(meter.total)})`}
+				/>
 				{note && <p className={cn("type-caption", NOTE_TONE[note.level])}>{note.text}</p>}
 			</div>
 		</div>

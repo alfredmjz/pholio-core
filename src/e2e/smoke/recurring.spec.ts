@@ -8,7 +8,7 @@ test(
 
 		await page.goto("/recurring");
 		const dialog = page.getByRole("dialog", { name: "Add Recurring Expense" });
-		await openDialog(page.getByRole("button", { name: /Add Recurring/ }), dialog);
+		await openDialog(page.getByRole("button", { name: /Add recurring/i }), dialog);
 
 		await dialog.getByText("Rent", { exact: true }).click();
 		await dialog.getByPlaceholder("Netflix, Rent, etc.").fill(name);
@@ -31,8 +31,8 @@ test(
 
 		await expect(page.getByText("Recurring expense added")).toBeVisible();
 
-		// Rent is a bill, listed under the Bills tab.
-		await page.getByRole("tab", { name: "Bills" }).click();
-		await expect(page.getByText(name).first()).toBeVisible();
+		// Rent is a bill, listed in the Bills section.
+		const bills = page.getByRole("list", { name: "Bills" });
+		await expect(bills.getByText(name).first()).toBeVisible();
 	}
 );

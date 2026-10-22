@@ -4,8 +4,10 @@ import { createClient } from "@/lib/supabase/server";
 import { revalidatePath } from "next/cache";
 import { Logger } from "@/lib/logger";
 import { isSampleDataMode } from "@/lib/demo-mode.server";
-import type { AccountPromotion, CreatePromotionInput, UpdatePromotionInput } from "@/app/balancesheet/types";
+import type { AccountPromotion, CreatePromotionInput, UpdatePromotionInput } from "@/app/accounts/types";
 import { getTodayDateString } from "@/lib/date-utils";
+import type { HeadsUpPromotion } from "@/app/dashboard/heads-up";
+import { samplePromotions } from "@/mock-data/dashboard";
 
 // Mock data memory store when sample data mode is active
 let samplePromotionsStore: Record<string, AccountPromotion[]> = {
@@ -28,6 +30,53 @@ let samplePromotionsStore: Record<string, AccountPromotion[]> = {
 		},
 	],
 };
+
+/**
+ * Open promotions (not completed, not yet ended) across all accounts, with each account's name,
+ * in the shape the heads-up lists use. Shared by the Dashboard and Accounts pages.
+ */
+export async function getOpenPromotions(today: string): Promise<HeadsUpPromotion[]> {
+	if (await isSampleDataMode()) {
+		return samplePromotions();
+	}
+
+	try {
+		const supabase = await createClient();
+		const {
+			data: { user },
+		} = await supabase.auth.getUser();
+		if (!user) return [];
+
+		const { data, error } = await supabase
+			.from("account_promotions")
+			.select(
+				"id, account_id, promotion_type, target_amount, current_amount, reward_description, end_date, is_completed, account:accounts(name)"
+			)
+			.eq("user_id", user.id)
+			.eq("is_completed", false)
+			.gte("end_date", today);
+
+		if (error) {
+			Logger.error("Error fetching open promotions", { error });
+			return [];
+		}
+
+		return (data ?? []).map((p: any) => ({
+			id: p.id,
+			accountId: p.account_id,
+			accountName: p.account?.name ?? "this account",
+			type: p.promotion_type,
+			target: Number(p.target_amount),
+			current: Number(p.current_amount),
+			reward: p.reward_description,
+			endDate: String(p.end_date).slice(0, 10),
+			isCompleted: Boolean(p.is_completed),
+		}));
+	} catch (error) {
+		Logger.error("Error in getOpenPromotions", { error });
+		return [];
+	}
+}
 
 /**
  * Fetch promotions for a specific account
@@ -91,7 +140,7 @@ export async function createAccountPromotion(input: CreatePromotionInput): Promi
 			samplePromotionsStore[input.account_id] = [];
 		}
 		samplePromotionsStore[input.account_id].push(newPromo);
-		revalidatePath("/balancesheet");
+		revalidatePath("/accounts");
 		return newPromo;
 	}
 
@@ -126,7 +175,7 @@ export async function createAccountPromotion(input: CreatePromotionInput): Promi
 		}
 
 		await refreshAccountPromotions(input.account_id);
-		revalidatePath("/balancesheet");
+		revalidatePath("/accounts");
 		return data;
 	} catch (error) {
 		Logger.error("Error in createAccountPromotion", { error });
@@ -147,7 +196,7 @@ export async function updateAccountPromotion(id: string, input: UpdatePromotionI
 				return p;
 			});
 		});
-		revalidatePath("/balancesheet");
+		revalidatePath("/accounts");
 		return true;
 	}
 
@@ -166,7 +215,7 @@ export async function updateAccountPromotion(id: string, input: UpdatePromotionI
 			return false;
 		}
 
-		revalidatePath("/balancesheet");
+		revalidatePath("/accounts");
 		return true;
 	} catch (error) {
 		Logger.error("Error in updateAccountPromotion", { error });
@@ -182,7 +231,7 @@ export async function deleteAccountPromotion(id: string): Promise<boolean> {
 		Object.keys(samplePromotionsStore).forEach((accId) => {
 			samplePromotionsStore[accId] = samplePromotionsStore[accId].filter((p) => p.id !== id);
 		});
-		revalidatePath("/balancesheet");
+		revalidatePath("/accounts");
 		return true;
 	}
 
@@ -201,7 +250,7 @@ export async function deleteAccountPromotion(id: string): Promise<boolean> {
 			return false;
 		}
 
-		revalidatePath("/balancesheet");
+		revalidatePath("/accounts");
 		return true;
 	} catch (error) {
 		Logger.error("Error in deleteAccountPromotion", { error });
@@ -234,7 +283,7 @@ export async function refreshAccountPromotions(accountId: string): Promise<void>
 			return;
 		}
 
-		revalidatePath("/balancesheet");
+		revalidatePath("/accounts");
 	} catch (error) {
 		Logger.error("Error in refreshAccountPromotions", { error });
 	}

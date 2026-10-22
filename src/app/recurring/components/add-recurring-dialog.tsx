@@ -9,12 +9,11 @@ import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
-import { Calendar } from "@/components/ui/calendar";
+import { DatePicker } from "@/components/ui/date-picker";
 import { Switch } from "@/components/ui/switch";
-import { Popover, PopoverContent, PopoverTrigger } from "@/components/ui/popover";
 import { cn } from "@/lib/utils";
-import { formatDateString, formatLongDate } from "@/lib/date-utils";
-import { CalendarIcon, CircleDollarSign, CreditCard, House } from "lucide-react";
+import { formatDateString, parseLocalDate } from "@/lib/date-utils";
+import { CircleDollarSign, CreditCard, House } from "lucide-react";
 import { toast } from "sonner";
 import { ServiceLogo } from "@/components/service-logo";
 import { ServiceAutocomplete } from "@/components/service-autocomplete";
@@ -41,9 +40,17 @@ const PRESET_PROVIDERS = [
 		category: "subscription",
 		isCustom: true,
 		icon: CircleDollarSign,
-		color: "bg-amber-500",
+		color: "bg-warning-muted text-warning",
 	},
-	{ id: "rent", name: "Rent", domain: null, category: "bill", isGeneric: true, icon: House, color: "bg-rose-500" },
+	{
+		id: "rent",
+		name: "Rent",
+		domain: null,
+		category: "bill",
+		isGeneric: true,
+		icon: House,
+		color: "bg-error-muted text-error",
+	},
 	{
 		id: "bill",
 		name: "Bill",
@@ -51,7 +58,7 @@ const PRESET_PROVIDERS = [
 		category: "bill",
 		isGeneric: true,
 		icon: CreditCard,
-		color: "bg-cyan-500",
+		color: "bg-accent-muted text-accent",
 	},
 ];
 
@@ -72,7 +79,6 @@ export function AddRecurringDialog({ open, onOpenChange, onSuccess, categoryOpti
 	});
 	const [isSubmitting, setIsSubmitting] = useState(false);
 	const [selectedDomain, setSelectedDomain] = useState<string | null>(null);
-	const [isCalendarOpen, setIsCalendarOpen] = useState(false);
 
 	const handleProviderSelect = (provider: (typeof PRESET_PROVIDERS)[number]) => {
 		const isCustom = provider.isCustom === true;
@@ -183,13 +189,13 @@ export function AddRecurringDialog({ open, onOpenChange, onSuccess, categoryOpti
 					meta_data: {},
 				});
 			} else {
-				toast.error("Save Failed", {
+				toast.error("Couldn't save the recurring item", {
 					description: "Failed to add expense. Please check your data and try again.",
 				});
 			}
 		} catch (err) {
 			const errorMessage = err instanceof Error ? err.message : "An unexpected error occurred while saving.";
-			toast.error("Error", {
+			toast.error("Something went wrong", {
 				description: errorMessage,
 			});
 		} finally {
@@ -215,14 +221,15 @@ export function AddRecurringDialog({ open, onOpenChange, onSuccess, categoryOpti
 			{step === 1 && (
 				<div className="grid grid-cols-2 gap-3 py-4 sm:gap-4">
 					{PRESET_PROVIDERS.map((provider) => (
-						<div
+						<button
+							type="button"
 							key={provider.id}
-							className="flex flex-col items-center justify-center p-4 border border-border rounded-lg hover:bg-muted cursor-pointer transition-colors gap-2"
+							className="card-interactive flex flex-col items-center justify-center gap-2 rounded-2xl border border-border bg-card/60 p-4"
 							onClick={() => handleProviderSelect(provider)}
 						>
 							<div
 								className={cn(
-									"h-10 w-10 rounded-full flex items-center justify-center overflow-hidden text-white",
+									"h-10 w-10 rounded-full flex items-center justify-center overflow-hidden",
 									provider.color || "bg-muted"
 								)}
 							>
@@ -239,8 +246,8 @@ export function AddRecurringDialog({ open, onOpenChange, onSuccess, categoryOpti
 									/>
 								)}
 							</div>
-							<span className="font-medium text-sm">{provider.name}</span>
-						</div>
+							<span className="type-body-sm font-medium text-primary">{provider.name}</span>
+						</button>
 					))}
 				</div>
 			)}
@@ -314,34 +321,13 @@ export function AddRecurringDialog({ open, onOpenChange, onSuccess, categoryOpti
 						</div>
 					</div>
 					<div className="space-y-2">
-						<Label>First Due Date</Label>
-						<Popover open={isCalendarOpen} onOpenChange={setIsCalendarOpen}>
-							<PopoverTrigger asChild>
-								<Button
-									variant={"outline"}
-									className={cn(
-										"w-full justify-start text-left font-normal h-10",
-										!formData.next_due_date && "text-primary"
-									)}
-								>
-									<CalendarIcon className="mr-2 h-4 w-4" />
-									{formData.next_due_date ? formatLongDate(formData.next_due_date) : <span>Pick a date</span>}
-								</Button>
-							</PopoverTrigger>
-							<PopoverContent className="w-auto p-0">
-								<Calendar
-									mode="single"
-									selected={formData.next_due_date}
-									onSelect={(date) => {
-										if (date) {
-											setFormData({ ...formData, next_due_date: date });
-											setIsCalendarOpen(false);
-										}
-									}}
-									autoFocus
-								/>
-							</PopoverContent>
-						</Popover>
+						<Label htmlFor="next-due-date">First Due Date</Label>
+						<DatePicker
+							id="next-due-date"
+							value={formatDateString(formData.next_due_date)}
+							onChange={(date) => setFormData({ ...formData, next_due_date: parseLocalDate(date) })}
+							yearPicker
+						/>
 					</div>
 					<div className="space-y-2">
 						<Label>Budget category</Label>

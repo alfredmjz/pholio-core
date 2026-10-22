@@ -173,7 +173,8 @@ const createTx = (
 		category_id: categoryId,
 		category_name: categoryName,
 		name,
-		amount,
+		// Same signs as real data: money in (income, transfers) is positive, spending is negative.
+		amount: type === "income" || isTransfer ? Math.abs(amount) : -Math.abs(amount),
 		transaction_date: new Date(year, month - 1, day).toISOString(),
 		source: isTransfer ? "transfer" : "manual",
 		account_id: accountId,
@@ -206,7 +207,18 @@ export function buildSampleTransactions(year: number = CURRENT_YEAR, month: numb
 		createTx("tx-9", "Gas Station", 60, 3, "cat-transport", "one_time", "acc-4", undefined, year, month),
 		createTx("tx-10", "Uber Ride", 25, 8, "cat-transport", "one_time", "acc-4", undefined, year, month),
 		createTx("tx-11", "Car Insurance", 100, 15, "cat-transport", "one_time", "acc-1", undefined, year, month),
-		createTx("tx-12", "Netflix Subscription", 15, 1, "cat-entertainment", "subscription", "acc-4", undefined, year, month),
+		createTx(
+			"tx-12",
+			"Netflix Subscription",
+			15,
+			1,
+			"cat-entertainment",
+			"subscription",
+			"acc-4",
+			undefined,
+			year,
+			month
+		),
 		createTx("tx-13", "Spotify", 10, 1, "cat-entertainment", "subscription", "acc-4", undefined, year, month),
 		createTx("tx-14", "Movie Tickets", 40, 20, "cat-entertainment", "one_time", "acc-4", undefined, year, month),
 		createTx("tx-15", "Concert Tickets", 150, 22, "cat-entertainment", "one_time", "acc-4", undefined, year, month),
@@ -218,6 +230,41 @@ export function buildSampleTransactions(year: number = CURRENT_YEAR, month: numb
 }
 
 export const sampleTransactions: Transaction[] = buildSampleTransactions();
+
+/** Category spend and totals derived from the month's transactions, so every view agrees. */
+function withSpendFromTransactions(summary: AllocationSummary, transactions: Transaction[]): AllocationSummary {
+	const spendByCategory = new Map<string, { spend: number; count: number }>();
+	for (const tx of transactions) {
+		if (!tx.category_id || tx.amount >= 0 || tx.source === "transfer") continue;
+		const entry = spendByCategory.get(tx.category_id) ?? { spend: 0, count: 0 };
+		entry.spend += Math.abs(tx.amount);
+		entry.count += 1;
+		spendByCategory.set(tx.category_id, entry);
+	}
+
+	const categories = summary.categories.map((category) => {
+		const entry = spendByCategory.get(category.id) ?? { spend: 0, count: 0 };
+		return {
+			...category,
+			actual_spend: entry.spend,
+			remaining: category.budget_cap - entry.spend,
+			utilization_percentage: category.budget_cap > 0 ? Math.round((entry.spend / category.budget_cap) * 100) : 0,
+			transaction_count: entry.count,
+		};
+	});
+	const totalSpend = categories.reduce((sum, c) => sum + c.actual_spend, 0);
+	const totalBudget = summary.summary.total_budget_caps;
+
+	return {
+		...summary,
+		categories,
+		summary: {
+			...summary.summary,
+			total_actual_spend: totalSpend,
+			overall_utilization: totalBudget > 0 ? Math.round((totalSpend / totalBudget) * 100) : 0,
+		},
+	};
+}
 
 // Helper to deep copy and modify dates
 function getMockData(year: number, month: number, type: "base" | "default" = "base") {
@@ -276,7 +323,8 @@ function getMockData(year: number, month: number, type: "base" | "default" = "ba
 		return { summary, transactions: [] };
 	}
 
-	return { summary, transactions: buildSampleTransactions(year, month) };
+	const transactions = buildSampleTransactions(year, month);
+	return { summary: withSpendFromTransactions(summary, transactions), transactions };
 }
 
 export function getSmartMockData(year: number, month: number) {

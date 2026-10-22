@@ -1,6 +1,6 @@
 "use client";
 
-import { useState, useEffect } from "react";
+import { useState, useEffect, useRef } from "react";
 import {
 	Dialog,
 	DialogContent,
@@ -14,10 +14,10 @@ import { Label } from "@/components/ui/label";
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
 import { Textarea } from "@/components/ui/textarea";
 import { DatePicker } from "@/components/ui/date-picker";
-import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
+import { Tabs, TabsContent, TabsList, TabsTrigger, UNDERLINE_TAB_CLASS } from "@/components/ui/tabs";
 import { Calendar } from "@/components/ui/calendar";
 import { toast } from "sonner";
-import { Loader2, TrendingUp, TrendingDown, Info, Settings2, PlusCircle, Trash2, ArrowLeftRight, X } from "lucide-react";
+import { Loader2, Info, Settings2, PlusCircle, Trash2, Minus, Plus } from "lucide-react";
 import {
 	createUnifiedTransaction,
 	getSuggestedAccountForCategory,
@@ -30,11 +30,11 @@ import {
 	createTransactionsFromPresetBulk,
 } from "@/app/allocations/preset-actions";
 import type { AllocationCategory } from "@/app/allocations/types";
-import type { AccountWithType } from "@/app/balancesheet/types";
+import type { AccountWithType } from "@/app/accounts/types";
 import type { UnifiedTransactionInput } from "@/lib/types/unified-transaction";
 import { FormSection } from "@/components/FormSection";
 import { ProminentAmountInput } from "@/components/ProminentAmountInput";
-import { CardSelector } from "@/components/CardSelector";
+import { TransactionTypeSwitch } from "@/components/dialogs/transaction-type-switch";
 import { CancelShortcut, SubmitShortcut } from "@/components/common/dialog-shortcuts";
 import { cn } from "@/lib/utils";
 import { getTodayDateString, parseLocalDate, formatDateString } from "@/lib/date-utils";
@@ -44,12 +44,10 @@ import { formatAccountDisplayName, sortAccounts } from "@/lib/account-utils";
 import { getAccountTransactionTypeOptions, getDefaultAccountTransactionType } from "@/lib/account-transaction-types";
 import { compareAlphabetically, sortAlphabetically } from "@/lib/sort-utils";
 import { ManagePresetsDialog } from "./ManagePresetsDialog";
+import { TransferRoute, TransferRouteSummary } from "./transfer-route";
 import { isSampleDataActive } from "@/lib/demo-mode";
 import { createDemoId, recordDemoUnifiedTransaction, useDemoStore } from "@/lib/demo-store";
-import {
-	calculateAccountStanding,
-	checkTransactionCaps,
-} from "@/lib/account-validation-utils";
+import { calculateAccountStanding, checkTransactionCaps } from "@/lib/account-validation-utils";
 import { getAccountContributionSummary } from "@/lib/actions/contribution-actions";
 import { getContributionNotices } from "@/lib/contribution-plans";
 import { ContributionNotices } from "@/components/common/ContributionDetails";
@@ -70,7 +68,7 @@ interface UnifiedTransactionDialogProps {
 	defaultToAccountId?: string;
 	defaultType?: "income" | "expense" | "transfer";
 	onSuccess?: () => void;
-	context?: "balancesheet" | "allocations";
+	context?: "accounts" | "allocations";
 	boundaryMonth?: { year: number; month: number };
 }
 
@@ -99,10 +97,10 @@ export function UnifiedTransactionDialog({
 	context,
 	boundaryMonth,
 }: UnifiedTransactionDialogProps) {
-	const isBalanceSheetContext = context === "balancesheet";
+	const isAccountsContext = context === "accounts";
 	const isAllocationsContext = context === "allocations";
-	const accountRequired = isBalanceSheetContext;
-	const categoryDisabled = isBalanceSheetContext;
+	const accountRequired = isAccountsContext;
+	const categoryDisabled = isAccountsContext;
 	const categoryRequired = isAllocationsContext;
 	const [isLoading, setIsLoading] = useState(false);
 
@@ -115,6 +113,8 @@ export function UnifiedTransactionDialog({
 	const [accountId, setAccountId] = useState<string>(defaultAccountId || "none");
 	const [fromAccountId, setFromAccountId] = useState<string>("none");
 	const [toAccountId, setToAccountId] = useState<string>("none");
+	// Transfers run in two steps: pick the accounts, then the amount and date.
+	const [transferStep, setTransferStep] = useState<"route" | "details">("route");
 	const [transactionType, setTransactionType] = useState<string>("deposit");
 	const [incomeSource, setIncomeSource] = useState<string>("salary");
 	const [notes, setNotes] = useState("");
@@ -158,6 +158,7 @@ export function UnifiedTransactionDialog({
 			setAccountId(defaultAccountId || "none");
 			setFromAccountId(defaultFromAccountId || "none");
 			setToAccountId(defaultToAccountId || "none");
+			setTransferStep("route");
 			if (defaultAmount && defaultAmount > 0) {
 				setAmount(defaultAmount.toFixed(2));
 			}
@@ -191,6 +192,19 @@ export function UnifiedTransactionDialog({
 		setSelectedDatesMap({});
 	}, [selectedPresetId]);
 
+	useEffect(() => {
+		if (activeTab !== "presets") return;
+		const current = presets.find((p) => p.id === selectedPresetId);
+		if (current && current.type === type) return;
+		const sameRoute =
+			type === "transfer"
+				? presets.find(
+						(p) => p.type === "transfer" && p.account_id === fromAccountId && p.to_account_id === toAccountId
+					)
+				: undefined;
+		setSelectedPresetId(sameRoute?.id ?? "");
+	}, [activeTab, type, presets]);
+
 	// The account type options depend on the selected account's class; reset an option that no
 	// longer applies when the intent or the account changes.
 	const accountIsLiability = accounts.find((a) => a.id === accountId)?.account_type?.class === "liability";
@@ -213,9 +227,9 @@ export function UnifiedTransactionDialog({
 			if (suggestion && suggestion.accountId) {
 				setAccountId(suggestion.accountId);
 				if (suggestion.reason === "linked_savings_goal") {
-					setSuggestedAccountInfo("💰 Auto-selected savings account");
+					setSuggestedAccountInfo("Picked the savings account for this category");
 				} else if (suggestion.reason === "linked_debt_payment") {
-					setSuggestedAccountInfo("💳 Auto-selected payment account");
+					setSuggestedAccountInfo("Picked the payment account for this category");
 				}
 			} else {
 				setSuggestedAccountInfo(null);
@@ -293,9 +307,7 @@ export function UnifiedTransactionDialog({
 	}, [open, contributionTargetId, contributionYear, contributionMonth]);
 
 	const contributionNotices =
-		contributionTargetId &&
-		contributionSummary?.account_ids.includes(contributionTargetId) &&
-		parseFloat(amount) > 0
+		contributionTargetId && contributionSummary?.account_ids.includes(contributionTargetId) && parseFloat(amount) > 0
 			? getContributionNotices(
 					contributionSummary,
 					(value) => new Intl.NumberFormat("en-CA", { style: "currency", currency: "CAD" }).format(value),
@@ -413,8 +425,31 @@ export function UnifiedTransactionDialog({
 		}
 	};
 
+	const isTransferRoute = type === "transfer" && transferStep === "route";
+	const isTransferDetails = type === "transfer" && transferStep === "details";
+
+	const goToTransferDetails = () => {
+		const routeErrors: ValidationErrors = {};
+		if (fromAccountId === "none") routeErrors.fromAccountId = "Choose where the money comes from";
+		if (toAccountId === "none") routeErrors.toAccountId = "Choose where the money goes";
+		setErrors((prev) => ({ ...prev, fromAccountId: routeErrors.fromAccountId, toAccountId: routeErrors.toAccountId }));
+		if (!routeErrors.fromAccountId && !routeErrors.toAccountId) {
+			continuedAtRef.current = performance.now();
+			setTransferStep("details");
+		}
+	};
+
+	// When Continue was last pressed: a submit landing in the same moment is that press, not a
+	// request to save (the step swap turns the button under the pointer into the submit button).
+	const continuedAtRef = useRef(0);
+
 	const handleSubmit = async (e: React.FormEvent) => {
 		e.preventDefault();
+		if (isTransferRoute) {
+			goToTransferDetails();
+			return;
+		}
+		if (performance.now() - continuedAtRef.current < 500) return;
 		await submitTransaction();
 	};
 
@@ -455,7 +490,7 @@ export function UnifiedTransactionDialog({
 
 	const handleAddFromPreset = async () => {
 		if (!selectedPresetId) {
-			toast.error("Please select a preset first.");
+			toast.error("Pick a preset first");
 			return;
 		}
 
@@ -464,7 +499,7 @@ export function UnifiedTransactionDialog({
 			.map(([dateStr, count]) => ({ date: dateStr, count }));
 
 		if (entries.length === 0) {
-			toast.error("Please select at least one date.");
+			toast.error("Pick at least one day");
 			return;
 		}
 
@@ -474,15 +509,17 @@ export function UnifiedTransactionDialog({
 			if (result.success) {
 				const preset = presets.find((p) => p.id === selectedPresetId);
 				const totalCount = entries.reduce((acc, curr) => acc + curr.count, 0);
-				toast.success(`Successfully added ${totalCount} transactions from preset "${preset?.name}"`);
+				toast.success(
+					`Added ${totalCount} ${preset?.type === "transfer" ? (totalCount === 1 ? "transfer" : "transfers") : totalCount === 1 ? "transaction" : "transactions"} from ${preset?.name ?? "the preset"}`
+				);
 				setSelectedDatesMap({});
 				onSuccess?.();
 				onOpenChange(false);
 			} else {
-				toast.error("Transaction Failed", { description: result.error });
+				toast.error("Couldn't add the transactions", { description: result.error });
 			}
 		} catch (err) {
-			toast.error("Transaction Error", { description: "Unexpected error" });
+			toast.error("Something went wrong", { description: "Try again in a moment." });
 		} finally {
 			setIsAddingFromPreset(false);
 		}
@@ -491,7 +528,11 @@ export function UnifiedTransactionDialog({
 	const selectedCategory = categories.find((c) => c.id === categoryId);
 	const showCategoryBadge = selectedCategory?.category_type && selectedCategory.category_type !== "regular";
 
-	const selectedPreset = presets.find((p) => p.id === selectedPresetId);
+	const presetsOfType = presets.filter((p) => p.type === type);
+	const selectedPreset = presetsOfType.find((p) => p.id === selectedPresetId);
+	const accountNameById = (id: string | null | undefined) =>
+		accounts.find((a) => a.id === id)?.name ?? "a missing account";
+	const presetCount = Object.values(selectedDatesMap).reduce((sum, count) => sum + count, 0);
 
 	// Preset date selection is locked to a single month (the allocation month being
 	// viewed, or the current month otherwise), so overflowing days are disabled.
@@ -525,434 +566,411 @@ export function UnifiedTransactionDialog({
 					onKeyDown={(event) => {
 						// Only the manual form submits; the preset tab has its own action.
 						if (activeTab !== "manual") return;
-						handleEnterSubmit(event, submitTransaction);
+						handleEnterSubmit(event, isTransferRoute ? goToTransferDetails : submitTransaction);
 					}}
 				>
 					<DialogHeader>
-						<DialogTitle>Add Transaction</DialogTitle>
-						<DialogDescription>Enter transaction details to update your budget and account balance.</DialogDescription>
+						<DialogTitle>Add transaction</DialogTitle>
+						<DialogDescription>
+							Updates your budget, and the account&apos;s balance when you pick one.
+						</DialogDescription>
 					</DialogHeader>
 
-					<Tabs value={activeTab} onValueChange={setActiveTab} className="w-full mt-2">
-						<TabsList className="grid w-full grid-cols-2 mb-4 gap-2">
-							<TabsTrigger value="manual">Manual Entry</TabsTrigger>
-							<TabsTrigger value="presets">Use Preset</TabsTrigger>
+					{/* The type comes first and holds across both tabs, so moving to a preset keeps it. */}
+					<TransactionTypeSwitch
+						className="mt-2"
+						value={type}
+						onChange={(next) => {
+							setType(next);
+							if (next === "transfer") setTransferStep("route");
+						}}
+					/>
+
+					<Tabs value={activeTab} onValueChange={setActiveTab} className="mt-2 w-full">
+						<TabsList className="mb-6 flex h-auto w-full justify-start gap-6 rounded-none border-b border-border/70 bg-transparent p-0">
+							<TabsTrigger value="manual" className={UNDERLINE_TAB_CLASS}>
+								Enter details
+							</TabsTrigger>
+							<TabsTrigger value="presets" className={UNDERLINE_TAB_CLASS}>
+								From a preset
+							</TabsTrigger>
 						</TabsList>
 
 						<TabsContent value="manual" className="mt-0">
 							<form onSubmit={handleSubmit} className="flex flex-col gap-6">
-								<FormSection
-									icon={type === "expense" ? <TrendingDown /> : type === "income" ? <TrendingUp /> : <Info />}
-									title="Transaction Type"
-									variant="subtle"
-								>
-									<CardSelector
-										className="grid-cols-1 sm:grid-cols-3"
-										options={[
-											{ value: "expense", label: "Expense", icon: "📉", color: "bg-red-100" },
-											{ value: "income", label: "Income", icon: "📈", color: "bg-green-100" },
-											{ value: "transfer", label: "Transfer", icon: "🔄", color: "bg-blue-100" },
-										]}
-										value={type}
-										onChange={(val) => setType(val as any)}
-										selectedBorderColor="border-blue-200"
+								{isTransferDetails && (
+									<TransferRouteSummary
+										from={fromAccount ?? undefined}
+										to={toAccount ?? undefined}
+										onChange={() => setTransferStep("route")}
 									/>
-								</FormSection>
-
-								{!isAllocationsContext && type !== "transfer" && (
-									<div className="space-y-2">
-										<Label htmlFor="transactionType">
-											{type === "income" ? "Income Type" : "Expense Type"} (Account)
-										</Label>
-										<Select value={transactionType} onValueChange={setTransactionType}>
-											<SelectTrigger className="h-10">
-												<SelectValue placeholder="Select type" />
-											</SelectTrigger>
-											<SelectContent>
-												{transactionTypeOptions.map((option) => (
-													<SelectItem key={option.value} value={option.value}>
-														{option.label}
-													</SelectItem>
-												))}
-											</SelectContent>
-										</Select>
-									</div>
 								)}
 
-								{isAllocationsContext && type === "income" && (
-									<div className="space-y-2">
-										<Label htmlFor="incomeSource">Income Source</Label>
-										<Select value={incomeSource} onValueChange={setIncomeSource}>
-											<SelectTrigger className="h-10">
-												<SelectValue placeholder="Select source" />
-											</SelectTrigger>
-											<SelectContent>
-												<SelectItem value="external">🎁 External / One-time</SelectItem>
-												<SelectItem value="salary">💼 Salary / Expected</SelectItem>
-											</SelectContent>
-										</Select>
-									</div>
-								)}
-
-								<FormSection icon={<Info />} title="Transaction Details" variant="subtle">
-									<div className="space-y-2">
-										<Label htmlFor="amount">
-											Amount <span className="text-error">*</span>
-										</Label>
-										<ProminentAmountInput
-											value={amount}
-											onChange={(val) => {
-												setAmount(val);
-												if (errors.amount) setErrors({ ...errors, amount: undefined });
-											}}
-											id="amount"
-											hasError={!!errors.amount}
-										/>
-										{contributionNotices.length > 0 && (
-											<div
-												className="mt-2 rounded-lg border border-border/60 bg-muted/60 p-2.5"
-												data-testid="contribution-room-warning"
-											>
-												<ContributionNotices notices={contributionNotices} />
-											</div>
-										)}
-										{selectedTargetAccount && selectedAccountStanding && (
-												<div className="mt-2 text-xs rounded-lg p-2.5 bg-muted/60 border border-border/60 flex flex-col gap-1.5">
-													<div className="flex items-center justify-between font-medium">
-														{selectedAccountStanding.accountClass === "liability" ? (
-															<>
-																<span className="text-muted-foreground">💳 Remaining Debt (as of today):</span>
-																<span className="font-bold text-red-600 dark:text-red-400">
-																	${selectedAccountStanding.remainingDebt.toFixed(2)}
-																</span>
-															</>
-														) : (
-															<>
-																<span className="text-muted-foreground">🏦 Available Balance:</span>
-																<span className="font-bold text-primary">
-																	${selectedAccountStanding.availableBalance.toFixed(2)}
-																</span>
-															</>
-														)}
-													</div>
-
-													{!validationResult.isValid && (
-														<div className="mt-1 p-2.5 rounded-lg bg-amber-500/10 border border-amber-500/30 text-amber-700 dark:text-amber-400 flex flex-col gap-2">
-															<div className="flex items-start gap-1.5">
-																<Info className="h-4 w-4 shrink-0 mt-0.5 text-amber-600 dark:text-amber-400" />
-																<span className="text-xs">{validationResult.warning}</span>
-															</div>
-															<div className="flex items-center justify-between pt-1 border-t border-amber-500/20">
-																{validationResult.maxAllowed !== undefined && (
-																	<Button
-																		type="button"
-																		variant="outline"
-																		size="sm"
-																		data-dialog-ignore-enter=""
-																		className="h-7 text-xs font-medium border-amber-500/40 hover:bg-amber-500/20 text-amber-800 dark:text-amber-300"
-																		onClick={() => {
-																			setAmount(validationResult.maxAllowed!.toFixed(2));
-																			if (errors.amount) setErrors({ ...errors, amount: undefined });
-																		}}
-																	>
-																		Set to Max (${validationResult.maxAllowed.toFixed(2)})
-																	</Button>
-																)}
-																{validationResult.overridable && (
-																	<label className="flex items-center gap-1.5 text-[11px] cursor-pointer font-medium text-amber-800 dark:text-amber-300">
-																		<input
-																			type="checkbox"
-																			checked={allowOverpayment}
-																			onChange={(e) => setAllowOverpayment(e.target.checked)}
-																			className="rounded border-amber-400 text-amber-600 focus:ring-amber-500"
-																		/>
-																		Allow Overpayment
-																	</label>
-																)}
-															</div>
-														</div>
-													)}
-												</div>
-											)}
-										{errors.amount && <p className="text-sm text-error">{errors.amount}</p>}
-									</div>
-
-									<div className="flex flex-col gap-4 sm:flex-row sm:justify-between">
-										<div className="flex-1 space-y-2">
-											<Label htmlFor="date">
-												Date <span className="text-error">*</span>
-											</Label>
-											<DatePicker
-												id="date"
-												value={date}
-												onChange={setDate}
-												minDate={
-													boundaryMonth
-														? `${boundaryMonth.year}-${String(boundaryMonth.month).padStart(2, "0")}-01`
-														: undefined
-												}
-												maxDate={
-													boundaryMonth
-														? `${boundaryMonth.year}-${String(boundaryMonth.month).padStart(2, "0")}-${new Date(boundaryMonth.year, boundaryMonth.month, 0).getDate()}`
-														: undefined
-												}
-											/>
-											{errors.date && <p className="text-sm text-error">{errors.date}</p>}
-										</div>
-										<div className="flex-1 space-y-2">
-											<Label htmlFor="description">
-												Description
-												{type === "transfer" ? (
-													<span className="text-muted-foreground font-normal"> (Optional)</span>
-												) : (
-													<span className="text-error"> *</span>
-												)}
-											</Label>
-											<AutocompleteInput
-												id="description"
-												placeholder={type === "transfer" ? "e.g. Account Transfer" : "e.g. Grocery Store"}
-												value={description}
-												onChange={(val) => {
-													setDescription(val);
-													if (errors.description) setErrors({ ...errors, description: undefined });
-												}}
-												suggestions={descriptionSuggestions}
-												required={type !== "transfer"}
-												className={cn("h-10", errors.description && "border-error")}
-											/>
-											{errors.description && <p className="text-sm text-error">{errors.description}</p>}
-										</div>
-									</div>
-								</FormSection>
-
-								{type === "transfer" ? (
+								{isTransferRoute ? (
 									<>
-										<div className="p-3 bg-muted/60 rounded-lg text-xs text-muted-foreground flex items-start gap-2 border">
-											<Info className="h-4 w-4 shrink-0 mt-0.5 text-primary" />
-											<span>Transfers move money directly between accounts and do not require a budget category.</span>
-										</div>
-
-										<div className="grid grid-cols-1 gap-4 sm:grid-cols-2">
-											<div className="space-y-2">
-												<Label htmlFor="fromAccount">
-													From Account (Source) <span className="text-error">*</span>
-												</Label>
-												<Select
-													value={fromAccountId}
-													onValueChange={(val) => {
-														setFromAccountId(val);
-														if (errors.fromAccountId) setErrors({ ...errors, fromAccountId: undefined });
-													}}
-												>
-													<SelectTrigger className={cn("h-10", errors.fromAccountId && "border-error")}>
-														<SelectValue placeholder="Select source account" />
-													</SelectTrigger>
-													<SelectContent>
-														{/* The account picked as the destination stays in the list but hidden, so
-														    Swap can move it here without Radix dropping the value. */}
-														{sortAccounts(accounts).map((acc) => (
-															<SelectItem
-																key={acc.id}
-																value={acc.id}
-																disabled={acc.id === toAccountId}
-																className={cn(acc.id === toAccountId && "hidden")}
-															>
-																{formatAccountDisplayName(acc)}
-															</SelectItem>
-														))}
-													</SelectContent>
-												</Select>
-												{errors.fromAccountId && <p className="text-sm text-error">{errors.fromAccountId}</p>}
-											</div>
-
-											<div className="space-y-2">
-												<Label htmlFor="toAccount">
-													To Account (Destination) <span className="text-error">*</span>
-												</Label>
-												<Select
-													value={toAccountId}
-													onValueChange={(val) => {
-														setToAccountId(val);
-														if (errors.toAccountId) setErrors({ ...errors, toAccountId: undefined });
-													}}
-												>
-													<SelectTrigger className={cn("h-10", errors.toAccountId && "border-error")}>
-														<SelectValue placeholder="Select destination account" />
-													</SelectTrigger>
-													<SelectContent>
-														{sortAccounts(accounts).map((acc) => (
-															<SelectItem
-																key={acc.id}
-																value={acc.id}
-																disabled={acc.id === fromAccountId}
-																className={cn(acc.id === fromAccountId && "hidden")}
-															>
-																{formatAccountDisplayName(acc)}
-															</SelectItem>
-														))}
-													</SelectContent>
-												</Select>
-												{errors.toAccountId && <p className="text-sm text-error">{errors.toAccountId}</p>}
-											</div>
-										</div>
-
-										{/* Each list hides the account picked in the other, so offer a way out of a wrong pick. */}
-										{(fromAccountId !== "none" || toAccountId !== "none") && (
-											<div className="-mt-2 flex justify-end gap-2">
-												<Button
-													type="button"
-													variant="ghost"
-													size="sm"
-													data-dialog-ignore-enter=""
-													className="h-7 gap-1 px-2 text-xs"
-													onClick={() => {
-														setFromAccountId(toAccountId);
-														setToAccountId(fromAccountId);
-														setErrors({ ...errors, fromAccountId: undefined, toAccountId: undefined });
-													}}
-												>
-													<ArrowLeftRight className="h-3.5 w-3.5" />
-													Swap
-												</Button>
-												<Button
-													type="button"
-													variant="ghost"
-													size="sm"
-													data-dialog-ignore-enter=""
-													className="h-7 gap-1 px-2 text-xs"
-													onClick={() => {
-														setFromAccountId("none");
-														setToAccountId("none");
-													}}
-												>
-													<X className="h-3.5 w-3.5" />
-													Clear
-												</Button>
-											</div>
-										)}
+										<TransferRoute
+											accounts={accounts}
+											fromAccountId={fromAccountId}
+											toAccountId={toAccountId}
+											onFromChange={(id) => {
+												setFromAccountId(id);
+												setErrors((prev) => ({ ...prev, fromAccountId: undefined }));
+											}}
+											onToChange={(id) => {
+												setToAccountId(id);
+												setErrors((prev) => ({ ...prev, toAccountId: undefined }));
+											}}
+											onSwap={() => {
+												setFromAccountId(toAccountId);
+												setToAccountId(fromAccountId);
+												setErrors((prev) => ({ ...prev, fromAccountId: undefined, toAccountId: undefined }));
+											}}
+											errors={errors}
+										/>
+										<p className="type-body-xs flex items-start gap-2 text-muted-foreground">
+											<Info className="mt-0.5 h-3.5 w-3.5 shrink-0" />
+											Transfers move money between your accounts, so they don&apos;t need a budget category.
+										</p>
 									</>
 								) : (
 									<>
-										<div className="space-y-2">
-											<Label htmlFor="category">
-												Budget Category{categoryRequired && <span className="text-error"> *</span>}
-												{showCategoryBadge && !categoryDisabled && (
-													<span className="ml-2 text-xs text-primary">
-														{selectedCategory?.category_type === "savings_goal" && "(Savings Goal)"}
-														{selectedCategory?.category_type === "debt_payment" && "(Debt Payment)"}
-													</span>
-												)}
-											</Label>
-											<Select
-												value={categoryDisabled ? VIRTUAL_UNCATEGORIZED_ID : categoryId}
-												onValueChange={setCategoryId}
-												disabled={categoryDisabled}
-											>
-												<SelectTrigger className="h-10">
-													<SelectValue placeholder="Select a category" />
-												</SelectTrigger>
-												<SelectContent>
-													<SelectItem value={VIRTUAL_UNCATEGORIZED_ID}>Uncategorized</SelectItem>
-													{categories
-														.filter((cat) => cat.id !== VIRTUAL_UNCATEGORIZED_ID)
-														.sort((a, b) => compareAlphabetically(a.name, b.name))
-														.map((cat) => (
-															<SelectItem key={cat.id} value={cat.id}>
-																{cat.name}
+										{!isAllocationsContext && type !== "transfer" && (
+											<div className="space-y-2">
+												<Label htmlFor="transactionType">
+													{type === "income" ? "Income type" : "Expense type"} for the account
+												</Label>
+												<Select value={transactionType} onValueChange={setTransactionType}>
+													<SelectTrigger className="h-10">
+														<SelectValue placeholder="Select type" />
+													</SelectTrigger>
+													<SelectContent>
+														{transactionTypeOptions.map((option) => (
+															<SelectItem key={option.value} value={option.value}>
+																{option.label}
 															</SelectItem>
 														))}
-												</SelectContent>
-											</Select>
+													</SelectContent>
+												</Select>
+											</div>
+										)}
+
+										{isAllocationsContext && type === "income" && (
+											<div className="space-y-2">
+												<Label htmlFor="incomeSource">Income source</Label>
+												<Select value={incomeSource} onValueChange={setIncomeSource}>
+													<SelectTrigger className="h-10">
+														<SelectValue placeholder="Select source" />
+													</SelectTrigger>
+													<SelectContent>
+														<SelectItem value="external">External or one-time</SelectItem>
+														<SelectItem value="salary">Salary (expected income)</SelectItem>
+													</SelectContent>
+												</Select>
+											</div>
+										)}
+
+										<div className="flex flex-col gap-5">
+											<div className="space-y-2">
+												<Label htmlFor="amount" className="type-label text-muted-foreground">
+													Amount
+												</Label>
+												<ProminentAmountInput
+													value={amount}
+													onChange={(val) => {
+														setAmount(val);
+														if (errors.amount) setErrors({ ...errors, amount: undefined });
+													}}
+													id="amount"
+													hasError={!!errors.amount}
+												/>
+												{contributionNotices.length > 0 && (
+													<div
+														className="mt-2 rounded-lg border border-border/60 bg-muted/60 p-2.5"
+														data-testid="contribution-room-warning"
+													>
+														<ContributionNotices notices={contributionNotices} />
+													</div>
+												)}
+												{selectedTargetAccount && selectedAccountStanding && (
+													<div className="mt-3 flex flex-col gap-1.5 rounded-xl bg-card-muted/50 px-3 py-2.5 type-body-xs">
+														<div className="flex items-center justify-between font-medium">
+															{selectedAccountStanding.accountClass === "liability" ? (
+																<>
+																	<span className="text-muted-foreground">Debt left today</span>
+																	<span className="type-value text-error">
+																		${selectedAccountStanding.remainingDebt.toFixed(2)}
+																	</span>
+																</>
+															) : (
+																<>
+																	<span className="text-muted-foreground">Available balance</span>
+																	<span className="type-value text-primary">
+																		${selectedAccountStanding.availableBalance.toFixed(2)}
+																	</span>
+																</>
+															)}
+														</div>
+
+														{!validationResult.isValid && (
+															<div className="mt-1 flex flex-col gap-2 rounded-lg border border-warning/30 bg-warning-muted p-2.5 text-warning">
+																<div className="flex items-start gap-1.5">
+																	<Info className="mt-0.5 h-4 w-4 shrink-0" />
+																	<span className="text-xs">{validationResult.warning}</span>
+																</div>
+																<div className="flex items-center justify-between border-t border-warning/20 pt-1">
+																	{validationResult.maxAllowed !== undefined && (
+																		<Button
+																			type="button"
+																			variant="outline"
+																			size="sm"
+																			data-dialog-ignore-enter=""
+																			className="h-7 border-warning/40 text-xs font-medium text-warning hover:bg-warning/15"
+																			onClick={() => {
+																				setAmount(validationResult.maxAllowed!.toFixed(2));
+																				if (errors.amount) setErrors({ ...errors, amount: undefined });
+																			}}
+																		>
+																			Use the most allowed (${validationResult.maxAllowed.toFixed(2)})
+																		</Button>
+																	)}
+																	{validationResult.overridable && (
+																		<label className="flex cursor-pointer items-center gap-1.5 type-caption">
+																			<input
+																				type="checkbox"
+																				checked={allowOverpayment}
+																				onChange={(e) => setAllowOverpayment(e.target.checked)}
+																				className="rounded border-warning/60 accent-[hsl(var(--warning))]"
+																			/>
+																			Allow overpayment
+																		</label>
+																	)}
+																</div>
+															</div>
+														)}
+													</div>
+												)}
+												{errors.amount && <p className="text-sm text-error">{errors.amount}</p>}
+											</div>
+
+											<div className="flex flex-col gap-4 sm:flex-row sm:justify-between">
+												<div className="flex-1 space-y-2">
+													<Label htmlFor="date">
+														Date <span className="text-error">*</span>
+													</Label>
+													<DatePicker
+														id="date"
+														value={date}
+														onChange={setDate}
+														minDate={
+															boundaryMonth
+																? `${boundaryMonth.year}-${String(boundaryMonth.month).padStart(2, "0")}-01`
+																: undefined
+														}
+														maxDate={
+															boundaryMonth
+																? `${boundaryMonth.year}-${String(boundaryMonth.month).padStart(2, "0")}-${new Date(boundaryMonth.year, boundaryMonth.month, 0).getDate()}`
+																: undefined
+														}
+													/>
+													{errors.date && <p className="text-sm text-error">{errors.date}</p>}
+												</div>
+												<div className="flex-1 space-y-2">
+													<Label htmlFor="description">
+														Description
+														{type === "transfer" ? (
+															<span className="text-muted-foreground font-normal"> (Optional)</span>
+														) : (
+															<span className="text-error"> *</span>
+														)}
+													</Label>
+													<AutocompleteInput
+														id="description"
+														placeholder={type === "transfer" ? "e.g. Account Transfer" : "e.g. Grocery Store"}
+														value={description}
+														onChange={(val) => {
+															setDescription(val);
+															if (errors.description) setErrors({ ...errors, description: undefined });
+														}}
+														suggestions={descriptionSuggestions}
+														required={type !== "transfer"}
+														className={cn("h-10", errors.description && "border-error")}
+													/>
+													{errors.description && <p className="text-sm text-error">{errors.description}</p>}
+												</div>
+											</div>
 										</div>
 
-										<div className="space-y-2">
-											<Label htmlFor="account">
-												Account
-												{accountRequired ? <span className="text-error">*</span> : " (Optional)"}
-											</Label>
-											<Select
-												value={accountId}
-												onValueChange={(val) => {
-													setAccountId(val);
-													if (errors.accountId) setErrors({ ...errors, accountId: undefined });
-												}}
-											>
-												<SelectTrigger className={cn("h-10", errors.accountId && "border-error")}>
-													<SelectValue placeholder={accountRequired ? "Select an account" : "No account selected"} />
-												</SelectTrigger>
-												<SelectContent>
-													{!accountRequired && <SelectItem value="none">No Account</SelectItem>}
-													{sortAccounts(accounts).map((acc) => (
-														<SelectItem key={acc.id} value={acc.id}>
-															{formatAccountDisplayName(acc)}
-														</SelectItem>
-													))}
-												</SelectContent>
-											</Select>
-											{suggestedAccountInfo && <p className="text-xs text-primary">{suggestedAccountInfo}</p>}
-											{errors.accountId && <p className="text-sm text-error">{errors.accountId}</p>}
-										</div>
+										{type === "transfer" ? null : (
+											<div className="grid grid-cols-1 gap-x-4 gap-y-5 sm:grid-cols-2">
+												<div className="space-y-2">
+													<Label htmlFor="category">
+														Budget category{categoryRequired && <span className="text-error"> *</span>}
+														{showCategoryBadge && !categoryDisabled && (
+															<span className="ml-2 text-xs text-primary">
+																{selectedCategory?.category_type === "savings_goal" && "(Savings Goal)"}
+																{selectedCategory?.category_type === "debt_payment" && "(Debt Payment)"}
+															</span>
+														)}
+													</Label>
+													<Select
+														value={categoryDisabled ? VIRTUAL_UNCATEGORIZED_ID : categoryId}
+														onValueChange={setCategoryId}
+														disabled={categoryDisabled}
+													>
+														<SelectTrigger className="h-10">
+															<SelectValue placeholder="Select a category" />
+														</SelectTrigger>
+														<SelectContent>
+															<SelectItem value={VIRTUAL_UNCATEGORIZED_ID}>Uncategorized</SelectItem>
+															{categories
+																.filter((cat) => cat.id !== VIRTUAL_UNCATEGORIZED_ID)
+																.sort((a, b) => compareAlphabetically(a.name, b.name))
+																.map((cat) => (
+																	<SelectItem key={cat.id} value={cat.id}>
+																		{cat.name}
+																	</SelectItem>
+																))}
+														</SelectContent>
+													</Select>
+												</div>
 
-										{accountId === "none" && categoryId !== VIRTUAL_UNCATEGORIZED_ID && (
-											<p className="text-sm text-primary flex items-start gap-2 p-3 bg-muted rounded-lg">
-												<Info className="h-4 w-4 shrink-0 mt-0.5" />
-												<span>
-													Budget-only transaction: Your budget will update, but no account balance will change.
-												</span>
-											</p>
+												<div className="space-y-2">
+													<Label htmlFor="account">
+														Account
+														{accountRequired ? (
+															<span className="text-error"> *</span>
+														) : (
+															<span className="font-normal text-muted-foreground"> (optional)</span>
+														)}
+													</Label>
+													<Select
+														value={accountId}
+														onValueChange={(val) => {
+															setAccountId(val);
+															if (errors.accountId) setErrors({ ...errors, accountId: undefined });
+														}}
+													>
+														<SelectTrigger className={cn("h-10", errors.accountId && "border-error")}>
+															<SelectValue
+																placeholder={accountRequired ? "Select an account" : "No account selected"}
+															/>
+														</SelectTrigger>
+														<SelectContent>
+															{!accountRequired && <SelectItem value="none">No account</SelectItem>}
+															{sortAccounts(accounts).map((acc) => (
+																<SelectItem key={acc.id} value={acc.id}>
+																	{formatAccountDisplayName(acc)}
+																</SelectItem>
+															))}
+														</SelectContent>
+													</Select>
+													{suggestedAccountInfo && <p className="text-xs text-primary">{suggestedAccountInfo}</p>}
+													{errors.accountId && <p className="text-sm text-error">{errors.accountId}</p>}
+												</div>
+
+												{accountId === "none" && categoryId !== VIRTUAL_UNCATEGORIZED_ID && (
+													<p className="type-body-xs flex items-start gap-2 text-muted-foreground sm:col-span-2">
+														<Info className="mt-0.5 h-3.5 w-3.5 shrink-0" />
+														Budget only: your budget updates, but no account balance changes.
+													</p>
+												)}
+											</div>
+										)}
+
+										{notes && (
+											<FormSection variant="subtle">
+												<div className="space-y-2">
+													<Label htmlFor="notes">
+														Notes <span className="font-normal text-muted-foreground">(optional)</span>
+													</Label>
+													<Textarea
+														id="notes"
+														placeholder="Add any additional details..."
+														value={notes}
+														onChange={(e) => setNotes(e.target.value)}
+														rows={3}
+														className="resize-none"
+													/>
+												</div>
+											</FormSection>
 										)}
 									</>
 								)}
 
-								{notes && (
-									<FormSection variant="subtle">
-										<div className="space-y-2">
-											<Label htmlFor="notes">Notes (Optional)</Label>
-											<Textarea
-												id="notes"
-												placeholder="Add any additional details..."
-												value={notes}
-												onChange={(e) => setNotes(e.target.value)}
-												rows={3}
-												className="bg-secondary border-border/60 resize-none"
-											/>
-										</div>
-									</FormSection>
-								)}
-
 								<DialogFooter className="flex-col-reverse gap-2 sm:flex-row sm:gap-3">
-									<Button
-										type="button"
-										variant="outline"
-										className="w-full sm:w-auto"
-										onClick={() => onOpenChange(false)}
-										disabled={isLoading}
-									>
-										Cancel
-										<CancelShortcut />
-									</Button>
-									<Button type="submit" className="w-full sm:w-auto" disabled={isLoading}>
-										{isLoading && <Loader2 className="mr-2 h-4 w-4 animate-spin" />} Add Transaction
-										<SubmitShortcut />
-									</Button>
+									{isTransferDetails ? (
+										<Button
+											type="button"
+											variant="outline"
+											className="w-full sm:w-auto"
+											onClick={() => setTransferStep("route")}
+											disabled={isLoading}
+										>
+											Back
+										</Button>
+									) : (
+										<Button
+											type="button"
+											variant="outline"
+											className="w-full sm:w-auto"
+											onClick={() => onOpenChange(false)}
+											disabled={isLoading}
+										>
+											Cancel
+											<CancelShortcut />
+										</Button>
+									)}
+									{isTransferRoute ? (
+										// Distinct keys: reusing one <button> would let the Continue click land as a submit.
+										<Button
+											key="continue"
+											type="button"
+											className="w-full sm:w-auto"
+											onClick={(event) => {
+												// Stop the click from also submitting the form once step two renders.
+												event.preventDefault();
+												goToTransferDetails();
+											}}
+										>
+											Continue
+											<SubmitShortcut />
+										</Button>
+									) : (
+										<Button key="submit" type="submit" className="w-full sm:w-auto" disabled={isLoading}>
+											{isLoading && <Loader2 className="mr-2 h-4 w-4 animate-spin" />}
+											{type === "transfer" ? "Add transfer" : "Add transaction"}
+											<SubmitShortcut />
+										</Button>
+									)}
 								</DialogFooter>
 							</form>
 						</TabsContent>
 
 						<TabsContent value="presets" className="mt-0 flex flex-col gap-6">
 							<div className="flex flex-col gap-2">
-								<div className="flex justify-between items-center">
-									<Label>Select Preset</Label>
-									<Button variant="ghost" size="sm" className="h-8 px-2" onClick={() => setIsManagePresetsOpen(true)}>
-										<Settings2 className="h-4 w-4 mr-1" /> Manage
+								<div className="flex items-center justify-between">
+									<Label>Preset</Label>
+									<Button
+										variant="ghost"
+										size="sm"
+										className="h-8 gap-1.5 rounded-full px-3 text-muted-foreground hover:text-primary"
+										onClick={() => setIsManagePresetsOpen(true)}
+									>
+										<Settings2 className="h-4 w-4" aria-hidden /> Manage
 									</Button>
 								</div>
 
-								{presets.length === 0 ? (
-									<div className="text-center p-6 border border-dashed rounded-lg bg-muted/30">
-										<p className="text-sm text-muted-foreground mb-4">You don't have any presets yet.</p>
-										<Button onClick={() => setIsManagePresetsOpen(true)} size="sm">
-											<PlusCircle className="h-4 w-4 mr-2" /> Create Preset
+								{presetsOfType.length === 0 ? (
+									<div className="flex flex-col items-start gap-3 py-2">
+										<p className="type-body-sm text-muted-foreground">
+											{type === "transfer"
+												? "No transfer presets yet. Save one you repeat, like a monthly move to savings."
+												: type === "income"
+													? "No income presets yet. Save income you record often, like a side gig payment."
+													: "No expense presets yet. Save something you repeat, like a transit fare."}
+										</p>
+										<Button onClick={() => setIsManagePresetsOpen(true)} size="sm" className="rounded-full">
+											<PlusCircle className="mr-2 h-4 w-4" aria-hidden /> Create a preset
 										</Button>
 									</div>
 								) : (
@@ -961,7 +979,7 @@ export function UnifiedTransactionDialog({
 											<SelectValue placeholder="Choose a transaction preset" />
 										</SelectTrigger>
 										<SelectContent>
-											{sortAlphabetically(presets, (p) => p.name).map((p) => (
+											{sortAlphabetically(presetsOfType, (p) => p.name).map((p) => (
 												<SelectItem key={p.id} value={p.id}>
 													{p.name} (${p.amount.toFixed(2)})
 												</SelectItem>
@@ -969,33 +987,30 @@ export function UnifiedTransactionDialog({
 										</SelectContent>
 									</Select>
 								)}
+
+								{selectedPreset && (
+									<p className="type-body-sm text-muted-foreground">
+										{selectedPreset.type === "transfer"
+											? `A transfer of $${selectedPreset.amount.toFixed(2)} from ${accountNameById(selectedPreset.account_id)} to ${accountNameById(selectedPreset.to_account_id)}.`
+											: `${selectedPreset.type === "expense" ? "An expense" : "Income"} of $${selectedPreset.amount.toFixed(2)}, recorded as ${selectedPreset.transaction_type}.`}
+									</p>
+								)}
 							</div>
 
 							{selectedPreset && (
-								<div className="flex flex-col gap-4">
-									<div className="bg-muted/50 p-3 rounded-lg border text-sm">
-										<p>
-											<strong>{selectedPreset.description}</strong>
-										</p>
-										<p className="text-muted-foreground mt-1">
-											{selectedPreset.type === "expense" ? "📉" : "📈"} ${selectedPreset.amount.toFixed(2)} •{" "}
-											{selectedPreset.transaction_type}
-										</p>
-										<p className="text-xs text-primary mt-2">
-											<span className="font-medium">Instructions:</span> Click dates on the calendar below to select.
-											Click a date multiple times to add multiple items on that day. Adjust totals in the list below
-											before confirming.
-										</p>
+								<div className="flex flex-col gap-2">
+									<div className="flex items-baseline justify-between gap-3">
+										<Label>Days</Label>
+										<span className="type-body-xs text-muted-foreground">Pick each day it happened</span>
 									</div>
-
-									<div className="flex justify-center border rounded-lg p-2 bg-background relative">
+									<div className="relative flex justify-center border-y border-border/70 py-2">
 										{isAddingFromPreset && (
-											<div className="absolute inset-0 bg-background/50 backdrop-blur-[1px] flex items-center justify-center z-10 rounded-lg">
+											<div className="absolute inset-0 z-10 flex items-center justify-center bg-background/50">
 												<Loader2 className="h-6 w-6 animate-spin text-primary" />
 											</div>
 										)}
 										<Calendar
-											className="rounded-md"
+											className="bg-transparent p-0 [--cell-size:2.5rem]"
 											mode="multiple"
 											selected={Object.keys(selectedDatesMap)
 												.filter((dateStr) => selectedDatesMap[dateStr] > 0)
@@ -1015,88 +1030,99 @@ export function UnifiedTransactionDialog({
 											}}
 											defaultMonth={presetMonthStart}
 											month={presetMonthStart}
+											hideNavigation
 											disableNavigation
 											disabled={[{ before: presetMonthStart }, { after: presetMonthEnd }]}
 										/>
 									</div>
 
-									{/* Selected Dates summary */}
-									{Object.keys(selectedDatesMap).length > 0 && (
-										<div className="flex flex-col gap-2 max-h-[160px] overflow-y-auto border rounded-lg p-2 bg-muted/20">
-											<p className="text-xs font-semibold text-muted-foreground uppercase tracking-wider px-1">
-												Selected Days
-											</p>
-											{selectedDateEntries.map(([dateStr, count]) => {
-												const subtotal = selectedPreset.amount * count;
-												return (
-													<div
-														key={dateStr}
-														className="flex justify-between items-center bg-background border p-2 rounded-md text-xs"
-													>
-														<div className="flex flex-col gap-0.5">
-															<span className="font-medium">{formatDisplayDate(dateStr)}</span>
-															<span className="text-muted-foreground">
-																{count} x ${selectedPreset.amount.toFixed(2)} = ${subtotal.toFixed(2)}
-															</span>
-														</div>
-														<div className="flex items-center gap-1">
-															<Button
-																type="button"
-																variant="outline"
-																size="icon"
-																className="h-6 w-6 text-xs font-bold"
-																onClick={() => decrementDateCount(dateStr)}
-															>
-																-
-															</Button>
-															<span className="w-5 text-center font-semibold text-xs">{count}</span>
-															<Button
-																type="button"
-																variant="outline"
-																size="icon"
-																className="h-6 w-6 text-xs font-bold"
-																onClick={() => incrementDateCount(dateStr)}
-															>
-																+
-															</Button>
+									{selectedDateEntries.length > 0 && (
+										<ul
+											className="flex max-h-[180px] flex-col divide-y divide-border/50 overflow-y-auto"
+											aria-label="Picked days"
+										>
+											{selectedDateEntries.map(([dateStr, count]) => (
+												<li key={dateStr} className="flex items-center justify-between gap-3 py-2">
+													<span className="min-w-0">
+														<span className="type-body-sm block font-medium text-primary">
+															{formatDisplayDate(dateStr)}
+														</span>
+														<span className="type-body-xs block text-muted-foreground">
+															{count} × ${selectedPreset.amount.toFixed(2)} = $
+															{(selectedPreset.amount * count).toFixed(2)}
+														</span>
+													</span>
+													<span className="flex shrink-0 items-center gap-1">
+														<span className="flex items-center rounded-full border border-border">
 															<Button
 																type="button"
 																variant="ghost"
 																size="icon"
-																className="h-6 w-6 text-error/80 hover:text-error hover:bg-error/10 ml-1"
-																onClick={() => removeDateEntry(dateStr)}
+																className="h-7 w-7 rounded-full"
+																onClick={() => decrementDateCount(dateStr)}
+																aria-label={`One fewer on ${formatDisplayDate(dateStr)}`}
 															>
-																<Trash2 className="h-3.5 w-3.5" />
+																<Minus className="h-3.5 w-3.5" />
 															</Button>
-														</div>
-													</div>
-												);
-											})}
-										</div>
+															<span className="type-body-sm w-5 text-center tabular-nums">{count}</span>
+															<Button
+																type="button"
+																variant="ghost"
+																size="icon"
+																className="h-7 w-7 rounded-full"
+																onClick={() => incrementDateCount(dateStr)}
+																aria-label={`One more on ${formatDisplayDate(dateStr)}`}
+															>
+																<Plus className="h-3.5 w-3.5" />
+															</Button>
+														</span>
+														<Button
+															type="button"
+															variant="ghost"
+															size="icon"
+															className="h-7 w-7 rounded-full text-muted-foreground hover:text-error"
+															onClick={() => removeDateEntry(dateStr)}
+															aria-label={`Remove ${formatDisplayDate(dateStr)}`}
+														>
+															<Trash2 className="h-3.5 w-3.5" />
+														</Button>
+													</span>
+												</li>
+											))}
+										</ul>
 									)}
-
-									<Button
-										type="button"
-										onClick={handleAddFromPreset}
-										disabled={Object.keys(selectedDatesMap).length === 0 || isAddingFromPreset}
-										className="w-full mt-2"
-									>
-										{isAddingFromPreset && <Loader2 className="mr-2 h-4 w-4 animate-spin" />}
-										Confirm & Add {Object.values(selectedDatesMap).reduce((a, b) => a + b, 0)} Items (
-										{selectedPreset.type === "expense" ? "-" : "+"}$
-										{(Object.values(selectedDatesMap).reduce((a, b) => a + b, 0) * selectedPreset.amount).toFixed(2)})
-									</Button>
 								</div>
 							)}
-							<DialogFooter className="mt-4 flex-col-reverse gap-2 sm:flex-row sm:gap-3">
+
+							<DialogFooter className="flex-col-reverse gap-2 sm:flex-row sm:gap-3">
 								<Button
 									type="button"
 									variant="outline"
 									className="w-full sm:w-auto"
 									onClick={() => onOpenChange(false)}
+									disabled={isAddingFromPreset}
 								>
-									Close
+									Cancel
+									<CancelShortcut />
 								</Button>
+								{selectedPreset && (
+									<Button
+										type="button"
+										className="w-full sm:w-auto"
+										onClick={handleAddFromPreset}
+										disabled={presetCount === 0 || isAddingFromPreset}
+									>
+										{isAddingFromPreset && <Loader2 className="mr-2 h-4 w-4 animate-spin" />}
+										{presetCount === 0
+											? "Pick a day to add"
+											: selectedPreset.type === "transfer"
+												? // A transfer moves money between accounts; no plus or minus.
+													`Add ${presetCount} ${presetCount === 1 ? "transfer" : "transfers"}, $${(presetCount * selectedPreset.amount).toFixed(2)}`
+												: `Add ${presetCount} ${presetCount === 1 ? "transaction" : "transactions"}, ${
+														selectedPreset.type === "expense" ? "-" : "+"
+													}$${(presetCount * selectedPreset.amount).toFixed(2)}`}
+									</Button>
+								)}
 							</DialogFooter>
 						</TabsContent>
 					</Tabs>
@@ -1109,6 +1135,7 @@ export function UnifiedTransactionDialog({
 				categories={categories}
 				accounts={accounts}
 				onPresetsChanged={loadPresets}
+				defaultType={type}
 			/>
 		</>
 	);

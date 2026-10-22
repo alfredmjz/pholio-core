@@ -1,4 +1,4 @@
-import type { AccountTypeCode, AccountWithType, ContributionPlan } from "@/app/balancesheet/types";
+import type { AccountTypeCode, AccountWithType, ContributionPlan } from "@/app/accounts/types";
 import type { ContributionSummary } from "@/lib/types/contribution";
 
 /** Plain currency formatter so expected strings are easy to read in assertions. */

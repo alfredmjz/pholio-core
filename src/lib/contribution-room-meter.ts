@@ -1,5 +1,5 @@
 import { estimateMonthlyOverContributionTax, getContributionPlanLabel, getRoomTerm } from "@/lib/contribution-plans";
-import type { RegisteredPlan } from "@/app/balancesheet/types";
+import type { RegisteredPlan } from "@/app/accounts/types";
 import type { ContributionSummary } from "@/lib/types/contribution";
 
 /**

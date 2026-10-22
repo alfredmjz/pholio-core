@@ -12,12 +12,12 @@ const ROOM_TERM: Record<string, string> = {
 };
 
 async function createRegisteredAccount(page: Page, plan: string, accountName: string, room?: string) {
-	await page.goto("/balancesheet");
-	const addDialog = page.getByRole("dialog", { name: "Add New Account" });
-	await openDialog(page.getByRole("button", { name: /Add Account/ }), addDialog);
-	await addDialog.getByLabel(/Account Name/).fill(accountName);
-	await addDialog.getByRole("combobox").click();
-	await page.getByRole("option", { name: "Investment", exact: true }).click();
+	await page.goto("/accounts");
+	const addDialog = page.getByRole("dialog", { name: "Add account" });
+	await openDialog(page.getByRole("button", { name: /Add account/i }), addDialog);
+	// Step 1: the kind of account. Picking a tile moves on to the details.
+	await addDialog.getByRole("radio", { name: "Investment", exact: true }).click();
+	await addDialog.getByLabel(/Account name/i).fill(accountName);
 	// Current Balance is left blank on purpose: a blank balance is saved as 0.
 	await addDialog.getByRole("switch", { name: "Track Contribution Room" }).click();
 	await addDialog.getByRole("combobox", { name: "Plan Type" }).click();
@@ -29,6 +29,8 @@ async function createRegisteredAccount(page: Page, plan: string, accountName: st
 		// The plan room is shared, so a second account of the plan starts with it entered.
 		await expect(roomInput).not.toHaveValue("");
 	}
+	await addDialog.getByRole("button", { name: /Continue/ }).click();
+	// Step 3: notes are optional.
 	await addDialog.getByRole("button", { name: /Create Account/ }).click();
 	await expect(page.getByText("Account created successfully")).toBeVisible();
 }
@@ -43,13 +45,16 @@ async function deposit(page: Page, amount: string) {
 // Issue #121: registered-plan room belongs to the person, so every account of the plan shares
 // one room derived from the ledger in PostgreSQL. Going over it only warns, never blocks.
 test("accounts of one plan share contribution room and warn on an over-contribution", async ({ page }, testInfo) => {
+	// Two account creations and two deposits: past the default 30s on a loaded CI runner, and a
+	// timed-out attempt leaves its deposit in the shared pool, so a retry can't recover.
+	test.slow();
 	const plan = PLAN_BY_PROJECT[testInfo.project.name] ?? "TFSA";
 	const firstName = uniqueName(`E2E ${plan} One`, testInfo.project.name);
 	const secondName = uniqueName(`E2E ${plan} Two`, testInfo.project.name);
 
 	await createRegisteredAccount(page, plan, firstName, "1000");
 	await page.getByRole("link", { name: new RegExp(firstName) }).click();
-	await expect(page).toHaveURL(/\/balancesheet\/accountdetail\//);
+	await expect(page).toHaveURL(/\/accounts\/[\w-]+$/);
 
 	const card = page.getByTestId("contribution-room-card");
 	// The card names the room with CRA's term, e.g. "TFSA contribution room left".
@@ -66,7 +71,7 @@ test("accounts of one plan share contribution room and warn on an over-contribut
 
 	await createRegisteredAccount(page, plan, secondName);
 	await page.getByRole("link", { name: new RegExp(secondName) }).click();
-	await expect(page).toHaveURL(/\/balancesheet\/accountdetail\//);
+	await expect(page).toHaveURL(/\/accounts\/[\w-]+$/);
 	// The first account's deposit already used room shared with this account.
 	await expect(card.getByText("$600.00 used of $1,000.00", { exact: false })).toBeVisible();
 

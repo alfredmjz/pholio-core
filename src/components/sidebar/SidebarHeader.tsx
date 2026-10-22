@@ -1,40 +1,36 @@
 "use client";
 
-import * as React from "react";
-import { ChevronLeft, ChevronRight } from "lucide-react";
-import { Button } from "@/components/ui/button";
+import Image from "next/image";
+import Link from "next/link";
 import { cn } from "@/lib/utils";
-import type { UserProfile } from "@/lib/getUserProfile";
-import { UserProfileMenu } from "./UserProfileMenu";
 
 interface SidebarHeaderProps {
 	isCollapsed: boolean;
-	onToggleCollapse: () => void;
-	userProfile: UserProfile | null;
-	onSignOut: () => void;
 }
 
-export function SidebarHeader({ isCollapsed, onToggleCollapse, userProfile, onSignOut }: SidebarHeaderProps) {
+/**
+ * The wordmark. The mark stays put at every width (centred in the collapsed rail) and the name
+ * fades, so dragging the sidebar never reflows the header.
+ */
+export function SidebarHeader({ isCollapsed }: SidebarHeaderProps) {
 	return (
-		<div
-			className={cn(
-				"hidden lg:flex items-center gap-2 px-4 pt-4 pb-2 relative z-50 overflow-hidden",
-				isCollapsed ? "flex-col" : "flex-row"
-			)}
-		>
-			<Button
-				onClick={onToggleCollapse}
-				variant="ghost"
-				size="icon"
-				className="flex items-center justify-center w-8 h-8 rounded-md bg-secondary hover:bg-hover hover:text-primary text-primary flex-shrink-0"
-				aria-label={isCollapsed ? "Expand sidebar" : "Collapse sidebar"}
-				title={isCollapsed ? "Expand sidebar" : "Collapse sidebar"}
+		<div className="overflow-hidden pb-6 pt-5 pl-[1.3125rem]">
+			<Link
+				href="/dashboard"
+				className="flex w-max items-center gap-2 rounded-md focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring"
+				aria-label="Pholio dashboard"
 			>
-				{isCollapsed ? <ChevronRight className="w-4 h-4" /> : <ChevronLeft className="w-4 h-4" />}
-			</Button>
-			<div className={cn("flex-1 min-w-0 overflow-hidden", isCollapsed && "w-full")}>
-				<UserProfileMenu userProfile={userProfile} onSignOut={onSignOut} isCollapsed={isCollapsed} />
-			</div>
+				<Image src="/pholio-icon.svg" alt="" width={22} height={22} className="shrink-0" />
+				<span
+					className={cn(
+						"type-h4 whitespace-nowrap text-primary transition-opacity duration-150",
+						isCollapsed && "opacity-0"
+					)}
+					aria-hidden
+				>
+					Pholio
+				</span>
+			</Link>
 		</div>
 	);
 }

@@ -11,20 +11,22 @@ test("demo: open a created account and record a deposit", async ({ page }, testI
 	await page.getByRole("button", { name: "Try the demo" }).click();
 	await expect(page).toHaveURL(/\/dashboard/);
 
-	await page.goto("/balancesheet");
-	const addDialog = page.getByRole("dialog", { name: "Add New Account" });
-	await openDialog(page.getByRole("button", { name: /Add Account/ }), addDialog);
-	await addDialog.getByLabel(/Account Name/).fill(accountName);
-	await addDialog.getByRole("combobox").click();
-	await page.getByRole("option", { name: "Chequing", exact: true }).click();
-	await addDialog.getByLabel(/Current Balance/).fill("1000");
+	await page.goto("/accounts");
+	const addDialog = page.getByRole("dialog", { name: "Add account" });
+	await openDialog(page.getByRole("button", { name: /Add account/i }), addDialog);
+	// Step 1: the kind of account. Picking a tile moves on to the details.
+	await addDialog.getByRole("radio", { name: "Chequing", exact: true }).click();
+	await addDialog.getByLabel(/Account name/i).fill(accountName);
+	await addDialog.getByLabel(/Current balance/i).fill("1000");
+	await addDialog.getByRole("button", { name: /Continue/ }).click();
+	// Step 3: notes are optional.
 	await addDialog.getByRole("button", { name: /Create Account/ }).click();
 
 	await expect(page.getByText("Account created successfully")).toBeVisible();
 	await expect(addDialog).toBeHidden();
 
 	await page.getByRole("link", { name: new RegExp(accountName) }).click();
-	await expect(page).toHaveURL(/\/balancesheet\/accountdetail\//);
+	await expect(page).toHaveURL(/\/accounts\/[\w-]+$/);
 	await expect(page.getByRole("heading", { name: accountName, level: 1 })).toBeVisible();
 	await expect(page.getByText("$1,000.00").first()).toBeVisible();
 
@@ -46,6 +48,6 @@ test("demo: open a created account and record a deposit", async ({ page }, testI
 	await expect(page.getByText("$1,250.00").first()).toBeVisible();
 
 	// An id that is in neither the sample data nor the demo store still goes back.
-	await page.goto("/balancesheet/accountdetail/does-not-exist");
-	await expect(page).toHaveURL(/\/balancesheet$/);
+	await page.goto("/accounts/does-not-exist");
+	await expect(page).toHaveURL(/\/accounts$/);
 });

@@ -12,24 +12,24 @@ interface FormSectionProps {
 	className?: string;
 }
 
+/** A labelled group of fields. The label is quiet so the fields carry the dialog. */
 export function FormSection({ icon, title, description, children, variant = "default", className }: FormSectionProps) {
 	return (
 		<div
 			className={cn(
-				"rounded-lg flex flex-col gap-3",
-				variant === "default" && "bg-secondary border border-border/60",
-				variant === "highlighted" && "bg-accent/10 border border-accent/30",
-				variant === "subtle" && "bg-transparent border-0",
+				"flex flex-col gap-3",
+				variant === "default" && "rounded-2xl border border-border/70 bg-card-muted/40 p-4",
+				variant === "highlighted" && "rounded-2xl border border-accent/25 bg-accent-muted/50 p-4",
 				className
 			)}
 		>
 			{(title || icon) && (
-				<div className="flex items-center gap-2">
-					{icon && <span className="text-primary">{icon}</span>}
-					{title && <h3 className="text-base font-semibold text-primary">{title}</h3>}
+				<div className="flex items-center gap-1.5 text-muted-foreground">
+					{icon && <span className="[&>svg]:h-3.5 [&>svg]:w-3.5">{icon}</span>}
+					{title && <h3 className="type-label">{title}</h3>}
 				</div>
 			)}
-			{description && <p className="text-sm text-primary">{description}</p>}
+			{description && <p className="type-body-sm -mt-1 text-muted-foreground">{description}</p>}
 			{children}
 		</div>
 	);

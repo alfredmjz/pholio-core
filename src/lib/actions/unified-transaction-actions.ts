@@ -17,8 +17,8 @@ import type {
 	UnifiedTransactionResult,
 	SuggestedAccount,
 } from "@/lib/types/unified-transaction";
-import type { AccountWithType } from "@/app/balancesheet/types";
-import { sampleAccounts } from "@/mock-data/balancesheet";
+import type { AccountWithType } from "@/app/accounts/types";
+import { sampleAccounts } from "@/mock-data/accounts";
 import { checkTransactionCaps, calculateSignedDelta } from "@/lib/account-validation-utils";
 import { Logger } from "@/lib/logger";
 import { isSampleDataMode } from "@/lib/demo-mode.server";
@@ -198,7 +198,7 @@ export async function createUnifiedTransaction(input: UnifiedTransactionInput): 
 				.eq("id", allocationTxId);
 
 			revalidatePath("/allocations");
-			revalidatePath("/balancesheet");
+			revalidatePath("/accounts");
 			revalidatePath("/dashboard");
 
 			return {
@@ -318,7 +318,7 @@ export async function createUnifiedTransaction(input: UnifiedTransactionInput): 
 
 		// Revalidate relevant pages
 		revalidatePath("/allocations");
-		revalidatePath("/balancesheet");
+		revalidatePath("/accounts");
 		revalidatePath("/dashboard");
 
 		return {
@@ -373,7 +373,7 @@ export async function updateUnifiedTransaction(
 		}
 
 		revalidatePath("/allocations");
-		revalidatePath("/balancesheet");
+		revalidatePath("/accounts");
 		revalidatePath("/dashboard");
 		return data as boolean;
 	} catch (error) {
@@ -401,7 +401,7 @@ export async function deleteUnifiedTransaction(transactionId: string): Promise<b
 		}
 
 		revalidatePath("/allocations");
-		revalidatePath("/balancesheet");
+		revalidatePath("/accounts");
 		revalidatePath("/dashboard");
 		return data as boolean;
 	} catch (error) {

@@ -1,0 +1,111 @@
+/*
+ * Dashboard visual language: "Running thread".
+ * The user's own net worth is drawn as the one solid line among the page's plotter lines
+ * (the backdrop and sheets live in surfaces.css, shared by every redesigned page).
+ * Scoped to the pages that import this file.
+ */
+
+/* --------------------------------------------------------------- the figure */
+
+.dash-figure {
+	display: flex;
+	align-items: flex-start;
+	font-size: clamp(2.75rem, 9vw, 5.5rem);
+	font-weight: 560;
+	line-height: 0.95;
+	letter-spacing: -0.05em;
+	font-variant-numeric: tabular-nums;
+	color: hsl(var(--foreground));
+}
+
+.dash-figure-cents {
+	margin-left: 0.06em;
+	padding-top: 0.12em;
+	font-size: 0.38em;
+	font-weight: 500;
+	letter-spacing: -0.01em;
+	color: hsl(var(--text-muted));
+}
+
+/* -------------------------------------------------------------- the thread */
+
+.dash-thread {
+	touch-action: pan-y;
+	cursor: crosshair;
+	outline: none;
+}
+
+.dash-thread:focus-visible {
+	border-radius: 12px;
+	box-shadow: 0 0 0 2px hsl(var(--ring) / 0.6);
+}
+
+.dash-thread-line {
+	fill: none;
+	stroke: hsl(var(--foreground));
+	stroke-width: 2;
+	stroke-linecap: round;
+	stroke-linejoin: round;
+	stroke-dasharray: 1;
+	stroke-dashoffset: 1;
+	animation: dash-draw 1.5s cubic-bezier(0.3, 1, 0.35, 1) 0.1s forwards;
+}
+
+.dash-thread-shadow {
+	stroke: hsl(var(--foreground) / 0.1);
+	stroke-width: 7;
+}
+
+.dash-thread-baseline {
+	stroke: hsl(var(--foreground) / 0.28);
+	stroke-width: 1;
+	stroke-dasharray: 3 5;
+}
+
+.dash-thread-scrub {
+	stroke: hsl(var(--foreground) / 0.35);
+	stroke-width: 1;
+}
+
+.dash-live-dot {
+	fill: hsl(var(--accent));
+	stroke: hsl(var(--card));
+	stroke-width: 2;
+}
+
+.dash-live-ring {
+	fill: hsl(var(--accent) / 0.22);
+	transform-box: fill-box;
+	transform-origin: center;
+	animation: dash-ring 2.8s ease-out 1.6s infinite;
+	opacity: 0;
+}
+
+@keyframes dash-draw {
+	to {
+		stroke-dashoffset: 0;
+	}
+}
+
+@keyframes dash-ring {
+	0% {
+		opacity: 0.9;
+		transform: scale(0.6);
+	}
+	70%,
+	100% {
+		opacity: 0;
+		transform: scale(2.4);
+	}
+}
+
+@media (prefers-reduced-motion: reduce) {
+	.dash-thread-line {
+		animation: none;
+		stroke-dashoffset: 0;
+	}
+
+	.dash-live-ring {
+		animation: none;
+	}
+}

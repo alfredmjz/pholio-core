@@ -1,7 +1,13 @@
-import { DashboardData, Transaction } from "@/app/dashboard/types";
-import { getDemoNow, daysBefore, monthsBefore, toDateOnly } from "./demo-date";
-
-const MONTH_LABELS = ["Jan", "Feb", "Mar", "Apr", "May", "Jun", "Jul", "Aug", "Sep", "Oct", "Nov", "Dec"];
+import type { DashboardData, Transaction } from "@/app/dashboard/types";
+import type { AllocationSummary } from "@/app/allocations/types";
+import { buildNetWorthSeries, type BalanceRecord } from "@/app/dashboard/net-worth-series";
+import { computeMonthPace, type PaceExpense } from "@/app/dashboard/month-pace";
+import { buildMonthlyCashflow, type CashflowTransaction } from "@/app/dashboard/cashflow";
+import { buildHeadsUp, selectUpcomingBills, type BillInput, type HeadsUpPromotion } from "@/app/dashboard/heads-up";
+import { getDaysInMonth } from "@/lib/date-utils";
+import { sampleAccounts } from "./accounts";
+import { getSmartMockData } from "./allocations";
+import { getDemoNow, daysBefore, toDateOnly } from "./demo-date";
 
 /** Recent transactions dated relative to `now`, so the demo always looks current. */
 export function getSampleRecentTransactions(now: Date = getDemoNow()): Transaction[] {
@@ -39,6 +45,14 @@ export function getSampleRecentTransactions(now: Date = getDemoNow()): Transacti
 			account: "Credit Card",
 		},
 		{
+			daysAgo: 5,
+			description: "Move to emergency fund",
+			category: "Transfer",
+			amount: 500,
+			type: "transfer",
+			account: "Checking",
+		},
+		{
 			daysAgo: 6,
 			description: "Electric Bill",
 			category: "Utilities",
@@ -55,128 +69,190 @@ export function getSampleRecentTransactions(now: Date = getDemoNow()): Transacti
 	}));
 }
 
-function summarize(data: Array<{ income: number; expenses: number }>) {
-	const totalIncome = data.reduce((sum, d) => sum + d.income, 0);
-	const totalExpenses = data.reduce((sum, d) => sum + d.expenses, 0);
-	return { totalIncome, totalExpenses, netCashflow: totalIncome - totalExpenses };
+/** Deterministic random numbers so the demo looks the same on every reload. */
+function createRandom(seed: number) {
+	let value = seed >>> 0;
+	return () => {
+		value = (value * 1664525 + 1013904223) >>> 0;
+		return value / 4294967296;
+	};
 }
 
-export function getSampleDashboardData(now: Date = getDemoNow()): DashboardData {
+/**
+ * A year of weekly balance records per sample account, drifting from a starting balance to the
+ * account's current balance with a little noise, so the net worth line has a believable shape.
+ */
+function sampleBalanceRecords(now: Date): BalanceRecord[] {
+	const random = createRandom(20261020);
+	const starts: Record<string, number> = {
+		"acc-1": 7000, // Emergency Fund, built up over the year
+		"acc-2": 28500, // Robinhood, market growth
+		"acc-3": 41000, // TFSA, contributions plus growth
+		"acc-4": 2600, // Credit card balance moves around
+		"acc-5": 20200, // Student loan, paid down
+	};
+	const noise: Record<string, number> = {
+		"acc-1": 0.006,
+		"acc-2": 0.022,
+		"acc-3": 0.008,
+		"acc-4": 0.15,
+		"acc-5": 0.001,
+	};
+	const weeks = 52;
+	const records: BalanceRecord[] = [];
+
+	for (const account of sampleAccounts) {
+		const start = starts[account.id] ?? Number(account.current_balance);
+		const end = Number(account.current_balance);
+		for (let week = weeks; week >= 1; week--) {
+			const progress = (weeks - week) / weeks;
+			// Ease-in so recent months move a little faster, like compounding.
+			const base = start + (end - start) * Math.pow(progress, 1.15);
+			const jitter = base * (noise[account.id] ?? 0.01) * (random() * 2 - 1);
+			records.push({
+				accountId: account.id,
+				balance: Math.max(0, Math.round((base + jitter) * 100) / 100),
+				date: toDateOnly(daysBefore(now, week * 7)),
+			});
+		}
+	}
+	return records;
+}
+
+/** This month's spending up to today: rent on the 1st, then smaller day-to-day purchases. */
+function sampleMonthExpenses(now: Date, budget: number): PaceExpense[] {
+	const random = createRandom(now.getFullYear() * 100 + now.getMonth());
 	const year = now.getFullYear();
-	const monthIndex = now.getMonth();
+	const month = now.getMonth();
+	const daysInMonth = getDaysInMonth(year, month + 1);
+	const rent = 1400;
+	// Day-to-day spending runs a little under budget so the demo reads "on pace".
+	const dailyAverage = ((budget - rent) / daysInMonth) * 0.92;
 
-	// Month view: four weekly points in the current month.
-	const monthData = [
-		{ day: 1, label: "Week 1", income: 2000, expenses: 1000 },
-		{ day: 8, label: "Week 2", income: 2100, expenses: 1200 },
-		{ day: 15, label: "Week 3", income: 2200, expenses: 900 },
-		{ day: 22, label: "Week 4", income: 2200, expenses: 1100 },
-	].map((w) => ({
-		date: toDateOnly(new Date(year, monthIndex, w.day)),
-		label: w.label,
-		income: w.income,
-		expenses: w.expenses,
-	}));
+	const expenses: PaceExpense[] = [{ date: toDateOnly(new Date(year, month, 1)), amount: rent }];
+	for (let day = 1; day <= now.getDate(); day++) {
+		const amount = Math.round(dailyAverage * (0.4 + random() * 1.2) * 100) / 100;
+		expenses.push({ date: toDateOnly(new Date(year, month, day)), amount });
+	}
+	return expenses;
+}
 
-	// Quarter view: the current month and the two before it.
-	const quarterData = [2, 1, 0].map((offset) => {
-		const d = monthsBefore(now, offset);
-		const m = d.getMonth();
-		return {
-			date: `${d.getFullYear()}-${String(m + 1).padStart(2, "0")}`,
-			label: MONTH_LABELS[m],
-			income: [8200, 8300, 8500][2 - offset],
-			expenses: [4000, 4400, 4200][2 - offset],
-		};
-	});
+/** Six months of income and spending, the current month only up to today. */
+function sampleCashflowTransactions(now: Date, currentMonthExpenses: PaceExpense[]): CashflowTransaction[] {
+	const random = createRandom(4242);
+	const transactions: CashflowTransaction[] = [];
 
-	// Year view: current year and the two before it.
-	const yearData = [2, 1, 0].map((offset) => {
-		const y = year - offset;
-		return {
-			date: String(y),
-			label: String(y),
-			income: [98000, 100900, 102000][2 - offset],
-			expenses: [45000, 48000, 50000][2 - offset],
-		};
-	});
+	for (let offset = 5; offset >= 0; offset--) {
+		const first = new Date(now.getFullYear(), now.getMonth() - offset, 1);
+		const lastDay = getDaysInMonth(first.getFullYear(), first.getMonth() + 1);
+		const paydays = [15, lastDay];
 
-	const trendData = [5, 4, 3, 2, 1, 0].map((offset) => {
-		const d = monthsBefore(now, offset);
-		return {
-			date: MONTH_LABELS[d.getMonth()],
-			value: 110000 + (5 - offset) * 3000,
-		};
-	});
+		for (const day of paydays) {
+			const date = new Date(first.getFullYear(), first.getMonth(), day);
+			if (date <= now) transactions.push({ date: toDateOnly(date), amount: 2500 });
+		}
+
+		if (offset === 0) {
+			for (const expense of currentMonthExpenses) transactions.push({ date: expense.date, amount: -expense.amount });
+		} else {
+			const spent = 3100 + Math.round(random() * 900);
+			transactions.push({ date: toDateOnly(new Date(first.getFullYear(), first.getMonth(), 10)), amount: -spent });
+		}
+
+		// A savings transfer every month, which the chart leaves out.
+		transactions.push({
+			date: toDateOnly(new Date(first.getFullYear(), first.getMonth(), 2)),
+			amount: -500,
+			source: "transfer",
+		});
+	}
+	return transactions;
+}
+
+/** A front-loaded "usual month" (rent early), the shape `getHistoricalPace` returns with history. */
+function sampleTypicalCurve(budget: number): number[] {
+	return Array.from({ length: 31 }, (_, i) => Math.round(budget * Math.pow((i + 1) / 31, 0.7)));
+}
+
+export function samplePromotions(now: Date = getDemoNow()): HeadsUpPromotion[] {
+	return [
+		{
+			id: "promo-sample-1",
+			accountId: "acc-4",
+			accountName: "Chase Sapphire Reserve",
+			type: "spend_threshold",
+			target: 4000,
+			current: 2850,
+			reward: "60,000 points",
+			endDate: toDateOnly(daysBefore(now, -23)),
+			isCompleted: false,
+		},
+	];
+}
+
+/**
+ * Sample dashboard built through the same calculations as real data. `bills` comes from the
+ * sample recurring list (see `getRecurringExpenses`) so the dashboard agrees with the Recurring page.
+ */
+export function getSampleDashboardData(now: Date = getDemoNow(), bills: BillInput[] = []): DashboardData {
+	const today = toDateOnly(now);
+	const accounts = sampleAccounts;
+
+	const history = buildNetWorthSeries(
+		accounts.map((a) => ({
+			id: a.id,
+			class: a.account_type.class === "liability" ? ("liability" as const) : ("asset" as const),
+			balance: Number(a.current_balance),
+		})),
+		sampleBalanceRecords(now),
+		today
+	);
+	const latest = history[history.length - 1];
+
+	// The same month the Allocations demo shows, so both pages tell one story.
+	const summary: AllocationSummary = getSmartMockData(now.getFullYear(), now.getMonth() + 1).summary;
+	const budget = summary.summary.total_budget_caps;
+	const expenses = sampleMonthExpenses(now, budget);
 
 	return {
-		metrics: {
-			netWorth: {
-				label: "Net Worth",
-				value: 125000,
-				trend: { value: 5.2, direction: "up", period: "vs last month" },
-				variant: "default",
-			},
-			monthlyIncome: {
-				label: "Monthly Income",
-				value: 8500,
-				trend: { value: 2.1, direction: "up", period: "vs last month" },
-				variant: "success",
-			},
-			monthlyExpenses: {
-				label: "Monthly Expenses",
-				value: 4200,
-				trend: { value: 1.5, direction: "down", period: "vs last month" },
-				variant: "default",
-			},
-			savingsRate: {
-				label: "Savings Rate",
-				value: 50.5,
-				trend: { value: 3.2, direction: "up", period: "vs last month" },
-				variant: "success",
-			},
-		},
-		cashflow: {
-			month: { ...summarize(monthData), period: "month", data: monthData },
-			quarter: { ...summarize(quarterData), period: "quarter", data: quarterData },
-			year: { ...summarize(yearData), period: "year", data: yearData },
-		},
+		today,
 		netWorth: {
-			netWorth: 125000,
-			totalAssets: 150000,
-			totalLiabilities: 25000,
-			trend: { value: 12, direction: "up", period: "vs last year" },
-			assetBreakdown: [
-				{
-					category: "Cash & Equivalents",
-					value: 30000,
-					accounts: [
-						{ name: "Checking Account", value: 5000 },
-						{ name: "Savings Account", value: 25000 },
-					],
-				},
-				{
-					category: "Investments",
-					value: 120000,
-					accounts: [
-						{ name: "401k", value: 80000 },
-						{ name: "Roth IRA", value: 20000 },
-						{ name: "Brokerage", value: 20000 },
-					],
-				},
-			],
-			liabilityBreakdown: [
-				{
-					category: "Loans",
-					value: 25000,
-					accounts: [
-						{ name: "Student Loan", value: 15000 },
-						{ name: "Car Loan", value: 10000 },
-					],
-				},
-			],
-			trendData,
+			current: latest.value,
+			totalAssets: latest.assets,
+			totalLiabilities: latest.liabilities,
+			history,
 		},
+		accountsSummary: accounts.map((a) => ({
+			id: a.id,
+			name: a.name,
+			institution: a.institution,
+			typeName: a.account_type.name,
+			class: a.account_type.class === "liability" ? "liability" : "asset",
+			balance: Number(a.current_balance),
+		})),
+		monthPace: computeMonthPace({
+			year: now.getFullYear(),
+			month: now.getMonth() + 1,
+			today,
+			budget,
+			expenses,
+			typicalCurve: sampleTypicalCurve(budget),
+		}),
+		cashflow: buildMonthlyCashflow(sampleCashflowTransactions(now, expenses), today, 6),
+		upcomingBills: selectUpcomingBills(bills, today),
+		headsUp: buildHeadsUp({
+			today,
+			bills,
+			categories: summary.categories.map((c) => ({
+				id: c.id,
+				name: c.name,
+				budget: Number(c.budget_cap),
+				spent: Number(c.actual_spend),
+			})),
+			promotions: samplePromotions(now),
+		}),
 		recentTransactions: getSampleRecentTransactions(now),
+		accounts,
+		categories: summary.categories,
 	};
 }

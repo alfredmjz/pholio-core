@@ -1,8 +1,7 @@
 "use client";
 
 import { useState, useMemo } from "react";
-import { Search, Filter, X, ArrowUpDown, ChevronUp, ChevronDown, Ban, RotateCcw } from "lucide-react";
-import { Card } from "@/components/ui/card";
+import { Search, X, ArrowUpDown, ChevronUp, ChevronDown, Ban, RotateCcw, SlidersHorizontal } from "lucide-react";
 import { Input } from "@/components/ui/input";
 import { Button } from "@/components/ui/button";
 import { Badge } from "@/components/ui/badge";
@@ -12,14 +11,15 @@ import { formatShortDate, parseLocalDate } from "@/lib/date-utils";
 import { sanitizeDecimalInput } from "@/lib/input-utils";
 import { formatAccountDisplayName } from "@/lib/account-utils";
 import { sortAlphabetically } from "@/lib/sort-utils";
-import { SHORTCUTS, ShortcutId } from "@/lib/keyboard-shortcuts";
-import { ShortcutHint } from "@/components/common/shortcut-hint";
-import type { AccountWithType } from "@/app/balancesheet/types";
+import { Popover, PopoverContent, PopoverTrigger } from "@/components/ui/popover";
+import { SurfaceSection } from "@/components/layout/surface-section";
+import { formatCurrency } from "@/app/dashboard/utils";
+import type { AccountWithType } from "@/app/accounts/types";
 import type { AllocationCategory, Transaction } from "../types";
 import { getTransferAccountIds } from "../utils/transfer-accounts";
 import type { TransactionType } from "./TransactionTypeIcon";
-import { inferTransactionType, TRANSACTION_TYPE_CONFIG, TransactionTypeIcon } from "./TransactionTypeIcon";
-import { getCategoryColor } from "./CategoryPerformance";
+import { inferTransactionType, TRANSACTION_TYPE_CONFIG } from "./TransactionTypeIcon";
+import { getCategoryColor } from "../utils/colors";
 import { TransactionDialog } from "./TransactionDialog";
 
 interface TransactionLedgerProps {
@@ -89,8 +89,6 @@ function compareTransactions(a: Transaction, b: Transaction, field: SortField, a
 	}
 }
 
-const LEGEND_SHORTCUTS = [ShortcutId.SortColumn, ShortcutId.SecondarySort];
-
 export function TransactionLedger({
 	transactions,
 	categories,
@@ -104,7 +102,6 @@ export function TransactionLedger({
 	const [categoryFilter, setCategoryFilter] = useState<string>("all");
 	const [typeFilter, setTypeFilter] = useState<TransactionType | "all">("all");
 	const [sorts, setSorts] = useState<SortCriterion[]>([{ field: "date", direction: "desc" }]);
-	const [showFilters, setShowFilters] = useState(false);
 
 	const [minAmount, setMinAmount] = useState<string>("");
 	const [maxAmount, setMaxAmount] = useState<string>("");
@@ -216,20 +213,24 @@ export function TransactionLedger({
 			<button
 				type="button"
 				onClick={(event) => toggleSort(field, event.shiftKey)}
-				className="flex items-center gap-1 hover:text-primary transition-colors"
+				className={cn(
+					"inline-flex items-center gap-1 rounded transition-colors hover:text-primary focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring",
+					isActive && "text-primary"
+				)}
+				title="Click to sort. Shift-click to add it as a second sort."
 			>
 				{children}
 				{isActive ? (
 					sorts[index].direction === "asc" ? (
-						<ChevronUp className="h-3.5 w-3.5 text-info" />
+						<ChevronUp className="h-3.5 w-3.5" />
 					) : (
-						<ChevronDown className="h-3.5 w-3.5 text-info" />
+						<ChevronDown className="h-3.5 w-3.5" />
 					)
 				) : (
-					<ArrowUpDown className="h-3.5 w-3.5 text-primary" />
+					<ArrowUpDown className="h-3 w-3 opacity-40" />
 				)}
 				{sorts.length > 1 && isActive && (
-					<span className="ml-0.5 inline-flex h-4 w-4 items-center justify-center rounded-full bg-info/15 text-[10px] font-semibold text-info">
+					<span className="inline-flex h-4 w-4 items-center justify-center rounded-full bg-primary/10 text-[10px] font-semibold">
 						{index + 1}
 					</span>
 				)}
@@ -237,36 +238,49 @@ export function TransactionLedger({
 		);
 	};
 
-	return (
-		<Card className="p-6">
-			<div className="flex items-center justify-between mb-4">
-				<div>
-					<h3 className="text-sm font-semibold text-primary uppercase tracking-wide">Transaction Ledger</h3>
-					<p className="text-xs text-primary mt-0.5">
-						{transactions.length} {transactions.length === 1 ? "transaction" : "transactions"} this month
-					</p>
-				</div>
-			</div>
+	const categoryColor = (categoryId?: string | null) => {
+		if (!categoryId) return null;
+		const category = categories.find((c) => c.id === categoryId);
+		return getCategoryColor(categoryId, category?.color, category?.display_order);
+	};
 
-			<div className="mb-4 flex flex-col gap-3 sm:flex-row sm:flex-wrap sm:items-center">
-				<div className="relative w-full sm:max-w-md sm:flex-1">
-					<Search className="absolute left-3 top-1/2 -translate-y-1/2 h-4 w-4 text-primary" />
+	const formatAmount = (transaction: Transaction) => {
+		const txType = inferTransactionType(transaction);
+		const value = formatCurrency(Math.abs(transaction.amount), { showCents: true });
+		if (txType === "transfer") return { text: value, tone: "text-muted-foreground" };
+		return transaction.amount > 0
+			? { text: `+${value}`, tone: "text-success" }
+			: { text: `−${value}`, tone: "text-primary" };
+	};
+
+	const amountFilterActive = Boolean(minAmount || maxAmount);
+
+	return (
+		<SurfaceSection
+			id="transactions-heading"
+			title="Transactions"
+			note={`${transactions.length} ${transactions.length === 1 ? "transaction" : "transactions"} this month`}
+		>
+			<div className="flex flex-col gap-2 sm:flex-row sm:flex-wrap sm:items-center">
+				<div className="relative w-full sm:max-w-xs sm:flex-1">
+					<Search className="absolute left-3.5 top-1/2 h-4 w-4 -translate-y-1/2 text-muted-foreground" aria-hidden />
 					<Input
-						type="text"
-						placeholder="Search transactions..."
+						type="search"
+						aria-label="Search transactions"
+						placeholder="Search transactions"
 						value={searchQuery}
 						onChange={(e) => setSearchQuery(e.target.value)}
-						className="pl-9 bg-background border-border"
+						className="rounded-full pl-10"
 					/>
 				</div>
 
-				<div className="flex flex-wrap items-center gap-2">
+				<div className="scrollbar-hide -mx-1 flex items-center gap-2 overflow-x-auto px-1 sm:mx-0 sm:flex-wrap sm:overflow-visible sm:px-0">
 					<Select value={categoryFilter} onValueChange={setCategoryFilter}>
-						<SelectTrigger className="min-w-0 flex-1 bg-background border-border sm:w-48 sm:flex-none">
-							<SelectValue placeholder="All Categories" />
+						<SelectTrigger aria-label="Category" className="w-auto shrink-0 gap-2 rounded-full sm:w-44">
+							<SelectValue placeholder="All categories" />
 						</SelectTrigger>
 						<SelectContent>
-							<SelectItem value="all">All Categories</SelectItem>
+							<SelectItem value="all">All categories</SelectItem>
 							{sortAlphabetically(categories, (cat) => cat.name).map((cat) => (
 								<SelectItem key={cat.id} value={cat.id}>
 									{cat.name}
@@ -284,11 +298,11 @@ export function TransactionLedger({
 							setTypeFilter(v as TransactionType | "all");
 						}}
 					>
-						<SelectTrigger className="min-w-0 flex-1 bg-background border-border sm:w-44 sm:flex-none">
-							<SelectValue placeholder="All Types" />
+						<SelectTrigger aria-label="Type" className="w-auto shrink-0 gap-2 rounded-full sm:w-40">
+							<SelectValue placeholder="All types" />
 						</SelectTrigger>
 						<SelectContent>
-							<SelectItem value="all">All Types</SelectItem>
+							<SelectItem value="all">All types</SelectItem>
 							{sortAlphabetically(Object.entries(TRANSACTION_TYPE_CONFIG), ([, config]) => config.label).map(
 								([type, config]) => (
 									<SelectItem key={type} value={type}>
@@ -302,53 +316,64 @@ export function TransactionLedger({
 						</SelectContent>
 					</Select>
 
-					<Button
-						variant="outline"
-						size="default"
-						onClick={() => setShowFilters(!showFilters)}
-						className={cn("shrink-0", showFilters && "bg-muted")}
-					>
-						<Filter className="h-4 w-4" />
-					</Button>
+					<Popover>
+						<PopoverTrigger asChild>
+							<Button
+								variant="outline"
+								className={cn(
+									"h-10 shrink-0 gap-2 rounded-full px-3.5",
+									amountFilterActive && "border-primary text-primary"
+								)}
+							>
+								<SlidersHorizontal className="h-4 w-4" aria-hidden />
+								{amountFilterActive
+									? `${minAmount ? `$${minAmount}` : "Any"} to ${maxAmount ? `$${maxAmount}` : "any"}`
+									: "Amount"}
+							</Button>
+						</PopoverTrigger>
+						<PopoverContent align="start" className="w-64 rounded-2xl p-4">
+							<p className="type-label text-primary">Amount between</p>
+							<div className="mt-3 flex items-center gap-2">
+								<Input
+									type="text"
+									inputMode="decimal"
+									aria-label="Minimum amount"
+									placeholder="Min"
+									startAdornment="$"
+									value={minAmount}
+									onChange={(e) => setMinAmount(sanitizeDecimalInput(e.target.value, 2))}
+								/>
+								<span className="type-body-sm text-muted-foreground">and</span>
+								<Input
+									type="text"
+									inputMode="decimal"
+									aria-label="Maximum amount"
+									placeholder="Max"
+									startAdornment="$"
+									value={maxAmount}
+									onChange={(e) => setMaxAmount(sanitizeDecimalInput(e.target.value, 2))}
+								/>
+							</div>
+						</PopoverContent>
+					</Popover>
 
-					<Button
-						variant="ghost"
-						size="sm"
-						onClick={handleReset}
-						className="shrink-0 text-muted-foreground hover:text-primary sm:ml-auto"
-					>
-						<RotateCcw className="h-4 w-4 mr-1" />
-						Reset
-					</Button>
+					{hasActiveFilters && (
+						<Button
+							variant="ghost"
+							size="sm"
+							onClick={handleReset}
+							className="h-10 shrink-0 gap-1.5 rounded-full px-3 text-muted-foreground hover:text-primary"
+						>
+							<RotateCcw className="h-3.5 w-3.5" aria-hidden />
+							Clear
+						</Button>
+					)}
 				</div>
 			</div>
 
-			{showFilters && (
-				<div className="mb-4 flex flex-wrap items-center gap-3 rounded-lg bg-muted/50 p-3">
-					<span className="text-sm text-primary">Amount:</span>
-					<Input
-						type="text"
-						inputMode="decimal"
-						placeholder="Min"
-						value={minAmount}
-						onChange={(e) => setMinAmount(sanitizeDecimalInput(e.target.value, 2))}
-						className="w-24 h-8 text-sm"
-					/>
-					<span className="text-primary">to</span>
-					<Input
-						type="text"
-						inputMode="decimal"
-						placeholder="Max"
-						value={maxAmount}
-						onChange={(e) => setMaxAmount(sanitizeDecimalInput(e.target.value, 2))}
-						className="w-24 h-8 text-sm"
-					/>
-				</div>
-			)}
-
 			{externalTypeFilter && (
-				<div className="flex items-center gap-2 mb-4">
-					<span className="text-sm text-primary">Filtered by:</span>
+				<div className="mt-3 flex items-center gap-2">
+					<span className="type-body-sm text-muted-foreground">Showing only</span>
 					<Badge
 						variant="secondary"
 						className={cn(
@@ -358,72 +383,59 @@ export function TransactionLedger({
 						)}
 					>
 						{TRANSACTION_TYPE_CONFIG[externalTypeFilter].label}
-						<button onClick={onClearExternalFilter} className="ml-1 hover:opacity-70">
+						<button onClick={onClearExternalFilter} className="ml-1 hover:opacity-70" aria-label="Clear type filter">
 							<X className="h-3 w-3" />
 						</button>
 					</Badge>
 				</div>
 			)}
 
-			{/* Mouse and keyboard sorting gestures; hidden on phones like the other shortcut hints. */}
-			<div className="mb-2 hidden text-xs text-primary/50 md:block">
-				<span className="font-medium text-primary/60">Legend:</span>
-				<div className="mt-2 flex flex-col gap-1.5">
-					{LEGEND_SHORTCUTS.map((id) => (
-						<div key={id} className="flex items-center gap-2.5">
-							<span>{SHORTCUTS[id].label}</span>
-							<ShortcutHint keys={SHORTCUTS[id].keys} size="md" variant="plain" />
-						</div>
-					))}
-				</div>
-			</div>
-
-			<div className="border border-border rounded-lg overflow-hidden shadow-sm">
-				<div className="overflow-x-auto">
-					<table className="w-full">
-						<thead className="bg-muted/50 border-b border-border">
-							<tr>
-								<th className="px-4 py-3 text-left text-xs font-semibold text-primary uppercase tracking-wider w-[100px]">
-									<SortButton field="date">Date</SortButton>
-								</th>
-								<th className="px-4 py-3 text-left text-xs font-semibold text-primary uppercase tracking-wider">
-									<SortButton field="name">Name</SortButton>
-								</th>
-								<th className="px-4 py-3 text-left text-xs font-semibold text-primary uppercase tracking-wider w-[180px]">
-									<SortButton field="category">Category</SortButton>
-								</th>
-								<th className="px-4 py-3 text-left text-xs font-semibold text-primary uppercase tracking-wider w-[200px]">
-									<SortButton field="account">Accounts</SortButton>
-								</th>
-								<th className="px-4 py-3 text-left text-xs font-semibold text-primary uppercase tracking-wider w-[160px]">
-									<SortButton field="type">Type</SortButton>
-								</th>
-								<th className="px-4 py-3 text-right text-xs font-semibold text-primary uppercase tracking-wider w-[100px]">
-									<SortButton field="amount">Amount</SortButton>
-								</th>
-							</tr>
-						</thead>
-						<tbody className="divide-y divide-border bg-card">
-							{filteredTransactions.length === 0 ? (
-								<tr>
-									<td colSpan={6} className="px-4 py-12 text-center text-primary">
-										{hasActiveFilters ? "No transactions match your filters" : "No transactions for this month"}
-									</td>
+			{filteredTransactions.length === 0 ? (
+				<p className="type-body-sm mt-4 rounded-2xl border border-dashed border-border py-10 text-center text-muted-foreground">
+					{hasActiveFilters ? "No transactions match these filters." : "No transactions this month yet."}
+				</p>
+			) : (
+				<>
+					{/* Desktop: sortable table */}
+					<div className="mt-4 hidden overflow-x-auto md:block">
+						<table className="w-full">
+							<thead>
+								<tr className="type-body-xs border-b border-border/70 text-left text-muted-foreground">
+									<th className="w-[92px] px-3 pb-2 font-normal">
+										<SortButton field="date">Date</SortButton>
+									</th>
+									<th className="px-3 pb-2 font-normal">
+										<SortButton field="name">Name</SortButton>
+									</th>
+									<th className="w-[170px] px-3 pb-2 font-normal">
+										<SortButton field="category">Category</SortButton>
+									</th>
+									<th className="w-[210px] px-3 pb-2 font-normal">
+										<SortButton field="account">Account</SortButton>
+									</th>
+									<th className="w-[140px] px-3 pb-2 font-normal">
+										<SortButton field="type">Type</SortButton>
+									</th>
+									<th className="w-[120px] px-3 pb-2 text-right font-normal">
+										<span className="inline-flex justify-end">
+											<SortButton field="amount">Amount</SortButton>
+										</span>
+									</th>
 								</tr>
-							) : (
-								filteredTransactions.map((transaction) => {
+							</thead>
+							<tbody className="divide-y divide-border/50">
+								{filteredTransactions.map((transaction) => {
 									const txType = inferTransactionType(transaction);
-
-									const categoryStyle = transaction.category_id
-										? getCategoryColor(transaction.category_id)
-										: { bg: "bg-secondary", text: "text-primary", light: "bg-secondary/50" };
+									const color = categoryColor(transaction.category_id);
+									const amount = formatAmount(transaction);
+									const TypeIcon = TRANSACTION_TYPE_CONFIG[txType].icon;
 
 									return (
 										<tr
 											key={transaction.id}
 											tabIndex={0}
 											data-shortcut-scope="transaction-row"
-											className="hover:bg-muted/30 focus-visible:bg-muted/40 focus-visible:outline-none focus-visible:ring-1 focus-visible:ring-inset focus-visible:ring-primary/40 transition-colors cursor-pointer group"
+											className="row-interactive cursor-pointer"
 											onClick={() => handleEditTransaction(transaction)}
 											onKeyDown={(event) => {
 												if (event.shiftKey && event.key === "Enter") {
@@ -432,76 +444,98 @@ export function TransactionLedger({
 												}
 											}}
 										>
-											<td className="px-4 py-3 whitespace-nowrap">
-												<span className="text-sm text-primary">
-													{transaction.transaction_date
-														? formatShortDate(parseLocalDate(transaction.transaction_date))
-														: ""}
-												</span>
+											<td className="type-body-sm whitespace-nowrap px-3 py-3 text-muted-foreground">
+												{transaction.transaction_date
+													? formatShortDate(parseLocalDate(transaction.transaction_date))
+													: ""}
 											</td>
-											<td className="px-4 py-3">
-												<div className="flex items-center gap-2 flex-wrap">
-													<span className="text-sm font-medium text-primary">{transaction.name}</span>
+											<td className="px-3 py-3">
+												<div className="flex flex-wrap items-center gap-2">
+													<span className="type-body-sm font-medium text-primary">{transaction.name}</span>
 													{transaction.is_recurring_stopped && (
 														<Badge
 															variant="outline"
-															className="text-[10px] font-semibold text-amber-600 dark:text-amber-400 bg-amber-500/10 border-amber-500/30 gap-1 px-1.5 py-0"
-															title="Recurring has been stopped/paused — this is the last recorded transaction."
+															className="gap-1 border-warning/40 bg-warning-muted px-1.5 py-0 text-[10px] font-medium text-warning"
+															title="Its recurring item was paused or deleted, so this is the last one."
 														>
-															<Ban className="h-2.5 w-2.5" /> Final / Stopped
+															<Ban className="h-2.5 w-2.5" /> Last payment
 														</Badge>
 													)}
 												</div>
 												{transaction.notes && (
-													<div className="text-xs text-primary truncate max-w-[200px]">{transaction.notes}</div>
+													<div className="type-body-xs max-w-[240px] truncate text-muted-foreground">
+														{transaction.notes}
+													</div>
 												)}
 											</td>
-											<td className="px-4 py-3">
-												{transaction.category_name ? (
-													<Badge
-														variant="secondary"
-														className={cn(
-															transaction.category_id ? categoryStyle.light : "bg-secondary",
-															transaction.category_id ? categoryStyle.text : "text-primary",
-															"font-medium border-0"
-														)}
-													>
-														{transaction.category_name}
-													</Badge>
-												) : (
-													<span className="text-xs text-primary">Uncategorized</span>
-												)}
-											</td>
-											<td className="px-4 py-3">
-												<span className="text-sm text-primary">{resolveAccountLabel(transaction, accounts)}</span>
-											</td>
-											<td className="px-4 py-3">
-												<TransactionTypeIcon type={txType} size="sm" showLabel />
-											</td>
-											<td className="px-4 py-3 text-right whitespace-nowrap">
-												<span
-													className={cn(
-														"text-sm font-semibold",
-														transaction.amount > 0 ? "text-success" : "text-error"
-													)}
-												>
-													{transaction.amount > 0 ? "+" : "-"}${Math.abs(transaction.amount).toFixed(2)}
+											<td className="px-3 py-3">
+												<span className="type-body-sm inline-flex items-center gap-2 text-text-secondary">
+													<span
+														className={cn("h-2 w-2 shrink-0 rounded-full", color ? color.bg : "bg-primary/25")}
+														aria-hidden
+													/>
+													{transaction.category_name || "Uncategorized"}
 												</span>
+											</td>
+											<td className="type-body-sm px-3 py-3 text-muted-foreground">
+												{resolveAccountLabel(transaction, accounts)}
+											</td>
+											<td className="px-3 py-3">
+												<span className="type-body-sm inline-flex items-center gap-1.5 text-muted-foreground">
+													<TypeIcon
+														className={cn("h-3.5 w-3.5", TRANSACTION_TYPE_CONFIG[txType].textColor)}
+														aria-hidden
+													/>
+													{TRANSACTION_TYPE_CONFIG[txType].label}
+												</span>
+											</td>
+											<td className={cn("type-value whitespace-nowrap px-3 py-3 text-right", amount.tone)}>
+												{amount.text}
 											</td>
 										</tr>
 									);
-								})
-							)}
-						</tbody>
-					</table>
-				</div>
-			</div>
+								})}
+							</tbody>
+						</table>
+						<p className="type-body-xs mt-3 text-muted-foreground">
+							Showing {filteredTransactions.length} of {transactions.length}. Shift-click a column to sort by it as
+							well.
+						</p>
+					</div>
 
-			{filteredTransactions.length > 0 && (
-				<div className="mt-3 text-xs text-primary text-right">
-					Showing {filteredTransactions.length} of {transactions.length}{" "}
-					{transactions.length === 1 ? "transaction" : "transactions"}
-				</div>
+					{/* Phone: one row per transaction */}
+					<ul className="mt-3 divide-y divide-border/50 md:hidden">
+						{filteredTransactions.map((transaction) => {
+							const color = categoryColor(transaction.category_id);
+							const amount = formatAmount(transaction);
+							return (
+								<li key={transaction.id}>
+									<button
+										type="button"
+										onClick={() => handleEditTransaction(transaction)}
+										className="row-interactive flex w-full items-center gap-3 rounded-lg px-1 py-3 text-left"
+									>
+										<span
+											className={cn("h-2.5 w-2.5 shrink-0 rounded-full", color ? color.bg : "bg-primary/25")}
+											aria-hidden
+										/>
+										<span className="min-w-0 flex-1">
+											<span className="type-body-sm block truncate font-medium text-primary">{transaction.name}</span>
+											<span className="type-body-xs block truncate text-muted-foreground">
+												{transaction.transaction_date
+													? formatShortDate(parseLocalDate(transaction.transaction_date))
+													: ""}
+												{", "}
+												{transaction.category_name || "Uncategorized"}
+											</span>
+										</span>
+										<span className={cn("type-value shrink-0", amount.tone)}>{amount.text}</span>
+									</button>
+								</li>
+							);
+						})}
+					</ul>
+				</>
 			)}
 
 			<TransactionDialog
@@ -512,6 +546,6 @@ export function TransactionLedger({
 				accounts={accounts}
 				boundaryMonth={currentMonth}
 			/>
-		</Card>
+		</SurfaceSection>
 	);
 }

@@ -1,7 +1,6 @@
 "use client";
 
 import * as React from "react";
-import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
 import { cn } from "@/lib/utils";
 import { sanitizeDecimalInput } from "@/lib/input-utils";
@@ -16,6 +15,7 @@ interface ProminentAmountInputProps {
 	hasError?: boolean;
 }
 
+/** The dialog's hero field: a large amount on a single rule that lights up on focus. */
 export function ProminentAmountInput({
 	value,
 	onChange,
@@ -28,30 +28,24 @@ export function ProminentAmountInput({
 	return (
 		<div className={cn("space-y-2", className)}>
 			{label && (
-				<Label htmlFor={id} className="text-sm font-medium">
+				<Label htmlFor={id} className="type-label text-muted-foreground">
 					{label}
 				</Label>
 			)}
-			<div className="relative group">
-				<span
-					className={cn(
-						"absolute left-4 top-1/2 -translate-y-1/2 text-lg transition-colors",
-						value ? "text-green-500 font-semibold" : "text-primary"
-					)}
-				>
+			<div className="field-amount" data-invalid={hasError ? "true" : undefined}>
+				<span className="field-amount-currency" aria-hidden>
 					{currency}
 				</span>
-				<Input
+				<input
 					id={id}
 					type="text"
 					inputMode="decimal"
+					autoComplete="off"
 					placeholder="0.00"
 					value={value}
-					onChange={(e) => {
-						const sanitized = sanitizeDecimalInput(e.target.value, 2);
-						onChange(sanitized);
-					}}
-					className={cn("pl-10 h-10 text-lg tracking-tight", hasError ? "border-error" : "")}
+					aria-invalid={hasError || undefined}
+					onChange={(e) => onChange(sanitizeDecimalInput(e.target.value, 2))}
+					className="field-amount-input"
 				/>
 			</div>
 		</div>

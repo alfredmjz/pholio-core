@@ -55,7 +55,7 @@ pholio/
 │   ├── generated/                # GITIGNORED output of scripts/migrate.js
 │   └── sample_data.sql
 └── src/                          # the Next.js app (own package.json + node_modules)
-    ├── app/                      # routes: allocations, balancesheet, dashboard, recurring,
+    ├── app/                      # routes: accounts, allocations, dashboard, recurring,
     │   │                         #   settings, (auth-pages), auth, api, demo-components
     │   ├── <feature>/actions.ts  # server actions for that feature
     │   └── <feature>/components/ # feature-scoped components
@@ -138,7 +138,7 @@ Three automated suites. There is no ESLint config; do not invent `bun run lint`.
   sets the test root to `src/tests/` so Playwright `*.spec.ts` files are never picked up. Mirror
   the source path (`src/lib/x.ts` → `src/tests/lib/x.test.ts`); shared fixtures live in
   `src/tests/support/`. Keep calculation logic in plain `.ts` modules (not components) so it can
-  be tested — e.g. `src/lib/contribution-room-meter.ts`, `src/app/balancesheet/contribution-room-form.ts`.
+  be tested — e.g. `src/lib/contribution-room-meter.ts`, `src/app/accounts/contribution-room-form.ts`.
 - **Database tests** run through `supabase test db` against the local Supabase (needs Docker).
   Each file wraps its fixtures in `BEGIN … ROLLBACK`, so nothing persists. Add a test file when you
   add or change a derived-state function (balances, promotions, contribution room), with
@@ -191,7 +191,7 @@ by hand in the running app. Put it in your reply (not a new file) unless asked o
 
 Example shape:
 
-1. Open Balance Sheet, then click the account. Expect the account detail page.
+1. Open Accounts, then click the account. Expect the account detail page.
 2. Click Record Withdrawal, enter 50, submit. Expect a success toast and the balance drops by 50.
 
 ---
@@ -235,7 +235,7 @@ unrelated files — see §10 (line-ending churn).
 **PowerShell warning:** never use `Get-Content`/`Set-Content` to round-trip source files that
 contain emoji or non-ASCII text; it has corrupted files in this repo. Use the editor tool, or
 .NET `[IO.File]::ReadAllText/WriteAllText` with explicit UTF-8. Also prefer `-LiteralPath` for
-Next.js bracket paths such as `accountdetail/[id]/…`.
+Next.js bracket paths such as `accounts/[id]/…`.
 
 ### Theme tokens
 
@@ -256,7 +256,11 @@ Next.js bracket paths such as `accountdetail/[id]/…`.
   `src/lib/utils.ts` via `extendTailwindMerge`. If you add a new size token, add it there too;
   otherwise `cn()` can treat it as a text color and strip a variant's `text-*-foreground`.
 - **Interactive surfaces:** cards use `.card-interactive`, list rows use `.row-interactive`.
-  These light up the border/ring only — do not add background-fill hover colors to cards or rows.
+  Hover must not add new lines: cards only darken their existing border, rows take a faint ink
+  wash. Do not add hover rings/outlines or stronger background fills; keyboard focus keeps a ring.
+- **List rows as columns:** wrap a list in `.rows-container` and use the `row-wide:` variant
+  (a container query, `tailwind.config.ts`) for its column grid, not a screen breakpoint, so a
+  list in a narrow column stacks instead of overflowing its sheet.
   Segmented selectors use `ToggleGroup` with `variant="segmented"`.
 
 ---
@@ -309,7 +313,7 @@ Keep components focused; extract form sections and sub-components. Existing file
 - **Never branch on `account_types.name` or `accounts.name`.** Names are display labels and
   can change. (Branch #99 removed all name-hinting from `field-visibility.ts` and
   `isInvestmentAccount()`; do not reintroduce it.)
-- Field visibility resolves in this order (`src/app/balancesheet/field-visibility.ts`):
+- Field visibility resolves in this order (`src/app/accounts/field-visibility.ts`):
   1. core `code` → fixed preset in `CORE_TYPE_PRESETS`;
   2. `code === "other"` → per-account `accounts.field_visibility` JSONB;
   3. `code IS NULL` (legacy row awaiting guided migration) → temporary category-based bridge.
@@ -418,7 +422,7 @@ Keep components focused; extract form sections and sub-components. Existing file
   `--noUnusedLocals --noUnusedParameters`. Do not use those flags as a gate; if you use them,
   diff against the baseline so pre-existing hits are not mistaken for regressions.
 - **Mock mode must be maintained.** `src/mock-data/*` mirrors the real schema. When the model
-  changes (new columns, new types), update `src/mock-data/balancesheet.ts` and any
+  changes (new columns, new types), update `src/mock-data/accounts.ts` and any
   `NEXT_PUBLIC_USE_SAMPLE_DATA` branch in the corresponding `actions.ts`, otherwise
   `bun run dev:mock` silently diverges.
 - **Demo data must be time-relative.** Demo/sample data is generated at **request time** from

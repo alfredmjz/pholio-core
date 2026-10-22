@@ -1,4 +1,5 @@
 import type { Config } from "tailwindcss";
+import plugin from "tailwindcss/plugin";
 
 const config: Config = {
 	darkMode: ["class"],
@@ -88,6 +89,8 @@ const config: Config = {
 			},
 			fontFamily: {
 				sans: ["Instrument Sans", "Geist", "ui-sans-serif", "system-ui", "sans-serif"],
+				// The notes scratch pad only.
+				hand: ["Caveat", "Bradley Hand", "Segoe Print", "cursive"],
 			},
 			fontSize: {
 				display: [
@@ -163,7 +166,15 @@ const config: Config = {
 			},
 		},
 	},
-	plugins: [require("tailwindcss-animate"), require("@tailwindcss/typography")],
+	plugins: [
+		require("tailwindcss-animate"),
+		require("@tailwindcss/typography"),
+		// `row-wide:` lays list rows out as columns once their list (a `.rows-container`) is wide
+		// enough, whatever the screen size; see src/styles/surfaces.css.
+		plugin(({ addVariant }) => {
+			addVariant("row-wide", "@container rows (min-width: 37rem)");
+		}),
+	],
 };
 
 export default config;

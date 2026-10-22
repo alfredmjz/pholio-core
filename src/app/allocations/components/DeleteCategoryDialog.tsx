@@ -29,35 +29,26 @@ export function DeleteCategoryDialog({
 		<ControlBasedDialog
 			open={open}
 			onOpenChange={onOpenChange}
-			title={
-				<span className="flex items-center gap-2">
-					<AlertTriangle className="h-5 w-5 text-error" />
-					Delete Category
-				</span>
-			}
-			className="sm:max-w-[425px]"
+			title={`Delete ${categoryName}?`}
+			description="It's removed from this month's budget. This can't be undone."
+			className="sm:max-w-md"
 		>
-			<div className="flex flex-col gap-3 mb-6">
-				<p className="text-primary">
-					Are you sure you want to delete <span className="font-semibold">"{categoryName}"</span>?
+			{transactionCount > 0 && (
+				<p className="type-body-sm flex items-start gap-2 rounded-xl border border-warning/30 bg-warning-muted p-3 text-warning">
+					<AlertTriangle className="mt-0.5 h-4 w-4 shrink-0" aria-hidden />
+					<span>
+						Its {transactionCount} {transactionCount === 1 ? "transaction moves" : "transactions move"} to
+						Uncategorized.
+					</span>
 				</p>
-				{transactionCount > 0 && (
-					<div className="rounded-md bg-warning/10 border border-warning/30 p-3">
-						<p className="text-sm text-warning">
-							This category has <span className="font-semibold">{transactionCount}</span>{" "}
-							{transactionCount === 1 ? "transaction" : "transactions"} that will become uncategorized.
-						</p>
-					</div>
-				)}
-				<p className="text-sm text-primary">This action cannot be undone.</p>
-			</div>
+			)}
 
-			<DialogFooter className="flex gap-2">
+			<DialogFooter>
 				<Button type="button" variant="outline" onClick={() => onOpenChange(false)}>
 					Cancel
 				</Button>
-				<Button type="button" variant="destructive" onClick={handleConfirm} className="bg-error hover:bg-error/90">
-					Delete Category
+				<Button type="button" variant="destructive" onClick={handleConfirm}>
+					Delete category
 				</Button>
 			</DialogFooter>
 		</ControlBasedDialog>

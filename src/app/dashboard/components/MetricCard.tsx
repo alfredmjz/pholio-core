@@ -4,7 +4,11 @@ import { Card } from "@/components/ui/card";
 import { cn } from "@/lib/utils";
 import { formatCurrency } from "@/app/dashboard/utils";
 import { TrendingUp, TrendingDown, Minus } from "lucide-react";
-import type { Trend } from "../types";
+interface Trend {
+	value: number;
+	direction: "up" | "down" | "neutral";
+	period: string; // e.g., "vs last month"
+}
 
 interface MetricCardProps {
 	label: string;

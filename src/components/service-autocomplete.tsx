@@ -148,13 +148,13 @@ export function ServiceAutocomplete({
 
 			{/* Dropdown */}
 			{isOpen && suggestions.length > 0 && (
-				<div className="absolute z-50 w-full mt-1 bg-popover border border-border rounded-md shadow-lg max-h-60 overflow-auto">
+				<div className="absolute z-50 mt-1.5 max-h-60 w-full overflow-auto rounded-2xl border border-border/80 bg-popover p-1.5 shadow-raised">
 					{suggestions.map((suggestion, index) => (
 						<div
 							key={suggestion.domain}
 							className={cn(
-								"flex items-center gap-3 px-3 py-2 cursor-pointer transition-colors",
-								index === highlightedIndex ? "bg-accent text-accent-foreground" : "hover:bg-muted"
+								"flex cursor-pointer items-center gap-3 rounded-xl px-3 py-2 transition-colors",
+								index === highlightedIndex && "bg-primary/[0.05]"
 							)}
 							onClick={() => selectSuggestion(suggestion)}
 							onMouseEnter={() => setHighlightedIndex(index)}
@@ -167,8 +167,8 @@ export function ServiceAutocomplete({
 								className="flex-shrink-0"
 							/>
 							<div className="flex flex-col min-w-0">
-								<span className="font-medium text-sm truncate">{suggestion.name}</span>
-								<span className="text-xs text-primary truncate">{suggestion.domain}</span>
+								<span className="type-body-sm truncate font-medium text-primary">{suggestion.name}</span>
+								<span className="type-body-xs truncate text-muted-foreground">{suggestion.domain}</span>
 							</div>
 						</div>
 					))}

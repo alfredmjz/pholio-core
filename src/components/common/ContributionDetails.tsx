@@ -1,6 +1,7 @@
 import Link from "next/link";
 import { AlertCircle, AlertTriangle, Info } from "lucide-react";
 import { cn } from "@/lib/utils";
+import { ProgressLine } from "@/components/ui/progress-line";
 import { formatFullDate } from "@/lib/date-utils";
 import {
 	CRA_MY_ACCOUNT_URL,
@@ -37,18 +38,7 @@ export function ContributionNotices({ notices, className }: { notices: Contribut
 function ProgressBar({ used, total, label }: { used: number; total: number; label: string }) {
 	const percent = total > 0 ? Math.min(100, Math.max(0, (used / total) * 100)) : used > 0 ? 100 : 0;
 	const tone = used > total ? "bg-error" : percent >= 90 ? "bg-warning" : "bg-success";
-	return (
-		<div
-			className="h-1.5 w-full overflow-hidden rounded-full bg-secondary"
-			role="progressbar"
-			aria-label={label}
-			aria-valuemin={0}
-			aria-valuemax={100}
-			aria-valuenow={Math.round(percent)}
-		>
-			<div className={cn("h-full rounded-full transition-all", tone)} style={{ width: `${percent}%` }} />
-		</div>
-	);
+	return <ProgressLine value={percent} tone={tone} label={label} />;
 }
 
 interface ContributionDetailsProps {

@@ -42,19 +42,18 @@ export function SaveTemplateDialog({ open, onOpenChange, onSave, isSaving = fals
 				}
 				onOpenChange(isOpen);
 			}}
-			title="Save as Template"
-			description="Save your current month's budget configuration to quickly reuse it in the future."
-			className="sm:max-w-[425px]"
+			title="Save as template"
+			description="Reuse this month's categories and budgets when you set up a new month."
 		>
-			<form onSubmit={handleSubmit} className="space-y-4 py-4">
+			<form onSubmit={handleSubmit} className="space-y-5">
 				<div className="space-y-2">
-					<Label htmlFor="templateName" className="font-medium text-primary">
-						Template Name <span className="text-destructive">*</span>
+					<Label htmlFor="templateName">
+						Name <span className="text-error">*</span>
 					</Label>
 					<Input
 						id="templateName"
 						autoFocus
-						placeholder="e.g. Standard Monthly Budget"
+						placeholder="e.g. Regular month"
 						value={name}
 						onChange={(e) => setName(e.target.value)}
 						required

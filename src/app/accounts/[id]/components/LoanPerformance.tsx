@@ -1,8 +1,8 @@
 "use client";
 
 import { useMemo } from "react";
-import { Card } from "@/components/ui/card";
-import type { AccountWithType, AccountTransaction } from "../../../types";
+import type { AccountWithType, AccountTransaction } from "../../types";
+import { GlanceSection } from "./PerformanceCard";
 import { differenceInMonths, parseLocalDate } from "@/lib/date-utils";
 
 interface LoanPerformanceProps {
@@ -51,26 +51,17 @@ export function LoanPerformance({ account, transactions, formatCurrency }: LoanP
 	}, [transactions, account]);
 
 	return (
-		<Card className="p-4">
-			<h3 className="text-sm font-semibold text-primary mb-3">Performance</h3>
-			<div className="flex flex-col gap-3">
-				<div className="flex items-center justify-between">
-					<span className="text-sm text-primary">Interest Paid</span>
-					<span className="text-sm font-medium">{formatCurrency(stats.interestPaid)}</span>
-				</div>
-				<div className="flex items-center justify-between">
-					<span className="text-sm text-primary">Principal Paid</span>
-					<span className="text-sm font-medium">{formatCurrency(stats.principalPaid)}</span>
-				</div>
-				<div className="flex items-center justify-between">
-					<span className="text-sm text-primary">Payment Due Date</span>
-					<span className="text-sm font-medium text-muted-foreground">{stats.paymentDueDate}</span>
-				</div>
-				<div className="flex items-center justify-between">
-					<span className="text-sm text-primary">Remaining Term</span>
-					<span className="text-sm font-medium">{stats.remainingTermMsg}</span>
-				</div>
-			</div>
-		</Card>
+		<GlanceSection
+			rows={[
+				{ label: "Principal paid", value: formatCurrency(stats.principalPaid), tone: "success" },
+				{ label: "Interest paid", value: formatCurrency(stats.interestPaid) },
+				{ label: "Payment due", value: stats.paymentDueDate },
+				{
+					label: "Time left",
+					value: stats.remainingTermMsg === "N/A" ? "Not set" : stats.remainingTermMsg,
+					tone: stats.remainingTermMsg === "N/A" ? "muted" : undefined,
+				},
+			]}
+		/>
 	);
 }

@@ -17,7 +17,7 @@ import {
 	updateAccountPromotion,
 	refreshAccountPromotions,
 } from "@/lib/actions/promotion-actions";
-import type { AccountPromotion, PromotionType } from "@/app/balancesheet/types";
+import type { AccountPromotion, PromotionType } from "@/app/accounts/types";
 import { getTodayDateString } from "@/lib/date-utils";
 
 interface PromotionDialogProps {
@@ -67,7 +67,7 @@ export function PromotionDialog({ open, onOpenChange, accountId, promotion, onSu
 		e.preventDefault();
 
 		if (!title.trim() || !targetAmount || !rewardDescription.trim() || !endDate) {
-			toast.error("Please fill in all required fields");
+			toast.error("Fill in the required fields");
 			return;
 		}
 
@@ -94,7 +94,7 @@ export function PromotionDialog({ open, onOpenChange, accountId, promotion, onSu
 					onOpenChange(false);
 					onSuccess?.();
 				} else {
-					toast.error("Update Failed", { description: "Failed to update promotion." });
+					toast.error("Couldn't save the promotion", { description: "Try again in a moment." });
 				}
 			} else {
 				const created = await createAccountPromotion({
@@ -109,7 +109,7 @@ export function PromotionDialog({ open, onOpenChange, accountId, promotion, onSu
 				});
 
 				if (created) {
-					toast.success("Promotion created!");
+					toast.success("Promotion added");
 					onOpenChange(false);
 					onSuccess?.();
 				} else {

@@ -3,19 +3,24 @@
 import { useState, useEffect, useMemo } from "react";
 import Link from "next/link";
 import { useRouter } from "next/navigation";
-import { ArrowLeft, Trash2 } from "lucide-react";
+import { ArrowLeft, Minus, MoreHorizontal, Plus, Wallet } from "lucide-react";
 import { toast } from "sonner";
 
 import { Button } from "@/components/ui/button";
-import { PageShell, PageHeader, PageContent } from "@/components/layout/page-shell";
+import {
+	DropdownMenu,
+	DropdownMenuContent,
+	DropdownMenuItem,
+	DropdownMenuSeparator,
+	DropdownMenuTrigger,
+} from "@/components/ui/dropdown-menu";
+import { SurfacePage } from "@/components/layout/surface-page";
 import { DeleteConfirmDialog } from "@/components/dialogs/DeleteConfirmDialog";
 import { UnifiedTransactionDialog } from "@/components/dialogs/UnifiedTransactionDialog";
 
-import { BalanceCard } from "./components/BalanceCard";
-import { AccountStandingCard } from "./components/AccountStandingCard";
+import { BalanceHero } from "./components/balance-hero";
 import { PromotionsTrackerCard } from "./components/PromotionsTrackerCard";
 import { ContributionRoomCard } from "./components/ContributionRoomCard";
-import { QuickActionsCard } from "./components/QuickActionsCard";
 import { InsightsCard } from "./components/InsightsCard";
 import { PerformanceCard } from "./components/PerformanceCard";
 import { NotesCard } from "./components/NotesCard";
@@ -24,13 +29,16 @@ import { OtherAccountsCard } from "./components/OtherAccountsCard";
 import { EditAccountDialog } from "./components/EditAccountDialog";
 import { AccountTransactionDialog } from "./components/AccountTransactionDialog";
 
-import { deleteAccount, getAccountTransactions, getAccountById } from "../../actions";
-import { AccountDetailLoadingSkeleton } from "../../components/account-detail-loading-skeleton";
+import { deleteAccount, getAccountTransactions, getAccountById } from "../actions";
+import { AccountDetailLoadingSkeleton } from "../components/account-detail-loading-skeleton";
+import { TYPE_ICON } from "../components/account-row";
+import { sparklinePoints, type BalancePoint } from "../account-insights";
 import { useServerSyncedData } from "@/hooks/useServerSyncedData";
+import { cn } from "@/lib/utils";
 import { isInvestmentAccount } from "@/lib/account-validation-utils";
 import { isSampleDataActive } from "@/lib/demo-mode";
 import { useDemoStore } from "@/lib/demo-store";
-import type { AccountWithType, AccountTransaction } from "../../types";
+import type { AccountTypeCode, AccountWithType, AccountTransaction } from "../types";
 import type { AccountContribution } from "@/lib/types/contribution";
 
 interface AccountDetailClientProps {
@@ -40,6 +48,10 @@ interface AccountDetailClientProps {
 	transactions: AccountTransaction[];
 	otherAccounts: AccountWithType[];
 	contribution: AccountContribution | null;
+	/** Recorded balances, oldest first; today's balance is appended on the client. */
+	history: BalancePoint[];
+	/** YYYY-MM-DD in the user's timezone. */
+	today: string;
 }
 
 export function AccountDetailClient({
@@ -48,6 +60,8 @@ export function AccountDetailClient({
 	transactions: initialTransactions,
 	otherAccounts: serverOtherAccounts,
 	contribution,
+	history,
+	today,
 }: AccountDetailClientProps) {
 	const router = useRouter();
 
@@ -112,9 +126,9 @@ export function AccountDetailClient({
 	const [editingTransaction, setEditingTransaction] = useState<AccountTransaction | null>(null);
 
 	// If the account was deleted (here or in another tab), or is in neither the server data
-	// nor the demo store, go back to the balance sheet.
+	// nor the demo store, go back to the accounts list.
 	useEffect(() => {
-		if (dataSource !== "pending" && account === null) router.replace("/balancesheet");
+		if (dataSource !== "pending" && account === null) router.replace("/accounts");
 	}, [dataSource, account, router]);
 
 	if (!account) return dataSource === "pending" ? <AccountDetailLoadingSkeleton /> : null;
@@ -126,10 +140,10 @@ export function AccountDetailClient({
 		if (success) {
 			if (isDemo) useDemoStore.getState().removeAccount(account.id);
 			toast.success("Account deleted");
-			router.push("/balancesheet");
+			router.push("/accounts");
 		} else {
-			toast.error("Deletion Failed", {
-				description: "Could not delete the account. Please try again.",
+			toast.error("Couldn't delete the account", {
+				description: "Try again in a moment.",
 			});
 		}
 	};
@@ -186,104 +200,119 @@ export function AccountDetailClient({
 		}).format(amount);
 	};
 
+	const isLiability = accountClass === "liability";
+	const TypeIcon = TYPE_ICON[(account.account_type?.code as AccountTypeCode) ?? "other"] ?? Wallet;
+	const balanceHistory = sparklinePoints(history, Number(account.current_balance), today);
+
 	return (
-		<PageShell>
-			{/* Header */}
-			<PageHeader isSticky={false} className="flex items-center justify-between gap-4">
-				<div className="flex min-w-0 items-center gap-4">
-					<Link href="/balancesheet">
-						<Button variant="ghost" size="icon" className="shrink-0">
-							<ArrowLeft className="h-5 w-5" />
+		<SurfacePage>
+			<header className="flex flex-col gap-4">
+				<Link
+					href="/accounts"
+					className="type-body-sm inline-flex w-fit items-center gap-1.5 rounded-sm text-muted-foreground hover:text-primary focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring"
+				>
+					<ArrowLeft className="h-4 w-4" aria-hidden />
+					Accounts
+				</Link>
+				<div className="flex flex-wrap items-end justify-between gap-4">
+					<div className="flex min-w-0 items-center gap-3.5">
+						<span
+							className={cn(
+								"flex h-11 w-11 shrink-0 items-center justify-center rounded-full",
+								isLiability ? "bg-error-muted text-error" : "bg-card-muted text-primary"
+							)}
+							aria-hidden
+						>
+							<TypeIcon className="h-5 w-5" />
+						</span>
+						<div className="min-w-0">
+							<h1 className="type-h2 truncate text-primary">{account.name}</h1>
+							<p className="type-body truncate text-muted-foreground">
+								{[account.institution, account.account_type?.name].filter(Boolean).join(", ")}
+							</p>
+						</div>
+					</div>
+					<div className="flex w-full items-center gap-2 sm:w-auto">
+						<Button
+							onClick={handleRecordDeposit}
+							className="h-10 min-w-0 flex-1 gap-2 rounded-full px-3 sm:flex-none sm:pl-3.5 sm:pr-4"
+						>
+							<Plus className="hidden h-4 w-4 sm:block" aria-hidden />
+							{isLiability ? "Record Payment" : "Add Deposit"}
 						</Button>
-					</Link>
-					<div className="min-w-0">
-						<h1 className="truncate text-2xl font-bold tracking-tight">{account.name}</h1>
-						<p className="truncate text-sm text-primary">
-							{account.institution && `${account.institution} • `}
-							{account.account_type?.name}
-						</p>
+						<Button
+							variant="outline"
+							onClick={handleRecordWithdrawal}
+							className="h-10 min-w-0 flex-1 gap-2 rounded-full px-3 sm:flex-none sm:pl-3.5 sm:pr-4"
+						>
+							<Minus className="hidden h-4 w-4 sm:block" aria-hidden />
+							{isLiability ? "Record Charge" : "Record Withdrawal"}
+						</Button>
+						<DropdownMenu>
+							<DropdownMenuTrigger asChild>
+								<Button
+									variant="ghost"
+									size="icon"
+									className="h-10 w-10 shrink-0 rounded-full text-muted-foreground hover:text-primary"
+									aria-label={`More actions for ${account.name}`}
+								>
+									<MoreHorizontal className="h-5 w-5" />
+								</Button>
+							</DropdownMenuTrigger>
+							<DropdownMenuContent align="end">
+								<DropdownMenuItem onClick={() => setEditDialogOpen(true)}>Edit details</DropdownMenuItem>
+								<DropdownMenuSeparator />
+								<DropdownMenuItem className="text-error" onClick={() => setDeleteDialogOpen(true)}>
+									Delete account
+								</DropdownMenuItem>
+							</DropdownMenuContent>
+						</DropdownMenu>
 					</div>
 				</div>
-				<div className="flex items-center gap-2">
-					<Button
-						variant="ghost"
-						size="icon"
-						onClick={() => setDeleteDialogOpen(true)}
-						className="text-error hover:text-error"
-					>
-						<Trash2 className="h-4 w-4" />
-					</Button>
+			</header>
+
+			<BalanceHero
+				account={account}
+				transactions={transactions}
+				history={balanceHistory}
+				formatCurrency={formatCurrency}
+				onPayRemaining={(amount) => {
+					// Settle the debt as a transfer from a source account into this
+					// liability account, pre-filled with the outstanding amount.
+					setPayRemainingAmount(amount);
+					setTransactionDialogOpen(true);
+				}}
+			/>
+
+			{/* The wide column holds what people read and write (activity, promotions, notes); the
+			    narrow one holds short facts. Two columns only from xl, so the side never squeezes. */}
+			<div className="grid grid-cols-1 gap-5 lg:gap-6 xl:grid-cols-[minmax(0,1fr)_20rem] xl:items-start">
+				<div className="flex min-w-0 flex-col gap-5 lg:gap-6">
+					{(isInvestmentAccount(account) || account.track_contribution_room) && (
+						<ContributionRoomCard account={account} contribution={contribution} />
+					)}
+					<InsightsCard
+						account={account}
+						transactions={transactions}
+						accountClass={accountClass}
+						formatCurrency={formatCurrency}
+					/>
+					<ActivityCard
+						transactions={transactions}
+						isLoading={isLoadingTransactions}
+						isLiability={isLiability}
+						formatCurrency={formatCurrency}
+						onTransactionClick={handleTransactionClick}
+					/>
+					<PromotionsTrackerCard accountId={account.id} formatCurrency={formatCurrency} />
+					<NotesCard account={account} onAccountUpdated={handleAccountUpdated} />
 				</div>
-			</PageHeader>
 
-			<PageContent>
-				{/* Main grid layout - flex for responsiveness */}
-				<div className="flex flex-col lg:flex-row gap-6">
-					{/* Left Column - Main Content */}
-					<div className="flex-1 flex flex-col gap-6 min-w-0">
-						{/* Balance Card */}
-						<BalanceCard account={account} accountClass={accountClass} formatCurrency={formatCurrency} />
-
-						{/* Account Standing Card (Debt & Payment validation summary) */}
-						<AccountStandingCard
-							account={account}
-							transactions={transactions}
-							formatCurrency={formatCurrency}
-							onPayRemaining={(amount) => {
-								// Settle the debt as a transfer from a source account into this
-								// liability account, pre-filled with the outstanding amount.
-								setPayRemainingAmount(amount);
-								setTransactionDialogOpen(true);
-							}}
-						/>
-
-						{/* Investment deposits and contribution room */}
-						{(isInvestmentAccount(account) || account.track_contribution_room) && (
-							<ContributionRoomCard account={account} contribution={contribution} />
-						)}
-
-						{/* Welcome Bonuses & Promotions Tracker */}
-						<PromotionsTrackerCard accountId={account.id} formatCurrency={formatCurrency} />
-
-						{/* Insights Card */}
-						<InsightsCard
-							account={account}
-							transactions={transactions}
-							accountClass={accountClass}
-							formatCurrency={formatCurrency}
-						/>
-
-						{/* Activity Card */}
-						<ActivityCard
-							transactions={transactions}
-							isLoading={isLoadingTransactions}
-							isLiability={accountClass === "liability"}
-							formatCurrency={formatCurrency}
-							onTransactionClick={handleTransactionClick}
-						/>
-					</div>
-
-					{/* Right Column - Sidebar */}
-					<div className="w-full lg:w-80 flex flex-col gap-6 shrink-0">
-						{/* Quick Actions */}
-						<QuickActionsCard
-							isLiability={accountClass === "liability"}
-							onAddDeposit={handleRecordDeposit}
-							onRecordWithdrawal={handleRecordWithdrawal}
-							onEditDetails={() => setEditDialogOpen(true)}
-						/>
-
-						{/* Performance */}
-						<PerformanceCard account={account} transactions={transactions} formatCurrency={formatCurrency} />
-
-						{/* Notes */}
-						<NotesCard account={account} onAccountUpdated={handleAccountUpdated} />
-
-						{/* Other Accounts */}
-						<OtherAccountsCard accounts={otherAccounts} />
-					</div>
+				<div className="flex min-w-0 flex-col gap-5 lg:gap-6">
+					<PerformanceCard account={account} transactions={transactions} formatCurrency={formatCurrency} />
+					<OtherAccountsCard accounts={otherAccounts} />
 				</div>
-			</PageContent>
+			</div>
 
 			{/* Dialogs */}
 			<EditAccountDialog
@@ -296,8 +325,8 @@ export function AccountDetailClient({
 			<DeleteConfirmDialog
 				open={deleteDialogOpen}
 				onOpenChange={setDeleteDialogOpen}
-				title="Delete Account"
-				description={`Are you sure you want to delete "${account.name}"? This action cannot be undone.`}
+				title="Delete account"
+				description={`Delete "${account.name}" and its history? This can't be undone.`}
 				onConfirm={handleDelete}
 			/>
 
@@ -316,7 +345,7 @@ export function AccountDetailClient({
 				defaultAmount={payRemainingAmount ?? undefined}
 				defaultType={payRemainingAmount !== null ? "transfer" : transactionType === "deposit" ? "income" : "expense"}
 				onSuccess={handleTransactionSuccess}
-				context="balancesheet"
+				context="accounts"
 			/>
 
 			<AccountTransactionDialog
@@ -325,6 +354,6 @@ export function AccountDetailClient({
 				transaction={editingTransaction}
 				onSuccess={handleTransactionSuccess}
 			/>
-		</PageShell>
+		</SurfacePage>
 	);
 }

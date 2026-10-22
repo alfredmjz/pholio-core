@@ -12,7 +12,7 @@ import { toast } from "sonner";
 import { updateAccountTransaction, deleteAccountTransaction } from "@/lib/actions/account-transaction-actions";
 import { getTransactionDescriptions } from "@/lib/actions/unified-transaction-actions";
 import { AutocompleteInput } from "@/components/ui/autocomplete-input";
-import type { AccountTransaction } from "@/app/balancesheet/types";
+import type { AccountTransaction } from "@/app/accounts/types";
 import { FormSection } from "@/components/FormSection";
 import { ProminentAmountInput } from "@/components/ProminentAmountInput";
 import {
@@ -63,7 +63,7 @@ export function AccountTransactionDialog({
 		if (!transaction) return;
 
 		if (!amount || !date || !description.trim()) {
-			toast.error("Please fill in all required fields");
+			toast.error("Fill in the required fields");
 			return;
 		}
 
@@ -83,13 +83,13 @@ export function AccountTransactionDialog({
 				onOpenChange(false);
 				onSuccess?.();
 			} else {
-				toast.error("Update Failed", {
+				toast.error("Couldn't save the transaction", {
 					description: "Failed to update the transaction. Please try again.",
 				});
 			}
 		} catch (err) {
 			const errorMessage = err instanceof Error ? err.message : "An unexpected error occurred.";
-			toast.error("Error", { description: errorMessage });
+			toast.error("Something went wrong", { description: errorMessage });
 		} finally {
 			setIsLoading(false);
 		}
@@ -106,12 +106,12 @@ export function AccountTransactionDialog({
 				onOpenChange(false);
 				onSuccess?.();
 			} else {
-				toast.error("Delete Failed", {
+				toast.error("Couldn't delete the transaction", {
 					description: "Failed to delete the transaction. Please try again.",
 				});
 			}
 		} catch (err) {
-			toast.error("Error deleting transaction");
+			toast.error("Couldn't delete the transaction");
 		} finally {
 			setIsDeleting(false);
 		}
@@ -172,7 +172,7 @@ export function AccountTransactionDialog({
 						</AlertDialogTrigger>
 						<AlertDialogContent>
 							<AlertDialogHeader>
-								<AlertDialogTitle>Delete Transaction?</AlertDialogTitle>
+								<AlertDialogTitle>Delete this transaction?</AlertDialogTitle>
 								<AlertDialogDescription>
 									This will permanently delete this transaction and revert the account balance.
 									{transaction.linked_allocation_transaction_id &&

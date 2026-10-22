@@ -14,21 +14,22 @@ import { Button } from "@/components/ui/button";
 import { CancelShortcut, SubmitShortcut } from "@/components/common/dialog-shortcuts";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
-import { MinimalTiptap } from "@/components/ui/shadcn-io/minimal-tiptap";
-import { updateAccount } from "../../../actions";
+import { ScratchPad } from "@/components/common/scratch-pad";
+import { isNotesEmpty, notesToHtml } from "@/lib/notes";
+import { updateAccount } from "../../actions";
 import { isSampleDataActive } from "@/lib/demo-mode";
-import type { AccountWithType, AccountFieldConfig, UpdateAccountInput } from "../../../types";
+import type { AccountWithType, AccountFieldConfig, UpdateAccountInput } from "../../types";
 import { sanitizeDecimalInput, sanitizeIntegerInput } from "@/lib/input-utils";
-import { getFieldVisibility } from "../../../field-visibility";
-import { AccountFieldConfigurator } from "../../../components/AccountFieldConfigurator";
-import { ContributionRoomFields } from "../../../components/ContributionRoomFields";
+import { getFieldVisibility } from "../../field-visibility";
+import { AccountFieldConfigurator } from "../../components/AccountFieldConfigurator";
+import { ContributionRoomFields } from "../../components/ContributionRoomFields";
 import {
 	toContributionRoomInput,
 	toPlanRoomSetting,
 	validateContributionRoom,
 	withPlanRoom,
 	type ContributionRoomFormValues,
-} from "../../../contribution-room-form";
+} from "../../contribution-room-form";
 import { getContributionRooms, saveContributionRoom } from "@/lib/actions/contribution-actions";
 import { isRegisteredPlan } from "@/lib/contribution-plans";
 import type { ContributionRoomSetting } from "@/lib/types/contribution";
@@ -59,7 +60,7 @@ export function EditAccountDialog({ open, onOpenChange, account, onSuccess }: Ed
 		target_balance: account.target_balance?.toString() || "",
 		original_amount: account.original_amount?.toString() || "",
 		interest_rate: account.interest_rate ? (account.interest_rate * 100).toString() : "",
-		notes: account.notes || "",
+		notes: notesToHtml(account.notes),
 		payment_due_date: account.payment_due_date?.toString() || "",
 		credit_limit: account.credit_limit?.toString() || "",
 		loan_term_months: account.loan_term_months?.toString() || "",
@@ -120,7 +121,7 @@ export function EditAccountDialog({ open, onOpenChange, account, onSuccess }: Ed
 		setErrors(newErrors);
 
 		if (Object.keys(newErrors).length > 0) {
-			toast.error("Please fill in all required fields", {
+			toast.error("Fill in the required fields", {
 				description: "Check the form for displayed errors.",
 			});
 			return false;
@@ -140,7 +141,9 @@ export function EditAccountDialog({ open, onOpenChange, account, onSuccess }: Ed
 		try {
 			const planRoom = visibility.showContributionRoom ? toPlanRoomSetting(contribution, planRooms) : null;
 			if (planRoom && !(await saveContributionRoom(planRoom))) {
-				toast.error("Update Failed", { description: "Could not save your contribution room. Please try again." });
+				toast.error("Couldn't save your changes", {
+					description: "Could not save your contribution room. Please try again.",
+				});
 				return;
 			}
 
@@ -151,7 +154,7 @@ export function EditAccountDialog({ open, onOpenChange, account, onSuccess }: Ed
 				target_balance: visibility.showTargetGoal ? parseFloat(formData.target_balance) || null : null,
 				original_amount: visibility.showOriginalAmount ? parseFloat(formData.original_amount) || null : null,
 				interest_rate: formData.interest_rate ? parseFloat(formData.interest_rate) / 100 : null,
-				notes: formData.notes || null,
+				notes: isNotesEmpty(formData.notes) ? null : formData.notes,
 				payment_due_date: formData.payment_due_date ? parseInt(formData.payment_due_date) : null,
 				credit_limit: formData.credit_limit ? parseFloat(formData.credit_limit) : null,
 				loan_term_months: formData.loan_term_months ? parseInt(formData.loan_term_months) : null,
@@ -162,7 +165,7 @@ export function EditAccountDialog({ open, onOpenChange, account, onSuccess }: Ed
 			const result = isSampleDataActive() ? updates : await updateAccount(account.id, updates);
 
 			if (result) {
-				toast.success("Account updated successfully");
+				toast.success("Account updated");
 				onSuccess({
 					...account,
 					...result,
@@ -170,13 +173,13 @@ export function EditAccountDialog({ open, onOpenChange, account, onSuccess }: Ed
 				});
 				onOpenChange(false);
 			} else {
-				toast.error("Update Failed", {
+				toast.error("Couldn't save your changes", {
 					description: "Failed to update account details. Please try again.",
 				});
 			}
 		} catch (err) {
 			const errorMessage = err instanceof Error ? err.message : "An unexpected error occurred.";
-			toast.error("Update Error", {
+			toast.error("Something went wrong", {
 				description: errorMessage,
 			});
 		} finally {
@@ -188,8 +191,8 @@ export function EditAccountDialog({ open, onOpenChange, account, onSuccess }: Ed
 		<Dialog open={open} onOpenChange={onOpenChange}>
 			<DialogContent className="max-w-2xl sm:max-w-[650px]">
 				<DialogHeader>
-					<DialogTitle>Edit Account</DialogTitle>
-					<DialogDescription>Update your account details and settings</DialogDescription>
+					<DialogTitle>Edit account</DialogTitle>
+					<DialogDescription>Change this account's details and settings.</DialogDescription>
 				</DialogHeader>
 
 				<form onSubmit={handleSubmit} className="flex flex-col gap-6">
@@ -232,9 +235,7 @@ export function EditAccountDialog({ open, onOpenChange, account, onSuccess }: Ed
 					{/* Generic Base Fields */}
 					<div className="grid grid-cols-1 gap-4 sm:grid-cols-2">
 						<div className="space-y-2">
-							<Label htmlFor="current_balance">
-								Current Balance
-							</Label>
+							<Label htmlFor="current_balance">Current Balance</Label>
 							<Input
 								id="current_balance"
 								type="text"
@@ -439,10 +440,14 @@ export function EditAccountDialog({ open, onOpenChange, account, onSuccess }: Ed
 					{/* Notes */}
 					<div className="space-y-2">
 						<Label htmlFor="notes">Notes</Label>
-						<MinimalTiptap
-							content={formData.notes}
+						<ScratchPad
+							id="notes"
+							aria-label="Notes"
+							toolbar="always"
+							value={formData.notes}
 							onChange={(value) => setFormData({ ...formData, notes: value })}
-							placeholder="Add notes about this account..."
+							placeholder="Promo ends in May, call to lower the rate…"
+							minLines={3}
 						/>
 					</div>
 

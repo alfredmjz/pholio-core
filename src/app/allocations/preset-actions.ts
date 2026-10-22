@@ -13,10 +13,13 @@ export interface TransactionPreset {
 	name: string;
 	description: string;
 	amount: number;
-	type: "income" | "expense";
+	type: "income" | "expense" | "transfer";
 	transaction_type: string;
 	category_id: string | null;
+	/** For a transfer, the account the money leaves. */
 	account_id: string | null;
+	/** For a transfer, the account the money lands in; null for income and expenses. */
+	to_account_id?: string | null;
 	created_at?: string;
 	updated_at?: string;
 	category?: { name: string } | null;
@@ -37,12 +40,65 @@ let mockPresets: TransactionPreset[] = [
 		category_id: "transportation-cat-id",
 		account_id: "checking-account-id",
 	},
+	{
+		id: "mock-preset-2",
+		user_id: "mock-user",
+		name: "TFSA top-up",
+		description: "TFSA top-up",
+		amount: 200,
+		type: "transfer",
+		transaction_type: "transfer",
+		category_id: null,
+		account_id: "acc-1",
+		to_account_id: "acc-3",
+	},
 ];
+
+/**
+ * The transaction a preset records on one date. Transfers move money between the preset's two
+ * accounts and skip the budget; income and expenses land in the preset's category.
+ */
+function presetToInput(
+	preset: TransactionPreset,
+	entry: { date: string; amount: number; description: string; categoryId: string | null }
+): UnifiedTransactionInput | { error: string } {
+	if (preset.type === "transfer") {
+		if (!preset.account_id || !preset.to_account_id) {
+			return { error: "This transfer preset is missing an account. Edit it to pick both accounts." };
+		}
+		return {
+			description: entry.description,
+			amount: entry.amount,
+			date: entry.date,
+			type: "transfer",
+			categoryId: null,
+			accountId: null,
+			fromAccountId: preset.account_id,
+			toAccountId: preset.to_account_id,
+			transactionType: "transfer" as any,
+			source: "transfer",
+		};
+	}
+	return {
+		description: entry.description,
+		amount: entry.amount,
+		date: entry.date,
+		type: preset.type,
+		categoryId: entry.categoryId,
+		accountId: preset.account_id,
+		transactionType: preset.transaction_type as any,
+		source: "manual",
+	};
+}
 
 /**
  * Get all presets for the current user
  */
-export async function getTransactionPresets(): Promise<{ success: boolean; data?: TransactionPreset[]; error?: string }> {
+export async function getTransactionPresets(): Promise<{
+	success: boolean;
+	data?: TransactionPreset[];
+	error?: string;
+}> {
 	if (await isSampleDataMode()) {
 		return { success: true, data: mockPresets };
 	}
@@ -84,7 +140,9 @@ export async function getTransactionPresets(): Promise<{ success: boolean; data?
 /**
  * Create a new preset
  */
-export async function createTransactionPreset(input: CreateTransactionPresetInput): Promise<{ success: boolean; data?: TransactionPreset; error?: string }> {
+export async function createTransactionPreset(
+	input: CreateTransactionPresetInput
+): Promise<{ success: boolean; data?: TransactionPreset; error?: string }> {
 	if (await isSampleDataMode()) {
 		const newPreset: TransactionPreset = {
 			...input,
@@ -134,7 +192,10 @@ export async function createTransactionPreset(input: CreateTransactionPresetInpu
 /**
  * Update a preset
  */
-export async function updateTransactionPreset(id: string, input: CreateTransactionPresetInput): Promise<{ success: boolean; data?: TransactionPreset; error?: string }> {
+export async function updateTransactionPreset(
+	id: string,
+	input: CreateTransactionPresetInput
+): Promise<{ success: boolean; data?: TransactionPreset; error?: string }> {
 	if (await isSampleDataMode()) {
 		mockPresets = mockPresets.map((p) => (p.id === id ? { ...p, ...input, updated_at: new Date().toISOString() } : p));
 		revalidatePath("/allocations");
@@ -194,11 +255,7 @@ export async function deleteTransactionPreset(id: string): Promise<{ success: bo
 			return { success: false, error: "You must be logged in" };
 		}
 
-		const { error } = await supabase
-			.from("transaction_presets")
-			.delete()
-			.eq("id", id)
-			.eq("user_id", user.id);
+		const { error } = await supabase.from("transaction_presets").delete().eq("id", id).eq("user_id", user.id);
 
 		if (error) {
 			Logger.error("Error deleting preset", { error });
@@ -319,13 +376,16 @@ async function resolveCategoryForTargetDate(
 /**
  * Create a transaction from a preset
  */
-export async function createTransactionFromPreset(presetId: string, date: string): Promise<{ success: boolean; error?: string }> {
+export async function createTransactionFromPreset(
+	presetId: string,
+	date: string
+): Promise<{ success: boolean; error?: string }> {
 	const presetsRes = await getTransactionPresets();
 	if (!presetsRes.success || !presetsRes.data) {
 		return { success: false, error: presetsRes.error || "Failed to load presets" };
 	}
 
-	const preset = presetsRes.data.find(p => p.id === presetId);
+	const preset = presetsRes.data.find((p) => p.id === presetId);
 	if (!preset) {
 		return { success: false, error: "Preset not found" };
 	}
@@ -339,18 +399,16 @@ export async function createTransactionFromPreset(presetId: string, date: string
 		return { success: false, error: "Unauthorized" };
 	}
 
-	const resolvedCategoryId = await resolveCategoryForTargetDate(supabase, user.id, preset.category_id, date);
+	const resolvedCategoryId =
+		preset.type === "transfer" ? null : await resolveCategoryForTargetDate(supabase, user.id, preset.category_id, date);
 
-	const input: UnifiedTransactionInput = {
-		description: preset.description,
+	const input = presetToInput(preset, {
+		date,
 		amount: preset.amount,
-		date: date,
-		type: preset.type,
+		description: preset.description,
 		categoryId: resolvedCategoryId,
-		accountId: preset.account_id,
-		transactionType: preset.transaction_type as any,
-		source: "manual",
-	};
+	});
+	if ("error" in input) return { success: false, error: input.error };
 
 	return await createUnifiedTransaction(input);
 }
@@ -368,7 +426,7 @@ export async function createTransactionsFromPresetBulk(
 			return { success: false, error: presetsRes.error || "Failed to load presets" };
 		}
 
-		const preset = presetsRes.data.find(p => p.id === presetId);
+		const preset = presetsRes.data.find((p) => p.id === presetId);
 		if (!preset) {
 			return { success: false, error: "Preset not found" };
 		}
@@ -387,22 +445,20 @@ export async function createTransactionsFromPresetBulk(
 			if (entry.count <= 0) continue;
 
 			const compiledAmount = preset.amount * entry.count;
-			const compiledDescription = entry.count > 1 
-				? `${preset.description} (x${entry.count})` 
-				: preset.description;
+			const compiledDescription = entry.count > 1 ? `${preset.description} (x${entry.count})` : preset.description;
 
-			const resolvedCategoryId = await resolveCategoryForTargetDate(supabase, user.id, preset.category_id, entry.date);
+			const resolvedCategoryId =
+				preset.type === "transfer"
+					? null
+					: await resolveCategoryForTargetDate(supabase, user.id, preset.category_id, entry.date);
 
-			const input: UnifiedTransactionInput = {
-				description: compiledDescription,
-				amount: compiledAmount,
+			const input = presetToInput(preset, {
 				date: entry.date,
-				type: preset.type,
+				amount: compiledAmount,
+				description: compiledDescription,
 				categoryId: resolvedCategoryId,
-				accountId: preset.account_id,
-				transactionType: preset.transaction_type as any,
-				source: "manual",
-			};
+			});
+			if ("error" in input) return { success: false, error: input.error };
 
 			const res = await createUnifiedTransaction(input);
 			if (!res.success) {
@@ -412,11 +468,10 @@ export async function createTransactionsFromPresetBulk(
 		}
 
 		revalidatePath("/allocations");
-		revalidatePath("/balancesheet");
+		revalidatePath("/accounts");
 		return { success: true };
 	} catch (error) {
 		Logger.error("Unexpected error in createTransactionsFromPresetBulk", { error });
 		return { success: false, error: "An unexpected error occurred" };
 	}
 }
-

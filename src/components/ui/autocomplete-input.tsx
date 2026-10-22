@@ -110,7 +110,7 @@ export function AutocompleteInput({
 				autoComplete="off"
 			/>
 			{isOpen && filteredSuggestions.length > 0 && (
-				<div className="absolute left-0 right-0 z-50 mt-1 max-h-56 overflow-y-auto rounded-md border border-border bg-popover text-popover-foreground shadow-md">
+				<div className="absolute left-0 right-0 z-50 mt-1.5 max-h-56 overflow-y-auto rounded-2xl border border-border/80 bg-popover p-1.5 text-popover-foreground shadow-raised">
 					{filteredSuggestions.map((suggestion, index) => (
 						<div
 							key={suggestion}
@@ -120,8 +120,8 @@ export function AutocompleteInput({
 							}}
 							onMouseEnter={() => setHighlightedIndex(index)}
 							className={cn(
-								"w-full px-3 py-2 text-sm cursor-pointer select-none transition-colors text-left first:rounded-t-md last:rounded-b-md",
-								index === highlightedIndex ? "bg-hover text-primary font-medium" : "hover:bg-hover hover:text-primary"
+								"type-body-sm flex min-h-9 w-full cursor-pointer select-none items-center rounded-xl px-3 py-2 text-left text-primary transition-colors",
+								index === highlightedIndex && "bg-primary/[0.05]"
 							)}
 						>
 							{suggestion}

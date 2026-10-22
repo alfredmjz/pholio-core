@@ -35,6 +35,13 @@ const TabsTrigger = React.forwardRef<
 ));
 TabsTrigger.displayName = TabsPrimitive.Trigger.displayName;
 
+/**
+ * Plain underline tabs (e.g. "Enter details / From a preset"), for switching how a form is filled
+ * rather than what it is. Keyboard focus turns the underline accent instead of drawing a ring box.
+ */
+const UNDERLINE_TAB_CLASS =
+	"type-control -mb-px h-10 rounded-none border-b-2 border-transparent px-0 text-muted-foreground shadow-none data-[state=active]:border-primary data-[state=active]:bg-transparent data-[state=active]:text-primary data-[state=active]:shadow-none focus-visible:border-ring focus-visible:text-primary focus-visible:ring-0 focus-visible:ring-offset-0";
+
 const TabsContent = React.forwardRef<
 	React.ElementRef<typeof TabsPrimitive.Content>,
 	React.ComponentPropsWithoutRef<typeof TabsPrimitive.Content>
@@ -43,4 +50,4 @@ const TabsContent = React.forwardRef<
 ));
 TabsContent.displayName = TabsPrimitive.Content.displayName;
 
-export { Tabs, TabsList, TabsTrigger, TabsContent };
+export { Tabs, TabsList, TabsTrigger, TabsContent, UNDERLINE_TAB_CLASS };

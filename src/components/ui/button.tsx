@@ -11,7 +11,8 @@ const buttonVariants = cva(
 			variant: {
 				default: "bg-primary text-primary-foreground shadow hover:bg-primary/90",
 				destructive: "bg-error text-error-foreground shadow-sm hover:bg-error/90",
-				outline: "border border-border bg-background shadow-sm hover:bg-secondary text-primary",
+				// A hairline and a faint ink wash on hover: no fill, so it never reads as a black box in dark mode.
+				outline: "border border-border bg-transparent text-primary hover:border-border-strong hover:bg-primary/[0.04]",
 				secondary: "bg-secondary text-secondary-foreground shadow-sm hover:bg-secondary/90",
 				ghost: "hover:bg-hover hover:text-primary",
 				link: "text-primary underline-offset-4 hover:underline",

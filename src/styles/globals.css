@@ -1,4 +1,6 @@
 @import url("https://fonts.googleapis.com/css2?family=Instrument+Sans:ital,wght@0,400..700;1,400..700&display=swap");
+/* Handwriting for the notes scratch pad only. */
+@import url("https://fonts.googleapis.com/css2?family=Caveat:wght@400..600&display=swap");
 
 @tailwind base;
 @tailwind components;
@@ -449,12 +451,72 @@
 		font-variant-numeric: tabular-nums;
 	}
 
+	/* Hover adds no new lines: cards darken the border they already have, rows take a faint
+	   ink wash. Keyboard focus keeps a full ring. */
 	.card-interactive {
-		@apply transition-colors duration-200 hover:border-primary/60 hover:ring-1 hover:ring-primary/25 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring focus-visible:ring-offset-2 focus-visible:ring-offset-background;
+		@apply transition-colors duration-200 hover:border-primary/35 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring focus-visible:ring-offset-2 focus-visible:ring-offset-background;
 	}
 
 	.row-interactive {
-		@apply transition-colors duration-200 hover:ring-1 hover:ring-inset hover:ring-primary/25 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-inset focus-visible:ring-ring;
+		@apply transition-colors duration-200 hover:bg-primary/[0.035] focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-inset focus-visible:ring-ring;
+	}
+}
+
+/* ------------------------------------------------------------------ dragging */
+/* While a row is being dragged (dnd-kit marks its handle aria-pressed), keep the closed hand
+   wherever the pointer goes, not only over the handle. */
+body:has([aria-roledescription="sortable"][aria-pressed="true"]),
+body:has([aria-roledescription="sortable"][aria-pressed="true"]) * {
+	cursor: grabbing !important;
+}
+
+/* ------------------------------------------------------------------ scrollbars */
+/* One thin, quiet scrollbar everywhere: a rounded ink thumb on no track, faint at rest, a little
+   darker while the scrolling area is under the pointer, darkest while held. The track is inset
+   at the ends so the thumb clears a dialog's rounded corners. */
+
+/* Chromium (Chrome, Edge, the Android shell). Set without the standard properties below, since
+   Chromium ignores these pseudo-elements once scrollbar-width/scrollbar-color are set. */
+::-webkit-scrollbar {
+	width: 10px;
+	height: 10px;
+}
+
+::-webkit-scrollbar-track,
+::-webkit-scrollbar-corner {
+	background: transparent;
+}
+
+::-webkit-scrollbar-track {
+	margin-block: 14px;
+}
+
+::-webkit-scrollbar-thumb {
+	/* The transparent border keeps the visible thumb 4px wide inside a 10px hit area. */
+	border: 3px solid transparent;
+	border-radius: 9999px;
+	background-clip: padding-box;
+	background-color: hsl(var(--foreground) / 0.14);
+}
+
+:hover::-webkit-scrollbar-thumb {
+	background-color: hsl(var(--foreground) / 0.24);
+}
+
+::-webkit-scrollbar-thumb:hover,
+::-webkit-scrollbar-thumb:active {
+	background-color: hsl(var(--foreground) / 0.4);
+}
+
+::-webkit-scrollbar-button {
+	display: none;
+}
+
+/* Firefox: the standard thin scrollbar in the same ink. */
+@supports not selector(::-webkit-scrollbar) {
+	* {
+		scrollbar-width: thin;
+		scrollbar-color: hsl(var(--foreground) / 0.22) transparent;
 	}
 }
 

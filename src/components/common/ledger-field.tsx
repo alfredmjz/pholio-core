@@ -18,6 +18,12 @@ type FieldLine = {
 
 type Pointer = { x: number; y: number } | null;
 
+/**
+ * Kept across mounts, so moving between pages continues the drift instead of restarting it
+ * (and the fade-in plays once per visit, not on every page).
+ */
+let memory: { lines: FieldLine[]; shown: boolean } | null = null;
+
 // Defaults match the paper login. A page can recolor the field by setting `--ledger-ink` and
 // `--ledger-tint` (RGB triplets, e.g. "44, 40, 34") and scale every line with `--ledger-strength`.
 const INK = "44, 40, 34";
@@ -55,6 +61,7 @@ function makeLines(height: number): FieldLine[] {
 		slope: (random() - 0.5) * 26,
 		speed: 22 + random() * 54,
 		segment: 70 + random() * 150,
+		// Distance travelled along the line by the moving stroke; it wraps once fully off-screen.
 		progress: random() * 900,
 		direction: random() > 0.35 ? 1 : -1,
 		alpha: 0.06 + random() * 0.05,
@@ -135,12 +142,16 @@ export function LedgerField({ className = "" }: { className?: string }) {
 			width = Math.max(1, rect.width);
 			height = Math.max(1, rect.height);
 
-			const dpr = Math.min(window.devicePixelRatio || 1, 2);
+			// Hairlines stay crisp at 1.5x and it is far less to clear and redraw each frame.
+			const dpr = Math.min(window.devicePixelRatio || 1, 1.5);
 			canvas.width = Math.round(width * dpr);
 			canvas.height = Math.round(height * dpr);
 			context.setTransform(dpr, 0, 0, dpr, 0, 0);
 
-			lines = makeLines(height);
+			const fresh = makeLines(height);
+			// Same number of lines (the usual case): keep where each one had got to.
+			lines = memory && memory.lines.length === fresh.length ? memory.lines : fresh;
+			memory = { lines, shown: memory?.shown ?? false };
 		};
 
 		const drawLines = (time: number, delta: number) => {
@@ -148,7 +159,8 @@ export function LedgerField({ className = "" }: { className?: string }) {
 			context.lineCap = "round";
 			context.lineJoin = "round";
 
-			const fade = start === 0 ? 0 : Math.min(1, (time - start) / 1300);
+			const fade = memory?.shown ? 1 : start === 0 ? 0 : Math.min(1, (time - start) / 1300);
+			if (fade >= 1 && memory) memory.shown = true;
 
 			for (const line of lines) {
 				const { points, length } = buildPath(line, width, height, pointer, time);
@@ -163,12 +175,15 @@ export function LedgerField({ className = "" }: { className?: string }) {
 
 				if (reduceMotion.matches) continue;
 
+				// The stroke starts wholly before the line's start and ends wholly past its end
+				// (both off-screen), so it slides in from one edge and out the other and the
+				// wrap-around is never seen.
 				const cycle = length + line.segment;
 				line.progress = (line.progress + line.speed * delta) % cycle;
-				const offset = line.direction === 1 ? -line.progress : cycle - line.progress;
+				const strokeStart = line.direction === 1 ? line.progress - line.segment : length - line.progress;
 
-				context.setLineDash([line.segment, length + line.segment]);
-				context.lineDashOffset = offset;
+				context.setLineDash([line.segment, length + line.segment * 2]);
+				context.lineDashOffset = -strokeStart;
 
 				context.lineWidth = 5;
 				context.strokeStyle = `rgba(${tint}, ${0.045 * fade * strength})`;

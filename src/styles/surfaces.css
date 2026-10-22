@@ -33,15 +33,23 @@
 	mask-image: linear-gradient(to bottom, black 0%, black 70%, transparent 100%);
 }
 
+/* Desktop: the lines run under the sidebar too, as one continuous background (the sidebar is
+   transparent from lg). Phones keep the backdrop inside the page. */
+@media (min-width: 1024px) {
+	.surface-backdrop {
+		position: fixed;
+		inset: 0;
+		height: auto;
+		margin-bottom: 0;
+	}
+}
+
+/* No blend mode: it forced the whole page to recomposite on every animation frame. The lines
+   are drawn in ink with alpha (light ink in dark mode), which reads the same. */
 .surface-backdrop-canvas {
 	display: block;
 	width: 100%;
 	height: 100%;
-	mix-blend-mode: multiply;
-}
-
-.dark .surface-backdrop-canvas {
-	mix-blend-mode: screen;
 }
 
 /* ------------------------------------------------------------------ sheets */
@@ -51,10 +59,10 @@
 	min-width: 0;
 	border: 1px solid hsl(var(--border) / 0.85);
 	border-radius: var(--surface-radius, 22px);
-	background: hsl(var(--card) / 0.8);
+	/* Firm enough to read on its own; no backdrop blur, which re-blurred the moving lines behind
+	   every sheet on every frame and dropped frames. */
+	background: hsl(var(--card) / 0.88);
 	box-shadow: var(--shadow-card);
-	-webkit-backdrop-filter: blur(12px) saturate(1.15);
-	backdrop-filter: blur(12px) saturate(1.15);
 }
 
 .surface-sheet-pad {
@@ -65,6 +73,12 @@
 	.surface-sheet-pad {
 		padding: 24px 26px;
 	}
+}
+
+/* A list whose rows switch to columns by their own width (Tailwind variant `row-wide:`), so
+ * a list in a narrow column stacks instead of spilling out of its sheet. */
+.rows-container {
+	container: rows / inline-size;
 }
 
 /* --------------------------------------------------------------- amount field */
@@ -139,5 +153,202 @@
 @media (prefers-reduced-motion: reduce) {
 	.field-amount::after {
 		transition: none;
+	}
+}
+
+/* ---------------------------------------------------------------- scratch pad */
+
+/* Account notes (<ScratchPad>, src/components/common/scratch-pad.tsx): ink handwriting on faint
+   ruled lines, straight on the sheet. Every block keeps to the ruled rhythm, so writing sits on
+   the lines whatever mix of headings, lists and paragraphs it has. */
+.scratch-pad {
+	--pad-line: 1.85rem;
+	--pad-text: 1.35rem;
+	/* Where a line of text sits in its line box. For Caveat (ascent 0.96em, descent 0.30em) the
+	   baseline is half a line plus 0.33em down; the headings below use the same formula. */
+	--pad-baseline-em: 0.33;
+}
+
+.scratch-pad-content,
+.scratch-pad-placeholder {
+	font-family: theme("fontFamily.hand");
+	font-size: var(--pad-text);
+	font-weight: 500;
+	line-height: var(--pad-line);
+	overflow-wrap: anywhere;
+}
+
+.scratch-pad-content {
+	min-height: calc(var(--pad-line) * var(--pad-min-lines, 4));
+	color: hsl(var(--foreground));
+	background-image: repeating-linear-gradient(
+		to bottom,
+		transparent 0,
+		transparent calc(var(--pad-line) - 1px),
+		hsl(var(--foreground) / 0.08) calc(var(--pad-line) - 1px),
+		hsl(var(--foreground) / 0.08) var(--pad-line)
+	);
+	/* Lift the rules from the bottom of each line box to just under the writing (2px below the
+	   baseline), so the words sit on the lines like on ruled paper. */
+	background-position: 0 calc(var(--pad-baseline-em) * var(--pad-text) + 2px - var(--pad-line) / 2);
+	background-attachment: local;
+	caret-color: hsl(var(--foreground));
+	outline: none;
+}
+
+.scratch-pad-placeholder {
+	position: absolute;
+	inset: 0 auto auto 0;
+	pointer-events: none;
+	color: hsl(var(--text-muted) / 0.7);
+}
+
+.scratch-pad-content p,
+.scratch-pad-content h1,
+.scratch-pad-content h2,
+.scratch-pad-content ul,
+.scratch-pad-content ol,
+.scratch-pad-content blockquote {
+	margin: 0;
+}
+
+/* Bigger writing has a lower baseline in the same line box; nudge each heading so its baseline
+   lands on a rule like the body text. A heading takes two lines and sits on the second rule. */
+.scratch-pad-content h1 {
+	position: relative;
+	top: calc(var(--pad-line) / 2 + var(--pad-baseline-em) * (var(--pad-text) - 2rem));
+	font-size: 2rem;
+	font-weight: 700;
+	line-height: calc(var(--pad-line) * 2);
+}
+
+.scratch-pad-content h2 {
+	position: relative;
+	top: calc(var(--pad-baseline-em) * (var(--pad-text) - 1.6rem));
+	font-size: 1.6rem;
+	font-weight: 700;
+}
+
+.scratch-pad-content ul,
+.scratch-pad-content ol {
+	padding-left: 1.6rem;
+}
+
+.scratch-pad-content ul {
+	list-style: disc;
+}
+
+.scratch-pad-content ol {
+	list-style: decimal;
+}
+
+.scratch-pad-content li::marker {
+	color: hsl(var(--foreground) / 0.5);
+}
+
+.scratch-pad-content blockquote {
+	padding-left: 0.9rem;
+	border-left: 2px solid hsl(var(--foreground) / 0.2);
+	color: hsl(var(--text-muted));
+}
+
+/* globals.css restores list and quote spacing for rich text with !important rules on
+   .ProseMirror; inside the pad every item must take exactly one ruled line, so win them back. */
+.scratch-pad .scratch-pad-content ul,
+.scratch-pad .scratch-pad-content ol,
+.scratch-pad .scratch-pad-content li,
+.scratch-pad .scratch-pad-content blockquote {
+	margin-top: 0 !important;
+	margin-bottom: 0 !important;
+}
+
+.scratch-pad .scratch-pad-content ul,
+.scratch-pad .scratch-pad-content ol {
+	padding-left: 1.6rem !important;
+}
+
+.scratch-pad .scratch-pad-content blockquote {
+	padding-left: 0.9rem !important;
+	border-left: 2px solid hsl(var(--foreground) / 0.2) !important;
+	font-style: normal !important;
+	opacity: 1 !important;
+	color: hsl(var(--text-muted)) !important;
+}
+
+.scratch-pad-content strong {
+	font-weight: 700;
+}
+
+.scratch-pad-content ::selection {
+	background: hsl(var(--accent) / 0.2);
+}
+
+/* ---------------------------------------------------------------- progress line */
+
+/* Every progress bar (<ProgressLine>, src/components/ui/progress-line.tsx): the filled part is a
+   wave, the rest a flat faint track. As the bar fills, the wave rolls in with it; once it
+   reaches its value it rests. The shape and timing live in these variables so a theme can swap
+   them (a flat --progress-wave makes a straight bar) without touching components. */
+:root {
+	--progress-wave: url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' width='28' height='8' viewBox='0 0 28 8'%3E%3Cpath d='M0 4C7 1 7 1 14 4s7 3 14 0' fill='none' stroke='black' stroke-width='2'/%3E%3C/svg%3E");
+	--progress-wave-width: 28px;
+	--progress-height: 8px;
+	--progress-track: 2px;
+	--progress-duration: 1.2s;
+	--progress-ease: cubic-bezier(0.22, 1, 0.36, 1);
+}
+
+.progress-line {
+	position: relative;
+	height: var(--progress-height);
+}
+
+.progress-line-track {
+	position: absolute;
+	inset-inline: 0;
+	top: 50%;
+	height: var(--progress-track);
+	transform: translateY(-50%);
+	border-radius: 9999px;
+	background: hsl(var(--foreground) / 0.1);
+	transition: left var(--progress-duration) var(--progress-ease);
+}
+
+.progress-line-fill {
+	position: absolute;
+	inset-block: 0;
+	left: 0;
+	overflow: hidden;
+	transition: width var(--progress-duration) var(--progress-ease);
+}
+
+/* Two wavelengths wider than the fill. It rolls right by two wavelengths in step with the fill,
+   once, and holds; a whole number of wavelengths means it ends exactly where a still wave sits. */
+.progress-line-wave {
+	position: absolute;
+	inset-block: 0;
+	left: 0;
+	width: calc(100% + 2 * var(--progress-wave-width));
+	-webkit-mask: var(--progress-wave) repeat-x 0 50% / var(--progress-wave-width) var(--progress-height);
+	mask: var(--progress-wave) repeat-x 0 50% / var(--progress-wave-width) var(--progress-height);
+	animation: progress-wave var(--progress-duration) var(--progress-ease) 1 both;
+}
+
+@keyframes progress-wave {
+	from {
+		transform: translateX(calc(-2 * var(--progress-wave-width)));
+	}
+	to {
+		transform: translateX(0);
+	}
+}
+
+@media (prefers-reduced-motion: reduce) {
+	.progress-line-fill,
+	.progress-line-track {
+		transition: none;
+	}
+	.progress-line-wave {
+		animation: none;
 	}
 }

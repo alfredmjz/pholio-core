@@ -31,8 +31,10 @@ export function SurfaceSection({
 			aria-labelledby={id}
 			className={cn("surface-sheet surface-sheet-pad", fill && "flex h-full flex-col", className)}
 		>
-			<div className="flex items-baseline justify-between gap-4">
-				<div className="min-w-0">
+			{/* Wraps rather than squeezing: the title keeps room to read, and actions drop below it
+			    when a narrow column can't fit both on one line. */}
+			<div className="flex flex-wrap items-baseline justify-between gap-x-4 gap-y-2">
+				<div className="min-w-[min(100%,11rem)] flex-1">
 					<h2 id={id} className="type-h4 text-primary">
 						{title}
 					</h2>

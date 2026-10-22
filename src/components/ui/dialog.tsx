@@ -54,6 +54,8 @@ const DialogFooter = ({ className, ...props }: React.HTMLAttributes<HTMLDivEleme
 	<div
 		className={cn(
 			"sticky bottom-0 z-10 -mx-5 -mb-5 mt-6 flex flex-col-reverse gap-2 border-t border-border/70 bg-card px-5 py-4",
+			// Footer actions are pills, like the page buttons that open the dialog.
+			"[&>button]:h-10 [&>button]:rounded-full [&>button]:px-5",
 			"sm:-mx-7 sm:-mb-7 sm:flex-row sm:justify-end sm:gap-3 sm:px-7",
 			className
 		)}

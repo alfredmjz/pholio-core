@@ -43,6 +43,9 @@ async function deposit(page: Page, amount: string) {
 // Issue #121: registered-plan room belongs to the person, so every account of the plan shares
 // one room derived from the ledger in PostgreSQL. Going over it only warns, never blocks.
 test("accounts of one plan share contribution room and warn on an over-contribution", async ({ page }, testInfo) => {
+	// Two account creations and two deposits: past the default 30s on a loaded CI runner, and a
+	// timed-out attempt leaves its deposit in the shared pool, so a retry can't recover.
+	test.slow();
 	const plan = PLAN_BY_PROJECT[testInfo.project.name] ?? "TFSA";
 	const firstName = uniqueName(`E2E ${plan} One`, testInfo.project.name);
 	const secondName = uniqueName(`E2E ${plan} Two`, testInfo.project.name);

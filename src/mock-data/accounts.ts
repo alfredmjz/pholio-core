@@ -1,12 +1,12 @@
 import type {
 	AccountType,
 	AccountWithType,
-	BalanceSheetSummary,
+	AccountsSummary,
 	AccountTransaction,
 	HistoricalDataPoint,
 	AccountHistory,
-} from "@/app/balancesheet/types";
-import type { RecentActivityItem } from "@/app/balancesheet/actions";
+} from "@/app/accounts/types";
+import type { RecentActivityItem } from "@/app/accounts/actions";
 import { getDemoNow, daysBefore, toDateOnly } from "./demo-date";
 
 // Sample account types (mimicking system defaults)
@@ -312,7 +312,12 @@ export const sampleAccounts: AccountWithType[] = [
 ];
 
 // Helper to generate mock historical data for the last 30 days
-const generateHistoricalData = (startValue: number, endValue: number, variance: number = 0.01, now: Date = getDemoNow()) => {
+const generateHistoricalData = (
+	startValue: number,
+	endValue: number,
+	variance: number = 0.01,
+	now: Date = getDemoNow()
+) => {
 	const points: HistoricalDataPoint[] = [];
 	const steps = 30;
 
@@ -334,7 +339,7 @@ const generateHistoricalData = (startValue: number, endValue: number, variance: 
 	return points;
 };
 
-export function getSampleBalanceSheetSummary(now: Date = getDemoNow()): BalanceSheetSummary {
+export function getSampleAccountsSummary(now: Date = getDemoNow()): AccountsSummary {
 	return {
 		totalAssets: 85600,
 		totalLiabilities: 20950,

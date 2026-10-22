@@ -5,7 +5,7 @@ import { computeMonthPace, type PaceExpense } from "@/app/dashboard/month-pace";
 import { buildMonthlyCashflow, type CashflowTransaction } from "@/app/dashboard/cashflow";
 import { buildHeadsUp, selectUpcomingBills, type BillInput, type HeadsUpPromotion } from "@/app/dashboard/heads-up";
 import { getDaysInMonth } from "@/lib/date-utils";
-import { sampleAccounts } from "./balancesheet";
+import { sampleAccounts } from "./accounts";
 import { getSmartMockData } from "./allocations";
 import { getDemoNow, daysBefore, toDateOnly } from "./demo-date";
 
@@ -174,7 +174,7 @@ function sampleTypicalCurve(budget: number): number[] {
 	return Array.from({ length: 31 }, (_, i) => Math.round(budget * Math.pow((i + 1) / 31, 0.7)));
 }
 
-function samplePromotions(now: Date): HeadsUpPromotion[] {
+export function samplePromotions(now: Date = getDemoNow()): HeadsUpPromotion[] {
 	return [
 		{
 			id: "promo-sample-1",

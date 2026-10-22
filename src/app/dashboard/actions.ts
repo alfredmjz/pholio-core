@@ -8,13 +8,14 @@ import { getSampleDashboardData } from "@/mock-data/dashboard";
 import { getTimezone } from "@/app/settings/actions";
 import { getAllocationSummary, getHistoricalPace } from "@/app/allocations/actions";
 import { getRecurringExpenses, type RecurringExpense } from "@/app/recurring/actions";
-import type { AccountWithType } from "@/app/balancesheet/types";
+import { getOpenPromotions } from "@/lib/actions/promotion-actions";
+import type { AccountWithType } from "@/app/accounts/types";
 import type { AllocationSummary } from "@/app/allocations/types";
 import type { DashboardAccount, DashboardData, Transaction } from "./types";
 import { buildNetWorthSeries, rangeStartDate, type BalanceRecord } from "./net-worth-series";
 import { computeMonthPace } from "./month-pace";
 import { buildMonthlyCashflow, cashflowWindowStart, isTransfer } from "./cashflow";
-import { buildHeadsUp, selectUpcomingBills, type BillInput, type HeadsUpPromotion } from "./heads-up";
+import { buildHeadsUp, selectUpcomingBills, type BillInput } from "./heads-up";
 
 const CASHFLOW_MONTHS = 6;
 const RECENT_LIMIT = 8;
@@ -44,7 +45,7 @@ export async function getDashboardData(): Promise<DashboardData> {
 	const year = todayDate.getFullYear();
 	const month = todayDate.getMonth() + 1;
 
-	const [accountsResult, historyResult, transactionsResult, allocationResult, promotionsResult] = await Promise.all([
+	const [accountsResult, historyResult, transactionsResult, allocationResult] = await Promise.all([
 		supabase.from("accounts").select(`*, account_type:account_types(*)`).eq("user_id", user.id).eq("is_active", true),
 		supabase
 			.from("account_history")
@@ -59,14 +60,6 @@ export async function getDashboardData(): Promise<DashboardData> {
 			.gte("transaction_date", cashflowWindowStart(today, CASHFLOW_MONTHS))
 			.lte("transaction_date", today),
 		supabase.from("allocations").select("id").eq("user_id", user.id).eq("year", year).eq("month", month).maybeSingle(),
-		supabase
-			.from("account_promotions")
-			.select(
-				"id, account_id, promotion_type, target_amount, current_amount, reward_description, end_date, is_completed, account:accounts(name)"
-			)
-			.eq("user_id", user.id)
-			.eq("is_completed", false)
-			.gte("end_date", today),
 	]);
 
 	for (const [label, result] of Object.entries({
@@ -74,7 +67,6 @@ export async function getDashboardData(): Promise<DashboardData> {
 		history: historyResult,
 		transactions: transactionsResult,
 		allocation: allocationResult,
-		promotions: promotionsResult,
 	})) {
 		if (result.error) Logger.error(`Dashboard: error fetching ${label}`, { error: result.error });
 	}
@@ -82,11 +74,12 @@ export async function getDashboardData(): Promise<DashboardData> {
 	const accounts = (accountsResult.data ?? []) as AccountWithType[];
 	const allocationId = (allocationResult.data as { id: string } | null)?.id;
 
-	const [summary, typicalPace, recurring, recentTransactions] = await Promise.all([
+	const [summary, typicalPace, recurring, recentTransactions, promotions] = await Promise.all([
 		allocationId ? getAllocationSummary(allocationId) : Promise.resolve<AllocationSummary | null>(null),
 		getHistoricalPace(year, month),
 		getRecurringExpenses(),
 		getRecentTransactions(RECENT_LIMIT),
+		getOpenPromotions(today),
 	]);
 
 	const balanceAccounts = accounts.map((a) => ({
@@ -124,18 +117,6 @@ export async function getDashboardData(): Promise<DashboardData> {
 			: null;
 
 	const bills = recurring.map(toBillInput);
-
-	const promotions: HeadsUpPromotion[] = (promotionsResult.data ?? []).map((p: any) => ({
-		id: p.id,
-		accountId: p.account_id,
-		accountName: p.account?.name ?? "this account",
-		type: p.promotion_type,
-		target: Number(p.target_amount),
-		current: Number(p.current_amount),
-		reward: p.reward_description,
-		endDate: String(p.end_date).slice(0, 10),
-		isCompleted: Boolean(p.is_completed),
-	}));
 
 	const categories = summary?.categories ?? [];
 

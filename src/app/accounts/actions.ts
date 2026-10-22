@@ -7,9 +7,11 @@ import {
 	sampleAccountTypes,
 	getSampleAccountTransactions,
 	getSampleAccountHistory,
-} from "@/mock-data/balancesheet";
+} from "@/mock-data/accounts";
 import { Logger } from "@/lib/logger";
 import { isSampleDataMode } from "@/lib/demo-mode.server";
+import { formatDateString } from "@/lib/date-utils";
+import type { BalancePoint } from "./account-insights";
 
 import type {
 	Account,
@@ -17,7 +19,7 @@ import type {
 	AccountType,
 	AccountHistory,
 	AccountTransaction,
-	BalanceSheetSummary,
+	AccountsSummary,
 	CreateAccountInput,
 	UpdateAccountInput,
 	RecordTransactionInput,
@@ -139,7 +141,7 @@ export async function migrateAccountTypes(updates: AccountTypeMigrationUpdate[])
 		}
 	}
 
-	revalidatePath("/balancesheet");
+	revalidatePath("/accounts");
 	revalidatePath("/dashboard");
 	return true;
 }
@@ -219,9 +221,9 @@ export async function getAccountById(id: string): Promise<AccountWithType | null
 }
 
 /**
- * Get balance sheet summary (totals and grouped accounts)
+ * Get the accounts summary (totals and grouped accounts)
  */
-export async function getBalanceSheetSummary(): Promise<BalanceSheetSummary> {
+export async function getAccountsSummary(): Promise<AccountsSummary> {
 	const accounts = await getAccounts();
 
 	const assetAccounts = accounts.filter((acc) => acc.account_type?.class === "asset");
@@ -350,7 +352,7 @@ export async function createAccount(input: CreateAccountInput): Promise<AccountW
 		return null;
 	}
 
-	revalidatePath("/balancesheet");
+	revalidatePath("/accounts");
 	return data;
 }
 
@@ -370,7 +372,8 @@ function buildSampleAccount(input: CreateAccountInput, id = `account-sample-${Da
 		institution: input.institution ?? null,
 		account_number_last4: input.account_number_last4 ?? null,
 		current_balance: input.current_balance,
-		currency: input.currency ?? "USD",
+		// Same default as accounts.currency in the database.
+		currency: input.currency ?? "CAD",
 		credit_limit: input.credit_limit ?? null,
 		original_amount: input.original_amount ?? null,
 		interest_rate: input.interest_rate ?? null,
@@ -429,7 +432,7 @@ export async function updateAccount(id: string, input: UpdateAccountInput): Prom
 		return null;
 	}
 
-	revalidatePath("/balancesheet");
+	revalidatePath("/accounts");
 	return data;
 }
 
@@ -459,7 +462,7 @@ export async function deleteAccount(id: string): Promise<boolean> {
 		return false;
 	}
 
-	revalidatePath("/balancesheet");
+	revalidatePath("/accounts");
 	revalidatePath("/allocations");
 	revalidatePath("/dashboard");
 	return true;
@@ -495,7 +498,7 @@ export async function reorderAccounts(accountOrders: { id: string; display_order
 		return false;
 	}
 
-	revalidatePath("/balancesheet");
+	revalidatePath("/accounts");
 	return true;
 }
 
@@ -581,7 +584,7 @@ export async function recordTransaction(input: RecordTransactionInput): Promise<
 		return null;
 	}
 
-	revalidatePath("/balancesheet");
+	revalidatePath("/accounts");
 	return transaction;
 }
 
@@ -649,6 +652,52 @@ export async function getAccountHistory(accountId: string, limit: number = 30): 
 	}
 
 	return data || [];
+}
+
+/**
+ * Each account's recorded balances over the last `days` days, for the sparklines on the
+ * Accounts page. One query for all accounts, grouped by account id.
+ */
+export async function getAccountSparklines(days: number = 30): Promise<Record<string, BalancePoint[]>> {
+	if (await isSampleDataMode()) {
+		const history = getSampleAccountHistory();
+		return Object.fromEntries(
+			Object.entries(history).map(([id, rows]) => [
+				id,
+				rows.map((row) => ({ date: String(row.recorded_at).slice(0, 10), balance: Number(row.balance) })),
+			])
+		);
+	}
+
+	const supabase = await createClient();
+	const {
+		data: { user },
+	} = await supabase.auth.getUser();
+	if (!user) return {};
+
+	const since = new Date();
+	since.setDate(since.getDate() - days);
+
+	const { data, error } = await supabase
+		.from("account_history")
+		.select("account_id, balance, recorded_at")
+		.eq("user_id", user.id)
+		.gte("recorded_at", formatDateString(since))
+		.order("recorded_at", { ascending: true });
+
+	if (error) {
+		Logger.error("Error fetching account sparklines", { error });
+		return {};
+	}
+
+	const byAccount: Record<string, BalancePoint[]> = {};
+	for (const row of data ?? []) {
+		(byAccount[row.account_id] ??= []).push({
+			date: String(row.recorded_at).slice(0, 10),
+			balance: Number(row.balance),
+		});
+	}
+	return byAccount;
 }
 
 /**

@@ -4,7 +4,7 @@ import { useState, useEffect } from "react";
 import { ControlBasedDialog } from "@/components/dialogWrapper";
 import { DialogFooter } from "@/components/ui/dialog";
 import { Button } from "@/components/ui/button";
-import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
+import { Tabs, TabsContent, TabsList, TabsTrigger, UNDERLINE_TAB_CLASS } from "@/components/ui/tabs";
 import { FileText, Download, Loader2, Calendar } from "lucide-react";
 import { exportTransactions } from "../utils/exportUtils";
 import { toast } from "sonner";
@@ -35,10 +35,6 @@ const MONTHS = [
 	{ value: 11, label: "November" },
 	{ value: 12, label: "December" },
 ];
-
-/** Underline tabs, matching the transaction dialog's mode switch. */
-const TAB_CLASS =
-	"type-control -mb-px h-10 rounded-none border-b-2 border-transparent px-0 text-muted-foreground shadow-none data-[state=active]:border-primary data-[state=active]:bg-transparent data-[state=active]:text-primary data-[state=active]:shadow-none";
 
 export function ExportDialog({ open, onOpenChange, currentYear, currentMonth }: ExportDialogProps) {
 	const [isExporting, setIsExporting] = useState(false);
@@ -234,10 +230,10 @@ export function ExportDialog({ open, onOpenChange, currentYear, currentMonth }: 
 			<div>
 				<Tabs defaultValue="quick" value={activeTab} onValueChange={setActiveTab} className="w-full">
 					<TabsList className="flex h-auto w-full justify-start gap-6 rounded-none border-b border-border/70 bg-transparent p-0">
-						<TabsTrigger value="quick" className={TAB_CLASS}>
+						<TabsTrigger value="quick" className={UNDERLINE_TAB_CLASS}>
 							This month
 						</TabsTrigger>
-						<TabsTrigger value="custom" className={TAB_CLASS}>
+						<TabsTrigger value="custom" className={UNDERLINE_TAB_CLASS}>
 							Range of months
 						</TabsTrigger>
 					</TabsList>

@@ -6,7 +6,9 @@ import { formatCurrency } from "@/app/dashboard/utils";
 import type { NetWorthPoint } from "../net-worth-series";
 
 interface NetWorthThreadProps {
-	points: NetWorthPoint[];
+	points: Pick<NetWorthPoint, "date" | "value">[];
+	/** Accessible name of the slider; the account page reuses the thread for one account's balance. */
+	label?: string;
 	/** Net worth at the start of the range, drawn as a dashed reference line. */
 	baseline: number;
 	activeIndex: number | null;
@@ -80,7 +82,14 @@ function useWidth<T extends HTMLElement>() {
 	return { ref, width };
 }
 
-export function NetWorthThread({ points, baseline, activeIndex, onActiveChange, animationKey }: NetWorthThreadProps) {
+export function NetWorthThread({
+	points,
+	label = "Net worth over time",
+	baseline,
+	activeIndex,
+	onActiveChange,
+	animationKey,
+}: NetWorthThreadProps) {
 	const { ref, width } = useWidth<HTMLDivElement>();
 	const [height, setHeight] = useState(220);
 
@@ -161,7 +170,7 @@ export function NetWorthThread({ points, baseline, activeIndex, onActiveChange, 
 			ref={ref}
 			role="slider"
 			tabIndex={0}
-			aria-label="Net worth over time"
+			aria-label={label}
 			aria-valuemin={0}
 			aria-valuemax={lastIndex}
 			aria-valuenow={shownIndex}

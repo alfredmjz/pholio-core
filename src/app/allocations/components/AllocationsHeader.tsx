@@ -12,7 +12,7 @@ import {
 } from "@/components/ui/dropdown-menu";
 import { AddTransactionButton } from "./AddTransactionButton";
 import type { MonthYear, AllocationCategory } from "@/app/allocations/types";
-import type { AccountWithType } from "@/app/balancesheet/types";
+import type { AccountWithType } from "@/app/accounts/types";
 
 interface AllocationsHeaderProps {
 	currentMonth: MonthYear;
@@ -37,7 +37,7 @@ export function AllocationsHeader({
 	onImportTemplate,
 }: AllocationsHeaderProps) {
 	return (
-		<header className="sticky top-0 z-30 -mx-4 -mt-6 bg-background/70 px-4 pb-3 pt-6 backdrop-blur-md md:-mx-8 md:-mt-10 md:px-8 md:pt-10">
+		<header className="sticky top-0 z-30 -mx-4 -mt-6 bg-background/90 px-4 pb-3 pt-6 md:-mx-8 md:-mt-10 md:px-8 md:pt-10">
 			<div className="flex items-start justify-between gap-3 sm:items-center">
 				<MonthSelector currentMonth={currentMonth} onMonthChange={onMonthChange} />
 
@@ -47,7 +47,7 @@ export function AllocationsHeader({
 							<Button
 								variant="outline"
 								size="icon"
-								className="h-10 w-10 rounded-full bg-card/60 backdrop-blur-sm"
+								className="h-10 w-10 rounded-full bg-card/85"
 								aria-label="More budget actions"
 							>
 								<MoreHorizontal className="h-4 w-4" />

@@ -22,10 +22,14 @@ interface BudgetPlanCardProps {
 	allocationId?: string;
 }
 
-/** Faint diagonal hatching for income that no budget has claimed. */
+/**
+ * Diagonal hatching for income that no budget has claimed, with a thin inset outline so the end
+ * of the bar still reads against the paper background.
+ */
 const UNBUDGETED_STYLE = {
 	backgroundImage:
-		"repeating-linear-gradient(135deg, hsl(var(--foreground) / 0.1) 0 2px, transparent 2px 6px), linear-gradient(hsl(var(--foreground) / 0.04), hsl(var(--foreground) / 0.04))",
+		"repeating-linear-gradient(135deg, hsl(var(--foreground) / 0.2) 0 2px, transparent 2px 6px), linear-gradient(hsl(var(--foreground) / 0.07), hsl(var(--foreground) / 0.07))",
+	boxShadow: "inset 0 0 0 1px hsl(var(--foreground) / 0.16)",
 };
 
 function VerificationBadge({ verification }: { verification: IncomeVerificationResult }) {
@@ -206,7 +210,7 @@ export function BudgetPlanCard({
 								setIncomeDraft(expectedIncome > 0 ? String(expectedIncome) : "");
 								setIsEditing(true);
 							}}
-							className="group inline-flex items-center gap-2 rounded-full border border-border/70 bg-card/60 px-3.5 py-1.5 backdrop-blur-sm transition-colors hover:border-border-strong"
+							className="group inline-flex items-center gap-2 rounded-full border border-border/70 bg-card/85 px-3.5 py-1.5 transition-colors hover:border-border-strong"
 						>
 							<span className="type-body-sm text-muted-foreground">Expected income</span>
 							<span className="type-value text-primary">{formatCurrency(expectedIncome)}</span>
@@ -222,7 +226,7 @@ export function BudgetPlanCard({
 
 			<div>
 				<div
-					className="flex h-7 w-full gap-[3px] overflow-hidden rounded-full"
+					className="relative flex h-7 w-full gap-[3px] overflow-hidden rounded-full"
 					role="group"
 					aria-label="Budget plan by category"
 					onMouseLeave={() => setActive(null)}
@@ -241,7 +245,7 @@ export function BudgetPlanCard({
 								onClick={() => setActive(segment.id)}
 								onBlur={() => setActive(null)}
 							>
-								<span className={cn("absolute inset-0 opacity-25", color.bg)} />
+								<span className={cn("absolute inset-0 opacity-35", color.bg)} />
 								<span
 									className={cn("absolute inset-y-0 left-0", color.bg)}
 									style={{ width: `${segment.fillPercent}%` }}
@@ -270,6 +274,11 @@ export function BudgetPlanCard({
 					{plan.segments.length === 0 && plan.remainder.widthPercent === 0 && (
 						<div className="h-full w-full rounded-full bg-primary/[0.06]" />
 					)}
+					{/* A hairline around the whole bar, so pale segments at either end still read as part of it. */}
+					<span
+						className="pointer-events-none absolute inset-0 rounded-full ring-1 ring-inset ring-primary/15"
+						aria-hidden
+					/>
 				</div>
 				<p className="type-body-xs mt-2 min-h-[1.2em] text-muted-foreground" aria-live="polite">
 					{caption}

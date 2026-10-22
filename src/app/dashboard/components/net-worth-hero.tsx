@@ -124,7 +124,7 @@ export function NetWorthHero({ today, history, totalAssets, totalLiabilities }: 
 					}}
 					variant="segmented"
 					aria-label="Time range"
-					className="shrink-0 gap-0.5 rounded-full border border-border/70 bg-card/60 p-1 backdrop-blur-sm"
+					className="shrink-0 gap-0.5 rounded-full border border-border/70 bg-card/85 p-1"
 				>
 					{NET_WORTH_RANGES.map((option) => (
 						<ToggleGroupItem
@@ -159,10 +159,10 @@ export function NetWorthHero({ today, history, totalAssets, totalLiabilities }: 
 					<dd className="type-value text-primary">{formatCurrency(active ? active.liabilities : totalLiabilities)}</dd>
 				</div>
 				<Link
-					href="/balancesheet"
+					href="/accounts"
 					className="type-body-sm ml-auto text-muted-foreground underline-offset-4 hover:text-primary hover:underline"
 				>
-					Open balance sheet
+					Open accounts
 				</Link>
 			</dl>
 		</section>

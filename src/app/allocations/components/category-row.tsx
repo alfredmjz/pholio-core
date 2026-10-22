@@ -5,9 +5,10 @@ import { useSortable } from "@dnd-kit/sortable";
 import { CSS } from "@dnd-kit/utilities";
 import { GripVertical, Pencil, ShieldCheck } from "lucide-react";
 import { cn } from "@/lib/utils";
+import { ProgressLine } from "@/components/ui/progress-line";
 import { formatCurrency } from "@/app/dashboard/utils";
 import { getContributionPlanLabel } from "@/lib/contribution-plans";
-import type { RegisteredPlan } from "@/app/balancesheet/types";
+import type { RegisteredPlan } from "@/app/accounts/types";
 import type { AllocationCategory } from "../types";
 import type { CategoryColor } from "../utils/colors";
 import type { CategoryFigures } from "../utils/category-figures";
@@ -87,15 +88,10 @@ export function CategoryRow({
 			compact
 		/>
 	) : (
-		<div className="h-1.5 w-full overflow-hidden rounded-full bg-primary/[0.07]" aria-hidden>
-			<div
-				className={cn(
-					"h-full rounded-full transition-[width] duration-500",
-					isUncategorized ? "bg-primary/25" : over ? "bg-error" : color.bg
-				)}
-				style={{ width: `${isUncategorized ? (spent > 0 ? 100 : 0) : Math.min(utilization, 100)}%` }}
-			/>
-		</div>
+		<ProgressLine
+			value={isUncategorized ? (spent > 0 ? 100 : 0) : Math.min(utilization, 100)}
+			tone={isUncategorized ? "bg-primary/25" : over ? "bg-error" : color.bg}
+		/>
 	);
 
 	return (

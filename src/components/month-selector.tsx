@@ -59,7 +59,7 @@ export function MonthSelector({ currentMonth, onMonthChange }: MonthSelectorProp
 				{MONTH_NAMES[currentMonth.month - 1]} <span className="text-muted-foreground">{currentMonth.year}</span>
 			</h1>
 
-			<div className="flex shrink-0 items-center rounded-full border border-border/70 bg-card/60 p-0.5 backdrop-blur-sm">
+			<div className="flex shrink-0 items-center rounded-full border border-border/70 bg-card/85 p-0.5">
 				<Button
 					variant="ghost"
 					size="icon"

@@ -46,6 +46,7 @@ export function ProgressLine({ value, tone = "bg-accent", label, className }: Pr
 				{/* Keyed by the value, so a new value rolls the wave in again (once) as it fills. */}
 				<span key={target} className={cn("progress-line-wave", tone)} />
 			</span>
+			<span className={cn("progress-line-dot", tone)} style={{ left: `${shown}%` }} />
 		</div>
 	);
 }

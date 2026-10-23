@@ -2,7 +2,7 @@
 
 import { useEffect, useRef } from "react";
 
-type FieldLine = {
+export type FieldLine = {
 	base: number;
 	amp: number;
 	freq: number;
@@ -16,7 +16,7 @@ type FieldLine = {
 	tint: "ink" | "rust";
 };
 
-type Pointer = { x: number; y: number } | null;
+export type Pointer = { x: number; y: number } | null;
 
 /**
  * Kept across mounts, so moving between pages continues the drift instead of restarting it
@@ -29,9 +29,9 @@ let memory: { lines: FieldLine[]; shown: boolean } | null = null;
 const INK = "44, 40, 34";
 const RUST = "145, 72, 44";
 
-type Palette = { ink: string; tint: string; strength: number };
+export type Palette = { ink: string; tint: string; strength: number };
 
-function readPalette(element: Element): Palette {
+export function readPalette(element: Element): Palette {
 	const style = getComputedStyle(element);
 	const strength = Number.parseFloat(style.getPropertyValue("--ledger-strength"));
 	return {
@@ -41,7 +41,7 @@ function readPalette(element: Element): Palette {
 	};
 }
 
-function createRandom(seed: number) {
+export function createRandom(seed: number) {
 	let value = seed >>> 0;
 	return () => {
 		value = (value * 1664525 + 1013904223) >>> 0;
@@ -49,7 +49,7 @@ function createRandom(seed: number) {
 	};
 }
 
-function makeLines(height: number): FieldLine[] {
+export function makeLines(height: number): FieldLine[] {
 	const random = createRandom(20260214);
 	const count = Math.max(12, Math.min(26, Math.round(height / 54)));
 
@@ -69,7 +69,15 @@ function makeLines(height: number): FieldLine[] {
 	}));
 }
 
-function buildPath(line: FieldLine, width: number, height: number, pointer: Pointer, time: number) {
+/** `swing` scales how far a line sways and `pace` how fast; the windy weather turns both up. */
+export function buildPath(
+	line: FieldLine,
+	width: number,
+	height: number,
+	pointer: Pointer,
+	time: number,
+	{ swing = 1, pace = 1 }: { swing?: number; pace?: number } = {}
+) {
 	const points: Array<[number, number]> = [];
 	const step = width > 900 ? 14 : 18;
 	let length = 0;
@@ -78,8 +86,8 @@ function buildPath(line: FieldLine, width: number, height: number, pointer: Poin
 
 	for (let x = -40; x <= width + 40; x += step) {
 		let y = line.base * height;
-		y += Math.sin(x * line.freq + line.phase + time * 0.000045) * line.amp;
-		y += Math.sin(x * line.freq * 2.31 + line.phase * 1.7 + time * 0.00003) * line.amp * 0.32;
+		y += Math.sin(x * line.freq + line.phase + time * pace * 0.000045) * line.amp * swing;
+		y += Math.sin(x * line.freq * 2.31 + line.phase * 1.7 + time * pace * 0.00003) * line.amp * 0.32 * swing;
 		y += (x / Math.max(width, 1) - 0.5) * line.slope;
 
 		if (pointer) {
@@ -101,7 +109,7 @@ function buildPath(line: FieldLine, width: number, height: number, pointer: Poin
 	return { points, length };
 }
 
-function tracePath(points: Array<[number, number]>) {
+export function tracePath(points: Array<[number, number]>) {
 	const path = new Path2D();
 	path.moveTo(points[0][0], points[0][1]);
 	for (let index = 1; index < points.length; index++) {

@@ -1,5 +1,6 @@
 "use client";
 
+import { useEffect, useRef, useState } from "react";
 import { Button } from "@/components/ui/button";
 import { Download, FolderInput, FolderPlus, MoreHorizontal } from "lucide-react";
 import { MonthSelector } from "@/components/month-selector";
@@ -25,6 +26,31 @@ interface AllocationsHeaderProps {
 	onImportTemplate?: () => void;
 }
 
+function scrollParent(element: HTMLElement): HTMLElement | Window {
+	for (let node = element.parentElement; node; node = node.parentElement) {
+		if (/(auto|scroll)/.test(getComputedStyle(node).overflowY)) return node;
+	}
+	return window;
+}
+
+/** True once the page has scrolled, so a pinned header knows content is passing beneath it. */
+function useScrolled<T extends HTMLElement>() {
+	const ref = useRef<T>(null);
+	const [scrolled, setScrolled] = useState(false);
+
+	useEffect(() => {
+		const element = ref.current;
+		if (!element) return;
+		const scroller = scrollParent(element);
+		const update = () => setScrolled((scroller instanceof Window ? scroller.scrollY : scroller.scrollTop) > 4);
+		update();
+		scroller.addEventListener("scroll", update, { passive: true });
+		return () => scroller.removeEventListener("scroll", update);
+	}, []);
+
+	return { ref, scrolled };
+}
+
 /** Month title and navigation, pinned while the budget scrolls beneath it. */
 export function AllocationsHeader({
 	currentMonth,
@@ -36,8 +62,14 @@ export function AllocationsHeader({
 	onSaveTemplate,
 	onImportTemplate,
 }: AllocationsHeaderProps) {
+	const { ref, scrolled } = useScrolled<HTMLElement>();
+
 	return (
-		<header className="sticky top-0 z-30 -mx-4 -mt-6 bg-background/90 px-4 pb-3 pt-6 md:-mx-8 md:-mt-10 md:px-8 md:pt-10">
+		<header
+			ref={ref}
+			data-scrolled={scrolled}
+			className="surface-sticky-header -mx-4 -mt-6 px-4 pb-3 pt-6 md:-mx-8 md:-mt-10 md:px-8 md:pt-10"
+		>
 			<div className="flex items-start justify-between gap-3 sm:items-center">
 				<MonthSelector currentMonth={currentMonth} onMonthChange={onMonthChange} />
 

@@ -34,10 +34,14 @@ test("sign in with the emailed magic link", async ({ page }, testInfo) => {
 		.not.toBe("");
 
 	const message = (await (await fetch(`${mailpitUrl}/api/v1/message/${messageId}`)).json()) as { HTML: string };
-	const link = message.HTML.match(/href="([^"]*\/auth\/v1\/verify[^"]*)"/)?.[1]?.replaceAll("&amp;", "&");
-	expect(link, "verify link in the email").toBeTruthy();
+	const link = message.HTML.match(/href="([^"]*\/confirm\?token_hash=[^"]*)"/)?.[1]?.replaceAll("&amp;", "&");
+	expect(link, "sign-in link in the email").toBeTruthy();
 
-	await page.goto(link!);
+	// The email links to Supabase's site_url (:3000); open the same path on the E2E server.
+	const { pathname, search } = new URL(link!);
+	expect(new URLSearchParams(search).get("type")).toBe("email");
+
+	await page.goto(`${pathname}${search}`);
 	await expect(page).toHaveURL(/\/dashboard/);
 	await expect(page.getByRole("heading", { name: "Dashboard", level: 1 })).toBeVisible();
 });

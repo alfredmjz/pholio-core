@@ -1,6 +1,6 @@
 "use client";
 
-import { MoreHorizontal } from "lucide-react";
+import { MoreHorizontal, Zap } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import {
 	DropdownMenu,
@@ -15,10 +15,18 @@ import type { RecurringExpense } from "../actions";
 
 /** Columns shared by the section header and every row (desktop). */
 export const RECURRING_GRID =
-	"row-wide:grid row-wide:grid-cols-[minmax(9rem,1.5fr)_minmax(6rem,1fr)_minmax(6rem,1fr)_5.5rem_6rem] row-wide:items-center row-wide:gap-3";
+	"row-wide:grid row-wide:grid-cols-[minmax(9rem,1.5fr)_minmax(6rem,1fr)_minmax(6rem,1fr)_5.5rem_7.5rem] row-wide:items-center row-wide:gap-3";
 
-/** Logo, name and how often it repeats. */
-export function RecurringIdentity({ expense, muted = false }: { expense: RecurringExpense; muted?: boolean }) {
+/** Logo, name and how often it repeats (plus "Auto" when it's recorded automatically). */
+export function RecurringIdentity({
+	expense,
+	muted = false,
+	automated = false,
+}: {
+	expense: RecurringExpense;
+	muted?: boolean;
+	automated?: boolean;
+}) {
 	const meta = expense.meta_data as { domain?: string; no_logo_lookup?: boolean } | null;
 	return (
 		<div className="flex min-w-0 items-center gap-3">
@@ -41,7 +49,16 @@ export function RecurringIdentity({ expense, muted = false }: { expense: Recurri
 				>
 					{expense.name}
 				</p>
-				<p className="type-body-xs text-muted-foreground">{formatFrequency(expense.billing_period)}</p>
+				<p className="type-body-xs flex items-center gap-1.5 text-muted-foreground">
+					{formatFrequency(expense.billing_period)}
+					{automated && (
+						<span className="inline-flex items-center gap-0.5" title="Recorded automatically">
+							<span aria-hidden>·</span>
+							<Zap className="h-3 w-3" aria-hidden />
+							Auto
+						</span>
+					)}
+				</p>
 			</div>
 		</div>
 	);

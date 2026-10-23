@@ -70,7 +70,7 @@ export function getMockRecurringExpenses(now: Date = getDemoNow()): RecurringExp
         is_active: true,
         service_provider: "rent",
         plaid_stream_id: null,
-        meta_data: {},
+        meta_data: { is_automated: true },
         created_at: iso,
         updated_at: iso,
     },

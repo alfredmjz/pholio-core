@@ -3,7 +3,7 @@
 import { useState } from "react";
 import { useRouter } from "next/navigation";
 import { toast } from "sonner";
-import { AlertTriangle, ArrowRight, CheckCircle2, Zap } from "lucide-react";
+import { AlertTriangle, ArrowRight, CheckCircle2 } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { SegmentedProgress } from "@/components/ui/segmented-progress";
 import { DeleteConfirmDialog } from "@/components/dialogs/DeleteConfirmDialog";
@@ -121,7 +121,7 @@ export function BillRow({ bill, onDelete, onUpdate, timezone, categoryOptions = 
 				onClick={() => setIsEditOpen(true)}
 			>
 				<div className="flex items-center justify-between gap-3 row-wide:block">
-					<RecurringIdentity expense={bill} />
+					<RecurringIdentity expense={bill} automated={isAutomated} />
 					<span className="type-value shrink-0 text-primary row-wide:hidden">
 						{formatCurrency(Number(bill.amount), { showCents: true })}
 					</span>
@@ -155,15 +155,6 @@ export function BillRow({ bill, onDelete, onUpdate, timezone, categoryOptions = 
 					className="mt-2 flex items-center justify-end gap-1 row-wide:mt-0"
 					onClick={(event) => event.stopPropagation()}
 				>
-					{isAutomated && (
-						<span
-							className="type-caption mr-1 inline-flex items-center gap-1 rounded-full bg-card-muted px-2 py-0.5 text-muted-foreground"
-							title="Recorded automatically"
-						>
-							<Zap className="h-3 w-3" aria-hidden />
-							Auto
-						</span>
-					)}
 					{canPay && total > 0 ? (
 						<Button size="sm" onClick={handlePay} className="h-8 rounded-full px-4">
 							Pay

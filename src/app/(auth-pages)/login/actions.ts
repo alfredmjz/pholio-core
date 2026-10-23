@@ -9,7 +9,8 @@ import { DEMO_SESSION_COOKIE, createDemoSession } from "@/lib/demo-session";
 import { getClientIp, limitMessage, normalizeEmail } from "@/lib/magic-link-limit";
 import { claimMagicLinkSend, releaseMagicLinkSend, type MagicLinkClaim } from "@/lib/magic-link-limit.server";
 
-const MAGIC_LINK_REDIRECT_PATH = "/confirm?next=/dashboard";
+// The email template appends "?token_hash=…&next=…" to this, so it must stay query-free.
+const MAGIC_LINK_REDIRECT_PATH = "/confirm";
 const EMAIL_PATTERN = /^[^\s@]+@[^\s@]+\.[^\s@]+$/;
 
 export type SendMagicLinkResult =

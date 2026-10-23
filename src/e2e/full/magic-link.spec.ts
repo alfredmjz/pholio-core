@@ -9,7 +9,7 @@ type MailpitSummary = { ID: string; To: { Address: string }[] };
  * The real email path: submit the login form, open the link from the local Mailpit inbox.
  * Desktop only, because local Supabase allows two auth emails per hour.
  */
-test("sign in with the emailed magic link", async ({ page }, testInfo) => {
+test("sign in with the emailed magic link", async ({ page, baseURL }, testInfo) => {
 	test.skip(testInfo.project.name !== "desktop", "Sends a real email; runs once per suite");
 
 	const { mailpitUrl } = loadLocalSupabase();
@@ -37,11 +37,14 @@ test("sign in with the emailed magic link", async ({ page }, testInfo) => {
 	const link = message.HTML.match(/href="([^"]*\/confirm\?token_hash=[^"]*)"/)?.[1]?.replaceAll("&amp;", "&");
 	expect(link, "sign-in link in the email").toBeTruthy();
 
-	// The email links to Supabase's site_url (:3000); open the same path on the E2E server.
-	const { pathname, search } = new URL(link!);
-	expect(new URLSearchParams(search).get("type")).toBe("email");
+	// The link returns to the app that asked for it (redirect_to), not Supabase's site_url (:3000).
+	const url = new URL(link!);
+	expect(url.origin).toBe(new URL(baseURL!).origin);
+	expect(url.pathname).toBe("/confirm");
+	expect(url.searchParams.get("type")).toBe("email");
+	expect(url.searchParams.get("next")).toBe("/dashboard");
 
-	await page.goto(`${pathname}${search}`);
+	await page.goto(link!);
 	await expect(page).toHaveURL(/\/dashboard/);
 	await expect(page.getByRole("heading", { name: "Dashboard", level: 1 })).toBeVisible();
 });

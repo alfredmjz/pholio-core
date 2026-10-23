@@ -105,21 +105,10 @@
 									background-color: rgba(251, 246, 233, 0.18);
 								"
 							>
-								<table
-									role="presentation"
-									width="100%"
-									cellspacing="0"
-									cellpadding="0"
-									border="0"
-								>
+								<table role="presentation" width="100%" cellspacing="0" cellpadding="0" border="0">
 									<tr>
 										<td align="center" style="padding-bottom: 26px">
-											<table
-												role="presentation"
-												cellspacing="0"
-												cellpadding="0"
-												border="0"
-											>
+											<table role="presentation" cellspacing="0" cellpadding="0" border="0">
 												<tr>
 													<td valign="middle" style="padding-right: 10px">
 														<img
@@ -140,12 +129,7 @@
 													</td>
 													<td
 														valign="middle"
-														style="
-															font-size: 20px;
-															font-weight: 600;
-															letter-spacing: -0.03em;
-															color: #1c1b17;
-														"
+														style="font-size: 20px; font-weight: 600; letter-spacing: -0.03em; color: #1c1b17"
 													>
 														Pholio
 													</td>
@@ -181,12 +165,7 @@
 													<td
 														height="3"
 														bgcolor="#0f6b4f"
-														style="
-															height: 3px;
-															line-height: 3px;
-															font-size: 0;
-															background-color: #0f6b4f;
-														"
+														style="height: 3px; line-height: 3px; font-size: 0; background-color: #0f6b4f"
 													>
 														&nbsp;
 													</td>
@@ -263,34 +242,15 @@
 														>
 															Your sign-in link.
 														</h1>
-														<p
-															style="
-																margin: 0 0 26px 0;
-																font-size: 15px;
-																line-height: 1.65;
-																color: #5a5448;
-															"
-														>
-															Use the button below to sign in to Pholio. Open it in the same
-															browser you used to request it. The link works once and expires
-															in 60 minutes.
+														<p style="margin: 0 0 26px 0; font-size: 15px; line-height: 1.65; color: #5a5448">
+															Use the button below to sign in to Pholio. Open it in the same browser you used to request
+															it. The link works once and expires in 60 minutes.
 														</p>
 
-														<table
-															role="presentation"
-															width="100%"
-															cellspacing="0"
-															cellpadding="0"
-															border="0"
-														>
+														<table role="presentation" width="100%" cellspacing="0" cellpadding="0" border="0">
 															<tr>
 																<td align="center" style="padding: 0 0 22px 0">
-																	<table
-																		role="presentation"
-																		cellspacing="0"
-																		cellpadding="0"
-																		border="0"
-																	>
+																	<table role="presentation" cellspacing="0" cellpadding="0" border="0">
 																		<tr>
 																			<td
 																				align="center"
@@ -303,15 +263,14 @@
 																			>
 																				<a
 																					class="email-cta"
-																					href="{{ .ConfirmationURL }}"
+																					href="{{ .SiteURL }}/confirm?token_hash={{ .TokenHash }}&type=email&next=/dashboard"
 																					target="_blank"
 																					style="
 																						display: inline-block;
 																						padding: 14px 34px;
 																						font-family:
-																							-apple-system, BlinkMacSystemFont,
-																							&quot;Segoe UI&quot;, Roboto,
-																							Arial, sans-serif;
+																							-apple-system, BlinkMacSystemFont, &quot;Segoe UI&quot;, Roboto, Arial,
+																							sans-serif;
 																						font-size: 15px;
 																						font-weight: 600;
 																						line-height: 1.2;
@@ -329,33 +288,8 @@
 															</tr>
 														</table>
 
-														<p
-															style="
-																margin: 0 0 6px 0;
-																font-size: 12px;
-																line-height: 1.5;
-																color: #8a8272;
-															"
-														>
-															Button not working? Paste this link into your browser:
-														</p>
-														<p
-															style="
-																margin: 0 0 26px 0;
-																font-size: 12px;
-																line-height: 1.5;
-																color: #0f6b4f;
-																word-break: break-all;
-																overflow-wrap: break-word;
-															"
-														>
-															<a
-																href="{{ .ConfirmationURL }}"
-																target="_blank"
-																style="color: #0f6b4f; text-decoration: underline"
-															>
-																{{ .ConfirmationURL }}
-															</a>
+														<p style="margin: 0 0 26px 0; font-size: 12px; line-height: 1.5; color: #8a8272">
+															Button not working? Copy the link from the button and paste it into your browser.
 														</p>
 
 														<table
@@ -378,10 +312,7 @@
 																	valign="middle"
 																	style="
 																		width: 34px;
-																		background-image: linear-gradient(
-																			#c9bba2,
-																			#c9bba2
-																		);
+																		background-image: linear-gradient(#c9bba2, #c9bba2);
 																		background-size: 1px 100%;
 																		background-repeat: no-repeat;
 																		background-position: center center;
@@ -399,19 +330,8 @@
 																		"
 																	></div>
 																</td>
-																<td
-																	style="
-																		padding: 12px 16px 12px 0;
-																		border-bottom: 1px solid #ddcfb6;
-																	"
-																>
-																	<table
-																		role="presentation"
-																		width="100%"
-																		cellspacing="0"
-																		cellpadding="0"
-																		border="0"
-																	>
+																<td style="padding: 12px 16px 12px 0; border-bottom: 1px solid #ddcfb6">
+																	<table role="presentation" width="100%" cellspacing="0" cellpadding="0" border="0">
 																		<tr>
 																			<td
 																				valign="middle"
@@ -429,12 +349,7 @@
 																				class="email-receipt-value"
 																				align="right"
 																				valign="middle"
-																				style="
-																					font-size: 13px;
-																					font-weight: 600;
-																					color: #1c1b17;
-																					word-break: break-all;
-																				"
+																				style="font-size: 13px; font-weight: 600; color: #1c1b17; word-break: break-all"
 																			>
 																				{{ .Email }}
 																			</td>
@@ -448,10 +363,7 @@
 																	valign="middle"
 																	style="
 																		width: 34px;
-																		background-image: linear-gradient(
-																			#c9bba2,
-																			#c9bba2
-																		);
+																		background-image: linear-gradient(#c9bba2, #c9bba2);
 																		background-size: 1px 100%;
 																		background-repeat: no-repeat;
 																		background-position: center center;
@@ -469,19 +381,8 @@
 																		"
 																	></div>
 																</td>
-																<td
-																	style="
-																		padding: 12px 16px 12px 0;
-																		border-bottom: 1px solid #ddcfb6;
-																	"
-																>
-																	<table
-																		role="presentation"
-																		width="100%"
-																		cellspacing="0"
-																		cellpadding="0"
-																		border="0"
-																	>
+																<td style="padding: 12px 16px 12px 0; border-bottom: 1px solid #ddcfb6">
+																	<table role="presentation" width="100%" cellspacing="0" cellpadding="0" border="0">
 																		<tr>
 																			<td
 																				valign="middle"
@@ -499,11 +400,7 @@
 																				class="email-receipt-value"
 																				align="right"
 																				valign="middle"
-																				style="
-																					font-size: 13px;
-																					font-weight: 600;
-																					color: #1c1b17;
-																				"
+																				style="font-size: 13px; font-weight: 600; color: #1c1b17"
 																			>
 																				Once
 																			</td>
@@ -517,10 +414,7 @@
 																	valign="middle"
 																	style="
 																		width: 34px;
-																		background-image: linear-gradient(
-																			#c9bba2,
-																			#c9bba2
-																		);
+																		background-image: linear-gradient(#c9bba2, #c9bba2);
 																		background-size: 1px 100%;
 																		background-repeat: no-repeat;
 																		background-position: center center;
@@ -539,13 +433,7 @@
 																	></div>
 																</td>
 																<td style="padding: 12px 16px 12px 0">
-																	<table
-																		role="presentation"
-																		width="100%"
-																		cellspacing="0"
-																		cellpadding="0"
-																		border="0"
-																	>
+																	<table role="presentation" width="100%" cellspacing="0" cellpadding="0" border="0">
 																		<tr>
 																			<td
 																				valign="middle"
@@ -563,11 +451,7 @@
 																				class="email-receipt-value"
 																				align="right"
 																				valign="middle"
-																				style="
-																					font-size: 13px;
-																					font-weight: 600;
-																					color: #1c1b17;
-																				"
+																				style="font-size: 13px; font-weight: 600; color: #1c1b17"
 																			>
 																				60 minutes
 																			</td>
@@ -584,24 +468,13 @@
 															cellpadding="0"
 															border="0"
 															bgcolor="#eff4ea"
-															style="
-																background-color: #eff4ea;
-																border-left: 3px solid #0f6b4f;
-																border-radius: 2px;
-															"
+															style="background-color: #eff4ea; border-left: 3px solid #0f6b4f; border-radius: 2px"
 														>
 															<tr>
 																<td style="padding: 12px 16px">
-																	<p
-																		style="
-																			margin: 0;
-																			font-size: 12px;
-																			line-height: 1.65;
-																			color: #5a5448;
-																		"
-																	>
-																		If you didn&#39;t ask to sign in, you can ignore this
-																		email. Nobody can sign in without this link.
+																	<p style="margin: 0; font-size: 12px; line-height: 1.65; color: #5a5448">
+																		If you didn&#39;t ask to sign in, you can ignore this email. Nobody can sign in
+																		without this link.
 																	</p>
 																</td>
 															</tr>
@@ -614,26 +487,11 @@
 
 									<tr>
 										<td align="center" style="padding: 24px 8px 0 8px">
-											<p
-												style="
-													margin: 0 0 6px 0;
-													font-size: 12px;
-													line-height: 1.6;
-													color: #7a7365;
-												"
-											>
+											<p style="margin: 0 0 6px 0; font-size: 12px; line-height: 1.6; color: #7a7365">
 												Pholio &middot; A calmer way to see your money.
 											</p>
-											<p
-												style="
-													margin: 0 0 14px 0;
-													font-size: 11px;
-													line-height: 1.6;
-													color: #8a8272;
-												"
-											>
-												You received this because someone entered this address at
-												pholio.ca.
+											<p style="margin: 0 0 14px 0; font-size: 11px; line-height: 1.6; color: #8a8272">
+												You received this because someone entered this address at pholio.ca.
 											</p>
 											<p style="margin: 0; font-size: 11px; line-height: 1.6; color: #a39a88">
 												&copy; 2026 Pholio. All rights reserved.
@@ -649,3 +507,4 @@
 		</table>
 	</body>
 </html>
+

@@ -17,17 +17,18 @@ export async function GET(request: NextRequest) {
 
 	const supabase = await createClient();
 
-	// @supabase/ssr uses the PKCE flow, so the magic-link email redirects here with
-	// `?code=...`. We also accept the token_hash/type variant for robustness.
+	// The email template links here with `?token_hash=...&type=email`, which works in any
+	// browser. A PKCE `?code=...` only works in the browser that requested the link (it
+	// needs that browser's code-verifier cookie), so it is kept for older emails only.
 	let verified = false;
-	if (code) {
-		const { error } = await supabase.auth.exchangeCodeForSession(code);
-		verified = !error;
-		if (error) Logger.warn("exchangeCodeForSession failed during confirm", { error: error.message });
-	} else if (token_hash && type) {
+	if (token_hash && type) {
 		const { error } = await supabase.auth.verifyOtp({ type, token_hash });
 		verified = !error;
 		if (error) Logger.warn("verifyOtp failed during confirm", { type, error: error.message });
+	} else if (code) {
+		const { error } = await supabase.auth.exchangeCodeForSession(code);
+		verified = !error;
+		if (error) Logger.warn("exchangeCodeForSession failed during confirm", { error: error.message });
 	}
 
 	if (verified) {
@@ -59,6 +60,12 @@ export async function GET(request: NextRequest) {
 		redirect(finalNext);
 	}
 
-	// redirect the user to an error page with some instructions
-	redirect("/error");
+	// A link opened twice fails the second time, but the first open already signed
+	// this browser in, so carry on into the app.
+	const {
+		data: { user },
+	} = await supabase.auth.getUser();
+	if (user) redirect(next);
+
+	redirect("/error?reason=link");
 }

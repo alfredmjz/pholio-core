@@ -241,16 +241,15 @@ subject = "Your Pholio sign-in link"
 content_path = "./supabase/templates/magic_link.html"
 
 # Local development uses the CLI's built-in Mailpit SMTP (http://127.0.0.1:54324).
-# Production SMTP (Plunk) is configured in the Supabase dashboard, not in this file, with
-# the same values: password is the Plunk secret key (sk_...), sender on a domain verified in Plunk.
-# Enabling this block locally requires a valid PLUNK_SECRET_KEY or GoTrue returns
+# Production SMTP (Resend) is configured in the Supabase dashboard, not in this file.
+# Enabling this block locally requires a valid RESEND_API_KEY or GoTrue returns
 # `535 Authentication credentials invalid` when sending magic links.
 [auth.email.smtp]
 enabled = false
-host = "smtp.useplunk.com"
+host = "smtp.resend.com"
 port = 465
-user = "plunk"
-pass = "env(PLUNK_SECRET_KEY)"
+user = "resend"
+pass = "env(RESEND_API_KEY)"
 admin_email = "noreply@pholio.ca"
 sender_name = "Pholio"
 

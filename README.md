@@ -36,7 +36,7 @@ Visit [http://localhost:3000](http://localhost:3000)
 | **Framework** | Next.js 15 (App Router, React 19)                |
 | **Database**  | Supabase (PostgreSQL), Redis                     |
 | **Auth**      | Supabase Auth                                    |
-| **Email**     | Plunk (SMTP, set in the Supabase dashboard)      |
+| **Email**     | Resend (SMTP)                                    |
 | **UI**        | Tailwind CSS, Radix UI, Shadcn, Recharts         |
 | **State**     | React hooks, Zustand                             |
 | **Logging**   | Pino                                             |
@@ -60,8 +60,8 @@ LOCAL_SUPABASE_SERVICE_ROLE_KEY=your-service-role-key
 NEXT_PUBLIC_SUPABASE_URL=...
 NEXT_PUBLIC_SUPABASE_PUBLISHABLE_KEY=...
 
-# Optional: Plunk SMTP, only to send real emails from local Supabase ([auth.email.smtp] in supabase/config.toml)
-PLUNK_SECRET_KEY=sk_...
+#Resend (SMTP)
+RESEND_API_KEY=...
 
 # Logo API
 NEXT_PUBLIC_LOGO_DEV_TOKEN=pk_...

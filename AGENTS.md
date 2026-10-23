@@ -23,7 +23,7 @@ allocations, and see net worth over time.
 | UI | Tailwind CSS 3.4, Radix UI, Shadcn primitives, Recharts, lucide-react, sonner, dnd-kit |
 | State | React hooks; Zustand used sparingly (incl. `src/lib/demo-store.ts`) |
 | Logging | Pino (`src/lib/logger.ts`) |
-| Email | Resend (templates in `supabase/templates/`) |
+| Email | Plunk SMTP, configured in the Supabase dashboard (template in `supabase/templates/magic_link.html`, used for both Magic Link and Confirm signup) |
 | Infra | Docker Compose (root), Redis, Vercel, GitHub Actions + semantic-release |
 | Formatting | Prettier — tabs, width 120, CRLF, double quotes, trailing commas es5 (`.prettierrc`) |
 
@@ -89,7 +89,8 @@ Environment files:
 - `src/.env.local` — **gitignored, required for real data** (see README):
   `NEXT_PUBLIC_SUPABASE_URL`, `NEXT_PUBLIC_SUPABASE_PUBLISHABLE_KEY`,
   `LOCAL_SUPABASE_URL`, `LOCAL_SUPABASE_PUBLISHABLE_KEY`, `LOCAL_SUPABASE_SERVICE_ROLE_KEY`,
-  `RESEND_API_KEY`, `NEXT_PUBLIC_LOGO_DEV_TOKEN`, `LOGO_DEV_SECRET_KEY`.
+  `NEXT_PUBLIC_LOGO_DEV_TOKEN`, `LOGO_DEV_SECRET_KEY` (and optionally `PLUNK_SECRET_KEY`, only to
+  send real emails from local Supabase).
 - `.env` (root) — **tracked in git**; currently only `APP_VERSION`, `APP_ENV`, `REDIS_URL`.
   The release workflow bumps the version automatically — do not hand-edit versions in feature work.
 - `NEXT_PUBLIC_USE_SAMPLE_DATA=true` switches the app to `src/mock-data` (no Supabase needed).

@@ -5,6 +5,7 @@ import { toast } from "sonner";
 import { ArrowLeft, Check, RotateCw } from "lucide-react";
 
 import { sendMagicLink } from "@/app/(auth-pages)/login/actions";
+import { reloadOutdatedPage } from "@/app/(auth-pages)/login/outdated-page";
 import { formatCountdown } from "@/lib/countdown";
 
 interface MagicLinkSentProps {
@@ -43,6 +44,10 @@ export function MagicLinkSent({ email, retryAfterSeconds, onBack }: MagicLinkSen
 
 		try {
 			const result = await sendMagicLink(formData);
+			if (!result) {
+				reloadOutdatedPage(email);
+				return;
+			}
 			if ("error" in result) {
 				if (result.retryAfterSeconds !== undefined) {
 					setResendAt(Date.now() + result.retryAfterSeconds * 1000);

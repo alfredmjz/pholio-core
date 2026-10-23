@@ -6,30 +6,60 @@ import { cookies, headers } from "next/headers";
 import { Logger } from "@/lib/logger";
 import { DEMO_COOKIE, DEMO_COOKIE_MAX_AGE } from "@/lib/demo-mode";
 import { DEMO_SESSION_COOKIE, createDemoSession } from "@/lib/demo-session";
+import { getClientIp, limitMessage, normalizeEmail } from "@/lib/magic-link-limit";
+import { claimMagicLinkSend, releaseMagicLinkSend, type MagicLinkClaim } from "@/lib/magic-link-limit.server";
 
-const MAGIC_LINK_REDIRECT_PATH = "/confirm?next=/dashboard";
+// The email template appends "?token_hash=…&next=…" to this, so it must stay query-free.
+const MAGIC_LINK_REDIRECT_PATH = "/confirm";
+const EMAIL_PATTERN = /^[^\s@]+@[^\s@]+\.[^\s@]+$/;
+
+export type SendMagicLinkResult =
+	| { success: string; retryAfterSeconds: number }
+	| { error: string; retryAfterSeconds?: number };
 
 /**
- * Sends a magic link to the provided email address.
+ * Sends (or resends) a magic link to the provided email address.
  *
  * Works for both new and existing accounts: a first-time email creates the
  * account, and an existing email signs the user into their current account
  * (no data loss). This is the only sign-in method.
  *
+ * The send limits (60 s apart, 5 per email and 20 per IP per hour) are checked
+ * and recorded in the database before Supabase is asked to send, so nothing the
+ * browser sends can skip them. `retryAfterSeconds` is how long until the next
+ * link is allowed; the page only displays it.
+ *
  * @param formData - Form data containing the email field
- * @returns Error object if sending fails, success message otherwise
  */
-export async function sendMagicLink(formData: FormData) {
-	const supabase = await createClient();
-
-	const email = (formData.get("email") as string).trim().toLowerCase();
+export async function sendMagicLink(formData: FormData): Promise<SendMagicLinkResult> {
+	const rawEmail = formData.get("email");
+	const email = typeof rawEmail === "string" ? normalizeEmail(rawEmail) : "";
 
 	if (!email) {
 		return { error: "Email is required" };
 	}
+	if (!EMAIL_PATTERN.test(email)) {
+		return { error: "That email address doesn't look right." };
+	}
 
-	const origin = (await headers()).get("origin") ?? process.env.NEXT_PUBLIC_SITE_URL ?? "http://localhost:3000";
+	const requestHeaders = await headers();
 
+	let claim: MagicLinkClaim;
+	try {
+		claim = await claimMagicLinkSend(email, getClientIp(requestHeaders));
+	} catch (error) {
+		// Fail closed: without the check, no email goes out.
+		Logger.error("Magic link limit check failed", { error });
+		return { error: "We couldn't send a link right now. Try again in a moment." };
+	}
+
+	if (!claim.allowed) {
+		return { error: limitMessage(claim.reason, claim.retryAfterSeconds), retryAfterSeconds: claim.retryAfterSeconds };
+	}
+
+	const origin = requestHeaders.get("origin") ?? process.env.NEXT_PUBLIC_SITE_URL ?? "http://localhost:3000";
+
+	const supabase = await createClient();
 	const { error } = await supabase.auth.signInWithOtp({
 		email,
 		options: {
@@ -39,10 +69,14 @@ export async function sendMagicLink(formData: FormData) {
 
 	if (error) {
 		Logger.error("Magic link send failed", { error });
+		// No email went out, so this attempt doesn't count against the user.
+		await releaseMagicLinkSend(claim.sendId).catch((releaseError) =>
+			Logger.error("Releasing magic link send failed", { error: releaseError })
+		);
 		return { error: error.message };
 	}
 
-	return { success: "Magic link sent" };
+	return { success: "Magic link sent", retryAfterSeconds: claim.retryAfterSeconds };
 }
 
 /**

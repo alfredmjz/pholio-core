@@ -263,7 +263,7 @@
 																			>
 																				<a
 																					class="email-cta"
-																					href="{{ .SiteURL }}/confirm?token_hash={{ .TokenHash }}&type=email&next=/dashboard"
+																					href="{{ if eq .RedirectTo .SiteURL }}{{ .SiteURL }}/confirm{{ else }}{{ .RedirectTo }}{{ end }}?token_hash={{ .TokenHash }}&type=email&next=/dashboard"
 																					target="_blank"
 																					style="
 																						display: inline-block;

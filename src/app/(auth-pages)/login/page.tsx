@@ -6,9 +6,11 @@ import Link from "next/link";
 import { useRouter } from "next/navigation";
 import { useEffect, useRef, useState } from "react";
 import { toast } from "sonner";
-import { Check, Sparkles } from "lucide-react";
+import { Sparkles } from "lucide-react";
 
 import { sendMagicLink, startDemo } from "@/app/(auth-pages)/login/actions";
+import { MagicLinkSent } from "@/app/(auth-pages)/login/components/magic-link-sent";
+import { reloadOutdatedPage, takePendingEmail } from "@/app/(auth-pages)/login/outdated-page";
 import { useDemoStore } from "@/lib/demo-store";
 import { LedgerField } from "@/components/common/ledger-field";
 
@@ -25,12 +27,23 @@ const ACCOUNTS = [
 export default function Page() {
 	const router = useRouter();
 	const netWorthRef = useRef<HTMLSpanElement>(null);
+	const emailInputRef = useRef<HTMLInputElement>(null);
 	const [isLoading, setIsLoading] = useState(false);
 	const [isDemoLoading, setIsDemoLoading] = useState(false);
-	const [sentEmail, setSentEmail] = useState<string | null>(null);
+	const [sent, setSent] = useState<{ email: string; retryAfterSeconds: number } | null>(null);
+	// Kept after going Back so the form opens with the address already filled in.
+	const [lastEmail, setLastEmail] = useState("");
 	const [fieldErrors, setFieldErrors] = useState<{ email?: string }>({});
 
 	const emailRegex = /^[^\s@]+@[^\s@]+\.[^\s@]+$/;
+
+	useEffect(() => {
+		const pendingEmail = takePendingEmail();
+		if (pendingEmail && emailInputRef.current) {
+			emailInputRef.current.value = pendingEmail;
+			setLastEmail(pendingEmail);
+		}
+	}, []);
 
 	useEffect(() => {
 		const element = netWorthRef.current;
@@ -84,12 +97,17 @@ export default function Page() {
 		setIsLoading(true);
 		try {
 			const result = await sendMagicLink(formData);
-			if (result?.error) {
+			if (!result) {
+				reloadOutdatedPage(email);
+				return;
+			}
+			if ("error" in result) {
 				toast.error("Could not send the link", { description: result.error });
 				setIsLoading(false);
 				return;
 			}
-			setSentEmail(email);
+			setLastEmail(email);
+			setSent({ email, retryAfterSeconds: result.retryAfterSeconds });
 			setIsLoading(false);
 		} catch (err) {
 			toast.error("Could not send the link", {
@@ -206,27 +224,12 @@ export default function Page() {
 										<span>Sign in</span>
 									</div>
 
-									{sentEmail ? (
-										<div role="status" aria-live="polite">
-											<div className="login-seal" aria-hidden>
-												<Check className="h-[18px] w-[18px]" strokeWidth={1.7} />
-												<span>Sent</span>
-											</div>
-											<h2 className="login-sheet-heading">Check your inbox.</h2>
-											<p className="login-sent-copy mt-3">
-												We sent a one-time sign-in link to <span className="login-sent-email">{sentEmail}</span>.
-											</p>
-											<p className="login-sent-copy mt-2">
-												The link works once. If it hasn&apos;t arrived, check spam or{" "}
-												<button type="button" onClick={() => setSentEmail(null)} className="login-again">
-													use a different email
-												</button>
-												.
-											</p>
-											<div className="login-sheet-foot">
-												<span>The link expires once it&apos;s used.</span>
-											</div>
-										</div>
+									{sent ? (
+										<MagicLinkSent
+											email={sent.email}
+											retryAfterSeconds={sent.retryAfterSeconds}
+											onBack={() => setSent(null)}
+										/>
 									) : (
 										<>
 											<h2 className="login-sheet-heading">Welcome back.</h2>
@@ -246,6 +249,8 @@ export default function Page() {
 														autoComplete="email"
 														required
 														placeholder="you@example.com"
+														ref={emailInputRef}
+														defaultValue={lastEmail}
 														className="login-input"
 														aria-invalid={Boolean(fieldErrors.email)}
 														aria-describedby={fieldErrors.email ? "email-error" : undefined}

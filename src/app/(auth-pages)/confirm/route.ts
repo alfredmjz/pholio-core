@@ -7,6 +7,7 @@ import { DEMO_COOKIE } from "@/lib/demo-mode";
 import { DEMO_SESSION_COOKIE } from "@/lib/demo-session";
 import { redirect } from "next/navigation";
 import { Logger } from "@/lib/logger";
+import { clearMagicLinkSends } from "@/lib/magic-link-limit.server";
 
 export async function GET(request: NextRequest) {
 	const { searchParams } = new URL(request.url);
@@ -51,6 +52,13 @@ export async function GET(request: NextRequest) {
 					await supabase.from("users").update({ has_seen_welcome: true }).eq("id", user.id);
 					const separator = next.includes("?") ? "&" : "?";
 					finalNext = `${next}${separator}welcome=true`;
+				}
+
+				// Links already sent stop counting, so signing out and back in starts a fresh limit.
+				if (user.email) {
+					await clearMagicLinkSends(user.email).catch((clearError) =>
+						Logger.warn("Clearing magic link sends failed during confirm", { error: clearError })
+					);
 				}
 			}
 		} catch (welcomeError) {

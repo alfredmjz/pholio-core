@@ -13,19 +13,19 @@ Pholio is a personal finance tracker and budgeting web app. Users model accounts
 record income / expenses / transfers, track debts and promotions, run monthly budget
 allocations, and see net worth over time.
 
-| Area | Technology |
-| ---- | ---------- |
-| Runtime / package manager | **Bun** (`bun install`, `bun run …`, `bunx`) |
-| Framework | **Next.js 15** App Router, **React 19** |
-| Language | **TypeScript 5.9**, `strict: true` |
-| Database / Auth | **Supabase** (PostgreSQL + RLS, Supabase Auth — **magic link only**) |
-| Mobile | **Capacitor 8** hybrid wrapper (`src/ios/`, `src/android/`) loading the hosted app |
-| UI | Tailwind CSS 3.4, Radix UI, Shadcn primitives, Recharts, lucide-react, sonner, dnd-kit |
-| State | React hooks; Zustand used sparingly (incl. `src/lib/demo-store.ts`) |
-| Logging | Pino (`src/lib/logger.ts`) |
-| Email | Resend (templates in `supabase/templates/`) |
-| Infra | Docker Compose (root), Redis, Vercel, GitHub Actions + semantic-release |
-| Formatting | Prettier — tabs, width 120, CRLF, double quotes, trailing commas es5 (`.prettierrc`) |
+| Area                      | Technology                                                                             |
+| ------------------------- | -------------------------------------------------------------------------------------- |
+| Runtime / package manager | **Bun** (`bun install`, `bun run …`, `bunx`)                                           |
+| Framework                 | **Next.js 15** App Router, **React 19**                                                |
+| Language                  | **TypeScript 5.9**, `strict: true`                                                     |
+| Database / Auth           | **Supabase** (PostgreSQL + RLS, Supabase Auth — **magic link only**)                   |
+| Mobile                    | **Capacitor 8** hybrid wrapper (`src/ios/`, `src/android/`) loading the hosted app     |
+| UI                        | Tailwind CSS 3.4, Radix UI, Shadcn primitives, Recharts, lucide-react, sonner, dnd-kit |
+| State                     | React hooks; Zustand used sparingly (incl. `src/lib/demo-store.ts`)                    |
+| Logging                   | Pino (`src/lib/logger.ts`)                                                             |
+| Email                     | Resend (templates in `supabase/templates/`)                                            |
+| Infra                     | Docker Compose (root), Redis, Vercel, GitHub Actions + semantic-release                |
+| Formatting                | Prettier — tabs, width 120, CRLF, double quotes, trailing commas es5 (`.prettierrc`)   |
 
 Branches: `main` is the release branch, `development` the long-lived integration branch,
 and features land through PRs (CI runs on PRs to either). Current feature branch:
@@ -100,26 +100,26 @@ Environment files:
 
 ### App (`cd src`)
 
-| Command | Purpose |
-| ------- | ------- |
-| `bun run dev` | Next dev server (real Supabase) on :3000 |
-| `bun run dev:mock` | Dev server with `NEXT_PUBLIC_USE_SAMPLE_DATA=true` |
-| `bunx tsc --noEmit` | **Type-check — primary gate, must exit 0** |
-| `bun run build` | Production build — second gate, must exit 0 |
-| `bun run start` | Serve the production build locally |
-| `bun run mobile:sync` | `cap sync` (copy web assets + update native plugins) |
-| `bun run mobile:add:ios` / `mobile:add:android` | Scaffold the native projects |
-| `bun run mobile:open:ios` / `mobile:open:android` | Open the native IDE |
+| Command                                           | Purpose                                              |
+| ------------------------------------------------- | ---------------------------------------------------- |
+| `bun run dev`                                     | Next dev server (real Supabase) on :3000             |
+| `bun run dev:mock`                                | Dev server with `NEXT_PUBLIC_USE_SAMPLE_DATA=true`   |
+| `bunx tsc --noEmit`                               | **Type-check — primary gate, must exit 0**           |
+| `bun run build`                                   | Production build — second gate, must exit 0          |
+| `bun run start`                                   | Serve the production build locally                   |
+| `bun run mobile:sync`                             | `cap sync` (copy web assets + update native plugins) |
+| `bun run mobile:add:ios` / `mobile:add:android`   | Scaffold the native projects                         |
+| `bun run mobile:open:ios` / `mobile:open:android` | Open the native IDE                                  |
 
 ### Root / infra
 
-| Command | Purpose |
-| ------- | ------- |
-| `bun start` | `docker-compose up` (app + redis), reads `.env` + `src/.env.local` |
-| `bun run down` | Stop containers |
-| `bun run clean-rebuild` | Rebuild image without cache and start |
-| `bun run logs` | Tail Docker logs |
-| `bun run db:migrate` | Concatenate `supabase/migrations/*.sql` into `supabase/generated/combined-migrations.sql` and `production-safe-update.sql` |
+| Command                 | Purpose                                                                                                                    |
+| ----------------------- | -------------------------------------------------------------------------------------------------------------------------- |
+| `bun start`             | `docker-compose up` (app + redis), reads `.env` + `src/.env.local`                                                         |
+| `bun run down`          | Stop containers                                                                                                            |
+| `bun run clean-rebuild` | Rebuild image without cache and start                                                                                      |
+| `bun run logs`          | Tail Docker logs                                                                                                           |
+| `bun run db:migrate`    | Concatenate `supabase/migrations/*.sql` into `supabase/generated/combined-migrations.sql` and `production-safe-update.sql` |
 
 `db:migrate` does **not** execute SQL. The owner pastes the generated file into the Supabase
 SQL editor; production is updated manually after a PR merges.
@@ -128,11 +128,11 @@ SQL editor; production is updated manually after a PR merges.
 
 Three automated suites. There is no ESLint config; do not invent `bun run lint`.
 
-| Suite | Command (from `src/`) | Covers |
-| ----- | --------------------- | ------ |
-| Unit (runtime calculations) | `bun test` (`bun run test:watch`) | Pure TypeScript calculations in `src/tests/` |
-| Database (pgTAP) | `bun run test:db` | SQL functions in `supabase/tests/*.test.sql` |
-| E2E (Playwright) | `bun run e2e` / `bun run e2e:smoke` | User flows in `src/e2e/` |
+| Suite                       | Command (from `src/`)               | Covers                                       |
+| --------------------------- | ----------------------------------- | -------------------------------------------- |
+| Unit (runtime calculations) | `bun test` (`bun run test:watch`)   | Pure TypeScript calculations in `src/tests/` |
+| Database (pgTAP)            | `bun run test:db`                   | SQL functions in `supabase/tests/*.test.sql` |
+| E2E (Playwright)            | `bun run e2e` / `bun run e2e:smoke` | User flows in `src/e2e/`                     |
 
 - **Unit tests** use Bun's built-in runner (`bun:test`, no extra dependency). `src/bunfig.toml`
   sets the test root to `src/tests/` so Playwright `*.spec.ts` files are never picked up. Mirror
@@ -218,14 +218,14 @@ Example shape:
 
 ### Naming
 
-| Kind | Convention | Example |
-| ---- | ---------- | ------- |
-| Files (non-component) | kebab-case | `field-visibility.ts` |
-| Files (components) | kebab-case file, PascalCase export | `PromotionsTrackerCard.tsx` |
-| Functions | camelCase | `calculateAccountStanding` |
-| Constants | UPPER_SNAKE | `CORE_TYPE_PRESETS` |
-| Types | PascalCase | `AccountFieldConfig` |
-| Hooks | `use` prefix | `useAllocationSync` |
+| Kind                  | Convention                         | Example                     |
+| --------------------- | ---------------------------------- | --------------------------- |
+| Files (non-component) | kebab-case                         | `field-visibility.ts`       |
+| Files (components)    | kebab-case file, PascalCase export | `PromotionsTrackerCard.tsx` |
+| Functions             | camelCase                          | `calculateAccountStanding`  |
+| Constants             | UPPER_SNAKE                        | `CORE_TYPE_PRESETS`         |
+| Types                 | PascalCase                         | `AccountFieldConfig`        |
+| Hooks                 | `use` prefix                       | `useAllocationSync`         |
 
 ### Formatting
 
@@ -276,10 +276,10 @@ never directly from client components.
 
 ### Database access
 
-| Context | Import |
-| ------- | ------ |
+| Context                            | Import                  |
+| ---------------------------------- | ----------------------- |
 | Server components / server actions | `@/lib/supabase/server` |
-| Client components | `@/lib/supabase/client` |
+| Client components                  | `@/lib/supabase/client` |
 
 - Select explicit columns where practical (some older queries still use `*`).
 - Parallelise independent reads with `Promise.all`.
@@ -309,7 +309,7 @@ Keep components focused; extract form sections and sub-components. Existing file
 ### Account types: `code` is the source of truth
 
 - `account_types.code` is the stable machine key: `chequing | savings | investment |
-  credit_card | line_of_credit | mortgage | loan | other`.
+credit_card | line_of_credit | mortgage | loan | other`.
 - **Never branch on `account_types.name` or `accounts.name`.** Names are display labels and
   can change. (Branch #99 removed all name-hinting from `field-visibility.ts` and
   `isInvestmentAccount()`; do not reintroduce it.)
@@ -446,14 +446,14 @@ Keep components focused; extract form sections and sub-components. Existing file
 Role definitions live in `.agents/`. They describe a multi-agent workflow; a single agent can
 still follow the same routing logic.
 
-| Agent role | Responsibility | Core focus |
-| ---------- | -------------- | ---------- |
-| `orchestrator` | Technical lead & coordinator | Triage, subagent routing, voting coordination, memory categorization |
-| `system-architect` | System & database architect | Architecture decisions, schema, API contracts, scalability |
-| `ui-ux-designer` | UI/UX specialist | Component hierarchy, design tokens, interaction flows, accessibility |
-| `senior-engineer` | Implementation lead | Feature building, refactoring, local bug fixing |
-| `code-reviewer` | Static QA & security auditor | Code quality, RLS/security, error handling, pattern compliance |
-| `ui-flow-reviewer` | Visual & flow QA | Live browser testing, polish, 375/768/1440 responsiveness |
+| Agent role         | Responsibility               | Core focus                                                           |
+| ------------------ | ---------------------------- | -------------------------------------------------------------------- |
+| `orchestrator`     | Technical lead & coordinator | Triage, subagent routing, voting coordination, memory categorization |
+| `system-architect` | System & database architect  | Architecture decisions, schema, API contracts, scalability           |
+| `ui-ux-designer`   | UI/UX specialist             | Component hierarchy, design tokens, interaction flows, accessibility |
+| `senior-engineer`  | Implementation lead          | Feature building, refactoring, local bug fixing                      |
+| `code-reviewer`    | Static QA & security auditor | Code quality, RLS/security, error handling, pattern compliance       |
+| `ui-flow-reviewer` | Visual & flow QA             | Live browser testing, polish, 375/768/1440 responsiveness            |
 
 ### Execution paths
 
@@ -471,7 +471,7 @@ still follow the same routing logic.
   - `decisions.md` — ADRs (ADR-001 agent governance, ADR-002 7 core account types,
     ADR-003 alphabetical ordering).
   - `domain.md` — domain concepts, account-type rules, promotions.
-  Update these only for real architectural decisions, not for routine code changes.
+    Update these only for real architectural decisions, not for routine code changes.
 - **Short-term memory (gitignored):** `.agents/scratch/memories/session-context.md` —
   transient session/scratch notes. It can go stale: on the current branch it describes an
   earlier state and some of its "open items" are already fixed in the working tree. Verify

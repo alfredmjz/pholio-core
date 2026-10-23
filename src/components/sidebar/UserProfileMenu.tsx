@@ -108,7 +108,7 @@ export function UserProfileMenu({
 				</div>
 				<DropdownMenuSeparator />
 				<DropdownMenuLabel className="type-body-xs px-2 pb-1.5 pt-2 font-normal text-muted-foreground">
-					Theme
+					Appearance
 				</DropdownMenuLabel>
 				<ThemeSwitch className="mx-1 mb-1.5" />
 				<DropdownMenuSeparator />

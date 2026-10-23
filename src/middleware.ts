@@ -3,11 +3,22 @@ import { updateSession } from "@/lib/supabase/middleware";
 import { DEMO_COOKIE, DEMO_COOKIE_MAX_AGE, DEMO_HEADER } from "@/lib/demo-mode";
 import { DEMO_SESSION_COOKIE, isValidDemoSession } from "@/lib/demo-session";
 import { isPublicRoute } from "@/lib/routes";
+import { withoutUnknownParams } from "@/lib/page-params";
 
 /*
  * Server Components can't write cookies, this refresh expired Auth tokens and store them
  */
 export async function middleware(request: NextRequest) {
+	// Only full page loads: client navigations carry Next's own parameters.
+	if (request.headers.get("sec-fetch-dest") === "document") {
+		const kept = withoutUnknownParams(request.nextUrl.pathname, request.nextUrl.searchParams);
+		if (kept) {
+			const url = request.nextUrl.clone();
+			url.search = kept.toString();
+			return NextResponse.redirect(url);
+		}
+	}
+
 	// Skip auth session update if using sample data to avoid fetch errors when offline/unconfigured
 	if (process.env.NEXT_PUBLIC_USE_SAMPLE_DATA === "true") {
 		return NextResponse.next({ request });

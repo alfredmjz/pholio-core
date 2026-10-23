@@ -1,7 +1,7 @@
 /*
  * Shared surfaces for the redesigned pages ("running thread").
- * The login's plotter lines drift behind the whole page, and content sits on translucent
- * sheets so the lines stay faintly visible without competing with the numbers.
+ * Today's financial weather (src/components/common/weather/) drifts behind the whole page, and
+ * content sits on translucent sheets so it stays faintly visible without competing with the numbers.
  * Use through <SurfacePage> and <SurfaceSection> (src/components/layout/).
  */
 
@@ -9,6 +9,8 @@
 	--ledger-ink: 44, 40, 34;
 	--ledger-tint: 15, 107, 80;
 	--ledger-strength: 1;
+	/* Light ink on a dark page reads far stronger, so dark mode halves the weather like the lines. */
+	--weather-strength: 1;
 	--surface-radius: 22px;
 }
 
@@ -16,6 +18,7 @@
 	--ledger-ink: 236, 228, 212;
 	--ledger-tint: 94, 214, 170;
 	--ledger-strength: 0.5;
+	--weather-strength: 0.5;
 }
 
 /* ---------------------------------------------------------------- backdrop */
@@ -29,8 +32,12 @@
 	margin-bottom: -100dvh;
 	overflow: hidden;
 	pointer-events: none;
-	-webkit-mask-image: linear-gradient(to bottom, black 0%, black 70%, transparent 100%);
-	mask-image: linear-gradient(to bottom, black 0%, black 70%, transparent 100%);
+	/* The login's paper: a faint ruled grid, 4px rows by 5px columns, with a darker edge. Static,
+	   and without blend modes, so it costs nothing per frame. */
+	background-image:
+		repeating-linear-gradient(0deg, hsl(var(--foreground) / 0.022) 0 1px, transparent 1px 4px),
+		repeating-linear-gradient(90deg, hsl(var(--foreground) / 0.014) 0 1px, transparent 1px 5px);
+	box-shadow: inset 0 0 160px hsl(var(--foreground) / 0.06);
 }
 
 /* Desktop: the lines run under the sidebar too, as one continuous background (the sidebar is
@@ -50,6 +57,70 @@
 	display: block;
 	width: 100%;
 	height: 100%;
+}
+
+/* Text that sits straight on the backdrop gets a soft halo in the page colour, so the weather
+   behind it fades out around the letters. Sheets have their own background and skip it. */
+.surface-content {
+	text-shadow:
+		0 0 2px hsl(var(--background)),
+		0 0 6px hsl(var(--background)),
+		0 0 12px hsl(var(--background));
+}
+
+.surface-content .surface-sheet {
+	text-shadow: none;
+}
+
+/* A header pinned while the page scrolls beneath it. Clear at rest, so the weather shows through
+   like on every other page; once content passes under it, a page-coloured fill fades in, soft at
+   the sides and bottom so it never reads as a box. */
+.surface-sticky-header {
+	--sticky-fade: 16px;
+	position: sticky;
+	top: 0;
+	z-index: 30;
+	isolation: isolate;
+}
+
+.surface-sticky-header::before {
+	content: "";
+	position: absolute;
+	inset: 0 0 -20px;
+	z-index: -1;
+	pointer-events: none;
+	background: hsl(var(--background) / 0.97);
+	opacity: 0;
+	transition: opacity 0.2s ease;
+	-webkit-mask-image:
+		linear-gradient(to bottom, black calc(100% - 20px), transparent),
+		linear-gradient(to right, transparent, black var(--sticky-fade), black calc(100% - var(--sticky-fade)), transparent);
+	-webkit-mask-composite: source-in;
+	mask-image:
+		linear-gradient(to bottom, black calc(100% - 20px), transparent),
+		linear-gradient(to right, transparent, black var(--sticky-fade), black calc(100% - var(--sticky-fade)), transparent);
+	mask-composite: intersect;
+}
+
+.surface-sticky-header[data-scrolled="true"]::before {
+	opacity: 1;
+}
+
+@media (min-width: 768px) {
+	.surface-sticky-header {
+		--sticky-fade: 32px;
+	}
+}
+
+/* Weather layers stack, so a changing sky can cross-fade. */
+.weather-layer {
+	position: absolute;
+	inset: 0;
+	transition: opacity 1.2s ease;
+}
+
+.weather-layer-leaving {
+	opacity: 0;
 }
 
 /* ------------------------------------------------------------------ sheets */
@@ -294,6 +365,7 @@
 	--progress-wave-width: 28px;
 	--progress-height: 8px;
 	--progress-track: 2px;
+	--progress-dot: 6px;
 	--progress-duration: 1.2s;
 	--progress-ease: cubic-bezier(0.22, 1, 0.36, 1);
 }
@@ -334,6 +406,17 @@
 	animation: progress-wave var(--progress-duration) var(--progress-ease) 1 both;
 }
 
+/* Caps the end of the fill, where the wave is cut off. */
+.progress-line-dot {
+	position: absolute;
+	top: 50%;
+	width: var(--progress-dot);
+	height: var(--progress-dot);
+	border-radius: 9999px;
+	transform: translate(-50%, -50%);
+	transition: left var(--progress-duration) var(--progress-ease);
+}
+
 @keyframes progress-wave {
 	from {
 		transform: translateX(calc(-2 * var(--progress-wave-width)));
@@ -345,7 +428,8 @@
 
 @media (prefers-reduced-motion: reduce) {
 	.progress-line-fill,
-	.progress-line-track {
+	.progress-line-track,
+	.progress-line-dot {
 		transition: none;
 	}
 	.progress-line-wave {

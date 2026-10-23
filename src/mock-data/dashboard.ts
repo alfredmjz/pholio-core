@@ -2,9 +2,11 @@ import type { DashboardData, Transaction } from "@/app/dashboard/types";
 import type { AllocationSummary } from "@/app/allocations/types";
 import { buildNetWorthSeries, type BalanceRecord } from "@/app/dashboard/net-worth-series";
 import { computeMonthPace, type PaceExpense } from "@/app/dashboard/month-pace";
-import { buildMonthlyCashflow, type CashflowTransaction } from "@/app/dashboard/cashflow";
+import { buildMonthlyCashflow, isTransfer, type CashflowTransaction } from "@/app/dashboard/cashflow";
 import { buildHeadsUp, selectUpcomingBills, type BillInput, type HeadsUpPromotion } from "@/app/dashboard/heads-up";
 import { getDaysInMonth } from "@/lib/date-utils";
+import type { WeatherInput } from "@/lib/financial-weather";
+import { accountsForWeather, billsForWeather } from "@/lib/weather-input";
 import { sampleAccounts } from "./accounts";
 import { getSmartMockData } from "./allocations";
 import { getDemoNow, daysBefore, toDateOnly } from "./demo-date";
@@ -254,5 +256,21 @@ export function getSampleDashboardData(now: Date = getDemoNow(), bills: BillInpu
 		recentTransactions: getSampleRecentTransactions(now),
 		accounts,
 		categories: summary.categories,
+	};
+}
+
+/** The same sample story the Dashboard tells, graded for the backdrop. */
+export function getSampleWeatherInput(now: Date = getDemoNow(), bills: BillInput[] = []): WeatherInput {
+	const data = getSampleDashboardData(now, bills);
+	const expenses = sampleMonthExpenses(now, data.monthPace?.budget ?? 0);
+	return {
+		today: data.today,
+		transactions: sampleCashflowTransactions(now, expenses)
+			.filter((transaction) => !isTransfer(transaction))
+			.map(({ date, amount }) => ({ date, amount })),
+		monthPace: data.monthPace,
+		netWorth: data.netWorth.history,
+		...billsForWeather(bills, data.today),
+		...accountsForWeather(sampleAccounts),
 	};
 }

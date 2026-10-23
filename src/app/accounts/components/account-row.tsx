@@ -23,7 +23,7 @@ import { AccountSparkline } from "./account-sparkline";
 
 /** Columns shared by the group header and every account row, once the list is wide enough (see `row-wide`). */
 export const ACCOUNT_GRID =
-	"row-wide:grid row-wide:grid-cols-[minmax(10rem,1.6fr)_6rem_minmax(6.5rem,1fr)_7rem] row-wide:items-center row-wide:gap-5";
+	"row-wide:grid row-wide:grid-cols-[minmax(10rem,1.6fr)_6rem_minmax(8.5rem,1fr)_7rem] row-wide:items-center row-wide:gap-5";
 
 export const TYPE_ICON: Record<AccountTypeCode, typeof Wallet> = {
 	chequing: Landmark,
@@ -109,7 +109,7 @@ export function AccountRow({ account, history, sortable = true }: AccountRowProp
 						className="hidden row-wide:block"
 					/>
 
-					<div className="mt-2 pl-12 row-wide:mt-0 row-wide:pl-0">
+					<div className="mt-2 pl-12 row-wide:mt-0 row-wide:pl-8">
 						{progress ? (
 							<>
 								<ProgressLine

@@ -103,7 +103,7 @@ function AccountGroup({
 					>
 						<span>Account</span>
 						<span>30 days</span>
-						<span>Progress</span>
+						<span className="pl-8">Progress</span>
 						<span className="text-right">Balance</span>
 					</div>
 					<DndContext

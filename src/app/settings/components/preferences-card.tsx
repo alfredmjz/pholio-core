@@ -2,7 +2,7 @@
 
 import { useEffect, useState, useMemo } from "react";
 import { useTheme } from "next-themes";
-import { Monitor, Moon, Sun, Globe, ChevronsUpDown, Check, Bell } from "lucide-react";
+import { Monitor, Moon, Sun, Globe, ChevronsUpDown, Check, Bell, CircleOff, CloudSun, Wind } from "lucide-react";
 
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card";
 import { Label } from "@/components/ui/label";
@@ -12,7 +12,9 @@ import { ToggleGroup, ToggleGroupItem } from "@/components/ui/toggle-group";
 import { Popover, PopoverContent, PopoverTrigger } from "@/components/ui/popover";
 import { Command, CommandEmpty, CommandGroup, CommandInput, CommandItem, CommandList } from "@/components/ui/command";
 import { Button } from "@/components/ui/button";
+import { useBackdrop } from "@/components/providers/weather-provider";
 import { cn } from "@/lib/utils";
+import { parseBackdropPreference } from "@/lib/backdrop-preference";
 import { toast } from "sonner";
 import { getUserTemplates } from "@/app/allocations/actions";
 import {
@@ -25,6 +27,7 @@ import {
 
 export default function PreferencesCard() {
 	const { theme, setTheme } = useTheme();
+	const { backdrop, setBackdrop } = useBackdrop();
 	const [mounted, setMounted] = useState(false);
 
 	// Local state for non-persisted settings
@@ -227,6 +230,46 @@ export default function PreferencesCard() {
 							<span className="text-xs font-medium">System</span>
 						</ToggleGroupItem>
 					</ToggleGroup>
+
+					<div className="space-y-2.5 pt-2">
+						<Label className="text-sm font-semibold">Background</Label>
+						<ToggleGroup
+							type="single"
+							value={backdrop}
+							onValueChange={(value) => value && setBackdrop(parseBackdropPreference(value))}
+							className="grid grid-cols-3 gap-3 sm:flex sm:flex-wrap sm:justify-start sm:gap-4"
+						>
+							<ToggleGroupItem
+								value="none"
+								aria-label="No Background"
+								className="h-24 w-full flex flex-col gap-2 rounded-lg border-2 sm:max-w-[140px] border-muted text-primary hover:border-primary hover:bg-transparent data-[state=on]:border-primary data-[state=on]:bg-primary/5 data-[state=on]:text-primary"
+							>
+								<CircleOff className="h-6 w-6" />
+								<span className="text-xs font-medium">None</span>
+							</ToggleGroupItem>
+
+							<ToggleGroupItem
+								value="adaptive"
+								aria-label="Adaptive Background"
+								className="h-24 w-full flex flex-col gap-2 rounded-lg border-2 sm:max-w-[140px] border-muted text-primary hover:border-primary hover:bg-transparent data-[state=on]:border-primary data-[state=on]:bg-primary/5 data-[state=on]:text-primary"
+							>
+								<CloudSun className="h-6 w-6" />
+								<span className="text-xs font-medium">Adaptive</span>
+							</ToggleGroupItem>
+
+							<ToggleGroupItem
+								value="wind"
+								aria-label="Wind Background"
+								className="h-24 w-full flex flex-col gap-2 rounded-lg border-2 sm:max-w-[140px] border-muted text-primary hover:border-primary hover:bg-transparent data-[state=on]:border-primary data-[state=on]:bg-primary/5 data-[state=on]:text-primary"
+							>
+								<Wind className="h-6 w-6" />
+								<span className="text-xs font-medium">Wind</span>
+							</ToggleGroupItem>
+						</ToggleGroup>
+						<p className="text-xs text-muted-foreground">
+							Adaptive turns sunny, cloudy, windy or rainy with how your finances are going. Saved on this device.
+						</p>
+					</div>
 				</div>
 
 				<hr className="border-border" />

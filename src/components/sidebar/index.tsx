@@ -105,7 +105,7 @@ export function SideBarComponent({ userProfile }: SideBarComponentProps) {
 				"group/sidebar relative z-20 hidden h-dvh shrink-0 flex-col bg-transparent lg:flex",
 				// Width eases when a drag is let go (snapping to the rail or the minimum) and on reset; during
 				// a drag the handle writes it directly every frame, so no transition then.
-				!isResizing && "transition-[width] duration-300 ease-[cubic-bezier(0.22,1,0.36,1)]"
+				!isResizing && "transition-[width] duration-300 [transition-timing-function:cubic-bezier(0.22,1,0.36,1)]"
 			)}
 			style={{
 				width:

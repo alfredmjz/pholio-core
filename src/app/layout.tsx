@@ -9,6 +9,10 @@ import { getUserProfile } from "@/lib/getUserProfile";
 import { Toaster } from "@/components/ui/sonner";
 import { ThemeProvider } from "@/components/theme-provider";
 import { TooltipProvider } from "@/components/ui/tooltip";
+import { WeatherProvider } from "@/components/providers/weather-provider";
+import { getFinancialWeather } from "@/lib/actions/weather-actions";
+import { BACKDROP_COOKIE, parseBackdropPreference } from "@/lib/backdrop-preference";
+import { cookies } from "next/headers";
 
 export const metadata: Metadata = {
 	title: "Pholio",
@@ -29,15 +33,20 @@ export const viewport: Viewport = {
 
 export default async function RootLayout({ children }: { children: React.ReactNode }) {
 	const userProfile = await getUserProfile();
+	const backdrop = parseBackdropPreference((await cookies()).get(BACKDROP_COOKIE)?.value);
+	// Not awaited: the page renders while the weather is worked out, and only when it will be shown.
+	const weather = userProfile && backdrop === "adaptive" ? getFinancialWeather() : Promise.resolve(null);
 
 	return (
 		<html lang="en" suppressHydrationWarning>
 			<body className="flex h-dvh w-full flex-row overflow-hidden bg-background">
 				<ThemeProvider attribute="class" defaultTheme="system" enableSystem disableTransitionOnChange>
 					<TooltipProvider>
-						<LayoutWrapper sidebar={<SideBarComponent userProfile={userProfile} />} userProfile={userProfile}>
-							{children}
-						</LayoutWrapper>
+						<WeatherProvider weather={weather} backdrop={backdrop}>
+							<LayoutWrapper sidebar={<SideBarComponent userProfile={userProfile} />} userProfile={userProfile}>
+								{children}
+							</LayoutWrapper>
+						</WeatherProvider>
 						<Toaster />
 					</TooltipProvider>
 				</ThemeProvider>

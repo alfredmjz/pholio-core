@@ -217,13 +217,6 @@ export function NetWorthThread({
 						</g>
 					)}
 
-					{activeIndex === null && (
-						<g>
-							<circle cx={geometry.xs[lastIndex]} cy={geometry.ys[lastIndex]} r={6} className="dash-live-ring" />
-							<circle cx={geometry.xs[lastIndex]} cy={geometry.ys[lastIndex]} r={4.5} className="dash-live-dot" />
-						</g>
-					)}
-
 					{/* The dashed swatch ties the start date to the dashed reference line. */}
 					<line x1={0} x2={14} y1={height - 10} y2={height - 10} className="dash-thread-baseline" />
 					<text x={20} y={height - 6} className="type-caption fill-muted-foreground">

@@ -41,13 +41,13 @@ export function ThemeSwitch({ className }: { className?: string }) {
 	return (
 		<div
 			role="radiogroup"
-			aria-label="Theme"
+			aria-label="Appearance"
 			onKeyDown={handleKeyDown}
 			className={cn("relative grid grid-cols-3 rounded-full bg-primary/[0.06] p-1", className)}
 		>
 			<span
 				className={cn(
-					"absolute inset-y-1 left-1 w-[calc((100%-0.5rem)/3)] rounded-full bg-card shadow-card ring-1 ring-border/70 transition-transform duration-300 ease-[cubic-bezier(0.22,1,0.36,1)] motion-reduce:transition-none",
+					"absolute inset-y-1 left-1 w-[calc((100%-0.5rem)/3)] rounded-full bg-card shadow-card ring-1 ring-border/70 transition-transform duration-300 [transition-timing-function:cubic-bezier(0.22,1,0.36,1)] motion-reduce:transition-none",
 					!mounted && "opacity-0"
 				)}
 				style={{ transform: `translateX(${current * 100}%)` }}

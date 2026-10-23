@@ -58,17 +58,6 @@ export function PaceChart({ pace, monthLabel }: { pace: MonthPace; monthLabel: s
 						/>
 					)}
 				</svg>
-				{/* An HTML dot stays round however the chart is stretched. */}
-				{today > 0 && (
-					<span
-						className={`absolute h-2.5 w-2.5 -translate-x-1/2 -translate-y-1/2 rounded-full border-2 border-card bg-current ${tone}`}
-						style={{
-							left: `${(x(today) / WIDTH) * 100}%`,
-							top: `${(y(pace.cumulative[today - 1]) / HEIGHT) * 100}%`,
-						}}
-						aria-hidden
-					/>
-				)}
 			</div>
 			<figcaption className="type-body-xs mt-2.5 flex flex-wrap justify-between gap-x-4 gap-y-1 text-muted-foreground">
 				<span className="flex items-center gap-1.5">

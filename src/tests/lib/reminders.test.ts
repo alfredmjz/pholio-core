@@ -101,7 +101,14 @@ describe("buildReminderEmail", () => {
 
 	test("names a single item in the subject", () => {
 		const email = buildReminderEmail(reminders.slice(1), { locale: "en-GB", currency: "GBP" }, links);
-		expect(email.subject).toBe("Hydro is due Thu, 29 Oct");
+		// ICU builds differ on the comma ("Thu, 29 Oct" or "Thu 29 Oct"), so build it the same way.
+		const when = new Intl.DateTimeFormat("en-GB", {
+			weekday: "short",
+			month: "short",
+			day: "numeric",
+			timeZone: "UTC",
+		});
+		expect(email.subject).toBe(`Hydro is due ${when.format(Date.UTC(2026, 9, 29))}`);
 		expect(email.text).toContain("£82.40");
 	});
 

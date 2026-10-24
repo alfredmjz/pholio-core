@@ -58,7 +58,7 @@ All statements are idempotent and additive. **No row is ever deleted.**
 
 **Guided re-selection (app side):** users who already have ≥1 account whose type is retired/legacy get a one-time migration dialog listing those accounts so they can choose one of the eight types (with the "Other" field configurator available). Nothing changes automatically — matching the product decision that account typing is user-controlled.
 
-Production is updated manually by the owner **after** the PR merges, by running `supabase/generated/combined-migrations.sql` (from `bun run db:migrate`).
+Production is updated manually by the owner **after** the PR merges, by running `supabase/generated/production-safe-update.sql`.
 
 ## 4. Debt & Standing Rules
 

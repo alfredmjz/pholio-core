@@ -24,7 +24,7 @@ CREATE TABLE IF NOT EXISTS public.contribution_rooms (
 ALTER TABLE public.contribution_rooms ENABLE ROW LEVEL SECURITY;
 DROP POLICY IF EXISTS "Users manage own contribution rooms" ON public.contribution_rooms;
 CREATE POLICY "Users manage own contribution rooms" ON public.contribution_rooms
-    FOR ALL USING (auth.uid() = user_id) WITH CHECK (auth.uid() = user_id);
+    FOR ALL USING ((select auth.uid()) = user_id) WITH CHECK ((select auth.uid()) = user_id);
 GRANT ALL ON public.contribution_rooms TO authenticated;
 
 DROP TRIGGER IF EXISTS contribution_rooms_updated_at_trigger ON public.contribution_rooms;

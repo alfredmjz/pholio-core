@@ -38,18 +38,17 @@ COMMENT ON COLUMN public.users.timezone IS 'IANA timezone identifier (e.g. Ameri
 ALTER TABLE public.users ENABLE ROW LEVEL SECURITY;
 
 DROP POLICY IF EXISTS "Users can view own profile" ON public.users;
-CREATE POLICY "Users can view own profile" ON public.users FOR SELECT USING (auth.uid() = id);
+CREATE POLICY "Users can view own profile" ON public.users FOR SELECT USING ((select auth.uid()) = id);
 
 DROP POLICY IF EXISTS "Users can insert own profile" ON public.users;
-CREATE POLICY "Users can insert own profile" ON public.users FOR INSERT WITH CHECK (auth.uid() = id);
+CREATE POLICY "Users can insert own profile" ON public.users FOR INSERT WITH CHECK ((select auth.uid()) = id);
 
 DROP POLICY IF EXISTS "Service role can insert profiles" ON public.users;
 CREATE POLICY "Service role can insert profiles" ON public.users FOR INSERT WITH CHECK (true);
 
 DROP POLICY IF EXISTS "Users can update own profile" ON public.users;
-CREATE POLICY "Users can update own profile" ON public.users FOR UPDATE USING (auth.uid() = id);
+CREATE POLICY "Users can update own profile" ON public.users FOR UPDATE USING ((select auth.uid()) = id);
 
-CREATE INDEX IF NOT EXISTS users_email_idx ON public.users(email);
 CREATE INDEX IF NOT EXISTS users_is_guest_idx ON public.users(is_guest);
 
 DROP TRIGGER IF EXISTS update_users_updated_at ON public.users;

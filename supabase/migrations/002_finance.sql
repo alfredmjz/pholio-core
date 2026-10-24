@@ -24,10 +24,10 @@ CREATE TABLE IF NOT EXISTS public.account_types (
 
 ALTER TABLE public.account_types ENABLE ROW LEVEL SECURITY;
 DROP POLICY IF EXISTS "View account types" ON public.account_types;
-CREATE POLICY "View account types" ON public.account_types FOR SELECT USING (is_system = true OR user_id IS NULL OR auth.uid() = user_id);
+CREATE POLICY "View account types" ON public.account_types FOR SELECT USING (is_system = true OR user_id IS NULL OR (select auth.uid()) = user_id);
 
 DROP POLICY IF EXISTS "Manage own account types" ON public.account_types;
-CREATE POLICY "Manage own account types" ON public.account_types FOR ALL USING (auth.uid() = user_id AND is_system = false);
+CREATE POLICY "Manage own account types" ON public.account_types FOR ALL USING ((select auth.uid()) = user_id AND is_system = false);
 
 -- The core types. Retired legacy and user-created types stay in older databases with
 -- is_active = false so their accounts keep a valid foreign key.
@@ -97,7 +97,7 @@ COMMENT ON COLUMN public.accounts.annual_contribution_limit IS 'Annual limit ove
 
 ALTER TABLE public.accounts ENABLE ROW LEVEL SECURITY;
 DROP POLICY IF EXISTS "Users manage own accounts" ON public.accounts;
-CREATE POLICY "Users manage own accounts" ON public.accounts FOR ALL USING (auth.uid() = user_id);
+CREATE POLICY "Users manage own accounts" ON public.accounts FOR ALL USING ((select auth.uid()) = user_id);
 
 DROP TRIGGER IF EXISTS accounts_updated_at_trigger ON public.accounts;
 CREATE TRIGGER accounts_updated_at_trigger BEFORE UPDATE ON public.accounts FOR EACH ROW EXECUTE FUNCTION public.update_updated_at_column();
@@ -119,7 +119,7 @@ CREATE TABLE IF NOT EXISTS public.account_history (
 
 ALTER TABLE public.account_history ENABLE ROW LEVEL SECURITY;
 DROP POLICY IF EXISTS "Users manage own account history" ON public.account_history;
-CREATE POLICY "Users manage own account history" ON public.account_history FOR ALL USING (auth.uid() = user_id);
+CREATE POLICY "Users manage own account history" ON public.account_history FOR ALL USING ((select auth.uid()) = user_id);
 
 CREATE OR REPLACE FUNCTION public.record_balance_change()
 RETURNS TRIGGER AS $$
@@ -160,7 +160,7 @@ CREATE TABLE IF NOT EXISTS public.recurring_expenses (
 
 ALTER TABLE public.recurring_expenses ENABLE ROW LEVEL SECURITY;
 DROP POLICY IF EXISTS "Users can manage own recurring expenses" ON public.recurring_expenses;
-CREATE POLICY "Users can manage own recurring expenses" ON public.recurring_expenses USING (auth.uid() = user_id);
+CREATE POLICY "Users can manage own recurring expenses" ON public.recurring_expenses USING ((select auth.uid()) = user_id);
 
 DROP TRIGGER IF EXISTS update_recurring_expenses_updated_at ON public.recurring_expenses;
 CREATE TRIGGER update_recurring_expenses_updated_at BEFORE UPDATE ON public.recurring_expenses FOR EACH ROW EXECUTE FUNCTION public.update_updated_at_column();
@@ -187,7 +187,7 @@ CREATE TABLE IF NOT EXISTS public.recurring_transfers (
 ALTER TABLE public.recurring_transfers ENABLE ROW LEVEL SECURITY;
 
 DROP POLICY IF EXISTS "Users can manage own recurring transfers" ON public.recurring_transfers;
-CREATE POLICY "Users can manage own recurring transfers" ON public.recurring_transfers FOR ALL USING (auth.uid() = user_id);
+CREATE POLICY "Users can manage own recurring transfers" ON public.recurring_transfers FOR ALL USING ((select auth.uid()) = user_id);
 
 DROP TRIGGER IF EXISTS update_recurring_transfers_updated_at ON public.recurring_transfers;
 CREATE TRIGGER update_recurring_transfers_updated_at BEFORE UPDATE ON public.recurring_transfers FOR EACH ROW EXECUTE FUNCTION public.update_updated_at_column();

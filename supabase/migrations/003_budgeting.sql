@@ -19,7 +19,7 @@ CREATE TABLE IF NOT EXISTS public.allocations (
 
 ALTER TABLE public.allocations ENABLE ROW LEVEL SECURITY;
 DROP POLICY IF EXISTS "Users can manage own allocations" ON public.allocations;
-CREATE POLICY "Users can manage own allocations" ON public.allocations FOR ALL USING (auth.uid() = user_id);
+CREATE POLICY "Users can manage own allocations" ON public.allocations FOR ALL USING ((select auth.uid()) = user_id);
 
 DROP TRIGGER IF EXISTS update_allocations_updated_at ON public.allocations;
 CREATE TRIGGER update_allocations_updated_at BEFORE UPDATE ON public.allocations FOR EACH ROW EXECUTE FUNCTION public.update_updated_at_column();
@@ -53,7 +53,7 @@ COMMENT ON COLUMN public.allocation_categories.contribution_plan IS 'Registered 
 
 ALTER TABLE public.allocation_categories ENABLE ROW LEVEL SECURITY;
 DROP POLICY IF EXISTS "Users can manage own categories" ON public.allocation_categories;
-CREATE POLICY "Users can manage own categories" ON public.allocation_categories FOR ALL USING (auth.uid() = user_id);
+CREATE POLICY "Users can manage own categories" ON public.allocation_categories FOR ALL USING ((select auth.uid()) = user_id);
 
 DROP TRIGGER IF EXISTS update_allocation_categories_updated_at ON public.allocation_categories;
 CREATE TRIGGER update_allocation_categories_updated_at BEFORE UPDATE ON public.allocation_categories FOR EACH ROW EXECUTE FUNCTION public.update_updated_at_column();
@@ -73,7 +73,7 @@ CREATE TABLE IF NOT EXISTS public.allocation_templates (
 
 ALTER TABLE public.allocation_templates ENABLE ROW LEVEL SECURITY;
 DROP POLICY IF EXISTS "Users can manage own templates" ON public.allocation_templates;
-CREATE POLICY "Users can manage own templates" ON public.allocation_templates FOR ALL USING (auth.uid() = user_id);
+CREATE POLICY "Users can manage own templates" ON public.allocation_templates FOR ALL USING ((select auth.uid()) = user_id);
 
 -- =============================================================================
 -- TABLE: template_categories
@@ -99,7 +99,7 @@ CREATE TABLE IF NOT EXISTS public.template_categories (
 
 ALTER TABLE public.template_categories ENABLE ROW LEVEL SECURITY;
 DROP POLICY IF EXISTS "Users can manage own template categories" ON public.template_categories;
-CREATE POLICY "Users can manage own template categories" ON public.template_categories FOR ALL USING (auth.uid() = (SELECT user_id FROM public.allocation_templates WHERE id = template_id));
+CREATE POLICY "Users can manage own template categories" ON public.template_categories FOR ALL USING ((select auth.uid()) = (SELECT user_id FROM public.allocation_templates WHERE id = template_id));
 
 -- =============================================================================
 -- UNIFIED TRANSACTION SYSTEM
@@ -126,7 +126,7 @@ CREATE TABLE IF NOT EXISTS public.transactions (
 
 ALTER TABLE public.transactions ENABLE ROW LEVEL SECURITY;
 DROP POLICY IF EXISTS "Users manage own transactions" ON public.transactions;
-CREATE POLICY "Users manage own transactions" ON public.transactions FOR ALL USING (auth.uid() = user_id);
+CREATE POLICY "Users manage own transactions" ON public.transactions FOR ALL USING ((select auth.uid()) = user_id);
 
 DROP TRIGGER IF EXISTS update_transactions_updated_at ON public.transactions;
 CREATE TRIGGER update_transactions_updated_at BEFORE UPDATE ON public.transactions FOR EACH ROW EXECUTE FUNCTION public.update_updated_at_column();
@@ -149,13 +149,19 @@ CREATE TABLE IF NOT EXISTS public.account_transactions (
 
 ALTER TABLE public.account_transactions ENABLE ROW LEVEL SECURITY;
 DROP POLICY IF EXISTS "Users manage own account transactions" ON public.account_transactions;
-CREATE POLICY "Users manage own account transactions" ON public.account_transactions FOR ALL USING (auth.uid() = user_id);
+CREATE POLICY "Users manage own account transactions" ON public.account_transactions FOR ALL USING ((select auth.uid()) = user_id);
 
 ALTER TABLE public.transactions DROP CONSTRAINT IF EXISTS fk_linked_account_tx;
 ALTER TABLE public.transactions ADD CONSTRAINT fk_linked_account_tx FOREIGN KEY (linked_account_transaction_id) REFERENCES public.account_transactions(id) ON DELETE SET NULL;
 
-CREATE INDEX IF NOT EXISTS transactions_date_idx ON public.transactions(transaction_date DESC);
+CREATE INDEX IF NOT EXISTS idx_allocation_categories_allocation ON public.allocation_categories(allocation_id);
+CREATE INDEX IF NOT EXISTS idx_template_categories_template ON public.template_categories(template_id);
+CREATE INDEX IF NOT EXISTS idx_transactions_user_date ON public.transactions(user_id, transaction_date DESC);
+CREATE INDEX IF NOT EXISTS idx_transactions_category_id ON public.transactions(category_id);
+CREATE INDEX IF NOT EXISTS idx_transactions_linked_account_transaction_id ON public.transactions(linked_account_transaction_id);
 CREATE INDEX IF NOT EXISTS idx_account_txn_account ON public.account_transactions(account_id, transaction_date DESC);
+CREATE INDEX IF NOT EXISTS idx_account_transactions_user_created ON public.account_transactions(user_id, created_at DESC);
+CREATE INDEX IF NOT EXISTS idx_account_transactions_linked_allocation_transaction_id ON public.account_transactions(linked_allocation_transaction_id);
 CREATE INDEX IF NOT EXISTS idx_transactions_recurring_expense_id ON public.transactions(recurring_expense_id);
 CREATE INDEX IF NOT EXISTS idx_account_transactions_recurring_transfer_id ON public.account_transactions(recurring_transfer_id);
 CREATE INDEX IF NOT EXISTS idx_account_transactions_linked_transfer_transaction_id ON public.account_transactions(linked_transfer_transaction_id);
@@ -188,7 +194,7 @@ CREATE TABLE IF NOT EXISTS public.transaction_presets (
 
 ALTER TABLE public.transaction_presets ENABLE ROW LEVEL SECURITY;
 DROP POLICY IF EXISTS "Users can manage own presets" ON public.transaction_presets;
-CREATE POLICY "Users can manage own presets" ON public.transaction_presets FOR ALL USING (auth.uid() = user_id);
+CREATE POLICY "Users can manage own presets" ON public.transaction_presets FOR ALL USING ((select auth.uid()) = user_id);
 
 DROP TRIGGER IF EXISTS update_transaction_presets_updated_at ON public.transaction_presets;
 CREATE TRIGGER update_transaction_presets_updated_at BEFORE UPDATE ON public.transaction_presets FOR EACH ROW EXECUTE FUNCTION public.update_updated_at_column();
@@ -216,10 +222,7 @@ CREATE TABLE IF NOT EXISTS public.recurring_recorded_occurrences (
 ALTER TABLE public.recurring_recorded_occurrences ENABLE ROW LEVEL SECURITY;
 DROP POLICY IF EXISTS "Users can manage own recorded occurrences" ON public.recurring_recorded_occurrences;
 CREATE POLICY "Users can manage own recorded occurrences" ON public.recurring_recorded_occurrences
-    FOR ALL USING (auth.uid() = user_id);
-
-CREATE INDEX IF NOT EXISTS idx_recurring_recorded_occurrences_user
-    ON public.recurring_recorded_occurrences(user_id, recurring_expense_id, occurrence_date);
+    FOR ALL USING ((select auth.uid()) = user_id);
 
 GRANT ALL ON public.recurring_recorded_occurrences TO authenticated;
 

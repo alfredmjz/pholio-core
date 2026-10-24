@@ -24,7 +24,7 @@ CREATE TABLE IF NOT EXISTS public.account_promotions (
 
 ALTER TABLE public.account_promotions ENABLE ROW LEVEL SECURITY;
 DROP POLICY IF EXISTS "Users manage own account promotions" ON public.account_promotions;
-CREATE POLICY "Users manage own account promotions" ON public.account_promotions FOR ALL USING (auth.uid() = user_id);
+CREATE POLICY "Users manage own account promotions" ON public.account_promotions FOR ALL USING ((select auth.uid()) = user_id);
 
 DROP TRIGGER IF EXISTS account_promotions_updated_at_trigger ON public.account_promotions;
 CREATE TRIGGER account_promotions_updated_at_trigger BEFORE UPDATE ON public.account_promotions FOR EACH ROW EXECUTE FUNCTION public.update_updated_at_column();

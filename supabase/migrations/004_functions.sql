@@ -17,7 +17,8 @@ BEGIN
     END IF;
 
     WITH allocation_period AS (
-        SELECT year, month, user_id FROM public.allocations WHERE id = p_allocation_id
+        SELECT user_id, make_date(year, month, 1) AS period_start, (make_date(year, month, 1) + INTERVAL '1 month')::date AS next_period_start
+        FROM public.allocations WHERE id = p_allocation_id
     ),
     transaction_spend AS (
         SELECT
@@ -27,8 +28,8 @@ BEGIN
         FROM public.transactions t
         CROSS JOIN allocation_period ap
         WHERE t.user_id = ap.user_id
-          AND EXTRACT(YEAR FROM t.transaction_date) = ap.year
-          AND EXTRACT(MONTH FROM t.transaction_date) = ap.month
+          AND t.transaction_date >= ap.period_start
+          AND t.transaction_date < ap.next_period_start
         GROUP BY category_id
     ),
     categorized_data AS (
@@ -106,7 +107,7 @@ BEGIN
     RETURN TRUE;
 EXCEPTION WHEN OTHERS THEN RETURN FALSE;
 END;
-$$ LANGUAGE plpgsql SECURITY DEFINER;
+$$ LANGUAGE plpgsql SECURITY DEFINER SET search_path = public;
 
 -- =============================================================================
 -- FUNCTION: update_unified_transaction
@@ -242,7 +243,7 @@ BEGIN
     RETURN TRUE;
 EXCEPTION WHEN OTHERS THEN RETURN FALSE;
 END;
-$$ LANGUAGE plpgsql SECURITY DEFINER;
+$$ LANGUAGE plpgsql SECURITY DEFINER SET search_path = public;
 
 -- =============================================================================
 -- FUNCTION: apply_template_to_allocation

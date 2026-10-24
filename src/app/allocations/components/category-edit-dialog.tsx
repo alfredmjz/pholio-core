@@ -21,6 +21,7 @@ import type { AllocationCategory } from "../types";
 import { ContributionPlanPicker } from "./ContributionPlanPicker";
 import { DeleteCategoryDialog } from "./DeleteCategoryDialog";
 import { CategoryColorPicker } from "./category-color-picker";
+import { getCurrencySymbol } from "@/lib/format";
 
 interface CategoryEditDialogProps {
 	open: boolean;
@@ -138,7 +139,7 @@ export function CategoryEditDialog({
 							id="category-budget"
 							type="text"
 							inputMode="decimal"
-							startAdornment="$"
+							startAdornment={getCurrencySymbol()}
 							value={budget}
 							onChange={(e) => setBudget(sanitizeDecimalInput(e.target.value, 2))}
 						/>

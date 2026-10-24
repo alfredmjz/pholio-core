@@ -1,10 +1,5 @@
-import DataPrivacyCard from "../components/data-privacy-card";
-import { SettingsContentWrapper } from "../components/settings-content-wrapper";
+import { redirect } from "next/navigation";
 
-export default function DataPrivacyPage() {
-	return (
-		<SettingsContentWrapper title="Data & Privacy" description="Manage your data and privacy settings.">
-			<DataPrivacyCard />
-		</SettingsContentWrapper>
-	);
+export default function Page() {
+	redirect("/settings#data");
 }

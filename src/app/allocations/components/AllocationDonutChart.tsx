@@ -6,6 +6,7 @@ import { cn } from "@/lib/utils";
 import { getCategoryColor, getCategoryHex } from "../utils/colors";
 import type { AllocationCategory } from "../types";
 import { DonutChart } from "@/components/common/DonutChart";
+import { formatMoney } from "@/lib/format";
 
 interface AllocationDonutChartProps {
 	categories: AllocationCategory[];
@@ -30,14 +31,7 @@ export function AllocationDonutChart({ categories, className }: AllocationDonutC
 			}));
 	}, [categories]);
 
-	const formatCurrency = (value: number) => {
-		return new Intl.NumberFormat("en-US", {
-			style: "currency",
-			currency: "USD",
-			minimumFractionDigits: 0,
-			maximumFractionDigits: 0,
-		}).format(value);
-	};
+	const formatCurrency = (value: number) => formatMoney(value);
 
 	const CenterContent = (
 		<div className="flex flex-col items-center justify-center">
@@ -55,12 +49,7 @@ export function AllocationDonutChart({ categories, className }: AllocationDonutC
 
 			<div className="flex flex-col items-center justify-center flex-1">
 				<div className="mb-6">
-					<DonutChart
-						data={chartDataWithColors}
-						size={40}
-						centerContent={CenterContent}
-						showTooltip={false}
-					/>
+					<DonutChart data={chartDataWithColors} size={40} centerContent={CenterContent} showTooltip={false} />
 				</div>
 
 				<div className="w-full grid grid-cols-2 gap-x-3 gap-y-1.5">

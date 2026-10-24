@@ -13,6 +13,7 @@
 		"e2e:ui": "playwright test --ui",
 		"e2e:report": "playwright show-report",
 		"e2e:db": "supabase start --workdir ..",
+		"cron": "bun scripts/run-cron.ts",
 		"hooks:install": "git config core.hooksPath .githooks"
 	},
 	"dependencies": {

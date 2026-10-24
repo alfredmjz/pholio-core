@@ -5,17 +5,14 @@ import { cn } from "@/lib/utils";
 import { Clock, CheckCircle2, PlusCircle, ArrowDownLeft, ArrowUpRight } from "lucide-react";
 import { formatRelativeTime } from "@/lib/date-utils";
 import type { RecentActivityItem } from "../actions";
+import { formatMoney } from "@/lib/format";
 
 interface RecentActivityProps {
 	activity: RecentActivityItem[];
 }
 
 function formatCurrency(amount: number): string {
-	return new Intl.NumberFormat("en-CA", {
-		style: "currency",
-		currency: "CAD",
-		minimumFractionDigits: 2,
-	}).format(amount);
+	return formatMoney(amount, { showCents: true });
 }
 
 function getActivityDetails(item: RecentActivityItem): {

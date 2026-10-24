@@ -37,7 +37,7 @@ import { ProminentAmountInput } from "@/components/ProminentAmountInput";
 import { TransactionTypeSwitch } from "@/components/dialogs/transaction-type-switch";
 import { CancelShortcut, SubmitShortcut } from "@/components/common/dialog-shortcuts";
 import { cn } from "@/lib/utils";
-import { getTodayDateString, parseLocalDate, formatDateString } from "@/lib/date-utils";
+import { getTodayDateString, parseLocalDate, formatDateString, formatFullDate } from "@/lib/date-utils";
 import { handleEnterSubmit } from "@/lib/enter-submit";
 import { VIRTUAL_UNCATEGORIZED_ID } from "@/app/allocations/types";
 import { formatAccountDisplayName, sortAccounts } from "@/lib/account-utils";
@@ -49,7 +49,7 @@ import { isSampleDataActive } from "@/lib/demo-mode";
 import { createDemoId, recordDemoUnifiedTransaction, useDemoStore } from "@/lib/demo-store";
 import { calculateAccountStanding, checkTransactionCaps } from "@/lib/account-validation-utils";
 import { getAccountContributionSummary } from "@/lib/actions/contribution-actions";
-import { getContributionNotices } from "@/lib/contribution-plans";
+import { formatContributionAmount, getContributionNotices } from "@/lib/contribution-plans";
 import { ContributionNotices } from "@/components/common/ContributionDetails";
 import type { ContributionSummary } from "@/lib/types/contribution";
 
@@ -308,11 +308,7 @@ export function UnifiedTransactionDialog({
 
 	const contributionNotices =
 		contributionTargetId && contributionSummary?.account_ids.includes(contributionTargetId) && parseFloat(amount) > 0
-			? getContributionNotices(
-					contributionSummary,
-					(value) => new Intl.NumberFormat("en-CA", { style: "currency", currency: "CAD" }).format(value),
-					parseFloat(amount)
-				)
+			? getContributionNotices(contributionSummary, (value) => formatContributionAmount(value), parseFloat(amount))
 			: [];
 
 	const firstViolation = capCheck.violations[0];
@@ -484,8 +480,7 @@ export function UnifiedTransactionDialog({
 	};
 
 	const formatDisplayDate = (dateStr: string) => {
-		const date = parseLocalDate(dateStr);
-		return date.toLocaleDateString("en-US", { month: "short", day: "numeric", year: "numeric" });
+		return formatFullDate(dateStr);
 	};
 
 	const handleAddFromPreset = async () => {

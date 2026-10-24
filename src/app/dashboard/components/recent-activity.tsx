@@ -4,12 +4,13 @@ import { differenceInDays, formatShortDate, parseLocalDate } from "@/lib/date-ut
 import { formatCurrency } from "@/app/dashboard/utils";
 import type { Transaction } from "../types";
 import { SurfaceSection } from "@/components/layout/surface-section";
+import { formatDateParts } from "@/lib/format";
 
 function dayLabel(date: string, today: string): string {
 	const days = differenceInDays(parseLocalDate(today), parseLocalDate(date));
 	if (days === 0) return "Today";
 	if (days === 1) return "Yesterday";
-	return parseLocalDate(date).toLocaleDateString("en-US", { weekday: "long", month: "short", day: "numeric" });
+	return formatDateParts(parseLocalDate(date), { weekday: "long", month: "short", day: "numeric" });
 }
 
 function groupByDay(transactions: Transaction[]) {

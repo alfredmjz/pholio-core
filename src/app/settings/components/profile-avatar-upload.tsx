@@ -21,10 +21,9 @@ import { Loader2, Upload, ZoomIn, ZoomOut } from "lucide-react";
 interface ProfileAvatarUploadProps {
 	currentAvatarUrl: string | null;
 	currentInitials: string;
-	isGuest: boolean;
 }
 
-export default function ProfileAvatarUpload({ currentAvatarUrl, currentInitials, isGuest }: ProfileAvatarUploadProps) {
+export default function ProfileAvatarUpload({ currentAvatarUrl, currentInitials }: ProfileAvatarUploadProps) {
 	const [selectedFile, setSelectedFile] = useState<string | null>(null);
 	const [isDialogOpen, setIsDialogOpen] = useState(false);
 	const [crop, setCrop] = useState({ x: 0, y: 0 });
@@ -142,24 +141,13 @@ export default function ProfileAvatarUpload({ currentAvatarUrl, currentInitials,
 	};
 
 	const handleTriggerClick = () => {
-		if (isGuest) {
-			toast.error("Guest accounts cannot upload profile pictures");
-			return;
-		}
 		fileInputRef.current?.click();
 	};
 
 	return (
 		<>
 			<div className="relative group cursor-pointer" onClick={handleTriggerClick}>
-				<input
-					type="file"
-					accept="image/*"
-					className="hidden"
-					ref={fileInputRef}
-					onChange={handleFileSelect}
-					disabled={isGuest}
-				/>
+				<input type="file" accept="image/*" className="hidden" ref={fileInputRef} onChange={handleFileSelect} />
 
 				{currentAvatarUrl ? (
 					<div className="relative w-16 h-16 rounded-full overflow-hidden border border-border">
@@ -168,22 +156,18 @@ export default function ProfileAvatarUpload({ currentAvatarUrl, currentInitials,
 							alt="Profile"
 							className="w-full h-full object-cover transition-opacity group-hover:opacity-70"
 						/>
-						{!isGuest && (
-							<div className="absolute inset-0 flex items-center justify-center opacity-0 group-hover:opacity-100 transition-opacity bg-black/30">
-								<Upload className="w-6 h-6 font-extrabold text-white" />
-							</div>
-						)}
+						<div className="absolute inset-0 flex items-center justify-center opacity-0 group-hover:opacity-100 transition-opacity bg-black/30">
+							<Upload className="w-6 h-6 font-extrabold text-white" />
+						</div>
 					</div>
 				) : (
 					<div className="relative w-16 h-16 rounded-full overflow-hidden">
 						<div className="absolute inset-0 bg-primary flex items-center justify-center text-background text-xl font-semibold transition-opacity group-hover:opacity-70">
 							{currentInitials}
 						</div>
-						{!isGuest && (
-							<div className="absolute inset-0 flex items-center justify-center opacity-0 group-hover:opacity-100 transition-opacity">
-								<Upload className="w-6 h-6 font-extrabold text-background" />
-							</div>
-						)}
+						<div className="absolute inset-0 flex items-center justify-center opacity-0 group-hover:opacity-100 transition-opacity">
+							<Upload className="w-6 h-6 font-extrabold text-background" />
+						</div>
 					</div>
 				)}
 			</div>

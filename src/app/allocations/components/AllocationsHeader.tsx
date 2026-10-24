@@ -1,6 +1,5 @@
 "use client";
 
-import { useEffect, useRef, useState } from "react";
 import { Button } from "@/components/ui/button";
 import { Download, FolderInput, FolderPlus, MoreHorizontal } from "lucide-react";
 import { MonthSelector } from "@/components/month-selector";
@@ -14,6 +13,7 @@ import {
 import { AddTransactionButton } from "./AddTransactionButton";
 import type { MonthYear, AllocationCategory } from "@/app/allocations/types";
 import type { AccountWithType } from "@/app/accounts/types";
+import { useScrolled } from "@/hooks/use-scrolled";
 
 interface AllocationsHeaderProps {
 	currentMonth: MonthYear;
@@ -24,31 +24,6 @@ interface AllocationsHeaderProps {
 	onTransactionSuccess: () => void;
 	onSaveTemplate: () => void;
 	onImportTemplate?: () => void;
-}
-
-function scrollParent(element: HTMLElement): HTMLElement | Window {
-	for (let node = element.parentElement; node; node = node.parentElement) {
-		if (/(auto|scroll)/.test(getComputedStyle(node).overflowY)) return node;
-	}
-	return window;
-}
-
-/** True once the page has scrolled, so a pinned header knows content is passing beneath it. */
-function useScrolled<T extends HTMLElement>() {
-	const ref = useRef<T>(null);
-	const [scrolled, setScrolled] = useState(false);
-
-	useEffect(() => {
-		const element = ref.current;
-		if (!element) return;
-		const scroller = scrollParent(element);
-		const update = () => setScrolled((scroller instanceof Window ? scroller.scrollY : scroller.scrollTop) > 4);
-		update();
-		scroller.addEventListener("scroll", update, { passive: true });
-		return () => scroller.removeEventListener("scroll", update);
-	}, []);
-
-	return { ref, scrolled };
 }
 
 /** Month title and navigation, pinned while the budget scrolls beneath it. */

@@ -15,6 +15,7 @@ import { formatFullDate, calculateNextDueDate, getTodayDateString, parseLocalDat
 import { toast } from "sonner";
 import { Loader2, Check } from "lucide-react";
 import { cn } from "@/lib/utils";
+import { formatMoney } from "@/lib/format";
 
 interface PayFutureBillDialogProps {
 	open: boolean;
@@ -145,7 +146,9 @@ export function PayFutureBillDialog({
 											</div>
 											<span className={cn(isSelected && "font-medium")}>{formatFullDate(bill.date)}</span>
 										</div>
-										<div className={cn("text-right", isSelected && "font-medium")}>${bill.amount.toFixed(2)}</div>
+										<div className={cn("text-right", isSelected && "font-medium")}>
+											{formatMoney(bill.amount, { showCents: true })}
+										</div>
 									</div>
 								);
 							})}
@@ -165,7 +168,9 @@ export function PayFutureBillDialog({
 								</div>
 								<div className="flex justify-between items-center">
 									<span className="text-muted-foreground">Total Amount:</span>
-									<span className="font-bold text-lg text-primary">${totalAmount.toFixed(2)}</span>
+									<span className="font-bold text-lg text-primary">
+										{formatMoney(totalAmount, { showCents: true })}
+									</span>
 								</div>
 								<div className="flex justify-between items-center pt-2 border-t border-border/50 mt-2">
 									<span className="text-muted-foreground">New Next Due Date:</span>
@@ -183,7 +188,7 @@ export function PayFutureBillDialog({
 					</Button>
 					<Button onClick={handlePay} disabled={selectedCount === 0 || isSubmitting}>
 						{isSubmitting && <Loader2 className="mr-2 h-4 w-4 animate-spin" />}
-						Pay {selectedCount > 0 && `$${totalAmount.toFixed(2)}`}
+						Pay {selectedCount > 0 && formatMoney(totalAmount, { showCents: true })}
 						<SubmitShortcut />
 					</Button>
 				</DialogFooter>

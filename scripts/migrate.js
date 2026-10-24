@@ -88,6 +88,9 @@ async function runMigrations() {
 	combinedSQL += `-- Total migrations: ${migrations.length}\n`;
 	combinedSQL += "-- ════════════════════════════════════════════════════════════\n";
 	combinedSQL += "--\n";
+	combinedSQL += "-- Run this same file on a new project and on an existing database (production included):\n";
+	combinedSQL += "-- every migration must be additive and safe to re-run (AGENTS.md, Migrations).\n";
+	combinedSQL += "--\n";
 	combinedSQL += "-- INSTRUCTIONS:\n";
 	combinedSQL += "-- 1. Copy ALL content from this file (Ctrl+A, Ctrl+C)\n";
 	combinedSQL += "-- 2. Go to: https://supabase.com/dashboard → Your Project\n";
@@ -95,7 +98,6 @@ async function runMigrations() {
 	combinedSQL += "-- 4. Create a new query\n";
 	combinedSQL += "-- 5. Paste this content (Ctrl+V)\n";
 	combinedSQL += '-- 6. Click "Run" (or press Ctrl+Enter)\n';
-	combinedSQL += '-- 7. Verify the "users" table appears in Table Editor\n';
 	combinedSQL += "--\n";
 	combinedSQL += "-- ════════════════════════════════════════════════════════════\n\n";
 
@@ -115,39 +117,8 @@ async function runMigrations() {
 	// Write combined migrations file
 	fs.writeFileSync(outputPath, combinedSQL, "utf8");
 
-	// Generate Production Safe Update Script
-	// Since all migrations already use IF NOT EXISTS / DROP ... IF EXISTS idioms,
-	// the combined migration output is inherently safe for production re-runs.
-	const prodSafePath = path.join(outputDir, "production-safe-update.sql");
-	let prodSafeSQL = "-- ════════════════════════════════════════════════════════════\n";
-	prodSafeSQL += "-- Pholio Production Database Safe Update Script\n";
-	prodSafeSQL += `-- Generated: ${new Date().toISOString()}\n`;
-	prodSafeSQL += "-- ════════════════════════════════════════════════════════════\n";
-	prodSafeSQL += "--\n";
-	prodSafeSQL += "-- This script is safe to run on an existing production database.\n";
-	prodSafeSQL += "-- All statements use IF NOT EXISTS / DROP ... IF EXISTS guards,\n";
-	prodSafeSQL += "-- so no existing tables or data will be dropped or truncated.\n";
-	prodSafeSQL += "--\n";
-	prodSafeSQL += "-- INSTRUCTIONS:\n";
-	prodSafeSQL += "-- 1. Copy ALL content from this file.\n";
-	prodSafeSQL += "-- 2. Go to: https://supabase.com/dashboard → Your Project\n";
-	prodSafeSQL += '-- 3. Click "SQL Editor" in the left sidebar.\n';
-	prodSafeSQL += "-- 4. Create a new query, paste this script, and click \"Run\".\n";
-	prodSafeSQL += "--\n";
-	prodSafeSQL += "-- ════════════════════════════════════════════════════════════\n\n";
-
-	migrations.forEach((migration) => {
-		prodSafeSQL += `-- ── ${migration.name} ──\n`;
-		prodSafeSQL += migration.content;
-		prodSafeSQL += "\n\n";
-	});
-
-	prodSafeSQL += "-- ════════════════════════════════════════════════════════════\n";
-	prodSafeSQL += "-- ✅ End of Production Safe Update\n";
-	prodSafeSQL += "-- ════════════════════════════════════════════════════════════\n";
-
-	fs.writeFileSync(prodSafePath, prodSafeSQL, "utf8");
-
+	// The old second output held the same SQL; remove it so a stale copy is never pasted.
+	fs.rmSync(path.join(outputDir, "production-safe-update.sql"), { force: true });
 
 	console.log("✅ Migration file created successfully!\n");
 	console.log("📄 File location:");
@@ -162,7 +133,7 @@ async function runMigrations() {
 	console.log("  3. Go to: https://supabase.com/dashboard");
 	console.log("  4. Select your project → SQL Editor → New query");
 	console.log("  5. Paste the SQL (Ctrl+V)");
-	console.log('  6. Click "Run" to create the database tables');
+	console.log('  6. Click "Run" to apply the migrations (new or existing database)');
 	console.log("");
 	console.log("━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━");
 	console.log("");

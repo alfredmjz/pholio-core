@@ -19,7 +19,7 @@ CREATE TABLE IF NOT EXISTS public.allocations (
 
 ALTER TABLE public.allocations ENABLE ROW LEVEL SECURITY;
 DROP POLICY IF EXISTS "Users can manage own allocations" ON public.allocations;
-CREATE POLICY "Users can manage own allocations" ON public.allocations FOR ALL USING (auth.uid() = user_id);
+CREATE POLICY "Users can manage own allocations" ON public.allocations FOR ALL USING ((select auth.uid()) = user_id);
 
 DROP TRIGGER IF EXISTS update_allocations_updated_at ON public.allocations;
 CREATE TRIGGER update_allocations_updated_at BEFORE UPDATE ON public.allocations FOR EACH ROW EXECUTE FUNCTION public.update_updated_at_column();
@@ -40,12 +40,20 @@ CREATE TABLE IF NOT EXISTS public.allocation_categories (
     icon VARCHAR(50),
     notes TEXT,
     created_at TIMESTAMP WITH TIME ZONE DEFAULT TIMEZONE('utc', NOW()) NOT NULL,
-    updated_at TIMESTAMP WITH TIME ZONE DEFAULT TIMEZONE('utc', NOW()) NOT NULL
+    updated_at TIMESTAMP WITH TIME ZONE DEFAULT TIMEZONE('utc', NOW()) NOT NULL,
+    -- The recurring system's share of the budget; effective budget = budget_cap + recurring_budget_cap
+    recurring_budget_cap DECIMAL(15, 2) NOT NULL DEFAULT 0,
+    contribution_plan TEXT,
+    CONSTRAINT valid_category_contribution_plan CHECK (
+        contribution_plan IS NULL OR contribution_plan IN ('tfsa', 'rrsp', 'fhsa', 'resp')
+    )
 );
+
+COMMENT ON COLUMN public.allocation_categories.contribution_plan IS 'Registered plan whose contribution room this budget is measured against (budget is shown, only actual contributions use room)';
 
 ALTER TABLE public.allocation_categories ENABLE ROW LEVEL SECURITY;
 DROP POLICY IF EXISTS "Users can manage own categories" ON public.allocation_categories;
-CREATE POLICY "Users can manage own categories" ON public.allocation_categories FOR ALL USING (auth.uid() = user_id);
+CREATE POLICY "Users can manage own categories" ON public.allocation_categories FOR ALL USING ((select auth.uid()) = user_id);
 
 DROP TRIGGER IF EXISTS update_allocation_categories_updated_at ON public.allocation_categories;
 CREATE TRIGGER update_allocation_categories_updated_at BEFORE UPDATE ON public.allocation_categories FOR EACH ROW EXECUTE FUNCTION public.update_updated_at_column();
@@ -65,7 +73,7 @@ CREATE TABLE IF NOT EXISTS public.allocation_templates (
 
 ALTER TABLE public.allocation_templates ENABLE ROW LEVEL SECURITY;
 DROP POLICY IF EXISTS "Users can manage own templates" ON public.allocation_templates;
-CREATE POLICY "Users can manage own templates" ON public.allocation_templates FOR ALL USING (auth.uid() = user_id);
+CREATE POLICY "Users can manage own templates" ON public.allocation_templates FOR ALL USING ((select auth.uid()) = user_id);
 
 -- =============================================================================
 -- TABLE: template_categories
@@ -82,12 +90,16 @@ CREATE TABLE IF NOT EXISTS public.template_categories (
     icon VARCHAR(50),
     notes TEXT,
     created_at TIMESTAMP WITH TIME ZONE DEFAULT TIMEZONE('utc', NOW()) NOT NULL,
-    updated_at TIMESTAMP WITH TIME ZONE DEFAULT TIMEZONE('utc', NOW()) NOT NULL
+    updated_at TIMESTAMP WITH TIME ZONE DEFAULT TIMEZONE('utc', NOW()) NOT NULL,
+    contribution_plan TEXT,
+    CONSTRAINT valid_template_category_contribution_plan CHECK (
+        contribution_plan IS NULL OR contribution_plan IN ('tfsa', 'rrsp', 'fhsa', 'resp')
+    )
 );
 
 ALTER TABLE public.template_categories ENABLE ROW LEVEL SECURITY;
 DROP POLICY IF EXISTS "Users can manage own template categories" ON public.template_categories;
-CREATE POLICY "Users can manage own template categories" ON public.template_categories FOR ALL USING (auth.uid() = (SELECT user_id FROM public.allocation_templates WHERE id = template_id));
+CREATE POLICY "Users can manage own template categories" ON public.template_categories FOR ALL USING ((select auth.uid()) = (SELECT user_id FROM public.allocation_templates WHERE id = template_id));
 
 -- =============================================================================
 -- UNIFIED TRANSACTION SYSTEM
@@ -105,7 +117,8 @@ CREATE TABLE IF NOT EXISTS public.transactions (
     source VARCHAR(50) NOT NULL DEFAULT 'manual',
     external_id VARCHAR(255),
     notes TEXT,
-    linked_account_transaction_id UUID, -- Forward reference added later via ALTER if needed, but here we can just define it
+    -- Foreign key fk_linked_account_tx is added once account_transactions exists
+    linked_account_transaction_id UUID,
     created_at TIMESTAMP WITH TIME ZONE DEFAULT TIMEZONE('utc', NOW()) NOT NULL,
     updated_at TIMESTAMP WITH TIME ZONE DEFAULT TIMEZONE('utc', NOW()) NOT NULL,
     CHECK (amount != 0)
@@ -113,7 +126,7 @@ CREATE TABLE IF NOT EXISTS public.transactions (
 
 ALTER TABLE public.transactions ENABLE ROW LEVEL SECURITY;
 DROP POLICY IF EXISTS "Users manage own transactions" ON public.transactions;
-CREATE POLICY "Users manage own transactions" ON public.transactions FOR ALL USING (auth.uid() = user_id);
+CREATE POLICY "Users manage own transactions" ON public.transactions FOR ALL USING ((select auth.uid()) = user_id);
 
 DROP TRIGGER IF EXISTS update_transactions_updated_at ON public.transactions;
 CREATE TRIGGER update_transactions_updated_at BEFORE UPDATE ON public.transactions FOR EACH ROW EXECUTE FUNCTION public.update_updated_at_column();
@@ -121,10 +134,11 @@ CREATE TRIGGER update_transactions_updated_at BEFORE UPDATE ON public.transactio
 -- 2. Account Transactions (Ledger)
 CREATE TABLE IF NOT EXISTS public.account_transactions (
     id UUID PRIMARY KEY DEFAULT gen_random_uuid(),
-    account_id UUID NOT NULL REFERENCES public.accounts(id) ON DELETE CASCADE,
+    -- Nullable so ledger rows survive account deletion (shown as "Deleted account")
+    account_id UUID REFERENCES public.accounts(id) ON DELETE SET NULL,
     user_id UUID NOT NULL REFERENCES auth.users(id) ON DELETE CASCADE,
     amount DECIMAL(15, 2) NOT NULL,
-    transaction_type TEXT NOT NULL CHECK (transaction_type IN ('deposit', 'withdrawal', 'interest', 'payment', 'adjustment', 'contribution', 'transfer')),
+    transaction_type TEXT NOT NULL CHECK (transaction_type IN ('deposit', 'withdrawal', 'interest', 'payment', 'adjustment', 'contribution', 'transfer', 'refund')),
     description TEXT NOT NULL,
     transaction_date DATE NOT NULL DEFAULT CURRENT_DATE,
     linked_allocation_transaction_id UUID REFERENCES public.transactions(id) ON DELETE SET NULL,
@@ -133,32 +147,25 @@ CREATE TABLE IF NOT EXISTS public.account_transactions (
     created_at TIMESTAMPTZ DEFAULT NOW()
 );
 
-ALTER TABLE public.account_transactions ADD COLUMN IF NOT EXISTS linked_transfer_transaction_id UUID REFERENCES public.account_transactions(id) ON DELETE SET NULL;
-
 ALTER TABLE public.account_transactions ENABLE ROW LEVEL SECURITY;
 DROP POLICY IF EXISTS "Users manage own account transactions" ON public.account_transactions;
-CREATE POLICY "Users manage own account transactions" ON public.account_transactions FOR ALL USING (auth.uid() = user_id);
+CREATE POLICY "Users manage own account transactions" ON public.account_transactions FOR ALL USING ((select auth.uid()) = user_id);
 
--- Add the missing link back to transactions
--- Drop both the named constraint and any auto-generated duplicate before re-adding.
--- Safe on fresh installs (IF EXISTS is a no-op) and fixes existing DBs with the duplicate.
 ALTER TABLE public.transactions DROP CONSTRAINT IF EXISTS fk_linked_account_tx;
-ALTER TABLE public.transactions DROP CONSTRAINT IF EXISTS transactions_linked_account_transaction_id_fkey;
 ALTER TABLE public.transactions ADD CONSTRAINT fk_linked_account_tx FOREIGN KEY (linked_account_transaction_id) REFERENCES public.account_transactions(id) ON DELETE SET NULL;
 
-
--- Backfill columns that may be missing on databases deployed before they were added.
--- (CREATE TABLE IF NOT EXISTS is a no-op on existing tables, so we use ALTER TABLE guards.)
-ALTER TABLE public.account_transactions ADD COLUMN IF NOT EXISTS recurring_transfer_id UUID REFERENCES public.recurring_transfers(id) ON DELETE SET NULL;
-
--- Indexes
-CREATE INDEX IF NOT EXISTS transactions_date_idx ON public.transactions(transaction_date DESC);
+CREATE INDEX IF NOT EXISTS idx_allocation_categories_allocation ON public.allocation_categories(allocation_id);
+CREATE INDEX IF NOT EXISTS idx_template_categories_template ON public.template_categories(template_id);
+CREATE INDEX IF NOT EXISTS idx_transactions_user_date ON public.transactions(user_id, transaction_date DESC);
+CREATE INDEX IF NOT EXISTS idx_transactions_category_id ON public.transactions(category_id);
+CREATE INDEX IF NOT EXISTS idx_transactions_linked_account_transaction_id ON public.transactions(linked_account_transaction_id);
 CREATE INDEX IF NOT EXISTS idx_account_txn_account ON public.account_transactions(account_id, transaction_date DESC);
+CREATE INDEX IF NOT EXISTS idx_account_transactions_user_created ON public.account_transactions(user_id, created_at DESC);
+CREATE INDEX IF NOT EXISTS idx_account_transactions_linked_allocation_transaction_id ON public.account_transactions(linked_allocation_transaction_id);
 CREATE INDEX IF NOT EXISTS idx_transactions_recurring_expense_id ON public.transactions(recurring_expense_id);
 CREATE INDEX IF NOT EXISTS idx_account_transactions_recurring_transfer_id ON public.account_transactions(recurring_transfer_id);
 CREATE INDEX IF NOT EXISTS idx_account_transactions_linked_transfer_transaction_id ON public.account_transactions(linked_transfer_transaction_id);
 
--- Grants
 GRANT ALL ON public.allocations TO authenticated;
 GRANT ALL ON public.allocation_categories TO authenticated;
 GRANT ALL ON public.transactions TO authenticated;
@@ -168,30 +175,99 @@ GRANT ALL ON public.account_transactions TO authenticated;
 -- TABLE: transaction_presets
 -- =============================================================================
 
+-- For a transfer, account_id is where the money leaves and to_account_id where it lands.
+-- No CHECK that both are set: deleting an account nulls them, and the app treats such a preset as unusable.
 CREATE TABLE IF NOT EXISTS public.transaction_presets (
     id UUID PRIMARY KEY DEFAULT gen_random_uuid(),
     user_id UUID NOT NULL REFERENCES auth.users(id) ON DELETE CASCADE,
     name VARCHAR(100) NOT NULL,
     description VARCHAR(200) NOT NULL,
     amount DECIMAL(15, 2) NOT NULL,
-    type TEXT NOT NULL CHECK (type IN ('income', 'expense')),
+    type TEXT NOT NULL CHECK (type IN ('income', 'expense', 'transfer')),
     transaction_type TEXT NOT NULL CHECK (transaction_type IN ('deposit', 'withdrawal', 'interest', 'payment', 'adjustment', 'contribution', 'transfer', 'refund')),
     category_id UUID REFERENCES public.allocation_categories(id) ON DELETE SET NULL,
     account_id UUID REFERENCES public.accounts(id) ON DELETE SET NULL,
     created_at TIMESTAMPTZ DEFAULT NOW(),
-    updated_at TIMESTAMPTZ DEFAULT NOW()
+    updated_at TIMESTAMPTZ DEFAULT NOW(),
+    to_account_id UUID REFERENCES public.accounts(id) ON DELETE SET NULL
 );
 
 ALTER TABLE public.transaction_presets ENABLE ROW LEVEL SECURITY;
 DROP POLICY IF EXISTS "Users can manage own presets" ON public.transaction_presets;
-CREATE POLICY "Users can manage own presets" ON public.transaction_presets FOR ALL USING (auth.uid() = user_id);
+CREATE POLICY "Users can manage own presets" ON public.transaction_presets FOR ALL USING ((select auth.uid()) = user_id);
 
 DROP TRIGGER IF EXISTS update_transaction_presets_updated_at ON public.transaction_presets;
 CREATE TRIGGER update_transaction_presets_updated_at BEFORE UPDATE ON public.transaction_presets FOR EACH ROW EXECUTE FUNCTION public.update_updated_at_column();
 
--- Indexes
 CREATE INDEX IF NOT EXISTS idx_transaction_presets_user ON public.transaction_presets(user_id);
 
--- Grants
 GRANT ALL ON public.transaction_presets TO authenticated;
 
+-- =============================================================================
+-- TABLE: recurring_recorded_occurrences
+-- =============================================================================
+
+-- Auto-pay records only occurrences without a marker, so editing a bill never rewrites a
+-- recorded transaction and a deleted one is never re-recorded.
+CREATE TABLE IF NOT EXISTS public.recurring_recorded_occurrences (
+    id UUID PRIMARY KEY DEFAULT gen_random_uuid(),
+    user_id UUID NOT NULL REFERENCES auth.users(id) ON DELETE CASCADE,
+    recurring_expense_id UUID NOT NULL REFERENCES public.recurring_expenses(id) ON DELETE CASCADE,
+    occurrence_date DATE NOT NULL,
+    amount DECIMAL(12, 2) NOT NULL,
+    created_at TIMESTAMPTZ DEFAULT now(),
+    UNIQUE (user_id, recurring_expense_id, occurrence_date)
+);
+
+ALTER TABLE public.recurring_recorded_occurrences ENABLE ROW LEVEL SECURITY;
+DROP POLICY IF EXISTS "Users can manage own recorded occurrences" ON public.recurring_recorded_occurrences;
+CREATE POLICY "Users can manage own recorded occurrences" ON public.recurring_recorded_occurrences
+    FOR ALL USING ((select auth.uid()) = user_id);
+
+GRANT ALL ON public.recurring_recorded_occurrences TO authenticated;
+
+-- INSERT records the occurrence; UPDATE re-keys the marker to follow the edited transaction.
+-- DELETE is deliberately unhandled: the marker must survive so auto-pay does not re-record it.
+CREATE OR REPLACE FUNCTION public.sync_recurring_recorded_occurrence()
+RETURNS TRIGGER AS $$
+BEGIN
+    IF TG_OP = 'INSERT' THEN
+        IF NEW.recurring_expense_id IS NOT NULL THEN
+            INSERT INTO public.recurring_recorded_occurrences (user_id, recurring_expense_id, occurrence_date, amount)
+            VALUES (NEW.user_id, NEW.recurring_expense_id, NEW.transaction_date, NEW.amount)
+            ON CONFLICT (user_id, recurring_expense_id, occurrence_date) DO UPDATE SET amount = EXCLUDED.amount;
+        END IF;
+        RETURN NEW;
+    END IF;
+
+    -- UPDATE: drop the old marker only when no transaction remains at the old date.
+    IF OLD.recurring_expense_id IS NOT NULL
+       AND (OLD.recurring_expense_id IS DISTINCT FROM NEW.recurring_expense_id
+            OR OLD.transaction_date IS DISTINCT FROM NEW.transaction_date) THEN
+        DELETE FROM public.recurring_recorded_occurrences m
+        WHERE m.user_id = OLD.user_id
+          AND m.recurring_expense_id = OLD.recurring_expense_id
+          AND m.occurrence_date = OLD.transaction_date
+          AND NOT EXISTS (
+              SELECT 1 FROM public.transactions t
+              WHERE t.user_id = OLD.user_id
+                AND t.recurring_expense_id = OLD.recurring_expense_id
+                AND t.transaction_date = OLD.transaction_date
+                AND t.id <> OLD.id
+          );
+    END IF;
+
+    IF NEW.recurring_expense_id IS NOT NULL THEN
+        INSERT INTO public.recurring_recorded_occurrences (user_id, recurring_expense_id, occurrence_date, amount)
+        VALUES (NEW.user_id, NEW.recurring_expense_id, NEW.transaction_date, NEW.amount)
+        ON CONFLICT (user_id, recurring_expense_id, occurrence_date) DO UPDATE SET amount = EXCLUDED.amount;
+    END IF;
+
+    RETURN NEW;
+END;
+$$ LANGUAGE plpgsql SECURITY DEFINER SET search_path = public;
+
+DROP TRIGGER IF EXISTS sync_recurring_recorded_occurrence_trigger ON public.transactions;
+CREATE TRIGGER sync_recurring_recorded_occurrence_trigger
+    AFTER INSERT OR UPDATE OF transaction_date, amount, recurring_expense_id ON public.transactions
+    FOR EACH ROW EXECUTE FUNCTION public.sync_recurring_recorded_occurrence();

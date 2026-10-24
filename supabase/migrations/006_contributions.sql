@@ -1,62 +1,14 @@
--- ============================================================================
--- MIGRATION: 013_investment_contribution_tracking.sql
--- Investment deposit and contribution room tracking (issue #121).
+-- Migration: 006_contributions
+-- Description: Investment deposits and contribution room tracking
 --
---   * `accounts.contribution_plan` is the stable registered-plan code (TFSA, RRSP, FHSA,
---     RESP or other). Behaviour must branch on this code, never on the account name.
---   * CRA contribution room belongs to the person, not to an account, so room for the
---     registered plans lives in `contribution_rooms` (one row per user and plan) and every
---     tracked account of that plan counts toward it. "Other" and legacy plan-less accounts
---     keep their own room in the existing account columns.
---   * `allocation_categories.contribution_plan` links a budget category to a plan so the
---     Allocations page can show the budget against the remaining room.
---   * `contribution_limits` is a read-only reference table of CRA limits per plan and year.
---   * `get_contribution_summaries()` derives deposits, annual progress, remaining room and
---     the estimated CRA over-contribution tax per plan from `account_transactions` on read
---     (via `contribution_room_walk()`), so the figures never drift from the ledger (edits
---     and deletes are reflected automatically).
---
--- ADDITIVE AND IDEMPOTENT: safe to re-run.
--- ============================================================================
+--   * CRA room belongs to the person, so room for the registered plans lives in contribution_rooms
+--     (one row per user and plan) and every tracked account of that plan counts toward it. "Other"
+--     and plan-less accounts keep their own room on the account (002_finance.sql).
+--   * get_contribution_summaries() derives deposits, room and the over-contribution tax from
+--     account_transactions on read, so the figures never drift from the ledger.
 
 -- ---------------------------------------------------------------------------
--- 1. Account columns
--- ---------------------------------------------------------------------------
-ALTER TABLE public.accounts ADD COLUMN IF NOT EXISTS contribution_plan TEXT;
-ALTER TABLE public.accounts ADD COLUMN IF NOT EXISTS contribution_room_as_of DATE;
-
-DO $$
-BEGIN
-    IF NOT EXISTS (
-        SELECT 1 FROM pg_constraint
-        WHERE conname = 'valid_contribution_plan'
-          AND conrelid = 'public.accounts'::regclass
-    ) THEN
-        ALTER TABLE public.accounts
-            ADD CONSTRAINT valid_contribution_plan CHECK (
-                contribution_plan IS NULL OR contribution_plan IN ('tfsa', 'rrsp', 'fhsa', 'resp', 'other')
-            );
-    END IF;
-END $$;
-
--- Registered-plan accounts take their room from contribution_rooms, so only "other" and
--- plan-less accounts still need a room figure on the account itself. Relaxing a CHECK
--- never invalidates existing rows.
-ALTER TABLE public.accounts DROP CONSTRAINT IF EXISTS valid_contribution_tracking;
-ALTER TABLE public.accounts
-    ADD CONSTRAINT valid_contribution_tracking CHECK (
-        track_contribution_room = false
-        OR contribution_room IS NOT NULL
-        OR contribution_plan IN ('tfsa', 'rrsp', 'fhsa', 'resp')
-    );
-
-COMMENT ON COLUMN public.accounts.contribution_plan IS 'Registered plan code used for contribution rules: tfsa, rrsp, fhsa, resp or other';
-COMMENT ON COLUMN public.accounts.contribution_room_as_of IS 'Date contribution_room applies to (only for "other" and plan-less accounts)';
-COMMENT ON COLUMN public.accounts.contribution_room IS 'Available contribution room on contribution_room_as_of (only for "other" and plan-less accounts)';
-COMMENT ON COLUMN public.accounts.annual_contribution_limit IS 'Annual limit override for the year of contribution_room_as_of (only for "other" and plan-less accounts)';
-
--- ---------------------------------------------------------------------------
--- 2. Contribution room per user and registered plan
+-- 1. Contribution room per user and registered plan
 -- ---------------------------------------------------------------------------
 CREATE TABLE IF NOT EXISTS public.contribution_rooms (
     user_id UUID NOT NULL REFERENCES auth.users(id) ON DELETE CASCADE,
@@ -72,7 +24,7 @@ CREATE TABLE IF NOT EXISTS public.contribution_rooms (
 ALTER TABLE public.contribution_rooms ENABLE ROW LEVEL SECURITY;
 DROP POLICY IF EXISTS "Users manage own contribution rooms" ON public.contribution_rooms;
 CREATE POLICY "Users manage own contribution rooms" ON public.contribution_rooms
-    FOR ALL USING (auth.uid() = user_id) WITH CHECK (auth.uid() = user_id);
+    FOR ALL USING ((select auth.uid()) = user_id) WITH CHECK ((select auth.uid()) = user_id);
 GRANT ALL ON public.contribution_rooms TO authenticated;
 
 DROP TRIGGER IF EXISTS contribution_rooms_updated_at_trigger ON public.contribution_rooms;
@@ -84,39 +36,7 @@ COMMENT ON COLUMN public.contribution_rooms.room IS 'Available room on room_as_o
 COMMENT ON COLUMN public.contribution_rooms.annual_limit IS 'User override of the annual limit for the year of room_as_of (blank = CRA default)';
 
 -- ---------------------------------------------------------------------------
--- 3. Budget categories linked to a plan
--- ---------------------------------------------------------------------------
-ALTER TABLE public.allocation_categories ADD COLUMN IF NOT EXISTS contribution_plan TEXT;
-ALTER TABLE public.template_categories ADD COLUMN IF NOT EXISTS contribution_plan TEXT;
-
-DO $$
-BEGIN
-    IF NOT EXISTS (
-        SELECT 1 FROM pg_constraint
-        WHERE conname = 'valid_category_contribution_plan'
-          AND conrelid = 'public.allocation_categories'::regclass
-    ) THEN
-        ALTER TABLE public.allocation_categories
-            ADD CONSTRAINT valid_category_contribution_plan CHECK (
-                contribution_plan IS NULL OR contribution_plan IN ('tfsa', 'rrsp', 'fhsa', 'resp')
-            );
-    END IF;
-    IF NOT EXISTS (
-        SELECT 1 FROM pg_constraint
-        WHERE conname = 'valid_template_category_contribution_plan'
-          AND conrelid = 'public.template_categories'::regclass
-    ) THEN
-        ALTER TABLE public.template_categories
-            ADD CONSTRAINT valid_template_category_contribution_plan CHECK (
-                contribution_plan IS NULL OR contribution_plan IN ('tfsa', 'rrsp', 'fhsa', 'resp')
-            );
-    END IF;
-END $$;
-
-COMMENT ON COLUMN public.allocation_categories.contribution_plan IS 'Registered plan whose contribution room this budget is measured against (budget is shown, only actual contributions use room)';
-
--- ---------------------------------------------------------------------------
--- 4. CRA limits reference table
+-- 2. CRA limits reference table
 -- ---------------------------------------------------------------------------
 CREATE TABLE IF NOT EXISTS public.contribution_limits (
     plan TEXT NOT NULL CHECK (plan IN ('tfsa', 'rrsp', 'fhsa', 'resp')),
@@ -182,7 +102,7 @@ AS $$
 $$;
 
 -- ---------------------------------------------------------------------------
--- 5. Room and over-contribution tax walk
+-- 3. Room and over-contribution tax walk
 -- ---------------------------------------------------------------------------
 -- Walks one pool's contributions and withdrawals month by month from the room date to the
 -- end of the requested period. Inputs are plain values so the CRA rules can be tested on
@@ -327,7 +247,7 @@ END;
 $$;
 
 -- ---------------------------------------------------------------------------
--- 6. Contribution summaries per plan
+-- 4. Contribution summaries per plan
 -- ---------------------------------------------------------------------------
 -- One row per "pool" of the calling user, as at the last day of the given month:
 --   * registered plans (TFSA, RRSP, FHSA, RESP): every tracked account of that plan plus
@@ -346,8 +266,6 @@ $$;
 --   room figures and the over-contribution tax come from contribution_room_walk().
 --   RRSP and FHSA room depends on income / Schedule 15, so it is not rolled forward;
 --   room_needs_update flags when the user should copy a fresh figure from CRA.
-DROP FUNCTION IF EXISTS public.get_contribution_summaries(INTEGER, INTEGER, UUID);
-DROP FUNCTION IF EXISTS public.get_contribution_summaries(INTEGER, INTEGER);
 
 CREATE OR REPLACE FUNCTION public.get_contribution_summaries(p_year INTEGER, p_month INTEGER)
 RETURNS TABLE (
@@ -589,5 +507,3 @@ $$;
 GRANT EXECUTE ON FUNCTION public.contribution_limit_for(TEXT, INTEGER) TO authenticated;
 GRANT EXECUTE ON FUNCTION public.contribution_room_walk(TEXT, DECIMAL, DATE, DATE, JSONB) TO authenticated;
 GRANT EXECUTE ON FUNCTION public.get_contribution_summaries(INTEGER, INTEGER) TO authenticated;
-
-NOTIFY pgrst, 'reload schema';

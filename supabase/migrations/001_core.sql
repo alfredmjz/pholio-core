@@ -1,11 +1,10 @@
 -- Migration: 001_core
--- Description: Core helpers, user profiles, and identity management
+-- Description: Core helpers, user profiles, identity management and avatar storage
 
 -- =============================================================================
 -- GLOBAL SETTINGS & HELPERS
 -- =============================================================================
 
--- Create function to update updated_at timestamp
 CREATE OR REPLACE FUNCTION public.update_updated_at_column()
 RETURNS TRIGGER AS $$
 BEGIN
@@ -27,7 +26,7 @@ CREATE TABLE IF NOT EXISTS public.users (
     guest_name TEXT,
     timezone TEXT DEFAULT NULL,
     has_seen_welcome BOOLEAN DEFAULT false NOT NULL,
-    -- Allocation settings: Controls default behavior when navigating to a new month
+    -- Default behaviour when navigating to a new allocation month
     allocation_new_month_default TEXT DEFAULT 'dialog'
         CHECK (allocation_new_month_default IN ('dialog', 'import_previous', 'template', 'fresh')),
     created_at TIMESTAMP WITH TIME ZONE DEFAULT TIMEZONE('utc', NOW()) NOT NULL,
@@ -36,24 +35,33 @@ CREATE TABLE IF NOT EXISTS public.users (
 
 COMMENT ON COLUMN public.users.timezone IS 'IANA timezone identifier (e.g. America/New_York). NULL means use system-detected timezone.';
 
--- Enable Row Level Security (RLS)
 ALTER TABLE public.users ENABLE ROW LEVEL SECURITY;
 
--- Policies
 DROP POLICY IF EXISTS "Users can view own profile" ON public.users;
-CREATE POLICY "Users can view own profile" ON public.users FOR SELECT USING (auth.uid() = id);
+CREATE POLICY "Users can view own profile" ON public.users FOR SELECT USING ((select auth.uid()) = id);
 
 DROP POLICY IF EXISTS "Users can insert own profile" ON public.users;
-CREATE POLICY "Users can insert own profile" ON public.users FOR INSERT WITH CHECK (auth.uid() = id);
+CREATE POLICY "Users can insert own profile" ON public.users FOR INSERT WITH CHECK ((select auth.uid()) = id);
 
 DROP POLICY IF EXISTS "Service role can insert profiles" ON public.users;
 CREATE POLICY "Service role can insert profiles" ON public.users FOR INSERT WITH CHECK (true);
 
 DROP POLICY IF EXISTS "Users can update own profile" ON public.users;
-CREATE POLICY "Users can update own profile" ON public.users FOR UPDATE USING (auth.uid() = id);
+CREATE POLICY "Users can update own profile" ON public.users FOR UPDATE USING ((select auth.uid()) = id);
+
+CREATE INDEX IF NOT EXISTS users_is_guest_idx ON public.users(is_guest);
+
+DROP TRIGGER IF EXISTS update_users_updated_at ON public.users;
+CREATE TRIGGER update_users_updated_at
+    BEFORE UPDATE ON public.users
+    FOR EACH ROW EXECUTE FUNCTION public.update_updated_at_column();
+
+GRANT USAGE ON SCHEMA public TO anon, authenticated;
+GRANT ALL ON public.users TO authenticated;
+GRANT SELECT ON public.users TO anon;
 
 -- =============================================================================
--- TRIGGERS: User Profile Creation
+-- TRIGGERS: profile creation and email sync with Supabase Auth
 -- =============================================================================
 
 CREATE OR REPLACE FUNCTION public.handle_new_user()
@@ -92,17 +100,48 @@ CREATE TRIGGER on_auth_user_created
     AFTER INSERT ON auth.users
     FOR EACH ROW EXECUTE FUNCTION public.handle_new_user();
 
--- Indexes
-CREATE INDEX IF NOT EXISTS users_email_idx ON public.users(email);
-CREATE INDEX IF NOT EXISTS users_is_guest_idx ON public.users(is_guest);
+-- public.users.email is a display copy; ownership follows user_id, so an email change moves no data.
+CREATE OR REPLACE FUNCTION public.handle_user_email_update()
+RETURNS TRIGGER AS $$
+BEGIN
+    IF NEW.email IS DISTINCT FROM OLD.email AND NEW.email IS NOT NULL AND NEW.email <> '' THEN
+        UPDATE public.users
+        SET email = NEW.email,
+            updated_at = NOW()
+        WHERE id = NEW.id;
+    END IF;
+    RETURN NEW;
+EXCEPTION
+    WHEN unique_violation THEN
+        RAISE WARNING 'Could not sync email for user %: %', NEW.id, SQLERRM;
+        RETURN NEW;
+    WHEN OTHERS THEN
+        RAISE WARNING 'Could not sync email for user %: %', NEW.id, SQLERRM;
+        RETURN NEW;
+END;
+$$ LANGUAGE plpgsql SECURITY DEFINER SET search_path = public;
 
--- Update trigger
-DROP TRIGGER IF EXISTS update_users_updated_at ON public.users;
-CREATE TRIGGER update_users_updated_at
-    BEFORE UPDATE ON public.users
-    FOR EACH ROW EXECUTE FUNCTION public.update_updated_at_column();
+DROP TRIGGER IF EXISTS on_auth_user_email_updated ON auth.users;
+CREATE TRIGGER on_auth_user_email_updated
+    AFTER UPDATE OF email ON auth.users
+    FOR EACH ROW
+    WHEN (NEW.email IS DISTINCT FROM OLD.email)
+    EXECUTE FUNCTION public.handle_user_email_update();
 
--- Permissions
-GRANT USAGE ON SCHEMA public TO anon, authenticated;
-GRANT ALL ON public.users TO authenticated;
-GRANT SELECT ON public.users TO anon;
+-- =============================================================================
+-- STORAGE: avatars bucket
+-- =============================================================================
+
+INSERT INTO storage.buckets (id, name, public)
+VALUES ('avatars', 'avatars', true)
+ON CONFLICT (id) DO NOTHING;
+
+DROP POLICY IF EXISTS "Avatar images are publicly accessible" ON storage.objects;
+CREATE POLICY "Avatar images are publicly accessible"
+  ON storage.objects FOR SELECT
+  USING ( bucket_id = 'avatars' );
+
+DROP POLICY IF EXISTS "Anyone can upload an avatar" ON storage.objects;
+CREATE POLICY "Anyone can upload an avatar"
+  ON storage.objects FOR INSERT
+  WITH CHECK ( bucket_id = 'avatars' );

@@ -113,16 +113,17 @@ Environment files:
 
 ### Root / infra
 
-| Command                 | Purpose                                                                                                                    |
-| ----------------------- | -------------------------------------------------------------------------------------------------------------------------- |
-| `bun start`             | `docker-compose up` (app + redis), reads `.env` + `src/.env.local`                                                         |
-| `bun run down`          | Stop containers                                                                                                            |
-| `bun run clean-rebuild` | Rebuild image without cache and start                                                                                      |
-| `bun run logs`          | Tail Docker logs                                                                                                           |
-| `bun run db:migrate`    | Concatenate `supabase/migrations/*.sql` into `supabase/generated/combined-migrations.sql` and `production-safe-update.sql` |
+| Command                 | Purpose                                                                                   |
+| ----------------------- | ----------------------------------------------------------------------------------------- |
+| `bun start`             | `docker-compose up` (app + redis), reads `.env` + `src/.env.local`                        |
+| `bun run down`          | Stop containers                                                                           |
+| `bun run clean-rebuild` | Rebuild image without cache and start                                                     |
+| `bun run logs`          | Tail Docker logs                                                                          |
+| `bun run db:migrate`    | Concatenate `supabase/migrations/*.sql` into `supabase/generated/combined-migrations.sql` |
 
-`db:migrate` does **not** execute SQL. The owner pastes the generated file into the Supabase
-SQL editor; production is updated manually after a PR merges.
+`db:migrate` does **not** execute SQL. The owner pastes `combined-migrations.sql` into the
+Supabase SQL editor; the same file serves a new project and production, which is updated
+manually after a PR merges.
 
 ### Testing & linting
 
@@ -286,8 +287,8 @@ never directly from client components.
 - Every table is RLS-protected; server actions additionally filter by `user_id`.
 - **Derived financial state belongs in PostgreSQL**, not best-effort client code: see
   `record_balance_change()` (`002_finance.sql`), the `SECURITY DEFINER` functions in
-  `004_functions.sql`, and `recalculate_account_promotions()`
-  (`006_core_account_types_and_promotion_progress.sql`).
+  `004_functions.sql`, `recalculate_account_promotions()` (`005_promotions.sql`) and
+  `get_contribution_summaries()` (`006_contributions.sql`).
 
 ### Error handling
 
@@ -381,9 +382,7 @@ credit_card | line_of_credit | mortgage | loan | other`.
   applies the concatenated SQL manually and may re-run it.
 - Migrations are applied in filename sort order. Version prefixes must be **unique** because
   the Supabase CLI records one row per version in `supabase_migrations.schema_migrations`
-  (a duplicate prefix fails `supabase start`/`db reset`). The storage migration is
-  `0051_storage.sql` so it stays after `005_promotions_and_account_types.sql` and before
-  `006_…`.
+  (a duplicate prefix fails `supabase start`/`db reset`).
 - `000_destroy_and_reset.sql` lives in **`supabase/scripts/`** (not `supabase/migrations/`) so
   the Supabase CLI never applies it. It is destructive and only for manual local resets
   (and is skipped by `scripts/migrate.js`).

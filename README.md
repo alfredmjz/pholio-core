@@ -10,8 +10,9 @@ bun install
 # - Run src/scripts/generate-es256-keys.ts to generate JWT keys
 
 # 3. Setup database
-cd src && bun run db:migrate
-# Apply generated SQL in Supabase Dashboard → SQL Editor
+bun run db:migrate   # from the repo root
+# Paste supabase/generated/combined-migrations.sql into Supabase Dashboard → SQL Editor
+# (the same file for a new project and for an existing database)
 
 # 4. Development
 cd src

@@ -45,12 +45,12 @@ BEGIN
     RAISE NOTICE 'Existing data deleted.';
 
     -- Get account type IDs
-    SELECT id INTO v_checking_type_id FROM public.account_types WHERE name = 'Checking Account' AND is_system = true;
-    SELECT id INTO v_savings_type_id FROM public.account_types WHERE name = 'Savings Account' AND is_system = true;
-    SELECT id INTO v_investment_type_id FROM public.account_types WHERE name = 'Investment Account' AND is_system = true;
-    SELECT id INTO v_retirement_type_id FROM public.account_types WHERE name = 'Retirement Account' AND is_system = true;
-    SELECT id INTO v_credit_card_type_id FROM public.account_types WHERE name = 'Credit Card' AND is_system = true;
-    SELECT id INTO v_auto_loan_type_id FROM public.account_types WHERE name = 'Auto Loan' AND is_system = true;
+    SELECT id INTO v_checking_type_id FROM public.account_types WHERE code = 'chequing' AND user_id IS NULL;
+    SELECT id INTO v_savings_type_id FROM public.account_types WHERE code = 'savings' AND user_id IS NULL;
+    SELECT id INTO v_investment_type_id FROM public.account_types WHERE code = 'investment' AND user_id IS NULL;
+    SELECT id INTO v_retirement_type_id FROM public.account_types WHERE code = 'investment' AND user_id IS NULL;
+    SELECT id INTO v_credit_card_type_id FROM public.account_types WHERE code = 'credit_card' AND user_id IS NULL;
+    SELECT id INTO v_auto_loan_type_id FROM public.account_types WHERE code = 'loan' AND user_id IS NULL;
 
     -- ========================================================================
     -- CREATE ACCOUNTS

@@ -184,7 +184,7 @@ function AccountList({
 									{dueLabel(notification.dueDate, today)}
 								</span>
 							</span>
-							{unread && <span className="mt-2 h-2 w-2 shrink-0 rounded-full bg-primary" aria-hidden />}
+							{unread && <span className="mt-2 h-2 w-2 shrink-0 rounded-full bg-error" aria-hidden />}
 						</Link>
 					</li>
 				);
@@ -205,7 +205,7 @@ function ChangelogList({ seenAt, signedUpAt }: { seenAt: string | null; signedUp
 							{entry.version && <span>v{entry.version}</span>}
 							{unread && (
 								<>
-									<span className="h-1.5 w-1.5 rounded-full bg-primary" aria-hidden />
+									<span className="h-1.5 w-1.5 rounded-full bg-error" aria-hidden />
 									<span className="sr-only">New</span>
 								</>
 							)}

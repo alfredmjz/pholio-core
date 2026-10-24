@@ -82,7 +82,7 @@ export function NotificationBell({
 	const label = hasUnread ? "Notifications, unread" : "Notifications";
 	const dot = hasUnread && (
 		<span
-			className="absolute right-0 top-0 h-2 w-2 rounded-full bg-primary ring-2 ring-background"
+			className="absolute right-0 top-0 h-2 w-2 rounded-full bg-error ring-2 ring-background"
 			aria-hidden
 			data-testid="notification-dot"
 		/>

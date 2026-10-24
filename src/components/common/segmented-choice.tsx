@@ -58,7 +58,7 @@ export function SegmentedChoice<T extends string>({
 				>
 					{Icon && <Icon className="h-4 w-4" aria-hidden />}
 					{optionLabel}
-					{indicator && <span className="h-1.5 w-1.5 shrink-0 rounded-full bg-primary" aria-hidden />}
+					{indicator && <span className="h-1.5 w-1.5 shrink-0 rounded-full bg-error" aria-hidden />}
 				</ToggleGroupItem>
 			))}
 		</ToggleGroup>

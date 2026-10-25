@@ -103,6 +103,7 @@ export function getTodayDateString(timezone?: string): string {
  * Format a timestamp as a human-readable relative time with compact output.
  *
  * @param timestamp - ISO timestamp string or Date object
+ * @param now - The moment to measure from; pass one in render so server and client agree
  * @returns Formatted relative time string
  *
  * @example
@@ -111,11 +112,10 @@ export function getTodayDateString(timezone?: string): string {
  * formatRelativeTime(someDate)    // => "3m ago", "2h ago", "Yesterday", "3d ago", "Jan 4"
  * ```
  */
-export function formatRelativeTime(timestamp: string | Date): string {
+export function formatRelativeTime(timestamp: string | Date, now: Date | number = new Date()): string {
 	const date = typeof timestamp === "string" ? new Date(timestamp) : timestamp;
-	const now = new Date();
 
-	const diffMs = now.getTime() - date.getTime();
+	const diffMs = new Date(now).getTime() - date.getTime();
 	const diffMins = Math.floor(diffMs / 60_000);
 	const diffHours = Math.floor(diffMs / 3_600_000);
 	const diffDays = Math.floor(diffMs / 86_400_000);

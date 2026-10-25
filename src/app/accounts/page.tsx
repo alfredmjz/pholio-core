@@ -34,6 +34,7 @@ export default async function AccountsPage() {
 			sparklines={sparklines}
 			promotions={promotions}
 			today={today}
+			renderedAt={Date.now()}
 		/>
 	);
 }

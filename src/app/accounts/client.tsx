@@ -49,6 +49,8 @@ interface AccountsClientProps {
 	promotions: HeadsUpPromotion[];
 	/** YYYY-MM-DD in the user's timezone. */
 	today: string;
+	/** When the server rendered the page, in epoch ms. */
+	renderedAt: number;
 }
 
 function AccountGroup({
@@ -139,6 +141,7 @@ export function AccountsClient({
 	sparklines,
 	promotions,
 	today,
+	renderedAt,
 }: AccountsClientProps) {
 	useFormatSettings();
 	const router = useRouter();
@@ -260,7 +263,7 @@ export function AccountsClient({
 					/>
 				</div>
 				<div className="min-w-0">
-					<RecentActivity activity={activity} />
+					<RecentActivity activity={activity} renderedAt={renderedAt} />
 				</div>
 			</div>
 

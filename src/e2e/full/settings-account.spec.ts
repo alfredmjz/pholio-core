@@ -1,14 +1,8 @@
-import { createClient } from "@supabase/supabase-js";
 import type { Page } from "@playwright/test";
 import { test, expect, SIGNED_OUT } from "@/e2e/fixtures";
-import { loadLocalSupabase } from "@/e2e/support/local-supabase";
+import { adminClient, signInNewUser } from "@/e2e/support/users";
 
 test.use({ storageState: SIGNED_OUT });
-
-function adminClient() {
-	const supabase = loadLocalSupabase();
-	return createClient(supabase.url, supabase.secretKey, { auth: { autoRefreshToken: false, persistSession: false } });
-}
 
 async function choose(page: Page, label: string, option: RegExp) {
 	const trigger = page.getByLabel(label);
@@ -29,23 +23,6 @@ async function expectSaved(page: Page, label: string, text: string) {
 		await page.goto("/settings");
 		await expect(page.getByLabel(label)).toContainText(text, { timeout: 2_000 });
 	}).toPass({ timeout: 20_000 });
-}
-
-/** A user of its own, because these tests change account-wide settings or delete the account. */
-async function signInNewUser(page: Page, label: string) {
-	const admin = adminClient();
-	const email = `e2e-${label}-${Date.now()}-${Math.random().toString(36).slice(2, 8)}@pholio.test`;
-	const created = await admin.auth.admin.createUser({ email, email_confirm: true });
-	expect(created.error, created.error?.message).toBeNull();
-	const { data, error } = await admin.auth.admin.generateLink({ type: "magiclink", email });
-	expect(error, error?.message).toBeNull();
-	await page.goto(`/confirm?token_hash=${data.properties!.hashed_token}&type=magiclink&next=/dashboard`);
-	// A new account names itself first.
-	await expect(page).toHaveURL(/\/welcome$/);
-	await page.getByLabel("Your name").fill(`E2E ${label}`);
-	await page.getByRole("button", { name: "Continue" }).click();
-	await expect(page).toHaveURL(/\/dashboard/, { timeout: 20_000 });
-	return created.data.user!.id;
 }
 
 test("the number format and currency apply across the app", async ({ page }) => {

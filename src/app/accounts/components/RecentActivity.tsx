@@ -6,9 +6,12 @@ import { Clock, CheckCircle2, PlusCircle, ArrowDownLeft, ArrowUpRight } from "lu
 import { formatRelativeTime } from "@/lib/date-utils";
 import type { RecentActivityItem } from "../actions";
 import { formatMoney } from "@/lib/format";
+import { useNow } from "@/hooks/use-now";
 
 interface RecentActivityProps {
 	activity: RecentActivityItem[];
+	/** When the server rendered the page, in epoch ms. */
+	renderedAt: number;
 }
 
 function formatCurrency(amount: number): string {
@@ -87,7 +90,8 @@ const ICON_STYLE = {
 } as const;
 
 /** The latest changes across all accounts, newest first, on a thin timeline. */
-export function RecentActivity({ activity }: RecentActivityProps) {
+export function RecentActivity({ activity, renderedAt }: RecentActivityProps) {
+	const now = useNow(renderedAt);
 	return (
 		<SurfaceSection id="account-activity-heading" title="Recent activity" note="Latest changes across your accounts">
 			{activity.length === 0 ? (
@@ -120,7 +124,7 @@ export function RecentActivity({ activity }: RecentActivityProps) {
 								<div className="flex items-baseline justify-between gap-3">
 									<p className="type-body-sm font-medium text-primary">{title}</p>
 									<time className="type-body-xs shrink-0 text-muted-foreground" dateTime={item.timestamp}>
-										{formatRelativeTime(item.timestamp)}
+										{formatRelativeTime(item.timestamp, now)}
 									</time>
 								</div>
 								<p className="type-body-sm text-text-secondary">{item.accountName}</p>

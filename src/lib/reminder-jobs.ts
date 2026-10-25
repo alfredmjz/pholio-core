@@ -91,7 +91,12 @@ export function formatSettingsFor(user: Pick<ReminderUser, "locale" | "default_c
 }
 
 export function reminderLinks(appUrl: string) {
-	return { app: `${appUrl}/dashboard`, settings: `${appUrl}/settings#notifications` };
+	return {
+		app: `${appUrl}/dashboard`,
+		settings: `${appUrl}/settings#notifications`,
+		logo: `${appUrl}/pholio-icon.gif`,
+		logoStill: `${appUrl}/pholio-icon.png`,
+	};
 }
 
 type AdminClient = ReturnType<typeof createAdminClient>;

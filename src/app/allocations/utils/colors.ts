@@ -74,10 +74,6 @@ export function getCategoryColor(id: string, colorName?: string, index?: number)
 	return CATEGORY_PALETTE[finalIndex];
 }
 
-export function getCategoryHex(id: string, colorName?: string, index?: number): string {
-	return getCategoryColor(id, colorName, index).hex;
-}
-
 export function getNextAvailableColor(usedColorNames: string[]): string {
 	const usedSet = new Set(usedColorNames.map((n) => n.toLowerCase()));
 	const colorNames = Object.keys(COLOR_NAME_MAP);

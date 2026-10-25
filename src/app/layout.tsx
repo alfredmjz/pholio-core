@@ -23,7 +23,7 @@ export const metadata: Metadata = {
 	// Bump `v` whenever the icons are regenerated; browsers cache favicons by URL.
 	icons: {
 		icon: "/pholio-icon.svg?v=2",
-		apple: "/pholio-icon.png?v=2",
+		apple: "/apple-touch-icon.png?v=3",
 	},
 };
 

@@ -23,6 +23,11 @@ const MARK_SHARE = 0.84;
 // 16 characters across, the grid the app icon was designed at.
 const ICON_CELLS = glyphGridSize(47);
 const ICON_SIZE = 256;
+// Home-screen icons are full-bleed squares: the OS applies its own shape, and any transparent
+// corner is filled (white on Android, black on iOS). Android masks to as little as the centre
+// circle (80% across), so the maskable mark is smaller; iOS only rounds the corners.
+const MASKABLE_MARK_SHARE = 0.6;
+const APPLE_MARK_SHARE = 0.76;
 const GIF_SIZE = 128;
 const GIF_FRAMES = 48;
 const GIF_DELAY_CS = 11;
@@ -202,8 +207,13 @@ function roundedTileCoverage(size: number, x: number, y: number) {
 }
 
 // How much of each pixel the paper tile, the ink glyphs and the accent glyphs cover.
-function rasterize(size: number, pose: LogoPose, style: GlyphStyle): Coverage {
-	const markSize = size * MARK_SHARE;
+function rasterize(
+	size: number,
+	pose: LogoPose,
+	style: GlyphStyle,
+	{ markShare = MARK_SHARE, fullBleed = false } = {}
+): Coverage {
+	const markSize = size * markShare;
 	const offset = (size - markSize) / 2;
 	const scale = markSize / ICON_CELLS;
 	const ink = new Float32Array(size * size);
@@ -235,7 +245,7 @@ function rasterize(size: number, pose: LogoPose, style: GlyphStyle): Coverage {
 
 	for (let pixel = 0; pixel < size * size; pixel++) {
 		accent[pixel] = Math.min(accent[pixel], 1 - ink[pixel]);
-		tile[pixel] = roundedTileCoverage(size, (pixel % size) + 0.5, Math.floor(pixel / size) + 0.5);
+		tile[pixel] = fullBleed ? 1 : roundedTileCoverage(size, (pixel % size) + 0.5, Math.floor(pixel / size) + 0.5);
 	}
 
 	return { ink, accent, tile };
@@ -246,13 +256,13 @@ const blend = (inkShare: number, accentShare: number): Rgb =>
 		Math.round(PAPER[channel] * (1 - inkShare - accentShare) + INK[channel] * inkShare + ACCENT[channel] * accentShare)
 	) as Rgb;
 
-function iconPng() {
-	const { ink, accent, tile } = rasterize(ICON_SIZE, STATIC_POSE, ICON_STYLE);
-	const rgba = new Uint8Array(ICON_SIZE * ICON_SIZE * 4);
-	for (let pixel = 0; pixel < ICON_SIZE * ICON_SIZE; pixel++) {
+function iconPng(size = ICON_SIZE, options?: Parameters<typeof rasterize>[3]) {
+	const { ink, accent, tile } = rasterize(size, STATIC_POSE, ICON_STYLE, options);
+	const rgba = new Uint8Array(size * size * 4);
+	for (let pixel = 0; pixel < size * size; pixel++) {
 		rgba.set([...blend(ink[pixel], accent[pixel]), Math.round(tile[pixel] * 255)], pixel * 4);
 	}
-	return encodePng(ICON_SIZE, rgba);
+	return encodePng(size, rgba);
 }
 
 // The login page's sway as a looping GIF for emails. The loop starts at the still pose, since some
@@ -302,3 +312,6 @@ const write = (name: string, contents: string | Buffer) => {
 write("pholio-icon.svg", faviconSvg());
 write("pholio-icon.png", iconPng());
 write("pholio-icon.gif", emailGif());
+write("icon-maskable-192.png", iconPng(192, { markShare: MASKABLE_MARK_SHARE, fullBleed: true }));
+write("icon-maskable-512.png", iconPng(512, { markShare: MASKABLE_MARK_SHARE, fullBleed: true }));
+write("apple-touch-icon.png", iconPng(180, { markShare: APPLE_MARK_SHARE, fullBleed: true }));

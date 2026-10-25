@@ -8,13 +8,14 @@ import { DEMO_SESSION_COOKIE } from "@/lib/demo-session";
 import { redirect } from "next/navigation";
 import { Logger } from "@/lib/logger";
 import { clearMagicLinkSends } from "@/lib/magic-link-limit.server";
+import { needsOnboarding, onboardingPath, safeNextPath } from "@/lib/onboarding";
 
 export async function GET(request: NextRequest) {
 	const { searchParams } = new URL(request.url);
 	const code = searchParams.get("code");
 	const token_hash = searchParams.get("token_hash");
 	const type = searchParams.get("type") as EmailOtpType | null;
-	const next = searchParams.get("next") ?? "/dashboard";
+	const next = safeNextPath(searchParams.get("next"));
 
 	const supabase = await createClient();
 
@@ -38,7 +39,7 @@ export async function GET(request: NextRequest) {
 		cookieStore.delete(DEMO_SESSION_COOKIE);
 		cookieStore.delete(DEMO_COOKIE);
 
-		// Show the welcome celebration on a user's first login, then mark it seen.
+		// Someone without a name (a new account) sets it up before going on.
 		let finalNext = next;
 		try {
 			const {
@@ -46,13 +47,8 @@ export async function GET(request: NextRequest) {
 			} = await supabase.auth.getUser();
 
 			if (user) {
-				const { data: profile } = await supabase.from("users").select("has_seen_welcome").eq("id", user.id).single();
-
-				if (profile && profile.has_seen_welcome !== true) {
-					await supabase.from("users").update({ has_seen_welcome: true }).eq("id", user.id);
-					const separator = next.includes("?") ? "&" : "?";
-					finalNext = `${next}${separator}welcome=true`;
-				}
+				const { data: profile } = await supabase.from("users").select("full_name").eq("id", user.id).single();
+				if (needsOnboarding(profile)) finalNext = onboardingPath(next);
 
 				// Links already sent stop counting, so signing out and back in starts a fresh limit.
 				if (user.email) {
@@ -61,8 +57,8 @@ export async function GET(request: NextRequest) {
 					);
 				}
 			}
-		} catch (welcomeError) {
-			Logger.warn("Welcome check failed during confirm", { error: welcomeError });
+		} catch (onboardingError) {
+			Logger.warn("Onboarding check failed during confirm", { error: onboardingError });
 		}
 
 		redirect(finalNext);

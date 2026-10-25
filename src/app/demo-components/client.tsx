@@ -61,7 +61,6 @@ import { EmojiPicker } from "@/components/emoji-picker";
 import { ThemeToggle } from "@/components/theme-toggle";
 import { Banner, BannerClose, BannerIcon, BannerTitle } from "@/components/ui/banner";
 import { DeleteConfirmDialog } from "@/components/dialogs/DeleteConfirmDialog";
-import { WelcomeCelebration } from "@/components/welcome-celebration";
 import { MetricCard } from "@/app/dashboard/components/MetricCard";
 import { AccountCard } from "@/app/accounts/components/AccountCard";
 import { SettingsNav } from "@/app/settings/components/settings-nav";
@@ -682,16 +681,12 @@ function BannerDemo() {
 
 function DialogsDemo() {
 	const [deleteConfirmOpen, setDeleteConfirmOpen] = React.useState(false);
-	const [welcomeOpen, setWelcomeOpen] = React.useState(false);
 
 	return (
 		<div className="space-y-4">
 			<div className="flex flex-wrap items-center gap-4">
 				<Button variant="destructive" onClick={() => setDeleteConfirmOpen(true)}>
 					Delete Confirmation
-				</Button>
-				<Button variant="default" onClick={() => setWelcomeOpen(true)}>
-					🎉 Welcome Celebration
 				</Button>
 			</div>
 
@@ -705,8 +700,6 @@ function DialogsDemo() {
 					setDeleteConfirmOpen(false);
 				}}
 			/>
-
-			{welcomeOpen && <WelcomeCelebration forceOpen={true} redirectUrl="/demo-components" />}
 		</div>
 	);
 }

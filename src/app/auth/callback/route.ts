@@ -3,12 +3,12 @@ import { DEMO_COOKIE } from "@/lib/demo-mode";
 import { DEMO_SESSION_COOKIE } from "@/lib/demo-session";
 import { cookies } from "next/headers";
 import { NextResponse } from "next/server";
+import { needsOnboarding, onboardingPath, safeNextPath } from "@/lib/onboarding";
 
 export async function GET(request: Request) {
 	const { searchParams, origin } = new URL(request.url);
 	const code = searchParams.get("code");
-	// if "next" is in param, use it as the redirect URL
-	const next = searchParams.get("next") ?? "/";
+	const next = safeNextPath(searchParams.get("next"));
 
 	if (code) {
 		const supabase = await createClient();
@@ -22,12 +22,14 @@ export async function GET(request: Request) {
 			const forwardedHost = request.headers.get("x-forwarded-host"); // original origin before load balancer
 			const isLocalEnv = process.env.NODE_ENV === "development";
 
-			// Determine redirect URL
+			// Someone without a name (a new account) sets it up before going on.
 			let finalNext = next;
-			if (next === "/" || next === "/dashboard") {
-				// Check for existing params to append correctly
-				const separator = next.includes("?") ? "&" : "?";
-				finalNext = `${next}${separator}welcome=true`;
+			const {
+				data: { user },
+			} = await supabase.auth.getUser();
+			if (user) {
+				const { data: profile } = await supabase.from("users").select("full_name").eq("id", user.id).single();
+				if (needsOnboarding(profile)) finalNext = onboardingPath(next);
 			}
 
 			if (isLocalEnv) {

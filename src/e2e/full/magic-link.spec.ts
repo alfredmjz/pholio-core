@@ -45,6 +45,10 @@ test("sign in with the emailed magic link", async ({ page, baseURL }, testInfo) 
 	expect(url.searchParams.get("next")).toBe("/dashboard");
 
 	await page.goto(link!);
+	// A new account sets its name before reaching the dashboard.
+	await expect(page).toHaveURL(/\/welcome$/);
+	await page.getByLabel("Your name").fill("Mail Tester");
+	await page.getByRole("button", { name: "Continue" }).click();
 	await expect(page).toHaveURL(/\/dashboard/);
 	await expect(page.getByRole("heading", { name: "Dashboard", level: 1 })).toBeVisible();
 });

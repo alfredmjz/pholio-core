@@ -1,12 +1,16 @@
-"use client";
+import { redirect } from "next/navigation";
+import { requireAuth } from "@/lib/auth";
+import { needsOnboarding, safeNextPath } from "@/lib/onboarding";
+import { OnboardingForm } from "./onboarding-form";
 
-import { Suspense } from "react";
-import { WelcomeCelebration } from "@/components/welcome-celebration";
+export const metadata = {
+	title: "Welcome | Pholio",
+};
 
-export default function WelcomePage() {
-	return (
-		<Suspense fallback={<div className="min-h-screen bg-background" />}>
-			<WelcomeCelebration forceOpen={true} redirectUrl="/dashboard" />
-		</Suspense>
-	);
+export default async function WelcomePage({ searchParams }: { searchParams: Promise<{ next?: string }> }) {
+	const { profile } = await requireAuth();
+	const next = safeNextPath((await searchParams).next);
+	if (!needsOnboarding(profile)) redirect(next);
+
+	return <OnboardingForm next={next} />;
 }

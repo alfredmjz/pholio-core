@@ -27,8 +27,11 @@ setup("sign in with a magic link", async ({ page }) => {
 	const tokenHash = data.properties!.hashed_token;
 	await page.goto(`/confirm?token_hash=${tokenHash}&type=magiclink&next=/dashboard`);
 
-	// First sign-in shows the welcome celebration; later visits go straight to the dashboard.
-	await expect(page).toHaveURL(/\/dashboard\?welcome=true/);
+	// A new account sets its name first; later sign-ins go straight to the dashboard.
+	await expect(page).toHaveURL(/\/welcome$/);
+	await page.getByLabel("Your name").fill("E2E Tester");
+	await page.getByRole("button", { name: "Continue" }).click();
+	await expect(page).toHaveURL(/\/dashboard$/);
 	await expect(page.getByRole("heading", { name: "Dashboard", level: 1 })).toBeVisible();
 
 	await page.context().storageState({ path: AUTH_FILE });

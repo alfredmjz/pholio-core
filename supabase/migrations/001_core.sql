@@ -40,8 +40,8 @@ CREATE POLICY "Users can view own profile" ON public.users FOR SELECT USING ((se
 DROP POLICY IF EXISTS "Users can insert own profile" ON public.users;
 CREATE POLICY "Users can insert own profile" ON public.users FOR INSERT WITH CHECK ((select auth.uid()) = id);
 
+-- Profiles are created by handle_new_user(), which bypasses RLS; this open policy let any user insert any id.
 DROP POLICY IF EXISTS "Service role can insert profiles" ON public.users;
-CREATE POLICY "Service role can insert profiles" ON public.users FOR INSERT WITH CHECK (true);
 
 DROP POLICY IF EXISTS "Users can update own profile" ON public.users;
 CREATE POLICY "Users can update own profile" ON public.users FOR UPDATE USING ((select auth.uid()) = id);

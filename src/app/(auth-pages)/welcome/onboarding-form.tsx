@@ -2,9 +2,9 @@
 
 import "@/styles/login.css";
 import { useState, useTransition } from "react";
-import Image from "next/image";
 import { useRouter } from "next/navigation";
 import { LedgerField } from "@/components/common/ledger-field";
+import { PholioMark } from "@/components/common/pholio-mark";
 import { cleanFullName, NAME_MAX_LENGTH } from "@/lib/onboarding";
 import { completeOnboarding } from "./actions";
 
@@ -43,7 +43,7 @@ export function OnboardingForm({ next }: { next: string }) {
 			<div className="relative z-10 mx-auto flex min-h-dvh w-full max-w-[1320px] flex-col px-6 lg:px-10">
 				<header className="login-header flex items-center py-6 lg:py-8">
 					<span className="flex items-center gap-2.5">
-						<Image src="/pholio-icon.svg" alt="" width={26} height={26} priority />
+						<PholioMark size={26} className="login-mark" />
 						<span className="login-wordmark">Pholio</span>
 					</span>
 				</header>

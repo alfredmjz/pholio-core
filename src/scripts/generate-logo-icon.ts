@@ -1,7 +1,16 @@
 import * as fs from "fs";
 import * as path from "path";
 import { deflateSync } from "zlib";
-import { STATIC_POSE, glyphGridSize, logoGlyphs, type LogoGlyph, type LogoPose } from "@/lib/ascii-logo";
+import {
+	ANIMATION_STYLE,
+	ICON_STYLE,
+	STATIC_POSE,
+	glyphGridSize,
+	logoGlyphs,
+	type GlyphStyle,
+	type LogoGlyph,
+	type LogoPose,
+} from "@/lib/ascii-logo";
 
 // Paper, ink and accent from the light theme in styles/globals.css.
 const PAPER: Rgb = [243, 239, 231];
@@ -193,7 +202,7 @@ function roundedTileCoverage(size: number, x: number, y: number) {
 }
 
 // How much of each pixel the paper tile, the ink glyphs and the accent glyphs cover.
-function rasterize(size: number, pose: LogoPose): Coverage {
+function rasterize(size: number, pose: LogoPose, style: GlyphStyle): Coverage {
 	const markSize = size * MARK_SHARE;
 	const offset = (size - markSize) / 2;
 	const scale = markSize / ICON_CELLS;
@@ -201,7 +210,7 @@ function rasterize(size: number, pose: LogoPose): Coverage {
 	const accent = new Float32Array(size * size);
 	const tile = new Float32Array(size * size);
 
-	for (const glyph of logoGlyphs(ICON_CELLS, pose)) {
+	for (const glyph of logoGlyphs(ICON_CELLS, pose, style)) {
 		const target = glyph.accent ? accent : ink;
 		const [left, top, right, bottom] =
 			glyph.shape === "circle"
@@ -238,7 +247,7 @@ const blend = (inkShare: number, accentShare: number): Rgb =>
 	) as Rgb;
 
 function iconPng() {
-	const { ink, accent, tile } = rasterize(ICON_SIZE, STATIC_POSE);
+	const { ink, accent, tile } = rasterize(ICON_SIZE, STATIC_POSE, ICON_STYLE);
 	const rgba = new Uint8Array(ICON_SIZE * ICON_SIZE * 4);
 	for (let pixel = 0; pixel < ICON_SIZE * ICON_SIZE; pixel++) {
 		rgba.set([...blend(ink[pixel], accent[pixel]), Math.round(tile[pixel] * 255)], pixel * 4);
@@ -263,10 +272,11 @@ function emailGif() {
 	const start = Math.asin((STATIC_POSE.yaw + 0.15) / 0.45);
 	const frames = Array.from({ length: GIF_FRAMES }, (_, frame) => {
 		const angle = start + (frame / GIF_FRAMES) * Math.PI * 2;
-		const { ink, accent, tile } = rasterize(GIF_SIZE, {
-			yaw: -0.15 + 0.45 * Math.sin(angle),
-			pitch: 0.3 + 0.1 * Math.sin(angle),
-		});
+		const { ink, accent, tile } = rasterize(
+			GIF_SIZE,
+			{ yaw: -0.15 + 0.45 * Math.sin(angle), pitch: 0.3 + 0.1 * Math.sin(angle) },
+			ANIMATION_STYLE
+		);
 		const indices = new Uint8Array(GIF_SIZE * GIF_SIZE);
 		for (let pixel = 0; pixel < indices.length; pixel++) {
 			if (tile[pixel] < 0.5) {

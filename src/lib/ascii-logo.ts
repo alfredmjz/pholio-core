@@ -135,7 +135,8 @@ export function glyphGridSize(size: number) {
 }
 
 // One character as simple shapes centred in its 1-unit cell, so it stays crisp when tiny.
-export function glyphShapes(char: string, cx: number, cy: number, accent: boolean): LogoGlyph[] {
+// `weight` thickens every stroke and dot, capped so a glyph never fills its cell.
+export function glyphShapes(char: string, cx: number, cy: number, accent: boolean, weight = 1): LogoGlyph[] {
 	const bar = (x: number, y: number, width: number, height: number): LogoGlyph => ({
 		shape: "rect",
 		x: cx + x,
@@ -144,41 +145,72 @@ export function glyphShapes(char: string, cx: number, cy: number, accent: boolea
 		height,
 		accent,
 	});
-	const dot = (y: number, r: number): LogoGlyph => ({ shape: "circle", x: cx, y: cy + y, r, accent });
+	const dot = (y: number, r: number): LogoGlyph => ({
+		shape: "circle",
+		x: cx,
+		y: cy + y,
+		r: Math.min(r * weight, 0.46),
+		accent,
+	});
+	const stroke = (thickness: number) => Math.min(thickness * weight, 0.4);
 
 	switch (char) {
 		case ".":
 		case ",":
 			return [dot(0.15, 0.13)];
 		case "-":
-		case "~":
-			return [bar(-0.32, -0.08, 0.64, 0.16)];
+		case "~": {
+			const h = stroke(0.16);
+			return [bar(-0.32, -h / 2, 0.64, h)];
+		}
 		case ":":
 		case ";":
 			return [dot(-0.2, 0.12), dot(0.2, 0.12)];
-		case "=":
-			return [bar(-0.32, -0.22, 0.64, 0.14), bar(-0.32, 0.08, 0.64, 0.14)];
-		case "!":
-			return [bar(-0.08, -0.38, 0.16, 0.76)];
-		case "*":
-			return [bar(-0.36, -0.09, 0.72, 0.18), bar(-0.09, -0.36, 0.18, 0.72)];
-		case "#":
+		case "=": {
+			const h = stroke(0.14);
+			return [bar(-0.32, -0.08 - h, 0.64, h), bar(-0.32, 0.08, 0.64, h)];
+		}
+		case "!": {
+			const h = stroke(0.16);
+			return [bar(-h / 2, -0.38, h, 0.76)];
+		}
+		case "*": {
+			const h = stroke(0.18);
+			return [bar(-0.36, -h / 2, 0.72, h), bar(-h / 2, -0.36, h, 0.72)];
+		}
+		case "#": {
+			const h = stroke(0.13);
 			return [
-				bar(-0.38, -0.22, 0.76, 0.13),
-				bar(-0.38, 0.09, 0.76, 0.13),
-				bar(-0.22, -0.38, 0.13, 0.76),
-				bar(0.09, -0.38, 0.13, 0.76),
+				bar(-0.38, -0.155 - h / 2, 0.76, h),
+				bar(-0.38, 0.155 - h / 2, 0.76, h),
+				bar(-0.155 - h / 2, -0.38, h, 0.76),
+				bar(0.155 - h / 2, -0.38, h, 0.76),
 			];
+		}
 		default:
 			return [dot(0, 0.4)];
 	}
 }
 
+export type GlyphStyle = { weight: number; accent: "rim" | "scatter" };
+
+// Small still icons need heavier strokes and green spread across the p to hold their shape.
+export const ICON_STYLE: GlyphStyle = { weight: 1.7, accent: "scatter" };
+// The email animation matches the live sign-in mark: regular strokes, green around the counter.
+export const ANIMATION_STYLE: GlyphStyle = { weight: 1, accent: "rim" };
+const SCATTER_SHARE = 0.28;
+
+function cellHash(a: number, b: number) {
+	let h = (Math.imul(a, 374761393) + Math.imul(b, 668265263)) | 0;
+	h = Math.imul(h ^ (h >>> 13), 1274126177);
+	h ^= h >>> 16;
+	return (h >>> 0) / 4294967296;
+}
+
 const glyphCache = new Map<number, LogoGlyph[]>();
 
-// The ASCII p with each character drawn as shapes: the still mark, or one frame of the email animation.
-export function logoGlyphs(cells: number, pose: LogoPose = STATIC_POSE): LogoGlyph[] {
-	const cacheable = pose === STATIC_POSE;
+export function logoGlyphs(cells: number, pose: LogoPose = STATIC_POSE, style: GlyphStyle = ICON_STYLE): LogoGlyph[] {
+	const cacheable = pose === STATIC_POSE && style === ICON_STYLE;
 	const cached = cacheable ? glyphCache.get(cells) : undefined;
 	if (cached) return cached;
 
@@ -188,7 +220,8 @@ export function logoGlyphs(cells: number, pose: LogoPose = STATIC_POSE): LogoGly
 		if (!filled[cell]) continue;
 		const col = cell % cells;
 		const row = Math.floor(cell / cells);
-		glyphs.push(...glyphShapes(logoChar(light[cell]), col + 0.5, row + 0.5, accent[cell] === 1));
+		const green = style.accent === "rim" ? accent[cell] === 1 : cellHash(cell, Math.floor(cell / 7)) < SCATTER_SHARE;
+		glyphs.push(...glyphShapes(logoChar(light[cell]), col + 0.5, row + 0.5, green, style.weight));
 	}
 
 	if (cacheable) glyphCache.set(cells, glyphs);

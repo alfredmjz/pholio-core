@@ -16,7 +16,7 @@ export const CHANGELOG: ChangelogEntry[] = [
 		date: "2026-10-24",
 		title: "A new Pholio logo",
 		items: [
-			"Pholio's logo is now a 3D p drawn in text characters. It sways on the sign-in page and in sign-in emails.",
+			"Pholio's logo is now a 3D p drawn in text characters. It sways on the sign-in page and in sign-in and payment-reminder emails.",
 		],
 	},
 	{

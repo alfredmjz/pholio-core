@@ -33,10 +33,6 @@ export function setFormatSettings(settings: FormatSettings): void {
 	current = settings;
 }
 
-export function getFormatSettings(): FormatSettings {
-	return current;
-}
-
 export interface MoneyOptions {
 	showCents?: boolean;
 	/** "+" for positive amounts as well as "-" for negative ones. */

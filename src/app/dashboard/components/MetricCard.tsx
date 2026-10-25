@@ -106,18 +106,3 @@ export function MetricCard({
 		</Card>
 	);
 }
-
-export function MetricCardSkeleton({ className }: { className?: string }) {
-	return (
-		<Card className={cn("p-6 bg-card border border-border", className)}>
-			<div className="animate-pulse">
-				<div className="flex items-center justify-between mb-3">
-					<div className="h-4 bg-muted rounded w-24" />
-					<div className="h-10 w-10 bg-muted rounded-lg" />
-				</div>
-				<div className="h-9 bg-muted rounded w-32 mb-2" />
-				<div className="h-3 bg-muted rounded w-20" />
-			</div>
-		</Card>
-	);
-}

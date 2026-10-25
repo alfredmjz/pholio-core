@@ -27,8 +27,6 @@ async function generateKeys() {
 	// GoTrue expects an Array of JWKs
 	const signingKeys = [privateJwk];
 
-	const keysPath = path.join(process.cwd(), "..", "..", "supabase", "signing_keys.json");
-
 	// Try to locate the correct directory (handling execution from root vs src)
 	// Defaulting to assuming run from project root or checks
 	// Let's make it robust:

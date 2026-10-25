@@ -74,7 +74,6 @@ interface AllocationsDashboardViewProps {
 	exportDialogOpen: boolean;
 	setExportDialogOpen: (open: boolean) => void;
 
-	saveTemplateDialogOpen: boolean;
 	setSaveTemplateDialogOpen: (open: boolean) => void;
 }
 
@@ -107,7 +106,6 @@ export function AllocationsDashboardView({
 	templates,
 	exportDialogOpen,
 	setExportDialogOpen,
-	saveTemplateDialogOpen,
 	setSaveTemplateDialogOpen,
 }: AllocationsDashboardViewProps) {
 	const usedColors = categories.map((c) => c.color).filter(Boolean) as string[];

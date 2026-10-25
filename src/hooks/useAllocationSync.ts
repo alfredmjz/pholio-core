@@ -41,7 +41,7 @@ export function useAllocationSync(
 	const [isRefetching, setIsRefetching] = useState(false);
 
 	// Use optimistic updates hook
-	const { summary, setSummary, optimisticallyReorderCategories, rollback, syncWithServer } =
+	const { summary, optimisticallyReorderCategories, rollback, syncWithServer } =
 		useOptimisticAllocation(initialSummary);
 
 	const refetchTimeoutRef = useRef<NodeJS.Timeout | null>(null);

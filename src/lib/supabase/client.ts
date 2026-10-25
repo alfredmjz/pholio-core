@@ -40,38 +40,6 @@ if (process.env.NODE_ENV !== "production" && process.env.NEXT_PUBLIC_USE_SAMPLE_
 }
 
 /**
- * Fetches all records from a specified table.
- *
- * @param table - Name of the database table
- * @returns Array of records or null if error occurs
- */
-export async function fetchData(table: string) {
-	if (process.env.NEXT_PUBLIC_USE_SAMPLE_DATA === "true") return [];
-	const { data, error } = await supabase.from(table).select("*");
-	if (error) {
-		console.error("Error fetching data:", error);
-		return null;
-	}
-	return data;
-}
-
-/**
- * Inserts a new record into a specified table.
- *
- * @param table - Name of the database table
- * @param payload - Data to insert
- * @returns Inserted record or null if error occurs
- */
-export async function insertData(table: string, payload: Record<string, unknown>) {
-	const { data, error } = await supabase.from(table).insert(payload);
-	if (error) {
-		console.error("Error inserting data:", error);
-		return null;
-	}
-	return data;
-}
-
-/**
  * Updates an existing record in a specified table.
  *
  * @param table - Name of the database table
@@ -83,22 +51,6 @@ export async function updateData(table: string, id: string, payload: Record<stri
 	const { data, error } = await supabase.from(table).update(payload).eq("id", id);
 	if (error) {
 		console.error("Error updating data:", error);
-		return null;
-	}
-	return data;
-}
-
-/**
- * Deletes a record from a specified table.
- *
- * @param table - Name of the database table
- * @param id - ID of the record to delete
- * @returns Deleted record or null if error occurs
- */
-export async function deleteData(table: string, id: string) {
-	const { data, error } = await supabase.from(table).delete().eq("id", id);
-	if (error) {
-		console.error("Error deleting data:", error);
 		return null;
 	}
 	return data;

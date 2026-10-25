@@ -77,7 +77,12 @@ describe("findDueReminders", () => {
 });
 
 describe("buildReminderEmail", () => {
-	const links = { app: "https://app.test/dashboard", settings: "https://app.test/settings#notifications" };
+	const links = {
+		app: "https://app.test/dashboard",
+		settings: "https://app.test/settings#notifications",
+		logo: "https://app.test/pholio-icon.gif",
+		logoStill: "https://app.test/pholio-icon.png",
+	};
 	const reminders = findDueReminders({
 		today: "2026-10-24",
 		leadDays: 7,
@@ -97,6 +102,15 @@ describe("buildReminderEmail", () => {
 		const email = buildReminderEmail(reminders, { locale: "en-CA", currency: "CAD" }, links);
 		expect(email.html).toContain("TD - Visa &lt;Gold&gt;");
 		expect(email.html).not.toContain("<Gold>");
+	});
+
+	test("heads the email with the animated logo, and the still one for classic Outlook", () => {
+		const email = buildReminderEmail(reminders, { locale: "en-CA", currency: "CAD" }, links);
+		const outlookOnly = email.html.match(/<!--\[if mso\]>([\s\S]*?)<!\[endif\]-->/)?.[1] ?? "";
+		const everyoneElse = email.html.match(/<!--\[if !mso\]><!-->([\s\S]*?)<!--<!\[endif\]-->/)?.[1] ?? "";
+		expect(outlookOnly).toContain('src="https://app.test/pholio-icon.png"');
+		expect(everyoneElse).toContain('src="https://app.test/pholio-icon.gif"');
+		expect(email.html.indexOf("pholio-icon")).toBeLessThan(email.html.indexOf("Coming up"));
 	});
 
 	test("names a single item in the subject", () => {

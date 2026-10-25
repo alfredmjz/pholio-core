@@ -124,7 +124,7 @@ export interface ReminderEmail {
 export function buildReminderEmail(
 	reminders: DueReminder[],
 	settings: FormatSettings,
-	links: { app: string; settings: string }
+	links: { app: string; settings: string; logo: string; logoStill: string }
 ): ReminderEmail {
 	const lines = reminders.map((reminder) => {
 		const amount = formatMoney(reminder.amount, {
@@ -166,6 +166,16 @@ export function buildReminderEmail(
 	<body style="margin:0;padding:24px;background:#f6f2ea;font-family:-apple-system,BlinkMacSystemFont,'Segoe UI',sans-serif;">
 		<table role="presentation" width="100%" style="max-width:520px;margin:0 auto;background:#fffdf8;border:1px solid #e7e1d6;border-radius:16px;padding:24px;">
 			<tr><td>
+				<table role="presentation" cellspacing="0" cellpadding="0" border="0" style="margin:0 0 20px;">
+					<tr>
+						<td valign="middle" style="padding-right:10px;">
+							<!-- Classic Outlook for Windows can't animate a GIF, so it gets the still PNG. -->
+							<!--[if mso]><img src="${escapeHtml(links.logoStill)}" alt="" width="28" height="28" style="display:block;border:0;" /><![endif]-->
+							<!--[if !mso]><!--><img src="${escapeHtml(links.logo)}" alt="" width="28" height="28" style="display:block;width:28px;height:28px;border:0;border-radius:7px;" /><!--<![endif]-->
+						</td>
+						<td valign="middle" style="font-size:17px;font-weight:600;letter-spacing:-0.02em;color:#2c2822;">Pholio</td>
+					</tr>
+				</table>
 				<p style="margin:0 0 4px;font-size:18px;font-weight:600;color:#2c2822;">Coming up</p>
 				<p style="margin:0 0 16px;font-size:14px;color:#6f675c;">${count === 1 ? "One payment is" : `${count} payments are`} due soon.</p>
 				<table role="presentation" width="100%" style="border-collapse:collapse;font-size:14px;">${rows}</table>

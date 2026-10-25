@@ -61,10 +61,8 @@ import { EmojiPicker } from "@/components/emoji-picker";
 import { ThemeToggle } from "@/components/theme-toggle";
 import { Banner, BannerClose, BannerIcon, BannerTitle } from "@/components/ui/banner";
 import { DeleteConfirmDialog } from "@/components/dialogs/DeleteConfirmDialog";
-import { WelcomeCelebration } from "@/components/welcome-celebration";
 import { MetricCard } from "@/app/dashboard/components/MetricCard";
 import { AccountCard } from "@/app/accounts/components/AccountCard";
-import { SettingsNav } from "@/app/settings/components/settings-nav";
 import { ServiceLogo } from "@/components/service-logo";
 import { ServiceAutocomplete } from "@/components/service-autocomplete";
 import { StatusBadge } from "@/components/ui/status-badge";
@@ -416,12 +414,6 @@ export function DemoComponentsClient() {
 							<h3 className="text-lg font-semibold text-primary">Navigation & Utilities</h3>
 							<div className="grid grid-cols-1 md:grid-cols-2 gap-6">
 								<Card className="p-6 bg-card border-border space-y-4">
-									<h4 className="text-base font-medium text-primary">SettingsNav (Desktop)</h4>
-									<div className="flex justify-center">
-										<SettingsNav />
-									</div>
-								</Card>
-								<Card className="p-6 bg-card border-border space-y-4">
 									<h4 className="text-base font-medium text-primary">ServiceLogo</h4>
 									<div className="flex flex-wrap items-center justify-center gap-6">
 										<ServiceLogo name="Netflix" domain="netflix.com" width={48} height={48} />
@@ -682,16 +674,12 @@ function BannerDemo() {
 
 function DialogsDemo() {
 	const [deleteConfirmOpen, setDeleteConfirmOpen] = React.useState(false);
-	const [welcomeOpen, setWelcomeOpen] = React.useState(false);
 
 	return (
 		<div className="space-y-4">
 			<div className="flex flex-wrap items-center gap-4">
 				<Button variant="destructive" onClick={() => setDeleteConfirmOpen(true)}>
 					Delete Confirmation
-				</Button>
-				<Button variant="default" onClick={() => setWelcomeOpen(true)}>
-					🎉 Welcome Celebration
 				</Button>
 			</div>
 
@@ -705,8 +693,6 @@ function DialogsDemo() {
 					setDeleteConfirmOpen(false);
 				}}
 			/>
-
-			{welcomeOpen && <WelcomeCelebration forceOpen={true} redirectUrl="/demo-components" />}
 		</div>
 	);
 }

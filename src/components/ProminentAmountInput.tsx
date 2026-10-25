@@ -4,6 +4,7 @@ import * as React from "react";
 import { Label } from "@/components/ui/label";
 import { cn } from "@/lib/utils";
 import { sanitizeDecimalInput } from "@/lib/input-utils";
+import { getCurrencySymbol } from "@/lib/format";
 
 interface ProminentAmountInputProps {
 	value: string;
@@ -20,7 +21,7 @@ export function ProminentAmountInput({
 	value,
 	onChange,
 	label,
-	currency = "$",
+	currency = getCurrencySymbol(),
 	className,
 	id,
 	hasError,

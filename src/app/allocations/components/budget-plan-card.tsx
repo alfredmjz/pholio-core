@@ -13,6 +13,7 @@ import { buildBudgetPlan } from "../budget-plan";
 import type { AllocationCategory, IncomeVerificationResult } from "../types";
 import { getCategoryColor } from "../utils/colors";
 import { getCategoryFigures } from "../utils/category-figures";
+import { getCurrencySymbol } from "@/lib/format";
 
 interface BudgetPlanCardProps {
 	expectedIncome: number;
@@ -168,7 +169,7 @@ export function BudgetPlanCard({
 				<div className="flex flex-col items-start gap-1 sm:items-end">
 					{isEditing ? (
 						<div className="flex items-center gap-1.5">
-							<span className="type-h4 text-muted-foreground">$</span>
+							<span className="type-h4 text-muted-foreground">{getCurrencySymbol()}</span>
 							<input
 								type="text"
 								inputMode="decimal"

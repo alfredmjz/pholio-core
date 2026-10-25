@@ -5,6 +5,7 @@ import { useRouter } from "next/navigation";
 import { signOut } from "@/app/(auth-pages)/login/actions";
 import { PholioMark } from "@/components/common/pholio-mark";
 import { clearDemoModeCookie } from "@/lib/demo-mode";
+import { NotificationBell } from "@/components/notifications/notification-bell";
 import { UserProfileMenu } from "@/components/sidebar/UserProfileMenu";
 import type { UserProfile } from "@/lib/getUserProfile";
 
@@ -13,7 +14,7 @@ interface MobileTopBarProps {
 }
 
 /**
- * Phone-only top bar: the wordmark on the left, the account menu on the right.
+ * Phone-only top bar: the wordmark on the left, notifications and the account menu on the right.
  * Uses the same profile menu as the desktop sidebar so settings and sign-out are
  * reachable on every surface.
  */
@@ -39,13 +40,16 @@ export function MobileTopBar({ userProfile }: MobileTopBarProps) {
 					<span className="text-[17px] font-semibold tracking-[-0.01em] text-primary">Pholio</span>
 				</Link>
 			</div>
-			<UserProfileMenu
-				userProfile={userProfile}
-				onSignOut={handleSignOut}
-				isCollapsed
-				menuSide="bottom"
-				menuAlign="end"
-			/>
+			<div className="flex items-center gap-1">
+				<NotificationBell variant="icon" side="bottom" align="end" />
+				<UserProfileMenu
+					userProfile={userProfile}
+					onSignOut={handleSignOut}
+					isCollapsed
+					menuSide="bottom"
+					menuAlign="end"
+				/>
+			</div>
 		</header>
 	);
 }

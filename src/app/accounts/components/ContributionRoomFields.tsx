@@ -9,6 +9,8 @@ import {
 	CONTRIBUTION_PLAN_OPTIONS,
 	CRA_MY_ACCOUNT_URL,
 	getContributionPlanLabel,
+	getRoomFieldLabel,
+	getRoomHint,
 	isRegisteredPlan,
 } from "@/lib/contribution-plans";
 import {
@@ -27,38 +29,6 @@ interface ContributionRoomFieldsProps {
 	/** Saved plan rooms, used to prefill the fields when a registered plan is picked. */
 	planRooms: ContributionRoomSetting[];
 	error?: string;
-}
-
-/** The field label, using CRA's own name for each plan's figure. */
-function roomLabel(plan: RegisteredPlan | "other"): string {
-	switch (plan) {
-		case "tfsa":
-			return "Current TFSA contribution room";
-		case "rrsp":
-			return "Current RRSP deduction limit";
-		case "fhsa":
-			return "Current FHSA participation room";
-		case "resp":
-			return "Current RESP contribution room";
-		default:
-			return "Current contribution room";
-	}
-}
-
-/** Where CRA shows each figure, for the year it applies to. */
-function roomHint(plan: RegisteredPlan | "other", year: number): string {
-	switch (plan) {
-		case "tfsa":
-			return `Your available contribution room at the start of ${year}. In CRA My Account, go to View TFSA details, then Contribution room.`;
-		case "rrsp":
-			return `Your RRSP/PRPP deduction limit for ${year}, from your Notice of Assessment or CRA My Account.`;
-		case "fhsa":
-			return `Your FHSA participation room for ${year}, from CRA My Account.`;
-		case "resp":
-			return "The $50,000 lifetime limit per beneficiary, minus what has already been contributed. CRA does not show this figure.";
-		default:
-			return "The room you have left in this account.";
-	}
 }
 
 /**
@@ -132,7 +102,7 @@ export function ContributionRoomFields({ values, onChange, planRooms, error }: C
 
 							<div className="space-y-2">
 								<Label htmlFor="contribution_room">
-									{roomLabel(isShared ? (values.contribution_plan as RegisteredPlan) : "other")}
+									{getRoomFieldLabel(isShared ? (values.contribution_plan as RegisteredPlan) : "other")}
 								</Label>
 								<ProminentAmountInput
 									id="contribution_room"
@@ -144,7 +114,7 @@ export function ContributionRoomFields({ values, onChange, planRooms, error }: C
 									<p className="type-caption text-error">{error}</p>
 								) : (
 									<p className="type-caption text-muted-foreground">
-										{roomHint(isShared ? (values.contribution_plan as RegisteredPlan) : "other", currentYear)}
+										{getRoomHint(isShared ? (values.contribution_plan as RegisteredPlan) : "other", currentYear)}
 									</p>
 								)}
 								{roomYear !== null && roomYear < currentYear && values.contribution_room && (

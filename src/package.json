@@ -13,6 +13,7 @@
 		"e2e:ui": "playwright test --ui",
 		"e2e:report": "playwright show-report",
 		"e2e:db": "supabase start --workdir ..",
+		"cron": "bun scripts/run-cron.ts",
 		"hooks:install": "git config core.hooksPath .githooks",
 		"logo:icon": "bun scripts/generate-logo-icon.ts"
 	},
@@ -67,7 +68,6 @@
 		"@tiptap/react": "^3.14.0",
 		"@tiptap/starter-kit": "^3.14.0",
 		"autoprefixer": "^10.4.20",
-		"canvas-confetti": "^1.9.4",
 		"class-variance-authority": "^0.7.1",
 		"clsx": "^2.1.1",
 		"cmdk": "^1.1.1",
@@ -96,7 +96,6 @@
 		"@playwright/test": "^1.64.1",
 		"@tailwindcss/postcss": "^4.0.3",
 		"@types/bun": "^1.3.4",
-		"@types/canvas-confetti": "^1.9.0",
 		"@types/node": "^22.13.1",
 		"@types/react": "^19.2.2",
 		"@types/react-dom": "^19.2.2",

@@ -3,6 +3,7 @@
 import { useEffect, useState } from "react";
 import { Plus } from "lucide-react";
 import { parseLocalDate } from "@/lib/date-utils";
+import { formatDateParts } from "@/lib/format";
 
 function greetingFor(hour: number): string {
 	if (hour < 5) return "Good evening";
@@ -23,7 +24,7 @@ export function DashboardHeader({ today, firstName, onAddTransaction }: Dashboar
 	const [greeting, setGreeting] = useState("Hello");
 	useEffect(() => setGreeting(greetingFor(new Date().getHours())), []);
 
-	const dateLabel = parseLocalDate(today).toLocaleDateString("en-US", {
+	const dateLabel = formatDateParts(parseLocalDate(today), {
 		weekday: "long",
 		month: "long",
 		day: "numeric",

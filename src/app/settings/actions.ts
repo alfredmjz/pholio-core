@@ -1,10 +1,31 @@
 "use server";
 
-import { createClient } from "@/lib/supabase/server";
+import { headers } from "next/headers";
+import { createAdminClient, createClient } from "@/lib/supabase/server";
 import { revalidatePath } from "next/cache";
 import { sampleProfile } from "@/mock-data/profile";
 import { Logger } from "@/lib/logger";
 import { isSampleDataMode } from "@/lib/demo-mode.server";
+import { emailNotConfiguredMessage, isEmailConfigured, sendEmail } from "@/lib/email";
+import { buildReminderEmail, type DueReminder } from "@/lib/reminders";
+import {
+	formatSettingsFor,
+	loadReminderItems,
+	reminderLinks,
+	remindersFor,
+	type ReminderUser,
+} from "@/lib/reminder-jobs";
+import { getTodayDateString } from "@/lib/date-utils";
+import {
+	buildFullExportCsv,
+	DELETE_ACCOUNT_CONFIRMATION,
+	EXPORT_KINDS,
+	EXPORT_QUERIES,
+	exportFilename,
+	RESET_DATA_CONFIRMATION,
+	type ExportKind,
+} from "./data-export";
+import { toPreferenceColumns, type UserPreferences } from "./preferences";
 
 /**
  * Update user profile (full name)
@@ -47,7 +68,7 @@ export async function updateProfile(formData: FormData) {
 			return { error: "Failed to update profile" };
 		}
 
-		revalidatePath("/profile");
+		revalidatePath("/", "layout");
 		return { success: true, message: "Profile updated successfully" };
 	} catch (error) {
 		Logger.error("Unexpected error in updateProfile", { error });
@@ -183,8 +204,7 @@ export async function uploadProfileAvatar(formData: FormData) {
 			return { error: "Failed to update profile with new image" };
 		}
 
-		revalidatePath("/profile");
-		revalidatePath("/settings"); // Revalidate settings page as well
+		revalidatePath("/", "layout");
 		return { success: true, message: "Profile picture updated successfully" };
 	} catch (error) {
 		Logger.error("Unexpected error in uploadProfileAvatar", { error });
@@ -402,6 +422,282 @@ export async function updateTimezone(timezone: string | null): Promise<{ success
 		return { success: true };
 	} catch (error) {
 		Logger.error("Unexpected error in updateTimezone", { error });
+		return { success: false, error: "An unexpected error occurred" };
+	}
+}
+
+// =============================================================================
+// REGION AND REMINDER PREFERENCES
+// =============================================================================
+
+export async function updatePreferences(
+	changes: Partial<UserPreferences>
+): Promise<{ success: boolean; error?: string }> {
+	const parsed = toPreferenceColumns(changes);
+	if (parsed.error !== undefined) return { success: false, error: parsed.error };
+
+	// The sample profile is fixed, so a format or reminder change could never take effect.
+	if (await isSampleDataMode()) {
+		return { success: false, error: "Sample data: this setting isn't saved." };
+	}
+
+	try {
+		const supabase = await createClient();
+		const {
+			data: { user },
+		} = await supabase.auth.getUser();
+
+		if (!user) {
+			return { success: false, error: "You must be logged in" };
+		}
+
+		const { error } = await supabase
+			.from("users")
+			.update({ ...parsed.columns, updated_at: new Date().toISOString() })
+			.eq("id", user.id);
+
+		if (error) {
+			Logger.error("Error updating preferences", { error });
+			return { success: false, error: "Failed to save the setting" };
+		}
+
+		// The root layout applies the format to every page.
+		revalidatePath("/", "layout");
+		return { success: true };
+	} catch (error) {
+		Logger.error("Unexpected error in updatePreferences", { error });
+		return { success: false, error: "An unexpected error occurred" };
+	}
+}
+
+const TEST_EMAILS_PER_DAY = 5;
+
+/** Emails the signed-in user what a reminder would hold right now, or an example when nothing is due. */
+export async function sendTestReminder(): Promise<{ success: boolean; message?: string; error?: string }> {
+	if (await isSampleDataMode()) {
+		return { success: false, error: "Sample data: no email sent." };
+	}
+	if (!isEmailConfigured()) {
+		return { success: false, error: emailNotConfiguredMessage() };
+	}
+
+	try {
+		const supabase = await createClient();
+		const {
+			data: { user },
+		} = await supabase.auth.getUser();
+		if (!user) return { success: false, error: "You must be logged in" };
+
+		const { data: profile, error: profileError } = await supabase
+			.from("users")
+			.select("id, email, timezone, locale, default_currency, notify_lead_days")
+			.eq("id", user.id)
+			.single();
+		if (profileError || !profile) return { success: false, error: "Couldn't load your settings" };
+
+		const reminderUser = profile as ReminderUser;
+		const items = await loadReminderItems(supabase, [user.id]);
+		const { today, reminders } = remindersFor(reminderUser, items.get(user.id) ?? { cards: [], recurring: [] });
+
+		// The send log is service-role only; every query here is scoped to this user's id.
+		const admin = createAdminClient();
+		const { count } = await admin
+			.from("notification_sends")
+			.select("id", { count: "exact", head: true })
+			.eq("user_id", user.id)
+			.eq("kind", "test")
+			.eq("due_date", today);
+		if ((count ?? 0) >= TEST_EMAILS_PER_DAY) {
+			return { success: false, error: `You've sent ${TEST_EMAILS_PER_DAY} test emails today. Try again tomorrow.` };
+		}
+
+		const { data: logged, error: logError } = await admin
+			.from("notification_sends")
+			.insert({ user_id: user.id, kind: "test", ref_id: crypto.randomUUID(), due_date: today })
+			.select("id")
+			.single();
+		if (logError || !logged) {
+			Logger.error("Could not log a test reminder", { error: logError });
+			return { success: false, error: "Couldn't send the test email" };
+		}
+
+		const example: DueReminder = {
+			kind: "recurring_due",
+			refId: "example",
+			name: "Example: phone bill",
+			dueDate: today,
+			daysUntil: reminderUser.notify_lead_days,
+			amount: 65,
+			detail: "Bill",
+		};
+		const email = buildReminderEmail(
+			reminders.length > 0 ? reminders : [{ ...example, dueDate: addDays(today, reminderUser.notify_lead_days) }],
+			formatSettingsFor(reminderUser),
+			reminderLinks(await requestOrigin())
+		);
+		const result = await sendEmail({ to: profile.email, ...email, subject: `Test: ${email.subject}` });
+
+		if (!result.sent) {
+			await admin.from("notification_sends").delete().eq("id", logged.id);
+			return { success: false, error: "Couldn't send the test email. Try again in a minute." };
+		}
+
+		return {
+			success: true,
+			message:
+				reminders.length > 0
+					? `Sent to ${profile.email} with what's due now.`
+					: `Sent to ${profile.email} with an example, since nothing is due soon.`,
+		};
+	} catch (error) {
+		Logger.error("Unexpected error in sendTestReminder", { error });
+		return { success: false, error: "An unexpected error occurred" };
+	}
+}
+
+function addDays(date: string, days: number): string {
+	const [y, m, d] = date.split("-").map(Number);
+	return new Date(Date.UTC(y, m - 1, d + days)).toISOString().slice(0, 10);
+}
+
+async function requestOrigin(): Promise<string> {
+	return (await headers()).get("origin") ?? process.env.NEXT_PUBLIC_SITE_URL ?? "http://localhost:3000";
+}
+
+// =============================================================================
+// YOUR DATA
+// =============================================================================
+
+const EXPORT_PAGE_SIZE = 1000;
+
+/** Everything the user has saved, as one CSV. PostgREST caps a response at 1,000 rows, so each table is read in pages. */
+export async function exportMyData(): Promise<
+	{ success: true; filename: string; csv: string } | { success: false; error: string }
+> {
+	if (await isSampleDataMode()) {
+		return { success: false, error: "Exports are for your own data, not the sample data." };
+	}
+
+	try {
+		const supabase = await createClient();
+		const {
+			data: { user },
+		} = await supabase.auth.getUser();
+		if (!user) return { success: false, error: "You must be logged in" };
+
+		const readAll = async (kind: ExportKind): Promise<Record<string, unknown>[]> => {
+			const query = EXPORT_QUERIES[kind];
+			const rows: Record<string, unknown>[] = [];
+			for (let from = 0; ; from += EXPORT_PAGE_SIZE) {
+				const { data, error } = await supabase
+					.from(query.table)
+					.select(query.select)
+					.eq("user_id", user.id)
+					.order(query.order, { ascending: false })
+					.order("id", { ascending: true })
+					.range(from, from + EXPORT_PAGE_SIZE - 1);
+				if (error) throw error;
+				rows.push(...((data ?? []) as unknown as Record<string, unknown>[]));
+				if (!data || data.length < EXPORT_PAGE_SIZE) return rows;
+			}
+		};
+
+		const [accounts, accountTransactions, budgetTransactions, recurring] = await Promise.all(EXPORT_KINDS.map(readAll));
+		return {
+			success: true,
+			filename: exportFilename(getTodayDateString()),
+			csv: buildFullExportCsv({
+				accounts,
+				account_transactions: accountTransactions,
+				budget_transactions: budgetTransactions,
+				recurring,
+			}),
+		};
+	} catch (error) {
+		Logger.error("Error exporting data", { error });
+		return { success: false, error: "Couldn't read your data. Try again." };
+	}
+}
+
+/** Deletes everything the signed-in user has saved, in one transaction; the login, profile and settings stay. */
+export async function resetMyData(confirmation: string): Promise<{ success: boolean; error?: string }> {
+	if (confirmation !== RESET_DATA_CONFIRMATION) {
+		return { success: false, error: `Type ${RESET_DATA_CONFIRMATION} to confirm` };
+	}
+	if (await isSampleDataMode()) {
+		return { success: false, error: "The sample data can't be reset." };
+	}
+
+	try {
+		const supabase = await createClient();
+		const {
+			data: { user },
+		} = await supabase.auth.getUser();
+		if (!user) return { success: false, error: "You must be logged in" };
+
+		const { error } = await supabase.rpc("reset_my_data");
+		if (error) {
+			Logger.error("Could not reset data", { error });
+			return { success: false, error: "Couldn't reset your data. Nothing was removed." };
+		}
+
+		Logger.info("User reset their data", { userId: user.id });
+		revalidatePath("/", "layout");
+		return { success: true };
+	} catch (error) {
+		Logger.error("Unexpected error in resetMyData", { error });
+		return { success: false, error: "An unexpected error occurred" };
+	}
+}
+
+/** Deletes the signed-in user for good: their avatar files, then the login, which cascades to every table. */
+export async function deleteMyAccount(confirmation: string): Promise<{ success: boolean; error?: string }> {
+	if (confirmation !== DELETE_ACCOUNT_CONFIRMATION) {
+		return { success: false, error: `Type ${DELETE_ACCOUNT_CONFIRMATION} to confirm` };
+	}
+	if (await isSampleDataMode()) {
+		return { success: false, error: "The sample account can't be deleted." };
+	}
+
+	try {
+		const supabase = await createClient();
+		const {
+			data: { user },
+		} = await supabase.auth.getUser();
+		if (!user) return { success: false, error: "You must be logged in" };
+
+		// Only this user's own id is ever deleted; the admin client is needed for the login itself.
+		const admin = createAdminClient();
+
+		const { data: files, error: listError } = await admin.storage.from("avatars").list(user.id, { limit: 1000 });
+		if (listError) {
+			Logger.error("Could not list avatar files for account deletion", { error: listError });
+			return { success: false, error: "Couldn't delete your account. Nothing was removed." };
+		}
+		if (files && files.length > 0) {
+			const { error: removeError } = await admin.storage
+				.from("avatars")
+				.remove(files.map((file) => `${user.id}/${file.name}`));
+			if (removeError) {
+				Logger.error("Could not remove avatar files for account deletion", { error: removeError });
+				return { success: false, error: "Couldn't delete your account. Nothing was removed." };
+			}
+		}
+
+		const { error: deleteError } = await admin.auth.admin.deleteUser(user.id);
+		if (deleteError) {
+			Logger.error("Could not delete user", { error: deleteError });
+			// The picture is gone already, so don't leave a broken link to it.
+			await supabase.from("users").update({ avatar_url: null }).eq("id", user.id);
+			return { success: false, error: "Couldn't delete your account. Try again." };
+		}
+
+		// The session belongs to a deleted user now; clearing the cookies may fail and that's fine.
+		await supabase.auth.signOut().catch(() => undefined);
+		Logger.info("User deleted their account", { userId: user.id });
+		return { success: true };
+	} catch (error) {
+		Logger.error("Unexpected error in deleteMyAccount", { error });
 		return { success: false, error: "An unexpected error occurred" };
 	}
 }

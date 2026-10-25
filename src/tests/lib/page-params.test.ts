@@ -7,13 +7,13 @@ const strip = (pathname: string, query: string) =>
 describe("withoutUnknownParams", () => {
 	test("drops a parameter the page does not read", () => {
 		expect(strip("/dashboard", "weather=rainy")).toBe("");
+		expect(strip("/dashboard", "welcome=true")).toBe("");
 		expect(strip("/accounts/abc-123", "weather=rainy")).toBe("");
 		expect(strip("/settings/preferences", "tab=x")).toBe("");
 	});
 
 	test("keeps the ones it does read", () => {
 		expect(strip("/allocations", "year=2026&month=10&weather=rainy")).toBe("year=2026&month=10");
-		expect(strip("/dashboard", "welcome=true&weather=sunny")).toBe("welcome=true");
 	});
 
 	test("leaves a clean URL alone", () => {

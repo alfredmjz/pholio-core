@@ -3,6 +3,7 @@
 import { useMemo } from "react";
 import { PieChart, Pie, Cell, Tooltip, ResponsiveContainer } from "recharts";
 import { cn } from "@/lib/utils";
+import { formatMoney } from "@/lib/format";
 
 export interface DonutChartData {
 	name: string;
@@ -25,12 +26,7 @@ interface DonutChartProps {
 }
 
 function formatCurrency(value: number) {
-	return new Intl.NumberFormat("en-US", {
-		style: "currency",
-		currency: "USD",
-		minimumFractionDigits: 0,
-		maximumFractionDigits: 0,
-	}).format(value);
+	return formatMoney(value);
 }
 
 /** Uses magnitudes, and floors tiny non-zero slices so they stay visible. */

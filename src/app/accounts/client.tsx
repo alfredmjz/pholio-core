@@ -40,6 +40,7 @@ import { AccountTypeMigrationNotice } from "./components/AccountTypeMigrationNot
 import { RecentActivity } from "./components/RecentActivity";
 import { AccountAlerts } from "./components/account-alerts";
 import { ACCOUNT_GRID, AccountRow } from "./components/account-row";
+import { useFormatSettings } from "@/components/providers/format-provider";
 
 interface AccountsClientProps {
 	initialAccounts: AccountWithType[];
@@ -139,6 +140,7 @@ export function AccountsClient({
 	promotions,
 	today,
 }: AccountsClientProps) {
+	useFormatSettings();
 	const router = useRouter();
 	const { data: serverAccounts, setData: setAccounts } = useServerSyncedData<AccountWithType[]>(initialAccounts, () =>
 		getAccounts()

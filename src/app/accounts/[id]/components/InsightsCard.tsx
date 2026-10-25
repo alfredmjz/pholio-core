@@ -7,6 +7,7 @@ import { cn } from "@/lib/utils";
 import { parseLocalDate } from "@/lib/date-utils";
 import type { AccountWithType, AccountTransaction } from "../../types";
 import { getFieldVisibility } from "../../field-visibility";
+import { formatDateParts } from "@/lib/format";
 
 interface InsightsCardProps {
 	account: AccountWithType;
@@ -129,7 +130,7 @@ function GoalTimelineProjection({
 						<div>
 							<dt className="type-body-xs text-muted-foreground">{isLiability ? "Paid off by" : "Reached by"}</dt>
 							<dd className="type-stat mt-1 text-primary">
-								{targetDate.toLocaleDateString("en-CA", { month: "long", year: "numeric" })}
+								{formatDateParts(targetDate, { month: "long", year: "numeric" })}
 							</dd>
 						</div>
 					</dl>

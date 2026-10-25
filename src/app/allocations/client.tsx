@@ -311,7 +311,6 @@ export function AllocationClient({
 				templates={templates}
 				exportDialogOpen={exportDialogOpen}
 				setExportDialogOpen={setExportDialogOpen}
-				saveTemplateDialogOpen={saveTemplateDialogOpen}
 				setSaveTemplateDialogOpen={setSaveTemplateDialogOpen}
 			/>
 

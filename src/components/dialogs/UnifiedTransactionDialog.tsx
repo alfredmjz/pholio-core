@@ -18,11 +18,7 @@ import { Tabs, TabsContent, TabsList, TabsTrigger, UNDERLINE_TAB_CLASS } from "@
 import { Calendar } from "@/components/ui/calendar";
 import { toast } from "sonner";
 import { Loader2, Info, Settings2, PlusCircle, Trash2, Minus, Plus } from "lucide-react";
-import {
-	createUnifiedTransaction,
-	getSuggestedAccountForCategory,
-	getTransactionDescriptions,
-} from "@/lib/actions/unified-transaction-actions";
+import { createUnifiedTransaction, getTransactionDescriptions } from "@/lib/actions/unified-transaction-actions";
 import { AutocompleteInput } from "@/components/ui/autocomplete-input";
 import {
 	getTransactionPresets,
@@ -118,7 +114,6 @@ export function UnifiedTransactionDialog({
 	const [transactionType, setTransactionType] = useState<string>("deposit");
 	const [incomeSource, setIncomeSource] = useState<string>("salary");
 	const [notes, setNotes] = useState("");
-	const [suggestedAccountInfo, setSuggestedAccountInfo] = useState<string | null>(null);
 	const [errors, setErrors] = useState<ValidationErrors>({});
 	const [activeTab, setActiveTab] = useState("manual");
 	const [descriptionSuggestions, setDescriptionSuggestions] = useState<string[]>([]);
@@ -169,7 +164,6 @@ export function UnifiedTransactionDialog({
 				)
 			);
 			setNotes("");
-			setSuggestedAccountInfo(null);
 			setErrors({});
 			setActiveTab("manual");
 			setSelectedDatesMap({});
@@ -216,27 +210,6 @@ export function UnifiedTransactionDialog({
 			setTransactionType(getDefaultAccountTransactionType(accountIsLiability, type));
 		}
 	}, [type, accountIsLiability, transactionType]);
-
-	useEffect(() => {
-		if (type === "transfer" || !categoryId || categoryId === VIRTUAL_UNCATEGORIZED_ID) {
-			setSuggestedAccountInfo(null);
-			return;
-		}
-		const loadSuggestedAccount = async () => {
-			const suggestion = await getSuggestedAccountForCategory(categoryId);
-			if (suggestion && suggestion.accountId) {
-				setAccountId(suggestion.accountId);
-				if (suggestion.reason === "linked_savings_goal") {
-					setSuggestedAccountInfo("Picked the savings account for this category");
-				} else if (suggestion.reason === "linked_debt_payment") {
-					setSuggestedAccountInfo("Picked the payment account for this category");
-				}
-			} else {
-				setSuggestedAccountInfo(null);
-			}
-		};
-		loadSuggestedAccount();
-	}, [categoryId, type]);
 
 	const [allowOverpayment, setAllowOverpayment] = useState(false);
 
@@ -520,9 +493,6 @@ export function UnifiedTransactionDialog({
 		}
 	};
 
-	const selectedCategory = categories.find((c) => c.id === categoryId);
-	const showCategoryBadge = selectedCategory?.category_type && selectedCategory.category_type !== "regular";
-
 	const presetsOfType = presets.filter((p) => p.type === type);
 	const selectedPreset = presetsOfType.find((p) => p.id === selectedPresetId);
 	const accountNameById = (id: string | null | undefined) =>
@@ -800,12 +770,6 @@ export function UnifiedTransactionDialog({
 												<div className="space-y-2">
 													<Label htmlFor="category">
 														Budget category{categoryRequired && <span className="text-error"> *</span>}
-														{showCategoryBadge && !categoryDisabled && (
-															<span className="ml-2 text-xs text-primary">
-																{selectedCategory?.category_type === "savings_goal" && "(Savings Goal)"}
-																{selectedCategory?.category_type === "debt_payment" && "(Debt Payment)"}
-															</span>
-														)}
 													</Label>
 													<Select
 														value={categoryDisabled ? VIRTUAL_UNCATEGORIZED_ID : categoryId}
@@ -859,7 +823,6 @@ export function UnifiedTransactionDialog({
 															))}
 														</SelectContent>
 													</Select>
-													{suggestedAccountInfo && <p className="text-xs text-primary">{suggestedAccountInfo}</p>}
 													{errors.accountId && <p className="text-sm text-error">{errors.accountId}</p>}
 												</div>
 

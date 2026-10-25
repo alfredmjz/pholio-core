@@ -12,11 +12,7 @@
 
 import { createClient } from "@/lib/supabase/server";
 import { revalidatePath } from "next/cache";
-import type {
-	UnifiedTransactionInput,
-	UnifiedTransactionResult,
-	SuggestedAccount,
-} from "@/lib/types/unified-transaction";
+import type { UnifiedTransactionInput, UnifiedTransactionResult } from "@/lib/types/unified-transaction";
 import type { AccountWithType } from "@/app/accounts/types";
 import { sampleAccounts } from "@/mock-data/accounts";
 import { checkTransactionCaps, calculateSignedDelta } from "@/lib/account-validation-utils";
@@ -407,55 +403,6 @@ export async function deleteUnifiedTransaction(transactionId: string): Promise<b
 	} catch (error) {
 		Logger.error("Delete unified transaction error", { error });
 		return false;
-	}
-}
-
-/**
- * Get suggested account for a category (based on category type and linked_account_id)
- */
-export async function getSuggestedAccountForCategory(categoryId: string): Promise<SuggestedAccount | null> {
-	try {
-		const supabase = await createClient();
-		const {
-			data: { user },
-		} = await supabase.auth.getUser();
-
-		if (!user) return null;
-
-		const { data: category } = await supabase
-			.from("allocation_categories")
-			.select("id, category_type, linked_account_id")
-			.eq("id", categoryId)
-			.eq("user_id", user.id)
-			.single();
-
-		if (!category || !category.linked_account_id) {
-			return { categoryId, accountId: null, reason: "none" };
-		}
-
-		// Fetch the linked account
-		const { data: account } = await supabase
-			.from("accounts")
-			.select("*, account_type:account_types(*)")
-			.eq("id", category.linked_account_id)
-			.single();
-
-		const reason =
-			category.category_type === "savings_goal"
-				? "linked_savings_goal"
-				: category.category_type === "debt_payment"
-					? "linked_debt_payment"
-					: "none";
-
-		return {
-			categoryId,
-			accountId: category.linked_account_id,
-			account: account as AccountWithType | undefined,
-			reason,
-		};
-	} catch (error) {
-		Logger.error("Error getting suggested account", { error });
-		return null;
 	}
 }
 

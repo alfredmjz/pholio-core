@@ -43,8 +43,6 @@ async function AllocationsLoader({ year, month }: { year: number; month: number 
 		await requireAuth();
 	}
 
-	const now = new Date();
-
 	let summary = null;
 	let transactions: any[] = [];
 	let accounts: any[] = [];

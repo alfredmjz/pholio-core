@@ -133,7 +133,7 @@ export async function getOrCreateAllocation(
 	if (!user) return null;
 
 	// Try to get existing allocation
-	const { data: existing, error: fetchError } = await supabase
+	const { data: existing } = await supabase
 		.from("allocations")
 		.select("*")
 		.eq("user_id", user.id)
@@ -1132,107 +1132,6 @@ export async function getTransactionsForMonth(year: number, month: number): Prom
 	}) as Transaction[];
 }
 
-export async function createTransaction(
-	name: string,
-	amount: number,
-	transactionDate: string,
-	categoryId?: string,
-	type: "income" | "expense" = "expense",
-	notes?: string
-): Promise<Transaction | null> {
-	const supabase = await createClient();
-
-	const {
-		data: { user },
-	} = await supabase.auth.getUser();
-	if (!user) return null;
-
-	const { data, error } = await supabase
-		.from("transactions")
-		.insert({
-			user_id: user.id,
-			name,
-
-			amount: type === "expense" ? -Math.abs(amount) : Math.abs(amount),
-			transaction_date: transactionDate,
-			category_id: categoryId || null,
-			notes: notes || null,
-		})
-		.select()
-		.single();
-
-	if (error) {
-		Logger.error("Error creating transaction", { error });
-		return null;
-	}
-
-	revalidatePath("/allocations");
-	revalidatePath("/dashboard");
-	return data as Transaction;
-}
-
-export async function updateTransaction(
-	transactionId: string,
-	data: {
-		name?: string;
-		amount?: number;
-		transactionDate?: string;
-		categoryId?: string | null;
-		type?: "income" | "expense";
-		notes?: string;
-	}
-): Promise<boolean> {
-	const supabase = await createClient();
-
-	const {
-		data: { user },
-	} = await supabase.auth.getUser();
-	if (!user) return false;
-
-	const updates: any = {};
-	if (data.name !== undefined) updates.name = data.name;
-	if (data.transactionDate !== undefined) updates.transaction_date = data.transactionDate;
-	if (data.categoryId !== undefined) updates.category_id = data.categoryId;
-	if (data.notes !== undefined) updates.notes = data.notes;
-
-	if (data.amount !== undefined) {
-		if (data.type) {
-			updates.amount = data.type === "expense" ? -Math.abs(data.amount) : Math.abs(data.amount);
-		} else {
-			updates.amount = data.amount;
-		}
-	}
-
-	const { error } = await supabase.from("transactions").update(updates).eq("id", transactionId);
-
-	if (error) {
-		Logger.error("Error updating transaction", { error });
-		return false;
-	}
-
-	revalidatePath("/allocations");
-	revalidatePath("/dashboard");
-	return true;
-}
-
-export async function updateTransactionCategory(transactionId: string, categoryId: string | null): Promise<boolean> {
-	return updateTransaction(transactionId, { categoryId });
-}
-
-export async function deleteTransaction(transactionId: string): Promise<boolean> {
-	const supabase = await createClient();
-
-	const { error } = await supabase.from("transactions").delete().eq("id", transactionId);
-
-	if (error) {
-		Logger.error("Error deleting transaction", { error });
-		return false;
-	}
-
-	revalidatePath("/allocations");
-	return true;
-}
-
 export async function getUserTemplates(): Promise<
 	Array<{
 		id: string;
@@ -1276,7 +1175,7 @@ export async function getUserTemplates(): Promise<
 export async function applyTemplateToAllocation(templateId: string, allocationId: string): Promise<boolean> {
 	const supabase = await createClient();
 
-	const { data, error } = await supabase.rpc("apply_template_to_allocation", {
+	const { error } = await supabase.rpc("apply_template_to_allocation", {
 		p_template_id: templateId,
 		p_allocation_id: allocationId,
 	});
@@ -1378,7 +1277,6 @@ export async function createTemplateFromAllocation(
 	if (categories && categories.length > 0) {
 		const templateCategories = categories.map((cat) => ({
 			template_id: template.id,
-			user_id: user.id,
 			name: cat.name,
 			budget_cap: cat.budget_cap,
 			is_recurring: cat.is_recurring,

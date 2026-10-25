@@ -8,7 +8,6 @@ export interface Transaction {
 	amount: number;
 	transaction_date: string;
 	source: string;
-	external_id: string;
 	notes: string | null;
 	created_at: string;
 	updated_at: string;
@@ -28,7 +27,6 @@ export function getMockTransactions(now: Date = getDemoNow()): Transaction[] {
         amount: -15.99,
         transaction_date: new Date(y, m, 15).toISOString(),
         source: "check",
-        external_id: "ext-1",
         notes: null,
         created_at: iso,
         updated_at: iso,
@@ -42,7 +40,6 @@ export function getMockTransactions(now: Date = getDemoNow()): Transaction[] {
         amount: -9.99,
         transaction_date: new Date(y, m, 28).toISOString(),
         source: "check",
-        external_id: "ext-2",
         notes: null,
         created_at: iso,
         updated_at: iso,
@@ -56,7 +53,6 @@ export function getMockTransactions(now: Date = getDemoNow()): Transaction[] {
         amount: -50.00,
         transaction_date: new Date(y, m, 1).toISOString(),
         source: "check",
-        external_id: "ext-manual-1",
         notes: "Manual link to Gym",
         created_at: iso,
         updated_at: iso,
@@ -70,7 +66,6 @@ export function getMockTransactions(now: Date = getDemoNow()): Transaction[] {
         amount: -600.00,
         transaction_date: new Date(y, m, 1).toISOString(),
         source: "check",
-        external_id: "ext-split-1",
         notes: null,
         created_at: iso,
         updated_at: iso,
@@ -84,7 +79,6 @@ export function getMockTransactions(now: Date = getDemoNow()): Transaction[] {
         amount: -600.00,
         transaction_date: new Date(y, m, 2).toISOString(),
         source: "check",
-        external_id: "ext-split-2",
         notes: null,
         created_at: iso,
         updated_at: iso,
@@ -98,7 +92,6 @@ export function getMockTransactions(now: Date = getDemoNow()): Transaction[] {
         amount: -20.00, // Only $20 of $85
         transaction_date: new Date(y, m, 20).toISOString(),
         source: "check",
-        external_id: "ext-partial-1",
         notes: null,
         created_at: iso,
         updated_at: iso,

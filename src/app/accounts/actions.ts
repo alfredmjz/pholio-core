@@ -19,10 +19,8 @@ import type {
 	AccountType,
 	AccountHistory,
 	AccountTransaction,
-	AccountsSummary,
 	CreateAccountInput,
 	UpdateAccountInput,
-	RecordTransactionInput,
 	AccountTypeCode,
 	AccountTypeMigrationItem,
 	AccountTypeMigrationUpdate,
@@ -220,105 +218,6 @@ export async function getAccountById(id: string): Promise<AccountWithType | null
 	return data;
 }
 
-/**
- * Get the accounts summary (totals and grouped accounts)
- */
-export async function getAccountsSummary(): Promise<AccountsSummary> {
-	const accounts = await getAccounts();
-
-	const assetAccounts = accounts.filter((acc) => acc.account_type?.class === "asset");
-	const liabilityAccounts = accounts.filter((acc) => acc.account_type?.class === "liability");
-
-	const totalAssets = assetAccounts.reduce((sum, acc) => sum + acc.current_balance, 0);
-	const totalLiabilities = liabilityAccounts.reduce((sum, acc) => sum + acc.current_balance, 0);
-
-	// Fetch historical data for charts (last 30 days)
-	const supabase = await createClient();
-	const {
-		data: { user },
-	} = await supabase.auth.getUser();
-
-	// Generate all 30 days (including today)
-	const generateLast30Days = () => {
-		const days: { date: string; dateKey: string }[] = [];
-		for (let i = 29; i >= 0; i--) {
-			const d = new Date();
-			d.setDate(d.getDate() - i);
-			days.push({
-				date: d.toLocaleDateString("en-US", { month: "short", day: "numeric" }),
-				dateKey: d.toISOString().split("T")[0], // YYYY-MM-DD for matching
-			});
-		}
-		return days;
-	};
-
-	const last30Days = generateLast30Days();
-
-	// Initialize with zeros for all days
-	let historicalAssets: { date: string; value: number; hasActivity: boolean }[] = last30Days.map((d) => ({
-		date: d.date,
-		value: 0,
-		hasActivity: false,
-	}));
-	let historicalLiabilities: { date: string; value: number; hasActivity: boolean }[] = last30Days.map((d) => ({
-		date: d.date,
-		value: 0,
-		hasActivity: false,
-	}));
-
-	if (user) {
-		const thirtyDaysAgo = new Date();
-		thirtyDaysAgo.setDate(thirtyDaysAgo.getDate() - 30);
-
-		const { data: history } = await supabase
-			.from("account_history")
-			.select("balance, recorded_at, account_id")
-			.eq("user_id", user.id)
-			.gte("recorded_at", thirtyDaysAgo.toISOString().split("T")[0])
-			.order("recorded_at", { ascending: true });
-
-		if (history && history.length > 0) {
-			const assetAccountIds = new Set(assetAccounts.map((a) => a.id));
-			const liabilityAccountIds = new Set(liabilityAccounts.map((a) => a.id));
-
-			// Group by date key (YYYY-MM-DD)
-			const assetsByDateKey = new Map<string, number>();
-			const liabilitiesByDateKey = new Map<string, number>();
-
-			history.forEach((h) => {
-				const dateKey = new Date(h.recorded_at).toISOString().split("T")[0];
-
-				if (assetAccountIds.has(h.account_id)) {
-					assetsByDateKey.set(dateKey, (assetsByDateKey.get(dateKey) || 0) + Number(h.balance));
-				} else if (liabilityAccountIds.has(h.account_id)) {
-					liabilitiesByDateKey.set(dateKey, (liabilitiesByDateKey.get(dateKey) || 0) + Number(h.balance));
-				}
-			});
-
-			// Update the 30-day arrays with actual values
-			historicalAssets = last30Days.map((d) => {
-				const value = assetsByDateKey.get(d.dateKey) || 0;
-				return { date: d.date, value, hasActivity: value > 0 };
-			});
-
-			historicalLiabilities = last30Days.map((d) => {
-				const value = liabilitiesByDateKey.get(d.dateKey) || 0;
-				return { date: d.date, value, hasActivity: value > 0 };
-			});
-		}
-	}
-
-	return {
-		totalAssets,
-		totalLiabilities,
-		netWorth: totalAssets - totalLiabilities,
-		assetAccounts,
-		liabilityAccounts,
-		historicalAssets,
-		historicalLiabilities,
-	};
-}
-
 export async function createAccount(input: CreateAccountInput): Promise<AccountWithType | null> {
 	if (await isSampleDataMode()) {
 		return buildSampleAccount(input);
@@ -370,7 +269,6 @@ function buildSampleAccount(input: CreateAccountInput, id = `account-sample-${Da
 		name: input.name,
 		account_type_id: accountType.id,
 		institution: input.institution ?? null,
-		account_number_last4: input.account_number_last4 ?? null,
 		current_balance: input.current_balance,
 		// Same default as accounts.currency in the database.
 		currency: input.currency ?? "CAD",
@@ -393,7 +291,6 @@ function buildSampleAccount(input: CreateAccountInput, id = `account-sample-${Da
 		icon: input.icon ?? null,
 		display_order: sampleAccounts.length,
 		is_active: true,
-		external_account_id: null,
 		created_at: now,
 		updated_at: now,
 		account_type: accountType,
@@ -500,92 +397,6 @@ export async function reorderAccounts(accountOrders: { id: string; display_order
 
 	revalidatePath("/accounts");
 	return true;
-}
-
-/**
- * Record a transaction and update account balance
- */
-export async function recordTransaction(input: RecordTransactionInput): Promise<AccountTransaction | null> {
-	const supabase = await createClient();
-	const {
-		data: { user },
-	} = await supabase.auth.getUser();
-
-	if (!user) {
-		throw new Error("Unauthorized");
-	}
-
-	const { data: account, error: accountError } = await supabase
-		.from("accounts")
-		.select(
-			`
-			current_balance,
-			account_type:account_types(class)
-		`
-		)
-		.eq("id", input.account_id)
-		.eq("user_id", user.id)
-		.single();
-
-	if (accountError || !account) {
-		Logger.error("Error fetching account for transaction", { error: accountError });
-		return null;
-	}
-
-	const accountClass = (account.account_type as any)?.class;
-
-	let newBalance = account.current_balance;
-
-	if (accountClass === "asset") {
-		if (
-			input.transaction_type === "deposit" ||
-			input.transaction_type === "contribution" ||
-			input.transaction_type === "refund" ||
-			input.transaction_type === "interest"
-		) {
-			newBalance += Math.abs(input.amount);
-		} else {
-			newBalance -= Math.abs(input.amount);
-		}
-	} else {
-		if (input.transaction_type === "payment" || input.transaction_type === "refund") {
-			newBalance -= Math.abs(input.amount);
-		} else {
-			newBalance += Math.abs(input.amount);
-		}
-	}
-
-	// Contribution room is derived from the ledger by get_contribution_summaries(), so only
-	// the balance is stored here.
-	const updateData = { current_balance: newBalance };
-
-	const { data: transaction, error: transactionError } = await supabase
-		.from("account_transactions")
-		.insert({
-			user_id: user.id,
-			...input,
-		})
-		.select()
-		.single();
-
-	if (transactionError) {
-		Logger.error("Error creating transaction", { error: transactionError });
-		return null;
-	}
-
-	const { error: updateError } = await supabase
-		.from("accounts")
-		.update(updateData)
-		.eq("id", input.account_id)
-		.eq("user_id", user.id);
-
-	if (updateError) {
-		Logger.error("Error updating account balance", { error: updateError });
-		return null;
-	}
-
-	revalidatePath("/accounts");
-	return transaction;
 }
 
 /**
@@ -698,49 +509,6 @@ export async function getAccountSparklines(days: number = 30): Promise<Record<st
 		});
 	}
 	return byAccount;
-}
-
-/**
- * Apply monthly interest to an account
- */
-export async function applyMonthlyInterest(accountId: string): Promise<boolean> {
-	const supabase = await createClient();
-	const {
-		data: { user },
-	} = await supabase.auth.getUser();
-
-	if (!user) {
-		throw new Error("Unauthorized");
-	}
-
-	const { data: account, error: accountError } = await supabase
-		.from("accounts")
-		.select("current_balance, interest_rate, interest_type")
-		.eq("id", accountId)
-		.eq("user_id", user.id)
-		.single();
-
-	if (accountError || !account || !account.interest_rate) {
-		return false;
-	}
-
-	let interestAmount = 0;
-	if (account.interest_type === "compound" || account.interest_type === "simple") {
-		interestAmount = account.current_balance * (account.interest_rate / 12);
-	}
-
-	if (interestAmount === 0) {
-		return true;
-	}
-
-	await recordTransaction({
-		account_id: accountId,
-		amount: interestAmount,
-		transaction_type: "interest",
-		description: `Monthly ${account.interest_type} interest`,
-	});
-
-	return true;
 }
 
 export interface RecentActivityItem {

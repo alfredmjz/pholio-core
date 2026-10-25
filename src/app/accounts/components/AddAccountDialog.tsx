@@ -11,7 +11,6 @@ import {
 	DialogTitle,
 } from "@/components/ui/dialog";
 import { Button } from "@/components/ui/button";
-import { Label } from "@/components/ui/label";
 import { CancelShortcut, SubmitShortcut } from "@/components/common/dialog-shortcuts";
 import { ScratchPad } from "@/components/common/scratch-pad";
 import { StepIndicator } from "@/components/common/step-indicator";

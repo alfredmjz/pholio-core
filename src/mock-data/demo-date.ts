@@ -22,11 +22,6 @@ export function daysBefore(now: Date, days: number): Date {
 	return d;
 }
 
-/** Returns the first day of the month `months` before `now`'s month. */
-export function monthsBefore(now: Date, months: number): Date {
-	return new Date(now.getFullYear(), now.getMonth() - months, 1);
-}
-
 /** Formats a date as `YYYY-MM-DD` in local time (no timezone shift). */
 export function toDateOnly(date: Date): string {
 	const year = date.getFullYear();

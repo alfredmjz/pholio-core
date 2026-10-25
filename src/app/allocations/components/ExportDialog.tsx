@@ -1,6 +1,6 @@
 "use client";
 
-import { useState, useEffect } from "react";
+import { useState } from "react";
 import { ControlBasedDialog } from "@/components/dialogWrapper";
 import { DialogFooter } from "@/components/ui/dialog";
 import { Button } from "@/components/ui/button";
@@ -11,7 +11,6 @@ import { toast } from "sonner";
 import { supabase } from "@/lib/supabase/client";
 import { MonthPicker } from "@/components/month-picker";
 import { formatMonthYear } from "@/lib/date-utils";
-import { useRouter } from "next/navigation";
 import { GoogleSheetsIcon } from "@/components/icons/allocation-icons";
 
 interface ExportDialogProps {
@@ -40,40 +39,9 @@ export function ExportDialog({ open, onOpenChange, currentYear, currentMonth }: 
 	const [isExporting, setIsExporting] = useState(false);
 	const [isGoogleExporting, setIsGoogleExporting] = useState(false);
 	const [activeTab, setActiveTab] = useState("quick");
-	const router = useRouter();
 
 	const [startDate, setStartDate] = useState<Date | undefined>(new Date(currentYear, currentMonth - 1, 1));
 	const [endDate, setEndDate] = useState<Date | undefined>(new Date(currentYear, currentMonth, 0)); // Last day of month
-
-	const [isGuest, setIsGuest] = useState(false);
-
-	useEffect(() => {
-		if (open) {
-			const checkGuestStatus = async () => {
-				const {
-					data: { user },
-				} = await supabase.auth.getUser();
-				if (user) {
-					const { data: profile } = await supabase.from("users").select("is_guest").eq("id", user.id).single();
-
-					if (profile?.is_guest) {
-						setIsGuest(true);
-					} else {
-						const pending = localStorage.getItem("pendingGoogleExport");
-						if (pending === "true") {
-							localStorage.removeItem("pendingGoogleExport");
-							toast.info("Registration Complete", {
-								description:
-									"Your account is upgraded. Please click 'Open in Sheets' again to connect your Google Account and finish the export.",
-								duration: 8000,
-							});
-						}
-					}
-				}
-			};
-			checkGuestStatus();
-		}
-	}, [open]);
 
 	const getRange = () => {
 		if (activeTab === ("quick" as string)) {
@@ -133,22 +101,6 @@ export function ExportDialog({ open, onOpenChange, currentYear, currentMonth }: 
 	const handleGoogleExport = async () => {
 		setIsGoogleExporting(true);
 		try {
-			if (isGuest) {
-				const confirmed = window.confirm(
-					"You need an account with Google connected to export to Google Sheets. Continue to sign in?"
-				);
-
-				if (!confirmed) {
-					setIsGoogleExporting(false);
-					return;
-				}
-
-				// Redirect to the magic-link sign-in, which also creates accounts.
-				localStorage.setItem("pendingGoogleExport", "true");
-				router.push("/login");
-				return;
-			}
-
 			const range = getRange();
 
 			const {

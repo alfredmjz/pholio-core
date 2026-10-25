@@ -1,7 +1,6 @@
 export const sampleProfile = {
 	id: "user-1",
 	full_name: "Demo User",
-	has_seen_welcome: true,
 	avatar_url: null,
 	email: "demo@example.com",
 	allocation_new_month_default: "dialog" as const,

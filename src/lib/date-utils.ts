@@ -40,37 +40,11 @@ export function formatShortDate(date: string | Date): string {
 }
 
 /**
- * Format a date with time (e.g., "Jan 4, 3:45 PM")
- */
-export function formatDateTime(date: string | Date): string {
-	const d = typeof date === "string" ? parseLocalDate(date) : date;
-	return (
-		formatDateParts(d, {
-			month: "short",
-			day: "numeric",
-		}) +
-		", " +
-		formatDateParts(d, {
-			hour: "numeric",
-			minute: "2-digit",
-		})
-	);
-}
-
-/**
  * Format a full date with year (e.g., "Jan 4, 2025")
  */
 export function formatFullDate(date: string | Date): string {
 	const d = typeof date === "string" ? parseLocalDate(date) : date;
 	return formatDateParts(d, { month: "short", day: "numeric", year: "numeric" });
-}
-
-/**
- * Format time only (e.g., "3:45 PM")
- */
-export function formatTime(date: string | Date): string {
-	const d = typeof date === "string" ? parseLocalDate(date) : date;
-	return formatDateParts(d, { hour: "numeric", minute: "2-digit" });
 }
 
 /**
@@ -269,13 +243,6 @@ export function getDaysInMonth(year: number, month: number): number {
 	// new Date(year, month, 0) gives the last day of the previous month
 	// Since month is 1-indexed, new Date(year, month, 0) gives last day of that month
 	return new Date(year, month, 0).getDate();
-}
-
-/**
- * Check if two dates are in the same month and year.
- */
-export function isSameMonth(a: Date, b: Date): boolean {
-	return a.getFullYear() === b.getFullYear() && a.getMonth() === b.getMonth();
 }
 
 /**

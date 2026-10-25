@@ -22,10 +22,7 @@ CREATE TABLE IF NOT EXISTS public.users (
     email TEXT UNIQUE NOT NULL,
     full_name TEXT,
     avatar_url TEXT,
-    is_guest BOOLEAN DEFAULT false NOT NULL,
-    guest_name TEXT,
     timezone TEXT DEFAULT NULL,
-    has_seen_welcome BOOLEAN DEFAULT false NOT NULL,
     -- Default behaviour when navigating to a new allocation month
     allocation_new_month_default TEXT DEFAULT 'dialog'
         CHECK (allocation_new_month_default IN ('dialog', 'import_previous', 'template', 'fresh')),
@@ -49,8 +46,6 @@ CREATE POLICY "Service role can insert profiles" ON public.users FOR INSERT WITH
 DROP POLICY IF EXISTS "Users can update own profile" ON public.users;
 CREATE POLICY "Users can update own profile" ON public.users FOR UPDATE USING ((select auth.uid()) = id);
 
-CREATE INDEX IF NOT EXISTS users_is_guest_idx ON public.users(is_guest);
-
 DROP TRIGGER IF EXISTS update_users_updated_at ON public.users;
 CREATE TRIGGER update_users_updated_at
     BEFORE UPDATE ON public.users
@@ -66,23 +61,12 @@ GRANT SELECT ON public.users TO anon;
 
 CREATE OR REPLACE FUNCTION public.handle_new_user()
 RETURNS TRIGGER AS $$
-DECLARE
-    guest_names TEXT[] := ARRAY['Wandering Traveler', 'Mystery Guest', 'Anonymous Visitor', 'Curious Explorer', 'Digital Nomad', 'Silent Observer', 'Phantom User', 'Shadow Walker'];
-    random_guest_name TEXT;
-    is_anonymous BOOLEAN;
 BEGIN
-    is_anonymous := (NEW.email IS NULL OR NEW.email = '');
-    IF is_anonymous THEN
-        random_guest_name := guest_names[1 + floor(random() * array_length(guest_names, 1))];
-    END IF;
-
-    INSERT INTO public.users (id, email, full_name, is_guest, guest_name, created_at, updated_at)
+    INSERT INTO public.users (id, email, full_name, created_at, updated_at)
     VALUES (
         NEW.id,
-        COALESCE(NEW.email, 'guest-' || NEW.id || '@pholio.local'),
+        NEW.email,
         NEW.raw_user_meta_data->>'full_name',
-        is_anonymous,
-        random_guest_name,
         NOW(),
         NOW()
     );

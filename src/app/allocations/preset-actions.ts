@@ -374,46 +374,6 @@ async function resolveCategoryForTargetDate(
 }
 
 /**
- * Create a transaction from a preset
- */
-export async function createTransactionFromPreset(
-	presetId: string,
-	date: string
-): Promise<{ success: boolean; error?: string }> {
-	const presetsRes = await getTransactionPresets();
-	if (!presetsRes.success || !presetsRes.data) {
-		return { success: false, error: presetsRes.error || "Failed to load presets" };
-	}
-
-	const preset = presetsRes.data.find((p) => p.id === presetId);
-	if (!preset) {
-		return { success: false, error: "Preset not found" };
-	}
-
-	const supabase = await createClient();
-	const {
-		data: { user },
-	} = await supabase.auth.getUser();
-
-	if (!user) {
-		return { success: false, error: "Unauthorized" };
-	}
-
-	const resolvedCategoryId =
-		preset.type === "transfer" ? null : await resolveCategoryForTargetDate(supabase, user.id, preset.category_id, date);
-
-	const input = presetToInput(preset, {
-		date,
-		amount: preset.amount,
-		description: preset.description,
-		categoryId: resolvedCategoryId,
-	});
-	if ("error" in input) return { success: false, error: input.error };
-
-	return await createUnifiedTransaction(input);
-}
-
-/**
  * Create multiple transactions from a preset, compiling same-day entries into a single aggregated transaction.
  */
 export async function createTransactionsFromPresetBulk(

@@ -117,46 +117,5 @@ export const Logger = {
 	},
 };
 
-/**
- * Log an incoming HTTP request
- */
-export function logRequest(request: Request, message?: string) {
-	const url = new URL(request.url);
-	logger.info(
-		{
-			method: request.method,
-			path: url.pathname,
-			query: url.search || undefined,
-		},
-		message || "Incoming request"
-	);
-}
-
-/**
- * Log an HTTP response
- */
-export function logResponse(statusCode: number, context?: LogContext, message?: string) {
-	const logContext: LogContext = {
-		statusCode,
-		...context,
-	};
-
-	if (statusCode >= 500) {
-		logger.error(logContext, message || "Response error");
-	} else if (statusCode >= 400) {
-		logger.warn(logContext, message || "Response warning");
-	} else {
-		logger.info(logContext, message || "Response success");
-	}
-}
-
-/**
- * Create a child logger with bound context
- * Useful for request-scoped logging
- */
-export function createChildLogger(context: LogContext) {
-	return logger.child(context);
-}
-
 // Default export for simple import
 export default Logger;

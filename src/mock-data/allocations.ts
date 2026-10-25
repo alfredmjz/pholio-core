@@ -22,7 +22,6 @@ const sampleCategories: AllocationCategory[] = [
 		remaining: 0,
 		utilization_percentage: 100,
 		transaction_count: 1,
-		category_type: "regular",
 	},
 	{
 		id: "cat-food",
@@ -102,8 +101,6 @@ const sampleCategories: AllocationCategory[] = [
 		display_order: 6,
 		color: "yellow",
 		icon: "PiggyBank",
-		category_type: "savings_goal",
-		linked_account_id: "acc-1", // High Interest Savings
 		created_at: new Date().toISOString(),
 		updated_at: new Date().toISOString(),
 		actual_spend: 0,

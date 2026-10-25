@@ -1,7 +1,6 @@
 "use client";
 
 import * as React from "react";
-import { useTheme } from "next-themes";
 import { toast } from "sonner";
 import { ChevronUp } from "lucide-react";
 import { cn } from "@/lib/utils";
@@ -70,7 +69,6 @@ import { StatusBadge } from "@/components/ui/status-badge";
 import { MOCK_DONUT_DATA, MOCK_ACCOUNT_DATA, MOCK_ACCOUNT_LIABILITY } from "./data/mock-data";
 
 export function DemoComponentsClient() {
-	const { theme, setTheme } = useTheme();
 	const [showScrollToTop, setShowScrollToTop] = React.useState(false);
 
 	React.useEffect(() => {
@@ -80,13 +78,6 @@ export function DemoComponentsClient() {
 		window.addEventListener("scroll", handleScroll);
 		return () => window.removeEventListener("scroll", handleScroll);
 	}, []);
-
-	const scrollToSection = (sectionId: string) => {
-		const element = document.getElementById(sectionId);
-		if (element) {
-			element.scrollIntoView({ behavior: "smooth" });
-		}
-	};
 
 	const scrollToTop = () => {
 		window.scrollTo({ top: 0, behavior: "smooth" });

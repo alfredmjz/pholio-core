@@ -184,7 +184,7 @@ export function getAccessTokenFromRequest(request: NextRequest): { token: string
 		}
 	}
 
-	for (const [baseName, cookieParts] of Array.from(chunks.entries())) {
+	for (const cookieParts of Array.from(chunks.values())) {
 		const validParts = cookieParts.filter(Boolean);
 		if (validParts.length === 0) continue;
 

@@ -140,38 +140,6 @@ export async function cacheSet(key: string, value: string, options?: CacheOption
 }
 
 /**
- * Delete a key from Redis cache
- */
-export async function cacheDelete(key: string): Promise<boolean> {
-	try {
-		const client = await getRedisClient();
-		if (!client) return false;
-
-		await client.del(key);
-		return true;
-	} catch (error) {
-		Logger.error("[Redis] Error deleting key", { key, error });
-		return false;
-	}
-}
-
-/**
- * Check if a key exists in Redis cache
- */
-export async function cacheExists(key: string): Promise<boolean> {
-	try {
-		const client = await getRedisClient();
-		if (!client) return false;
-
-		const exists = await client.exists(key);
-		return exists === 1;
-	} catch (error) {
-		Logger.error("[Redis] Error checking key existence", { key, error });
-		return false;
-	}
-}
-
-/**
  * Get a cached value or compute and cache it if not present
  * This is the primary pattern for caching - "cache-aside" pattern
  */
@@ -202,13 +170,4 @@ export async function cacheGetOrSet<T>(
 	);
 
 	return fresh;
-}
-
-/**
- * Reset the Redis connection state
- * Useful for retrying after a connection failure
- */
-export function resetRedisConnection(): void {
-	redisClient = null;
-	connectionFailed = false;
 }

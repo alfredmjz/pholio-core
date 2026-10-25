@@ -1,3 +1,5 @@
+import { formatDateParts } from "@/lib/format";
+
 /**
  * Date utility functions.
  *
@@ -34,7 +36,7 @@ export function parseLocalDate(dateStr: string): Date {
  */
 export function formatShortDate(date: string | Date): string {
 	const d = typeof date === "string" ? parseLocalDate(date) : date;
-	return d.toLocaleDateString("en-US", { month: "short", day: "numeric" });
+	return formatDateParts(d, { month: "short", day: "numeric" });
 }
 
 /**
@@ -43,12 +45,12 @@ export function formatShortDate(date: string | Date): string {
 export function formatDateTime(date: string | Date): string {
 	const d = typeof date === "string" ? parseLocalDate(date) : date;
 	return (
-		d.toLocaleDateString("en-US", {
+		formatDateParts(d, {
 			month: "short",
 			day: "numeric",
 		}) +
 		", " +
-		d.toLocaleTimeString("en-US", {
+		formatDateParts(d, {
 			hour: "numeric",
 			minute: "2-digit",
 		})
@@ -60,7 +62,7 @@ export function formatDateTime(date: string | Date): string {
  */
 export function formatFullDate(date: string | Date): string {
 	const d = typeof date === "string" ? parseLocalDate(date) : date;
-	return d.toLocaleDateString("en-US", { month: "short", day: "numeric", year: "numeric" });
+	return formatDateParts(d, { month: "short", day: "numeric", year: "numeric" });
 }
 
 /**
@@ -68,7 +70,7 @@ export function formatFullDate(date: string | Date): string {
  */
 export function formatTime(date: string | Date): string {
 	const d = typeof date === "string" ? parseLocalDate(date) : date;
-	return d.toLocaleTimeString("en-US", { hour: "numeric", minute: "2-digit" });
+	return formatDateParts(d, { hour: "numeric", minute: "2-digit" });
 }
 
 /**
@@ -76,7 +78,7 @@ export function formatTime(date: string | Date): string {
  */
 export function formatMonthYear(date: string | Date): string {
 	const d = typeof date === "string" ? parseLocalDate(date) : date;
-	return d.toLocaleDateString("en-US", { month: "long", year: "numeric" });
+	return formatDateParts(d, { month: "long", year: "numeric" });
 }
 
 /**
@@ -85,7 +87,7 @@ export function formatMonthYear(date: string | Date): string {
  */
 export function formatLongDate(date: string | Date): string {
 	const d = typeof date === "string" ? parseLocalDate(date) : date;
-	return d.toLocaleDateString("en-US", { dateStyle: "long" });
+	return formatDateParts(d, { dateStyle: "long" });
 }
 
 /**
@@ -149,7 +151,7 @@ export function formatRelativeTime(timestamp: string | Date): string {
 	if (diffHours < 24) return `${diffHours}h ago`;
 	if (diffDays === 1) return "Yesterday";
 	if (diffDays < 7) return `${diffDays}d ago`;
-	return date.toLocaleDateString("en-US", { month: "short", day: "numeric" });
+	return formatDateParts(date, { month: "short", day: "numeric" });
 }
 
 // ============================================================================

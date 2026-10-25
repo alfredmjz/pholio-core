@@ -17,6 +17,7 @@ import { ContributionRoomMeter } from "./ContributionRoomMeter";
 import { CategoryColorPicker } from "./category-color-picker";
 import type { RegisteredPlan } from "@/app/accounts/types";
 import type { ContributionSummary } from "@/lib/types/contribution";
+import { formatMoney, getCurrencySymbol } from "@/lib/format";
 
 interface AddCategoryDialogProps {
 	open: boolean;
@@ -32,8 +33,7 @@ interface AddCategoryDialogProps {
 	year: number;
 }
 
-const formatPreviewCurrency = (value: number) =>
-	`$${value.toLocaleString("en-US", { minimumFractionDigits: 0, maximumFractionDigits: 0 })}`;
+const formatPreviewCurrency = (value: number) => formatMoney(value);
 
 export function AddCategoryDialog({
 	open,
@@ -166,7 +166,7 @@ export function AddCategoryDialog({
 						</Label>
 						<div>
 							<Input
-								startAdornment="$"
+								startAdornment={getCurrencySymbol()}
 								id="budget-cap"
 								type="text"
 								inputMode="decimal"

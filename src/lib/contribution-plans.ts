@@ -1,6 +1,7 @@
 import type { ContributionPlan, RegisteredPlan } from "@/app/accounts/types";
 import type { ContributionSummary } from "@/lib/types/contribution";
 import { parseLocalDate } from "@/lib/date-utils";
+import { formatMoney } from "@/lib/format";
 
 /** CRA My Account: the only place an individual can see their official contribution room. */
 export const CRA_MY_ACCOUNT_URL =
@@ -54,6 +55,38 @@ export function isRegisteredPlan(plan: ContributionPlan | string | null | undefi
 	return REGISTERED_PLANS.includes(plan as RegisteredPlan);
 }
 
+/** The field label, using CRA's own name for each plan's figure. */
+export function getRoomFieldLabel(plan: RegisteredPlan | "other"): string {
+	switch (plan) {
+		case "tfsa":
+			return "Current TFSA contribution room";
+		case "rrsp":
+			return "Current RRSP deduction limit";
+		case "fhsa":
+			return "Current FHSA participation room";
+		case "resp":
+			return "Current RESP contribution room";
+		default:
+			return "Current contribution room";
+	}
+}
+
+/** Where CRA shows each figure, for the year it applies to. */
+export function getRoomHint(plan: RegisteredPlan | "other", year: number): string {
+	switch (plan) {
+		case "tfsa":
+			return `Your available contribution room at the start of ${year}. In CRA My Account, go to View TFSA details, then Contribution room.`;
+		case "rrsp":
+			return `Your RRSP/PRPP deduction limit for ${year}, from your Notice of Assessment or CRA My Account.`;
+		case "fhsa":
+			return `Your FHSA participation room for ${year}, from CRA My Account.`;
+		case "resp":
+			return "The $50,000 lifetime limit per beneficiary, minus what has already been contributed. CRA does not show this figure.";
+		default:
+			return "The room you have left in this account.";
+	}
+}
+
 /**
  * CRA's own name for a plan's room figure: TFSA "contribution room", RRSP "deduction limit",
  * FHSA "participation room". Used in every message so the wording matches CRA's.
@@ -93,13 +126,8 @@ export function getContributionPlanLabel(plan: ContributionPlan | null | undefin
  * Formatting for contribution figures. CRA tracks contribution room to the cent, so cents
  * are always shown.
  */
-export function formatContributionAmount(amount: number, currency = "CAD"): string {
-	return new Intl.NumberFormat("en-CA", {
-		style: "currency",
-		currency,
-		minimumFractionDigits: 2,
-		maximumFractionDigits: 2,
-	}).format(amount);
+export function formatContributionAmount(amount: number): string {
+	return formatMoney(amount, { showCents: true });
 }
 
 export type ContributionNoticeLevel = "exceeded" | "warning" | "info";

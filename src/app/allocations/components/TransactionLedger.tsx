@@ -21,6 +21,7 @@ import type { TransactionType } from "./TransactionTypeIcon";
 import { inferTransactionType, TRANSACTION_TYPE_CONFIG } from "./TransactionTypeIcon";
 import { getCategoryColor } from "../utils/colors";
 import { TransactionDialog } from "./TransactionDialog";
+import { getCurrencySymbol } from "@/lib/format";
 
 interface TransactionLedgerProps {
 	transactions: Transaction[];
@@ -327,7 +328,7 @@ export function TransactionLedger({
 							>
 								<SlidersHorizontal className="h-4 w-4" aria-hidden />
 								{amountFilterActive
-									? `${minAmount ? `$${minAmount}` : "Any"} to ${maxAmount ? `$${maxAmount}` : "any"}`
+									? `${minAmount ? formatCurrency(Number(minAmount)) : "Any"} to ${maxAmount ? formatCurrency(Number(maxAmount)) : "any"}`
 									: "Amount"}
 							</Button>
 						</PopoverTrigger>
@@ -339,7 +340,7 @@ export function TransactionLedger({
 									inputMode="decimal"
 									aria-label="Minimum amount"
 									placeholder="Min"
-									startAdornment="$"
+									startAdornment={getCurrencySymbol()}
 									value={minAmount}
 									onChange={(e) => setMinAmount(sanitizeDecimalInput(e.target.value, 2))}
 								/>
@@ -349,7 +350,7 @@ export function TransactionLedger({
 									inputMode="decimal"
 									aria-label="Maximum amount"
 									placeholder="Max"
-									startAdornment="$"
+									startAdornment={getCurrencySymbol()}
 									value={maxAmount}
 									onChange={(e) => setMaxAmount(sanitizeDecimalInput(e.target.value, 2))}
 								/>

@@ -9,6 +9,7 @@ import { useSortable } from "@dnd-kit/sortable";
 import { CSS } from "@dnd-kit/utilities";
 import { getFieldVisibility } from "../field-visibility";
 import { isInvestmentAccount } from "@/lib/account-validation-utils";
+import { formatMoney } from "@/lib/format";
 
 interface AccountCardProps {
 	account: AccountWithType;
@@ -27,14 +28,7 @@ export function AccountCard({ account, onClick }: AccountCardProps) {
 		position: "relative" as const,
 	};
 
-	const formatCurrency = (amount: number) => {
-		return new Intl.NumberFormat("en-CA", {
-			style: "currency",
-			currency: account.currency || "CAD",
-			minimumFractionDigits: 2,
-			maximumFractionDigits: 2,
-		}).format(amount);
-	};
+	const formatCurrency = (amount: number) => formatMoney(amount, { showCents: true });
 
 	const accountClass = account.account_type?.class;
 	const category = account.account_type?.category;

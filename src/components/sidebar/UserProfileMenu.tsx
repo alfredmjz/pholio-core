@@ -36,7 +36,7 @@ export function UserProfileMenu({
 }: UserProfileMenuProps) {
 	const [open, setOpen] = React.useState(false);
 
-	const displayName = userProfile?.full_name || userProfile?.guest_name || "Pholio User";
+	const displayName = userProfile?.full_name || "Pholio User";
 	const displayInitials = displayName
 		.split(" ")
 		.map((part) => part[0])
@@ -113,7 +113,7 @@ export function UserProfileMenu({
 				<ThemeSwitch className="mx-1 mb-1.5" />
 				<DropdownMenuSeparator />
 				<DropdownMenuItem asChild>
-					<Link href="/settings/profile" className="w-full cursor-pointer" onClick={() => setOpen(false)}>
+					<Link href="/settings" className="w-full cursor-pointer" onClick={() => setOpen(false)}>
 						Profile and settings
 					</Link>
 				</DropdownMenuItem>

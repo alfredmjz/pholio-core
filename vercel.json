@@ -3,6 +3,10 @@
 		{
 			"path": "/api/cron/process-interest",
 			"schedule": "0 0 1 * *"
+		},
+		{
+			"path": "/api/cron/send-reminders",
+			"schedule": "0 13 * * *"
 		}
 	]
 }

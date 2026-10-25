@@ -59,7 +59,6 @@ export function makeAccount(options: AccountOptions = {}): AccountWithType {
 		name: "Test account",
 		account_type_id: "type-1",
 		institution: null,
-		account_number_last4: null,
 		current_balance: options.balance ?? 0,
 		currency: "CAD",
 		credit_limit: options.creditLimit ?? null,
@@ -80,7 +79,6 @@ export function makeAccount(options: AccountOptions = {}): AccountWithType {
 		icon: null,
 		display_order: 0,
 		is_active: true,
-		external_account_id: null,
 		created_at: "2026-01-01T00:00:00Z",
 		updated_at: "2026-01-01T00:00:00Z",
 		account_type: {
@@ -90,7 +88,6 @@ export function makeAccount(options: AccountOptions = {}): AccountWithType {
 			code: options.code === undefined ? (accountClass === "asset" ? "chequing" : "credit_card") : options.code,
 			class: accountClass,
 			category: options.category ?? (accountClass === "asset" ? "banking" : "credit"),
-			is_tax_advantaged: false,
 			icon: null,
 			sort_order: 0,
 			is_system: true,

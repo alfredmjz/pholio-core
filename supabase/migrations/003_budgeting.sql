@@ -8,9 +8,9 @@
 CREATE TABLE IF NOT EXISTS public.allocations (
     id UUID PRIMARY KEY DEFAULT gen_random_uuid(),
     user_id UUID NOT NULL REFERENCES auth.users(id) ON DELETE CASCADE,
-    year INTEGER NOT NULL,
+    year INTEGER NOT NULL CHECK (year >= 2020 AND year <= 2100),
     month INTEGER NOT NULL CHECK (month >= 1 AND month <= 12),
-    expected_income DECIMAL(15, 2) DEFAULT 0 NOT NULL,
+    expected_income DECIMAL(15, 2) DEFAULT 0 NOT NULL CHECK (expected_income >= 0),
     notes TEXT,
     created_at TIMESTAMP WITH TIME ZONE DEFAULT TIMEZONE('utc', NOW()) NOT NULL,
     updated_at TIMESTAMP WITH TIME ZONE DEFAULT TIMEZONE('utc', NOW()) NOT NULL,
@@ -33,7 +33,7 @@ CREATE TABLE IF NOT EXISTS public.allocation_categories (
     allocation_id UUID NOT NULL REFERENCES public.allocations(id) ON DELETE CASCADE,
     user_id UUID NOT NULL REFERENCES auth.users(id) ON DELETE CASCADE,
     name VARCHAR(100) NOT NULL,
-    budget_cap DECIMAL(15, 2) NOT NULL DEFAULT 0,
+    budget_cap DECIMAL(15, 2) NOT NULL DEFAULT 0 CHECK (budget_cap >= 0),
     is_recurring BOOLEAN DEFAULT false,
     display_order INTEGER DEFAULT 0,
     color VARCHAR(20),
@@ -44,6 +44,8 @@ CREATE TABLE IF NOT EXISTS public.allocation_categories (
     -- The recurring system's share of the budget; effective budget = budget_cap + recurring_budget_cap
     recurring_budget_cap DECIMAL(15, 2) NOT NULL DEFAULT 0,
     contribution_plan TEXT,
+    -- Importing a month upserts on this key
+    UNIQUE (allocation_id, name),
     CONSTRAINT valid_category_contribution_plan CHECK (
         contribution_plan IS NULL OR contribution_plan IN ('tfsa', 'rrsp', 'fhsa', 'resp')
     )
@@ -66,14 +68,20 @@ CREATE TABLE IF NOT EXISTS public.allocation_templates (
     id UUID PRIMARY KEY DEFAULT gen_random_uuid(),
     user_id UUID NOT NULL REFERENCES auth.users(id) ON DELETE CASCADE,
     name VARCHAR(100) NOT NULL,
+    description TEXT,
     is_default BOOLEAN DEFAULT false,
     created_at TIMESTAMP WITH TIME ZONE DEFAULT TIMEZONE('utc', NOW()) NOT NULL,
-    updated_at TIMESTAMP WITH TIME ZONE DEFAULT TIMEZONE('utc', NOW()) NOT NULL
+    updated_at TIMESTAMP WITH TIME ZONE DEFAULT TIMEZONE('utc', NOW()) NOT NULL,
+    -- Saving a template upserts on this key
+    UNIQUE (user_id, name)
 );
 
 ALTER TABLE public.allocation_templates ENABLE ROW LEVEL SECURITY;
 DROP POLICY IF EXISTS "Users can manage own templates" ON public.allocation_templates;
 CREATE POLICY "Users can manage own templates" ON public.allocation_templates FOR ALL USING ((select auth.uid()) = user_id);
+
+DROP TRIGGER IF EXISTS update_allocation_templates_updated_at ON public.allocation_templates;
+CREATE TRIGGER update_allocation_templates_updated_at BEFORE UPDATE ON public.allocation_templates FOR EACH ROW EXECUTE FUNCTION public.update_updated_at_column();
 
 -- =============================================================================
 -- TABLE: template_categories
@@ -83,7 +91,7 @@ CREATE TABLE IF NOT EXISTS public.template_categories (
     id UUID PRIMARY KEY DEFAULT gen_random_uuid(),
     template_id UUID NOT NULL REFERENCES public.allocation_templates(id) ON DELETE CASCADE,
     name VARCHAR(100) NOT NULL,
-    budget_cap DECIMAL(15, 2) NOT NULL DEFAULT 0,
+    budget_cap DECIMAL(15, 2) NOT NULL DEFAULT 0 CHECK (budget_cap >= 0),
     is_recurring BOOLEAN DEFAULT false,
     display_order INTEGER DEFAULT 0,
     color VARCHAR(20),
@@ -92,6 +100,7 @@ CREATE TABLE IF NOT EXISTS public.template_categories (
     created_at TIMESTAMP WITH TIME ZONE DEFAULT TIMEZONE('utc', NOW()) NOT NULL,
     updated_at TIMESTAMP WITH TIME ZONE DEFAULT TIMEZONE('utc', NOW()) NOT NULL,
     contribution_plan TEXT,
+    UNIQUE (template_id, name),
     CONSTRAINT valid_template_category_contribution_plan CHECK (
         contribution_plan IS NULL OR contribution_plan IN ('tfsa', 'rrsp', 'fhsa', 'resp')
     )
@@ -115,7 +124,6 @@ CREATE TABLE IF NOT EXISTS public.transactions (
     amount DECIMAL(15, 2) NOT NULL,
     transaction_date DATE NOT NULL,
     source VARCHAR(50) NOT NULL DEFAULT 'manual',
-    external_id VARCHAR(255),
     notes TEXT,
     -- Foreign key fk_linked_account_tx is added once account_transactions exists
     linked_account_transaction_id UUID,
@@ -142,7 +150,6 @@ CREATE TABLE IF NOT EXISTS public.account_transactions (
     description TEXT NOT NULL,
     transaction_date DATE NOT NULL DEFAULT CURRENT_DATE,
     linked_allocation_transaction_id UUID REFERENCES public.transactions(id) ON DELETE SET NULL,
-    recurring_transfer_id UUID REFERENCES public.recurring_transfers(id) ON DELETE SET NULL,
     linked_transfer_transaction_id UUID REFERENCES public.account_transactions(id) ON DELETE SET NULL,
     created_at TIMESTAMPTZ DEFAULT NOW()
 );
@@ -155,7 +162,8 @@ ALTER TABLE public.transactions DROP CONSTRAINT IF EXISTS fk_linked_account_tx;
 ALTER TABLE public.transactions ADD CONSTRAINT fk_linked_account_tx FOREIGN KEY (linked_account_transaction_id) REFERENCES public.account_transactions(id) ON DELETE SET NULL;
 
 CREATE INDEX IF NOT EXISTS idx_allocation_categories_allocation ON public.allocation_categories(allocation_id);
-CREATE INDEX IF NOT EXISTS idx_template_categories_template ON public.template_categories(template_id);
+CREATE INDEX IF NOT EXISTS template_categories_display_order_idx ON public.template_categories(template_id, display_order);
+CREATE INDEX IF NOT EXISTS allocation_templates_default_idx ON public.allocation_templates(user_id, is_default) WHERE is_default = true;
 CREATE INDEX IF NOT EXISTS idx_transactions_user_date ON public.transactions(user_id, transaction_date DESC);
 CREATE INDEX IF NOT EXISTS idx_transactions_category_id ON public.transactions(category_id);
 CREATE INDEX IF NOT EXISTS idx_transactions_linked_account_transaction_id ON public.transactions(linked_account_transaction_id);
@@ -163,7 +171,6 @@ CREATE INDEX IF NOT EXISTS idx_account_txn_account ON public.account_transaction
 CREATE INDEX IF NOT EXISTS idx_account_transactions_user_created ON public.account_transactions(user_id, created_at DESC);
 CREATE INDEX IF NOT EXISTS idx_account_transactions_linked_allocation_transaction_id ON public.account_transactions(linked_allocation_transaction_id);
 CREATE INDEX IF NOT EXISTS idx_transactions_recurring_expense_id ON public.transactions(recurring_expense_id);
-CREATE INDEX IF NOT EXISTS idx_account_transactions_recurring_transfer_id ON public.account_transactions(recurring_transfer_id);
 CREATE INDEX IF NOT EXISTS idx_account_transactions_linked_transfer_transaction_id ON public.account_transactions(linked_transfer_transaction_id);
 
 GRANT ALL ON public.allocations TO authenticated;

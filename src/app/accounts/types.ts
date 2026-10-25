@@ -59,7 +59,6 @@ export interface AccountType {
 	code?: AccountTypeCode | null;
 	class: AccountClass;
 	category: AccountCategory;
-	is_tax_advantaged: boolean;
 	icon: string | null;
 	sort_order: number;
 	is_system: boolean;
@@ -89,7 +88,6 @@ export interface Account {
 	name: string;
 	account_type_id: string;
 	institution: string | null;
-	account_number_last4: string | null;
 	current_balance: number;
 	currency: string;
 	credit_limit: number | null;
@@ -115,7 +113,6 @@ export interface Account {
 	percent_change?: number; // For assets (performance) or liabilities (change in debt)
 	display_order: number;
 	is_active: boolean;
-	external_account_id: string | null;
 	created_at: string;
 	updated_at: string;
 }
@@ -246,7 +243,6 @@ export interface CreateAccountInput {
 	name: string;
 	account_type_id: string;
 	institution?: string | null;
-	account_number_last4?: string | null;
 	current_balance: number;
 	currency?: string;
 	credit_limit?: number | null;
@@ -290,12 +286,4 @@ export interface UpdateAccountInput {
 	field_visibility?: AccountFieldConfig | null;
 	display_order?: number;
 	is_active?: boolean;
-}
-
-export interface RecordTransactionInput {
-	account_id: string;
-	amount: number;
-	transaction_type: TransactionType;
-	description: string;
-	transaction_date?: string;
 }

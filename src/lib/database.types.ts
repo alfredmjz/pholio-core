@@ -9,7 +9,6 @@ export interface Database {
 					email: string;
 					full_name: string | null;
 					avatar_url: string | null;
-					has_seen_welcome: boolean;
 					default_expected_income: number;
 					timezone: string | null;
 					default_currency: string;
@@ -26,7 +25,6 @@ export interface Database {
 					email: string;
 					full_name?: string | null;
 					avatar_url?: string | null;
-					has_seen_welcome?: boolean;
 					default_expected_income?: number;
 					timezone?: string | null;
 					default_currency?: string;
@@ -43,7 +41,6 @@ export interface Database {
 					email?: string;
 					full_name?: string | null;
 					avatar_url?: string | null;
-					has_seen_welcome?: boolean;
 					default_expected_income?: number;
 					timezone?: string | null;
 					default_currency?: string;
@@ -65,7 +62,6 @@ export interface Database {
 					amount: number;
 					transaction_date: string;
 					source: string;
-					external_id: string | null;
 					notes: string | null;
 					created_at: string;
 					updated_at: string;
@@ -79,7 +75,6 @@ export interface Database {
 					amount: number;
 					transaction_date: string;
 					source: string;
-					external_id?: string | null;
 					notes?: string | null;
 					created_at?: string;
 					updated_at?: string;
@@ -93,7 +88,6 @@ export interface Database {
 					amount?: number;
 					transaction_date?: string;
 					source?: string;
-					external_id?: string | null;
 					notes?: string | null;
 					created_at?: string;
 					updated_at?: string;
@@ -113,7 +107,6 @@ export interface Database {
 					budget_category: string | null;
 					is_active: boolean | null;
 					service_provider: string | null;
-					plaid_stream_id: string | null;
 					meta_data: Json | null;
 					created_at: string | null;
 					updated_at: string | null;
@@ -130,7 +123,6 @@ export interface Database {
 					budget_category?: string | null;
 					is_active?: boolean | null;
 					service_provider?: string | null;
-					plaid_stream_id?: string | null;
 					meta_data?: Json | null;
 					created_at?: string | null;
 					updated_at?: string | null;
@@ -147,49 +139,7 @@ export interface Database {
 					budget_category?: string | null;
 					is_active?: boolean | null;
 					service_provider?: string | null;
-					plaid_stream_id?: string | null;
 					meta_data?: Json | null;
-					created_at?: string | null;
-					updated_at?: string | null;
-				};
-			};
-			recurring_transfers: {
-				Row: {
-					id: string;
-					user_id: string;
-					name: string;
-					amount: number;
-					source_account_id: string;
-					destination_account_id: string;
-					billing_period: string;
-					next_transfer_date: string;
-					is_active: boolean | null;
-					created_at: string | null;
-					updated_at: string | null;
-				};
-				Insert: {
-					id?: string;
-					user_id: string;
-					name: string;
-					amount: number;
-					source_account_id: string;
-					destination_account_id: string;
-					billing_period: string;
-					next_transfer_date: string;
-					is_active?: boolean | null;
-					created_at?: string | null;
-					updated_at?: string | null;
-				};
-				Update: {
-					id?: string;
-					user_id?: string;
-					name?: string;
-					amount?: number;
-					source_account_id?: string;
-					destination_account_id?: string;
-					billing_period?: string;
-					next_transfer_date?: string;
-					is_active?: boolean | null;
 					created_at?: string | null;
 					updated_at?: string | null;
 				};

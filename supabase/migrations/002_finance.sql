@@ -11,7 +11,6 @@ CREATE TABLE IF NOT EXISTS public.account_types (
     name VARCHAR(100) NOT NULL,
     class TEXT NOT NULL CHECK (class IN ('asset', 'liability')),
     category VARCHAR(50) NOT NULL DEFAULT 'other',
-    is_tax_advantaged BOOLEAN DEFAULT false,
     icon VARCHAR(50),
     sort_order INTEGER DEFAULT 0,
     is_system BOOLEAN DEFAULT false,
@@ -31,16 +30,16 @@ CREATE POLICY "Manage own account types" ON public.account_types FOR ALL USING (
 
 -- The core types. Retired legacy and user-created types stay in older databases with
 -- is_active = false so their accounts keep a valid foreign key.
-INSERT INTO public.account_types (user_id, name, class, category, is_tax_advantaged, icon, sort_order, is_system, code) VALUES
-    (NULL, 'Chequing',          'asset',     'banking',    false, 'wallet',       1, true, 'chequing'),
-    (NULL, 'Savings',           'asset',     'banking',    false, 'piggy-bank',   2, true, 'savings'),
-    (NULL, 'Investment',        'asset',     'investment', false, 'trending-up',  3, true, 'investment'),
-    (NULL, 'Credit Card',       'liability', 'credit',     false, 'credit-card',  4, true, 'credit_card'),
-    (NULL, 'Line of Credit',    'liability', 'credit',     false, 'minus-circle', 5, true, 'line_of_credit'),
-    (NULL, 'Mortgage',          'liability', 'debt',       false, 'home',         6, true, 'mortgage'),
-    (NULL, 'Loans',             'liability', 'debt',       false, 'file-text',    7, true, 'loan'),
-    (NULL, 'Other (Asset)',     'asset',     'other',      false, 'circle-help',  8, true, 'other'),
-    (NULL, 'Other (Liability)', 'liability', 'other',      false, 'circle-help',  9, true, 'other')
+INSERT INTO public.account_types (user_id, name, class, category, icon, sort_order, is_system, code) VALUES
+    (NULL, 'Chequing',          'asset',     'banking',    'wallet',       1, true, 'chequing'),
+    (NULL, 'Savings',           'asset',     'banking',    'piggy-bank',   2, true, 'savings'),
+    (NULL, 'Investment',        'asset',     'investment', 'trending-up',  3, true, 'investment'),
+    (NULL, 'Credit Card',       'liability', 'credit',     'credit-card',  4, true, 'credit_card'),
+    (NULL, 'Line of Credit',    'liability', 'credit',     'minus-circle', 5, true, 'line_of_credit'),
+    (NULL, 'Mortgage',          'liability', 'debt',       'home',         6, true, 'mortgage'),
+    (NULL, 'Loans',             'liability', 'debt',       'file-text',    7, true, 'loan'),
+    (NULL, 'Other (Asset)',     'asset',     'other',      'circle-help',  8, true, 'other'),
+    (NULL, 'Other (Liability)', 'liability', 'other',      'circle-help',  9, true, 'other')
 ON CONFLICT DO NOTHING;
 
 -- ============================================================================
@@ -53,7 +52,6 @@ CREATE TABLE IF NOT EXISTS public.accounts (
     name VARCHAR(255) NOT NULL,
     account_type_id UUID NOT NULL REFERENCES public.account_types(id) ON DELETE RESTRICT,
     institution VARCHAR(255),
-    account_number_last4 VARCHAR(4),
     current_balance DECIMAL(15, 2) NOT NULL DEFAULT 0,
     currency VARCHAR(3) DEFAULT 'CAD' NOT NULL,
     credit_limit DECIMAL(15, 2),
@@ -166,33 +164,6 @@ DROP TRIGGER IF EXISTS update_recurring_expenses_updated_at ON public.recurring_
 CREATE TRIGGER update_recurring_expenses_updated_at BEFORE UPDATE ON public.recurring_expenses FOR EACH ROW EXECUTE FUNCTION public.update_updated_at_column();
 
 -- ============================================================================
--- TABLE: recurring_transfers
--- ============================================================================
-
-CREATE TABLE IF NOT EXISTS public.recurring_transfers (
-    id UUID PRIMARY KEY DEFAULT gen_random_uuid(),
-    user_id UUID NOT NULL REFERENCES auth.users(id) ON DELETE CASCADE,
-    name VARCHAR(255) NOT NULL,
-    amount DECIMAL(15, 2) NOT NULL CHECK (amount > 0),
-    source_account_id UUID NOT NULL REFERENCES public.accounts(id) ON DELETE CASCADE,
-    destination_account_id UUID NOT NULL REFERENCES public.accounts(id) ON DELETE CASCADE,
-    billing_period TEXT NOT NULL,
-    next_transfer_date DATE NOT NULL,
-    is_active BOOLEAN DEFAULT true,
-    created_at TIMESTAMPTZ DEFAULT NOW(),
-    updated_at TIMESTAMPTZ DEFAULT NOW(),
-    CONSTRAINT source_dest_different CHECK (source_account_id <> destination_account_id)
-);
-
-ALTER TABLE public.recurring_transfers ENABLE ROW LEVEL SECURITY;
-
-DROP POLICY IF EXISTS "Users can manage own recurring transfers" ON public.recurring_transfers;
-CREATE POLICY "Users can manage own recurring transfers" ON public.recurring_transfers FOR ALL USING ((select auth.uid()) = user_id);
-
-DROP TRIGGER IF EXISTS update_recurring_transfers_updated_at ON public.recurring_transfers;
-CREATE TRIGGER update_recurring_transfers_updated_at BEFORE UPDATE ON public.recurring_transfers FOR EACH ROW EXECUTE FUNCTION public.update_updated_at_column();
-
--- ============================================================================
 -- TABLE: deleted_accounts
 -- ============================================================================
 
@@ -252,11 +223,8 @@ CREATE INDEX IF NOT EXISTS idx_account_history_account ON public.account_history
 CREATE INDEX IF NOT EXISTS idx_account_history_user_date ON public.account_history(user_id, recorded_at DESC);
 CREATE INDEX IF NOT EXISTS idx_recurring_expenses_user_id ON public.recurring_expenses(user_id);
 CREATE INDEX IF NOT EXISTS idx_recurring_expenses_is_active ON public.recurring_expenses(is_active);
-CREATE INDEX IF NOT EXISTS idx_recurring_transfers_user_id ON public.recurring_transfers(user_id);
-CREATE INDEX IF NOT EXISTS idx_recurring_transfers_is_active ON public.recurring_transfers(is_active);
 
 GRANT ALL ON public.account_types TO authenticated;
 GRANT ALL ON public.accounts TO authenticated;
 GRANT ALL ON public.account_history TO authenticated;
 GRANT ALL ON public.recurring_expenses TO authenticated;
-GRANT ALL ON public.recurring_transfers TO authenticated;

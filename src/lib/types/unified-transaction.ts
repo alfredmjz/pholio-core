@@ -1,7 +1,7 @@
 // Unified Transaction System Types
 // Shared types for creating transactions that update both budget and accounts
 
-import type { TransactionType, AccountWithType } from "@/app/accounts/types";
+import type { TransactionType } from "@/app/accounts/types";
 
 /**
  * Input for creating a unified transaction
@@ -44,14 +44,4 @@ export interface UnifiedTransactionResult {
 	allocationTransactionId?: string;
 	accountTransactionId?: string;
 	error?: string;
-}
-
-/**
- * Suggested account for a category (based on category type)
- */
-export interface SuggestedAccount {
-	categoryId: string;
-	accountId: string | null;
-	account?: AccountWithType;
-	reason: "linked_savings_goal" | "linked_debt_payment" | "none";
 }

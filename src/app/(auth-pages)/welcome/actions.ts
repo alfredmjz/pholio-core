@@ -36,7 +36,6 @@ export async function completeOnboarding(
 		const { data: profile } = await supabase.from("users").select("timezone").eq("id", user.id).single();
 		const updates: Record<string, unknown> = {
 			full_name: cleaned.name,
-			has_seen_welcome: true,
 			updated_at: new Date().toISOString(),
 		};
 		if (!profile?.timezone && isTimeZone(deviceTimeZone)) updates.timezone = deviceTimeZone;

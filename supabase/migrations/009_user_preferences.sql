@@ -150,7 +150,6 @@ BEGIN
     DELETE FROM public.allocations WHERE user_id = v_user;
     DELETE FROM public.allocation_templates WHERE user_id = v_user;
     DELETE FROM public.transaction_presets WHERE user_id = v_user;
-    DELETE FROM public.recurring_transfers WHERE user_id = v_user;
     DELETE FROM public.recurring_expenses WHERE user_id = v_user;
     DELETE FROM public.contribution_rooms WHERE user_id = v_user;
     DELETE FROM public.notifications WHERE user_id = v_user;

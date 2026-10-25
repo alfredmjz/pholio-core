@@ -1,8 +1,12 @@
-import { test, expect, expectNoHorizontalScroll, openDialog, uniqueName } from "@/e2e/fixtures";
+import { test, expect, expectNoHorizontalScroll, openDialog, SIGNED_OUT, uniqueName } from "@/e2e/fixtures";
+import { signInNewUser } from "@/e2e/support/users";
 import type { Page } from "@playwright/test";
 
-// Room is pooled per user and plan, and the desktop, Android and iPhone projects share one
-// signed-in user, so each project uses its own plan to keep their pools apart.
+// Room is pooled per user and plan, and deposits stay in the pool, so every attempt signs in a
+// user of its own: a retry would otherwise start with the failed attempt's deposits.
+test.use({ storageState: SIGNED_OUT });
+
+// One plan per project, so each plan's wording is covered.
 const PLAN_BY_PROJECT: Record<string, string> = { desktop: "TFSA", android: "FHSA", iphone: "RESP" };
 // CRA's own name for each plan's room, as the warnings use it.
 const ROOM_TERM: Record<string, string> = {
@@ -45,10 +49,10 @@ async function deposit(page: Page, amount: string) {
 // Issue #121: registered-plan room belongs to the person, so every account of the plan shares
 // one room derived from the ledger in PostgreSQL. Going over it only warns, never blocks.
 test("accounts of one plan share contribution room and warn on an over-contribution", async ({ page }, testInfo) => {
-	// Two account creations and two deposits: past the default 30s on a loaded CI runner, and a
-	// timed-out attempt leaves its deposit in the shared pool, so a retry can't recover.
+	// A sign-up, two account creations and two deposits: past the default 30s on a loaded CI runner.
 	test.slow();
 	const plan = PLAN_BY_PROJECT[testInfo.project.name] ?? "TFSA";
+	await signInNewUser(page, `room-${plan.toLowerCase()}`);
 	const firstName = uniqueName(`E2E ${plan} One`, testInfo.project.name);
 	const secondName = uniqueName(`E2E ${plan} Two`, testInfo.project.name);
 

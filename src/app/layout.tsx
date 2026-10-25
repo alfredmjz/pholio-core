@@ -20,9 +20,10 @@ import { cookies } from "next/headers";
 
 export const metadata: Metadata = {
 	title: "Pholio",
+	// Bump `v` whenever the icons are regenerated; browsers cache favicons by URL.
 	icons: {
-		icon: "/pholio-icon.svg",
-		apple: "/pholio-icon.png",
+		icon: "/pholio-icon.svg?v=2",
+		apple: "/pholio-icon.png?v=2",
 	},
 };
 

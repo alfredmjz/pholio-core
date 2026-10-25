@@ -13,7 +13,7 @@ export type FieldLine = {
 	progress: number;
 	direction: 1 | -1;
 	alpha: number;
-	tint: "ink" | "rust";
+	tint: "ink" | "accent";
 };
 
 export type Pointer = { x: number; y: number } | null;
@@ -27,7 +27,7 @@ let memory: { lines: FieldLine[]; shown: boolean } | null = null;
 // Defaults match the paper login. A page can recolor the field by setting `--ledger-ink` and
 // `--ledger-tint` (RGB triplets, e.g. "44, 40, 34") and scale every line with `--ledger-strength`.
 const INK = "44, 40, 34";
-const RUST = "145, 72, 44";
+const ACCENT = "15, 107, 80";
 
 export type Palette = { ink: string; tint: string; strength: number };
 
@@ -36,7 +36,7 @@ export function readPalette(element: Element): Palette {
 	const strength = Number.parseFloat(style.getPropertyValue("--ledger-strength"));
 	return {
 		ink: style.getPropertyValue("--ledger-ink").trim() || INK,
-		tint: style.getPropertyValue("--ledger-tint").trim() || RUST,
+		tint: style.getPropertyValue("--ledger-tint").trim() || ACCENT,
 		strength: Number.isFinite(strength) ? strength : 1,
 	};
 }
@@ -65,7 +65,7 @@ export function makeLines(height: number): FieldLine[] {
 		progress: random() * 900,
 		direction: random() > 0.35 ? 1 : -1,
 		alpha: 0.06 + random() * 0.05,
-		tint: random() > 0.9 ? "rust" : "ink",
+		tint: random() > 0.9 ? "accent" : "ink",
 	}));
 }
 

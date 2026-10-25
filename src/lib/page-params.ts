@@ -2,7 +2,7 @@
 const SECTION_PARAMS: Record<string, readonly string[]> = {
 	"/accounts": [],
 	"/allocations": ["month", "year"],
-	"/dashboard": ["welcome"],
+	"/dashboard": [],
 	"/recurring": [],
 	"/settings": [],
 };

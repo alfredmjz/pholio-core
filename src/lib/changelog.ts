@@ -12,6 +12,12 @@ export interface ChangelogEntry {
 /** What's new in Pholio, newest first. Every user-facing release adds an entry at the top. */
 export const CHANGELOG: ChangelogEntry[] = [
 	{
+		id: "2026-10-onboarding",
+		date: "2026-10-24",
+		title: "A friendlier first sign-in",
+		items: ["New accounts start by telling Pholio what to call you, and your time zone is set for you."],
+	},
+	{
 		id: "2026-10-settings",
 		date: "2026-10-24",
 		title: "A new Settings page and notifications",
@@ -20,7 +26,7 @@ export const CHANGELOG: ChangelogEntry[] = [
 			"Get payment reminders for credit cards, bills and subscriptions in Pholio, by email, or both.",
 			"The bell shows your reminders and what's new in Pholio.",
 			"Choose a default currency and how numbers and dates are written.",
-			"Download your data as CSV files, or delete your account.",
+			"Download all your data in one CSV file, start over with Reset data, or delete your account.",
 		],
 	},
 	{

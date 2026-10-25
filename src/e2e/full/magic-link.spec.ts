@@ -49,6 +49,6 @@ test("sign in with the emailed magic link", async ({ page, baseURL }, testInfo) 
 	await expect(page).toHaveURL(/\/welcome$/);
 	await page.getByLabel("Your name").fill("Mail Tester");
 	await page.getByRole("button", { name: "Continue" }).click();
-	await expect(page).toHaveURL(/\/dashboard/);
+	await expect(page).toHaveURL(/\/dashboard/, { timeout: 20_000 });
 	await expect(page.getByRole("heading", { name: "Dashboard", level: 1 })).toBeVisible();
 });

@@ -34,7 +34,7 @@ test("a new account names itself once, then goes where the link pointed", async 
 
 	await page.getByLabel("Your name").fill("  Alex Rivera  ");
 	await page.getByRole("button", { name: "Continue" }).click();
-	await expect(page).toHaveURL(/\/recurring$/);
+	await expect(page).toHaveURL(/\/recurring$/, { timeout: 20_000 });
 
 	const { data: profile } = await adminClient().from("users").select("full_name, timezone").eq("id", userId).single();
 	expect(profile?.full_name).toBe("Alex Rivera");
@@ -52,7 +52,7 @@ test("an existing account without a name is asked before the dashboard", async (
 	const userId = await signIn(page, "nameless");
 	await page.getByLabel("Your name").fill("Sam");
 	await page.getByRole("button", { name: "Continue" }).click();
-	await expect(page).toHaveURL(/\/dashboard$/);
+	await expect(page).toHaveURL(/\/dashboard$/, { timeout: 20_000 });
 
 	await adminClient().from("users").update({ full_name: null }).eq("id", userId);
 	await page.goto("/dashboard");

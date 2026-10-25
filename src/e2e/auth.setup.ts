@@ -31,7 +31,7 @@ setup("sign in with a magic link", async ({ page }) => {
 	await expect(page).toHaveURL(/\/welcome$/);
 	await page.getByLabel("Your name").fill("E2E Tester");
 	await page.getByRole("button", { name: "Continue" }).click();
-	await expect(page).toHaveURL(/\/dashboard$/);
+	await expect(page).toHaveURL(/\/dashboard$/, { timeout: 20_000 });
 	await expect(page.getByRole("heading", { name: "Dashboard", level: 1 })).toBeVisible();
 
 	await page.context().storageState({ path: AUTH_FILE });

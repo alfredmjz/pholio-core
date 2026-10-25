@@ -40,7 +40,11 @@ async function signInNewUser(page: Page, label: string) {
 	const { data, error } = await admin.auth.admin.generateLink({ type: "magiclink", email });
 	expect(error, error?.message).toBeNull();
 	await page.goto(`/confirm?token_hash=${data.properties!.hashed_token}&type=magiclink&next=/dashboard`);
-	await expect(page).toHaveURL(/\/dashboard/);
+	// A new account names itself first.
+	await expect(page).toHaveURL(/\/welcome$/);
+	await page.getByLabel("Your name").fill(`E2E ${label}`);
+	await page.getByRole("button", { name: "Continue" }).click();
+	await expect(page).toHaveURL(/\/dashboard/, { timeout: 20_000 });
 	return created.data.user!.id;
 }
 

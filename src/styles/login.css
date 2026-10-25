@@ -280,6 +280,22 @@
 	padding: 22px 30px 24px;
 }
 
+.login-mark {
+	color: var(--login-ink);
+}
+
+.login-sheet-top {
+	display: flex;
+	align-items: flex-start;
+	justify-content: space-between;
+	gap: 16px;
+	margin-bottom: 10px;
+}
+
+.login-sheet-top .login-sheet-status {
+	margin-bottom: 0;
+}
+
 .login-sheet-status {
 	display: inline-flex;
 	align-items: center;
@@ -737,6 +753,11 @@
 
 	.login-sheet-status {
 		margin-bottom: 10px;
+	}
+
+	/* The live mark would push the form off a short screen. */
+	.login-sheet-top canvas {
+		display: none;
 	}
 
 	.login-page form,

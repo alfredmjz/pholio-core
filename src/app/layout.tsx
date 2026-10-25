@@ -18,6 +18,7 @@ export const metadata: Metadata = {
 	title: "Pholio",
 	icons: {
 		icon: "/pholio-icon.svg",
+		apple: "/pholio-icon.png",
 	},
 };
 

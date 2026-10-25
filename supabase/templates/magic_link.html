@@ -111,8 +111,19 @@
 											<table role="presentation" cellspacing="0" cellpadding="0" border="0">
 												<tr>
 													<td valign="middle" style="padding-right: 10px">
+														<!-- Classic Outlook for Windows can't animate a GIF, so it gets the still PNG. -->
+														<!--[if mso]>
 														<img
 															src="{{ .SiteURL }}/pholio-icon.png"
+															alt="Pholio"
+															width="34"
+															height="34"
+															style="display: block; width: 34px; height: 34px; border: 0"
+														/>
+														<![endif]-->
+														<!--[if !mso]><!-->
+														<img
+															src="{{ .SiteURL }}/pholio-icon.gif"
 															alt="Pholio"
 															width="34"
 															height="34"
@@ -126,6 +137,7 @@
 																text-decoration: none;
 															"
 														/>
+														<!--<![endif]-->
 													</td>
 													<td
 														valign="middle"

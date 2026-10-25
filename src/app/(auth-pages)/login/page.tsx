@@ -1,7 +1,6 @@
 "use client";
 
 import "@/styles/login.css";
-import Image from "next/image";
 import Link from "next/link";
 import { useRouter } from "next/navigation";
 import { useEffect, useRef, useState } from "react";
@@ -13,6 +12,8 @@ import { MagicLinkSent } from "@/app/(auth-pages)/login/components/magic-link-se
 import { reloadOutdatedPage, takePendingEmail } from "@/app/(auth-pages)/login/outdated-page";
 import { useDemoStore } from "@/lib/demo-store";
 import { LedgerField } from "@/components/common/ledger-field";
+import { PholioMark } from "@/components/common/pholio-mark";
+import { PholioMarkLive } from "@/components/common/pholio-mark-live";
 
 const NET_WORTH = 248910;
 
@@ -146,7 +147,7 @@ export default function Page() {
 						className="flex items-center gap-2.5 rounded-sm focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-accent focus-visible:ring-offset-4 focus-visible:ring-offset-background"
 						aria-label="Pholio home"
 					>
-						<Image src="/pholio-icon.svg" alt="" width={26} height={26} priority />
+						<PholioMark size={26} className="login-mark" />
 						<span className="login-wordmark">Pholio</span>
 					</Link>
 					<span className="login-tagline hidden sm:block">A calmer way to see your money.</span>
@@ -219,9 +220,12 @@ export default function Page() {
 						<div className="w-full max-w-[460px]">
 							<div className="login-sheet">
 								<div className="login-sheet-body">
-									<div className="login-sheet-status">
-										<span className="login-sheet-status-dot" aria-hidden />
-										<span>Sign in</span>
+									<div className="login-sheet-top">
+										<PholioMarkLive className="login-mark" />
+										<div className="login-sheet-status">
+											<span className="login-sheet-status-dot" aria-hidden />
+											<span>Sign in</span>
+										</div>
 									</div>
 
 									{sent ? (

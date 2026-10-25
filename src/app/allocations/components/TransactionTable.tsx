@@ -6,6 +6,7 @@ import { Ban } from "lucide-react";
 import type { Transaction, AllocationCategory } from "../types";
 import { inferTransactionType } from "./TransactionTypeIcon";
 import { TransactionTypeIcon } from "./TransactionTypeIcon";
+import { formatFullDate } from "@/lib/date-utils";
 
 interface TransactionTableProps {
 	transactions: Transaction[];
@@ -43,13 +44,7 @@ export function TransactionTable({ transactions, categories, onClickTransaction 
 								onClick={() => onClickTransaction?.(transaction)}
 							>
 								<td className="px-4 py-3 whitespace-nowrap">
-									<span className="text-sm text-primary">
-										{new Date(transaction.transaction_date).toLocaleDateString("en-US", {
-											month: "short",
-											day: "numeric",
-											year: "numeric",
-										})}
-									</span>
+									<span className="text-sm text-primary">{formatFullDate(transaction.transaction_date)}</span>
 								</td>
 								<td className="px-4 py-3">
 									<div className="flex items-center gap-2 flex-wrap">

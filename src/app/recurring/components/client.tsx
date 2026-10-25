@@ -19,6 +19,7 @@ import { BillRow } from "./bill-row";
 import { MonthTimeline } from "./month-timeline";
 import { RECURRING_GRID } from "./recurring-row-parts";
 import { SubscriptionRow } from "./subscription-row";
+import { useFormatSettings } from "@/components/providers/format-provider";
 
 interface RecurringClientProps {
 	initialExpenses: RecurringExpense[];
@@ -47,6 +48,7 @@ function ColumnHeader({ labels }: { labels: [string, string, string, string] }) 
 }
 
 export function RecurringClient({ initialExpenses, timezone, categoryOptions = [] }: RecurringClientProps) {
+	useFormatSettings();
 	const { expenses, optimisticallyAdd, optimisticallyDelete, optimisticallyUpdate } =
 		useOptimisticRecurring(initialExpenses);
 	const [isAddOpen, setIsAddOpen] = useState(false);

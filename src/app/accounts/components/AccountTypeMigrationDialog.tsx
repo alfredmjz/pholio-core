@@ -20,6 +20,7 @@ import type {
 } from "../types";
 import { sortAccountTypes } from "@/lib/account-utils";
 import { AccountFieldConfigurator } from "./AccountFieldConfigurator";
+import { formatMoney } from "@/lib/format";
 
 // TODO(#99-cleanup): remove with the migration notice once no account needs re-typing.
 interface MigrationRow {
@@ -40,8 +41,8 @@ interface AccountTypeMigrationDialogProps {
 	onComplete: () => void;
 }
 
-function formatAmount(amount: number, currency: string) {
-	return new Intl.NumberFormat("en-US", { style: "currency", currency: currency || "USD" }).format(amount);
+function formatAmount(amount: number) {
+	return formatMoney(amount, { showCents: true });
 }
 
 function buildRows(items: AccountTypeMigrationItem[], types: AccountType[]): MigrationRow[] {
@@ -53,7 +54,7 @@ function buildRows(items: AccountTypeMigrationItem[], types: AccountType[]): Mig
 			accountId: account.id,
 			accountName: account.name,
 			previousTypeName: account.account_type?.name ?? "Unknown",
-			balanceLabel: formatAmount(account.current_balance, account.currency ?? "USD"),
+			balanceLabel: formatAmount(account.current_balance),
 			originalClass: accountClass,
 			accountClass,
 			typeId: match?.id ?? "",

@@ -1,53 +1,20 @@
-/**
- * Formatting Utility Functions
- * Currency, date, and number formatting helpers for the application
- */
+import { formatDateParts, formatMoney } from "@/lib/format";
 
-/**
- * Format a number as Canadian currency
- * @param value - The numeric value to format
- * @param options - Optional formatting options
- * @returns Formatted currency string (e.g., "$1,234")
- */
+/** Money in the user's default currency and number format (e.g. "$1,234"). */
 export function formatCurrency(
 	value: number,
 	options?: {
 		showCents?: boolean;
 		showSign?: boolean;
+		currency?: string;
 	}
 ): string {
-	const { showCents = false, showSign = false } = options || {};
-
-	const formatted = new Intl.NumberFormat("en-CA", {
-		style: "currency",
-		currency: "CAD",
-		minimumFractionDigits: showCents ? 2 : 0,
-		maximumFractionDigits: showCents ? 2 : 0,
-	}).format(Math.abs(value));
-
-	if (showSign && value !== 0) {
-		return value > 0 ? `+${formatted}` : `-${formatted}`;
-	}
-
-	return value < 0 ? `-${formatted.replace("-", "")}` : formatted;
+	return formatMoney(value, options);
 }
 
-/**
- * Format a number as compact currency (e.g., $1.2M, $45k)
- * @param value - The numeric value to format
- * @returns Compact formatted string
- */
+/** Compact money (e.g. "$1.2M", "$45K"). */
 export function formatCompactCurrency(value: number): string {
-	const absValue = Math.abs(value);
-	const sign = value < 0 ? "-" : "";
-
-	if (absValue >= 1_000_000) {
-		return `${sign}$${(absValue / 1_000_000).toFixed(1)}M`;
-	}
-	if (absValue >= 1_000) {
-		return `${sign}$${(absValue / 1_000).toFixed(0)}k`;
-	}
-	return `${sign}$${absValue.toFixed(0)}`;
+	return formatMoney(value, { compact: true });
 }
 
 /**
@@ -79,26 +46,26 @@ export function formatDate(
 
 	switch (format) {
 		case "short":
-			return d.toLocaleDateString("en-CA", {
+			return formatDateParts(d, {
 				month: "short",
 				day: "numeric",
 			});
 		case "medium":
-			return d.toLocaleDateString("en-CA", {
+			return formatDateParts(d, {
 				month: "short",
 				day: "numeric",
 				year: "numeric",
 			});
 		case "long":
-			return d.toLocaleDateString("en-CA", {
+			return formatDateParts(d, {
 				month: "long",
 				day: "numeric",
 				year: "numeric",
 			});
 		case "month":
-			return d.toLocaleDateString("en-CA", { month: "short" });
+			return formatDateParts(d, { month: "short" });
 		case "monthYear":
-			return d.toLocaleDateString("en-CA", {
+			return formatDateParts(d, {
 				month: "short",
 				year: "numeric",
 			});

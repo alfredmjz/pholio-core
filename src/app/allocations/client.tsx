@@ -25,6 +25,7 @@ import type { MonthYear, AllocationSummary, Transaction, IncomeVerificationResul
 import type { AccountWithType, RegisteredPlan } from "@/app/accounts/types";
 import type { AllocationNewMonthDefault } from "@/app/settings/actions";
 import type { AllocationContributions } from "@/lib/types/contribution";
+import { useFormatSettings } from "@/components/providers/format-provider";
 
 interface AllocationClientProps {
 	initialYear: number;
@@ -78,6 +79,7 @@ export function AllocationClient({
 	userSettings,
 	templates,
 }: AllocationClientProps) {
+	useFormatSettings();
 	const router = useRouter();
 
 	const { data: accounts } = useServerSyncedData<AccountWithType[]>(initialAccounts, () => getAccountsForSelector());

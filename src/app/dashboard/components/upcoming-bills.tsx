@@ -5,6 +5,7 @@ import { formatCurrency } from "@/app/dashboard/utils";
 import { ServiceLogo } from "@/components/service-logo";
 import { UPCOMING_WINDOW_DAYS, type UpcomingBill } from "../heads-up";
 import { SurfaceSection } from "@/components/layout/surface-section";
+import { formatDateParts } from "@/lib/format";
 
 function whenLabel(daysUntil: number): string {
 	if (daysUntil < -1) return `${Math.abs(daysUntil)} days overdue`;
@@ -56,7 +57,7 @@ export function UpcomingBills({ bills }: { bills: UpcomingBill[] }) {
 									aria-hidden
 								>
 									<span className="type-caption text-muted-foreground">
-										{date.toLocaleDateString("en-US", { month: "short" })}
+										{formatDateParts(date, { month: "short" })}
 									</span>
 									<span className="type-body-lg mt-0.5 font-semibold tabular-nums">{date.getDate()}</span>
 								</div>

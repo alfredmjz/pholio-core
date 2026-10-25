@@ -18,6 +18,7 @@ import { UpcomingBills } from "./components/upcoming-bills";
 import { CashFlowChart } from "./components/cash-flow-chart";
 import { AccountMix } from "./components/account-mix";
 import { RecentActivity } from "./components/recent-activity";
+import { useFormatSettings } from "@/components/providers/format-provider";
 
 interface DashboardClientProps {
 	initialData: DashboardData;
@@ -25,6 +26,7 @@ interface DashboardClientProps {
 }
 
 export function DashboardClient({ initialData, firstName }: DashboardClientProps) {
+	useFormatSettings();
 	const router = useRouter();
 
 	const { data } = useServerSyncedData<DashboardData>(initialData, () => getDashboardData());

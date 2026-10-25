@@ -40,6 +40,8 @@ import { isSampleDataActive } from "@/lib/demo-mode";
 import { useDemoStore } from "@/lib/demo-store";
 import type { AccountTypeCode, AccountWithType, AccountTransaction } from "../types";
 import type { AccountContribution } from "@/lib/types/contribution";
+import { formatMoney } from "@/lib/format";
+import { useFormatSettings } from "@/components/providers/format-provider";
 
 interface AccountDetailClientProps {
 	accountId: string;
@@ -63,6 +65,7 @@ export function AccountDetailClient({
 	history,
 	today,
 }: AccountDetailClientProps) {
+	useFormatSettings();
 	const router = useRouter();
 
 	// Sample data (demo session or `dev:mock`): the server only knows the static sample set, so
@@ -191,14 +194,7 @@ export function AccountDetailClient({
 		setEditTransactionDialogOpen(true);
 	};
 
-	const formatCurrency = (amount: number) => {
-		return new Intl.NumberFormat("en-CA", {
-			style: "currency",
-			currency: account.currency || "CAD",
-			minimumFractionDigits: 2,
-			maximumFractionDigits: 2,
-		}).format(amount);
-	};
+	const formatCurrency = (amount: number) => formatMoney(amount, { showCents: true });
 
 	const isLiability = accountClass === "liability";
 	const TypeIcon = TYPE_ICON[(account.account_type?.code as AccountTypeCode) ?? "other"] ?? Wallet;

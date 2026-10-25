@@ -15,7 +15,7 @@ test("a new account starts on a cloudy sky on every main page", { tag: "@smoke" 
 test("the background setting changes the backdrop and is remembered", { tag: "@smoke" }, async ({ page }) => {
 	const backdrop = page.locator(".surface-backdrop");
 	const choose = async (name: string) => {
-		await page.goto("/settings/preferences");
+		await page.goto("/settings#appearance");
 		const option = page.getByRole("radio", { name });
 		await option.click();
 		await expect(option).toHaveAttribute("aria-checked", "true");

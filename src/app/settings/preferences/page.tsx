@@ -1,9 +1,5 @@
-import PreferencesCard from "../components/preferences-card";
+import { redirect } from "next/navigation";
 
-export default function PreferencesPage() {
-	return (
-		<div className="space-y-6">
-			<PreferencesCard />
-		</div>
-	);
+export default function Page() {
+	redirect("/settings#appearance");
 }

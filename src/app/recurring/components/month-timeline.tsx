@@ -6,6 +6,7 @@ import { formatCurrency } from "@/app/dashboard/utils";
 import { getDaysInMonth, parseLocalDate } from "@/lib/date-utils";
 import type { RecurringExpense } from "../actions";
 import { occurrencesInMonth, type OccurrenceState } from "../recurring-schedule";
+import { formatDateParts } from "@/lib/format";
 
 interface TimelineItem {
 	id: string;
@@ -66,7 +67,7 @@ export function MonthTimeline({ expenses, today }: MonthTimelineProps) {
 	const month = now.getMonth() + 1;
 	const daysInMonth = getDaysInMonth(year, month);
 	const todayDay = now.getDate();
-	const monthName = now.toLocaleDateString("en-US", { month: "long" });
+	const monthName = formatDateParts(now, { month: "long" });
 
 	const byDay = useMemo(() => {
 		const days = new Map<number, TimelineItem[]>();

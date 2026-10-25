@@ -26,7 +26,7 @@ interface ContributionRoomCardProps {
  */
 export function ContributionRoomCard({ account, contribution: initialContribution }: ContributionRoomCardProps) {
 	// CRA tracks contribution room to the cent, so figures keep their cents.
-	const formatCurrency = (amount: number) => formatContributionAmount(amount, account.currency || "CAD");
+	const formatCurrency = (amount: number) => formatContributionAmount(amount);
 	// Still refetches on focus, so changes made in another tab show up.
 	const { data: contribution } = useServerSyncedData<AccountContribution | null>(initialContribution, () =>
 		getAccountContributionSummary(account.id)

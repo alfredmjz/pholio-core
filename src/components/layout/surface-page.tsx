@@ -4,6 +4,7 @@ import { LedgerField } from "@/components/common/ledger-field";
 import { WeatherBackdrop } from "@/components/common/weather/weather-backdrop";
 import { useBackdrop, useWeather } from "@/components/providers/weather-provider";
 import { cn } from "@/lib/utils";
+import { useFormatSettings } from "@/components/providers/format-provider";
 
 interface SurfacePageProps {
 	children: React.ReactNode;
@@ -17,6 +18,7 @@ interface SurfacePageProps {
  * Styles live in src/styles/surfaces.css.
  */
 export function SurfacePage({ children, className }: SurfacePageProps) {
+	useFormatSettings();
 	const { backdrop } = useBackdrop();
 	const weather = useWeather();
 

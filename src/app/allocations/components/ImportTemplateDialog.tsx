@@ -6,6 +6,7 @@ import { Button } from "@/components/ui/button";
 import { ProminentAmountInput } from "@/components/ProminentAmountInput";
 import { FileText, FolderOpen, Sparkles, ChevronRight, Check } from "lucide-react";
 import { cn } from "@/lib/utils";
+import { formatMoney } from "@/lib/format";
 
 interface ImportTemplateDialogProps {
 	open: boolean;
@@ -103,14 +104,7 @@ export function ImportTemplateDialog({
 		setStep("choose");
 	};
 
-	const formatCurrency = (value: number) => {
-		return new Intl.NumberFormat("en-US", {
-			style: "currency",
-			currency: "USD",
-			minimumFractionDigits: 0,
-			maximumFractionDigits: 0,
-		}).format(value);
-	};
+	const formatCurrency = (value: number) => formatMoney(value);
 
 	return (
 		<ControlBasedDialog

@@ -1,9 +1,9 @@
 "use client";
 
-import Image from "next/image";
 import Link from "next/link";
 import { useRouter } from "next/navigation";
 import { signOut } from "@/app/(auth-pages)/login/actions";
+import { PholioMark } from "@/components/common/pholio-mark";
 import { clearDemoModeCookie } from "@/lib/demo-mode";
 import { NotificationBell } from "@/components/notifications/notification-bell";
 import { UserProfileMenu } from "@/components/sidebar/UserProfileMenu";
@@ -36,7 +36,7 @@ export function MobileTopBar({ userProfile }: MobileTopBarProps) {
 		>
 			<div className="flex min-h-14 items-center">
 				<Link href="/dashboard" className="flex items-center gap-2" aria-label="Pholio dashboard">
-					<Image src="/pholio-icon.svg" alt="" width={22} height={22} />
+					<PholioMark size={22} />
 					<span className="text-[17px] font-semibold tracking-[-0.01em] text-primary">Pholio</span>
 				</Link>
 			</div>

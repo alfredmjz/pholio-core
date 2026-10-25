@@ -12,6 +12,14 @@ export interface ChangelogEntry {
 /** What's new in Pholio, newest first. Every user-facing release adds an entry at the top. */
 export const CHANGELOG: ChangelogEntry[] = [
 	{
+		id: "2026-10-ascii-logo",
+		date: "2026-10-24",
+		title: "A new Pholio logo",
+		items: [
+			"Pholio's logo is now a 3D p drawn in text characters. It sways on the sign-in page and in sign-in emails.",
+		],
+	},
+	{
 		id: "2026-10-onboarding",
 		date: "2026-10-24",
 		title: "A friendlier first sign-in",

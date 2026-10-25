@@ -242,9 +242,8 @@ export function handleApiError(
  * @example
  * ```typescript
  * validate(email, 'Email is required');
- * validate(password.length >= 6, 'Password must be at least 6 characters', {
- *   minLength: 6,
- *   actualLength: password.length
+ * validate(amount > 0, 'Amount must be greater than zero', {
+ *   amount
  * });
  * ```
  */

@@ -14,7 +14,8 @@
 		"e2e:report": "playwright show-report",
 		"e2e:db": "supabase start --workdir ..",
 		"cron": "bun scripts/run-cron.ts",
-		"hooks:install": "git config core.hooksPath .githooks"
+		"hooks:install": "git config core.hooksPath .githooks",
+		"logo:icon": "bun scripts/generate-logo-icon.ts"
 	},
 	"dependencies": {
 		"@dnd-kit/core": "^6.3.1",

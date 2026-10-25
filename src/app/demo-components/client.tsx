@@ -340,7 +340,7 @@ export function DemoComponentsClient() {
 								</Card>
 								<Card className="p-6 bg-card border border-border space-y-4">
 									<h4 className="text-base font-medium text-primary">FloatingLabelInput</h4>
-									<FloatingLabelInput label="Password" type="password" value="" onChange={() => {}} />
+									<FloatingLabelInput label="Email" type="email" value="" onChange={() => {}} />
 								</Card>
 								<Card className="p-6 bg-card border border-border space-y-4">
 									<h4 className="text-base font-medium text-primary">MonthPicker</h4>

@@ -7,6 +7,7 @@ import { Button } from "@/components/ui/button";
 import { cn } from "@/lib/utils";
 import { ProgressLine } from "@/components/ui/progress-line";
 import { formatFullDate } from "@/lib/date-utils";
+import { splitMoney } from "@/lib/format";
 import { calculateAccountStanding } from "@/lib/account-validation-utils";
 import { NetWorthThread } from "@/app/dashboard/components/net-worth-thread";
 import type { AccountWithType, AccountTransaction } from "../../types";
@@ -64,6 +65,7 @@ export function BalanceHero({ account, transactions, history, formatCurrency, on
 
 	const rate = visibility.showInterestRate && account.interest_rate ? account.interest_rate : null;
 	const yearlyInterest = rate && balance > 0 ? balance * rate : null;
+	const { whole, cents } = splitMoney(active ? active.value : balance);
 
 	return (
 		<section aria-labelledby="balance-heading" className="surface-sheet surface-sheet-pad">
@@ -72,8 +74,9 @@ export function BalanceHero({ account, transactions, history, formatCurrency, on
 					<h2 id="balance-heading" className="type-body-sm text-muted-foreground">
 						{active ? formatFullDate(active.date) : isLiability ? "Owing" : "Balance"}
 					</h2>
-					<p className="type-display mt-1 tabular-nums text-primary">
-						{formatCurrency(active ? active.value : balance)}
+					<p className="type-display mt-1 flex items-start tabular-nums text-primary">
+						<span>{whole}</span>
+						<span className="dash-figure-cents">{cents}</span>
 					</p>
 				</div>
 				{rate !== null && (

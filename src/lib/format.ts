@@ -63,6 +63,18 @@ export function formatMoney(value: number, options: MoneyOptions = {}): string {
 	return formatted;
 }
 
+/**
+ * A full amount split at its decimal mark, e.g. "$12,345" and ".67", so the cents can be set
+ * smaller. In French formats the rest after the comma keeps the symbol: "1 234" and ",56 $".
+ */
+export function splitMoney(value: number, options: Omit<MoneyOptions, "showCents" | "compact"> = {}) {
+	const full = formatMoney(value, { ...options, showCents: true });
+	const locale = options.locale ?? current.locale;
+	const decimal = new Intl.NumberFormat(locale).formatToParts(1.5).find((part) => part.type === "decimal")?.value ?? ".";
+	const at = full.lastIndexOf(decimal);
+	return at === -1 ? { whole: full, cents: "" } : { whole: full.slice(0, at), cents: full.slice(at) };
+}
+
 /** The symbol for an amount field's prefix, e.g. "$" or "€". */
 export function getCurrencySymbol(currency?: string): string {
 	const parts = new Intl.NumberFormat(current.locale, {

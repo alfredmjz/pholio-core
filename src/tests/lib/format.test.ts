@@ -7,6 +7,7 @@ import {
 	getCurrencySymbol,
 	getLocaleOptions,
 	setFormatSettings,
+	splitMoney,
 	toFormatSettings,
 } from "@/lib/format";
 import { formatCurrency } from "@/app/dashboard/utils";
@@ -50,6 +51,25 @@ describe("formatMoney", () => {
 		expect(formatMoney(45_200, { compact: true })).toBe("$45.2K");
 		expect(formatMoney(12.5, { compact: true })).toBe("$13");
 		expect(formatMoney(-2_000, { compact: true })).toBe("-$2K");
+	});
+});
+
+describe("splitMoney", () => {
+	test("splits at the decimal point, keeping the thousands separator in the whole part", () => {
+		expect(splitMoney(12345.67)).toEqual({ whole: "$12,345", cents: ".67" });
+		expect(splitMoney(2450)).toEqual({ whole: "$2,450", cents: ".00" });
+		expect(splitMoney(-40.5)).toEqual({ whole: "-$40", cents: ".50" });
+	});
+
+	test("splits at the comma in French formats, with the symbol after the cents", () => {
+		setFormatSettings({ locale: "fr-CA", currency: "CAD" });
+		const { whole, cents } = splitMoney(1234.56);
+		expect(plain(whole)).toBe("1 234");
+		expect(plain(cents)).toBe(",56 $");
+	});
+
+	test("an amount with no cents stays whole", () => {
+		expect(splitMoney(1234.56, { currency: "JPY" })).toEqual({ whole: "JP¥1,235", cents: "" });
 	});
 });
 

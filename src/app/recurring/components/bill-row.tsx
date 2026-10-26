@@ -9,6 +9,7 @@ import { SegmentedProgress } from "@/components/ui/segmented-progress";
 import { DeleteConfirmDialog } from "@/components/dialogs/DeleteConfirmDialog";
 import { cn } from "@/lib/utils";
 import { formatCurrency } from "@/app/dashboard/utils";
+import { accountWarning } from "@/lib/account-links";
 import {
 	calculateNextDueDate,
 	differenceInDays,
@@ -19,7 +20,8 @@ import {
 import { deleteRecurringExpense, markAsPaid, type RecurringExpense } from "../actions";
 import { EditRecurringDialog } from "./edit-recurring-dialog";
 import { PayFutureBillDialog } from "./pay-future-bill-dialog";
-import { RECURRING_GRID, RecurringIdentity, RowMenu } from "./recurring-row-parts";
+import type { AccountWithType } from "@/app/accounts/types";
+import { RECURRING_GRID, RecurringAccountWarning, RecurringIdentity, RowMenu } from "./recurring-row-parts";
 
 interface BillRowProps {
 	bill: RecurringExpense;
@@ -27,6 +29,7 @@ interface BillRowProps {
 	onUpdate?: (id: string, updates: Partial<RecurringExpense>) => void;
 	timezone?: string | null;
 	categoryOptions?: string[];
+	accounts?: AccountWithType[];
 }
 
 function dueLabel(days: number): { text: string; tone: string } {
@@ -38,7 +41,7 @@ function dueLabel(days: number): { text: string; tone: string } {
 }
 
 /** One bill: when it's due, how much of this month is paid, and a Pay button. */
-export function BillRow({ bill, onDelete, onUpdate, timezone, categoryOptions = [] }: BillRowProps) {
+export function BillRow({ bill, onDelete, onUpdate, timezone, categoryOptions = [], accounts = [] }: BillRowProps) {
 	const router = useRouter();
 	const [isDeleting, setIsDeleting] = useState(false);
 	const [deleteOpen, setDeleteOpen] = useState(false);
@@ -54,6 +57,7 @@ export function BillRow({ bill, onDelete, onUpdate, timezone, categoryOptions = 
 	const paid = bill.paid_count || 0;
 	const isFullyPaid = paid >= (total || 1);
 	const canPay = !isAutomated && !isFullyPaid;
+	const account = accounts.find((a) => a.id === bill.account_id) ?? null;
 
 	const handleDelete = async () => {
 		setIsDeleting(true);
@@ -89,7 +93,9 @@ export function BillRow({ bill, onDelete, onUpdate, timezone, categoryOptions = 
 		}
 	};
 
-	const notes = Boolean(bill.next_amount_change || bill.next_due_change || bill.deleted_auto_payments) && (
+	const notes = Boolean(
+		bill.next_amount_change || bill.next_due_change || bill.deleted_auto_payments || (account && accountWarning(account))
+	) && (
 		<div className="type-body-xs mt-2 flex flex-wrap gap-x-4 gap-y-1 text-muted-foreground row-wide:col-span-5 row-wide:mt-0 row-wide:pl-12">
 			{bill.next_amount_change && (
 				<span className="inline-flex items-center gap-1">
@@ -111,6 +117,7 @@ export function BillRow({ bill, onDelete, onUpdate, timezone, categoryOptions = 
 					<AlertTriangle className="h-3 w-3" aria-hidden />A deleted automatic payment won&apos;t be recorded again
 				</span>
 			) : null}
+			<RecurringAccountWarning account={account} />
 		</div>
 	);
 
@@ -121,7 +128,7 @@ export function BillRow({ bill, onDelete, onUpdate, timezone, categoryOptions = 
 				onClick={() => setIsEditOpen(true)}
 			>
 				<div className="flex items-center justify-between gap-3 row-wide:block">
-					<RecurringIdentity expense={bill} automated={isAutomated} />
+					<RecurringIdentity expense={bill} automated={isAutomated} account={account} />
 					<span className="type-value shrink-0 text-primary row-wide:hidden">
 						{formatCurrency(Number(bill.amount), { showCents: true })}
 					</span>
@@ -194,6 +201,7 @@ export function BillRow({ bill, onDelete, onUpdate, timezone, categoryOptions = 
 				expense={bill}
 				onSuccess={(updated) => onUpdate?.(updated.id, updated)}
 				categoryOptions={categoryOptions}
+				accounts={accounts}
 			/>
 			<PayFutureBillDialog
 				open={isPayFutureOpen}

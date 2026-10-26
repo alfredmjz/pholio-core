@@ -105,6 +105,7 @@ export interface Database {
 					next_due_date: string;
 					category: string;
 					budget_category: string | null;
+					account_id: string | null;
 					is_active: boolean | null;
 					service_provider: string | null;
 					meta_data: Json | null;
@@ -121,6 +122,7 @@ export interface Database {
 					next_due_date: string;
 					category: string;
 					budget_category?: string | null;
+					account_id?: string | null;
 					is_active?: boolean | null;
 					service_provider?: string | null;
 					meta_data?: Json | null;
@@ -137,6 +139,7 @@ export interface Database {
 					next_due_date?: string;
 					category?: string;
 					budget_category?: string | null;
+					account_id?: string | null;
 					is_active?: boolean | null;
 					service_provider?: string | null;
 					meta_data?: Json | null;

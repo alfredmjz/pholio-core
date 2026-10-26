@@ -16,6 +16,7 @@ export function getMockRecurringExpenses(now: Date = getDemoNow()): RecurringExp
         next_due_date: new Date(y, m, 15).toISOString(), // 15th of this month
         category: "subscription",
         budget_category: null,
+        account_id: "acc-4",
         is_active: true,
         service_provider: "netflix",
         meta_data: {},
@@ -32,6 +33,7 @@ export function getMockRecurringExpenses(now: Date = getDemoNow()): RecurringExp
         next_due_date: new Date(y, m, 28).toISOString(), // 28th of this month
         category: "subscription",
         budget_category: null,
+        account_id: "acc-4",
         is_active: true,
         service_provider: "spotify",
         meta_data: {},
@@ -48,6 +50,7 @@ export function getMockRecurringExpenses(now: Date = getDemoNow()): RecurringExp
         next_due_date: new Date(y, m, 1).toISOString(), // 1st of this month
         category: "subscription",
         budget_category: null,
+        account_id: null,
         is_active: true,
         service_provider: null,
         meta_data: { no_logo_lookup: true },
@@ -64,6 +67,7 @@ export function getMockRecurringExpenses(now: Date = getDemoNow()): RecurringExp
         next_due_date: new Date(y, m, 1).toISOString(), // 1st of this month
         category: "bill",
         budget_category: null,
+        account_id: null,
         is_active: true,
         service_provider: "rent",
         meta_data: { is_automated: true },
@@ -80,6 +84,7 @@ export function getMockRecurringExpenses(now: Date = getDemoNow()): RecurringExp
         next_due_date: new Date(y, m, 20).toISOString(), // 20th of this month
         category: "bill",
         budget_category: null,
+        account_id: "acc-4",
         is_active: true,
         service_provider: null,
         meta_data: { no_logo_lookup: true },
@@ -96,6 +101,7 @@ export function getMockRecurringExpenses(now: Date = getDemoNow()): RecurringExp
         next_due_date: new Date(y + 1, 5, 15).toISOString(), // Next year, June 15th
         category: "subscription",
         budget_category: null,
+        account_id: null,
         is_active: true,
         service_provider: "amazon",
         meta_data: {},
@@ -114,6 +120,7 @@ export function getMockRecurringExpenses(now: Date = getDemoNow()): RecurringExp
         next_due_date: new Date(y, m, 10).toISOString(),
         category: "subscription",
         budget_category: null,
+        account_id: null,
         is_active: true,
         service_provider: "adobe", // Using provider for logo lookup
         meta_data: {},
@@ -130,6 +137,7 @@ export function getMockRecurringExpenses(now: Date = getDemoNow()): RecurringExp
         next_due_date: new Date(y, m, 5).toISOString(),
         category: "subscription",
         budget_category: null,
+        account_id: null,
         is_active: true,
         service_provider: "dropbox",
         meta_data: {},
@@ -146,6 +154,7 @@ export function getMockRecurringExpenses(now: Date = getDemoNow()): RecurringExp
         next_due_date: new Date(y, m, 12).toISOString(),
         category: "subscription",
         budget_category: null,
+        account_id: null,
         is_active: true,
         service_provider: "slack",
         meta_data: {},
@@ -162,6 +171,7 @@ export function getMockRecurringExpenses(now: Date = getDemoNow()): RecurringExp
         next_due_date: new Date(y, m, 8).toISOString(),
         category: "subscription",
         budget_category: null,
+        account_id: null,
         is_active: false, // Testing inactive subscription
         service_provider: "github",
         meta_data: {},
@@ -178,6 +188,7 @@ export function getMockRecurringExpenses(now: Date = getDemoNow()): RecurringExp
         next_due_date: new Date(y, m, 22).toISOString(),
         category: "subscription",
         budget_category: null,
+        account_id: null,
         is_active: true,
         service_provider: "disneyplus",
         meta_data: {},
@@ -194,6 +205,7 @@ export function getMockRecurringExpenses(now: Date = getDemoNow()): RecurringExp
         next_due_date: new Date(y, m, 18).toISOString(),
         category: "bill",
         budget_category: null,
+        account_id: null,
         is_active: true,
         service_provider: "comcast",
         meta_data: {},

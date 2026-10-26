@@ -7,11 +7,13 @@ import { Switch } from "@/components/ui/switch";
 import { DeleteConfirmDialog } from "@/components/dialogs/DeleteConfirmDialog";
 import { cn } from "@/lib/utils";
 import { formatCurrency } from "@/app/dashboard/utils";
+import { accountWarning } from "@/lib/account-links";
 import { differenceInDays, formatShortDate, getTodayDateString, parseLocalDate } from "@/lib/date-utils";
 import { deleteRecurringExpense, toggleSubscription, type RecurringExpense } from "../actions";
 import { monthlyEquivalent, parsePeriod } from "../recurring-schedule";
 import { EditRecurringDialog } from "./edit-recurring-dialog";
-import { RECURRING_GRID, RecurringIdentity, RowMenu } from "./recurring-row-parts";
+import type { AccountWithType } from "@/app/accounts/types";
+import { RECURRING_GRID, RecurringAccountWarning, RecurringIdentity, RowMenu } from "./recurring-row-parts";
 
 interface SubscriptionRowProps {
 	subscription: RecurringExpense;
@@ -19,6 +21,7 @@ interface SubscriptionRowProps {
 	onDelete?: (id: string) => void;
 	onUpdate?: (id: string, updates: Partial<RecurringExpense>) => void;
 	categoryOptions?: string[];
+	accounts?: AccountWithType[];
 }
 
 /** One subscription: when it renews, what it costs, and an on/off switch. */
@@ -28,6 +31,7 @@ export function SubscriptionRow({
 	onDelete,
 	onUpdate,
 	categoryOptions = [],
+	accounts = [],
 }: SubscriptionRowProps) {
 	const [isActive, setIsActive] = useState(subscription.is_active ?? true);
 	const [isSaving, setIsSaving] = useState(false);
@@ -87,6 +91,7 @@ export function SubscriptionRow({
 	};
 
 	const amount = Number(subscription.amount);
+	const account = accounts.find((a) => a.id === subscription.account_id) ?? null;
 	const daysUntil = differenceInDays(
 		parseLocalDate(subscription.next_due_date),
 		parseLocalDate(getTodayDateString(timezone || undefined))
@@ -106,7 +111,7 @@ export function SubscriptionRow({
 				}}
 			>
 				<div className="flex items-center justify-between gap-3 row-wide:block">
-					<RecurringIdentity expense={subscription} muted={!isActive} />
+					<RecurringIdentity expense={subscription} muted={!isActive} account={account} />
 					<span className="type-value shrink-0 text-primary row-wide:hidden">
 						{formatCurrency(amount, { showCents: true })}
 					</span>
@@ -176,6 +181,11 @@ export function SubscriptionRow({
 						<AlertTriangle className="h-3 w-3" aria-hidden />A deleted automatic payment won&apos;t be recorded again
 					</p>
 				) : null}
+				{isActive && account && accountWarning(account) && (
+					<p className="type-body-xs mt-2 pl-12 row-wide:col-span-5 row-wide:mt-0 row-wide:pl-12">
+						<RecurringAccountWarning account={account} />
+					</p>
+				)}
 			</div>
 
 			<EditRecurringDialog
@@ -188,6 +198,7 @@ export function SubscriptionRow({
 				onSuccess={handleEditSuccess}
 				forceActiveOnSave={isReactivating}
 				categoryOptions={categoryOptions}
+				accounts={accounts}
 			/>
 			<DeleteConfirmDialog
 				open={deleteOpen}

@@ -14,6 +14,8 @@ import { Switch } from "@/components/ui/switch";
 import { formatDateString, parseLocalDate } from "@/lib/date-utils";
 import { toast } from "sonner";
 import { ProminentAmountInput } from "@/components/ProminentAmountInput";
+import type { AccountWithType } from "@/app/accounts/types";
+import { NO_ACCOUNT, RecurringAccountField } from "./recurring-account-field";
 
 interface EditRecurringDialogProps {
 	open: boolean;
@@ -23,6 +25,7 @@ interface EditRecurringDialogProps {
 	forceActiveOnSave?: boolean;
 	/** Allocation category names to choose from; empty falls back to Subscriptions/Bills. */
 	categoryOptions?: string[];
+	accounts?: AccountWithType[];
 }
 
 export function EditRecurringDialog({
@@ -32,6 +35,7 @@ export function EditRecurringDialog({
 	onSuccess,
 	forceActiveOnSave,
 	categoryOptions = [],
+	accounts = [],
 }: EditRecurringDialogProps) {
 	const [formData, setFormData] = useState({
 		name: "",
@@ -41,6 +45,7 @@ export function EditRecurringDialog({
 		next_due_date: new Date(),
 		category: "subscription",
 		budget_category: "__default__",
+		account_id: NO_ACCOUNT,
 		is_automated: true,
 	});
 	const [isSubmitting, setIsSubmitting] = useState(false);
@@ -75,6 +80,7 @@ export function EditRecurringDialog({
 						),
 				category: expense.category,
 				budget_category: expense.budget_category ?? "__default__",
+				account_id: expense.account_id ?? NO_ACCOUNT,
 				is_automated: (expense.meta_data as any)?.is_automated !== false,
 			});
 		}
@@ -131,6 +137,7 @@ export function EditRecurringDialog({
 				next_due_date: formatDateString(formData.next_due_date),
 				category: formData.category,
 				budget_category: formData.budget_category === "__default__" ? null : formData.budget_category,
+				account_id: formData.account_id === NO_ACCOUNT ? null : formData.account_id,
 				meta_data: {
 					...(expense.meta_data as any),
 					is_automated: formData.is_automated,
@@ -277,6 +284,12 @@ export function EditRecurringDialog({
 					</Select>
 					<p className="text-xs text-muted-foreground">Which budget category this recurring expense is added to.</p>
 				</div>
+				<RecurringAccountField
+					id="edit-recurring-account"
+					value={formData.account_id}
+					onChange={(v) => setFormData({ ...formData, account_id: v })}
+					accounts={accounts}
+				/>
 				{formData.category === "bill" && (
 					<div className="flex items-center justify-between space-x-2 pt-2">
 						<div className="flex flex-col gap-1">

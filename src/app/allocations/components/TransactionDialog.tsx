@@ -1,6 +1,7 @@
 "use client";
 
 import { useState, useEffect } from "react";
+import Link from "next/link";
 import { Button } from "@/components/ui/button";
 import { Badge } from "@/components/ui/badge";
 import { ControlBasedDialog } from "@/components/dialogWrapper";
@@ -10,7 +11,7 @@ import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@
 import { Textarea } from "@/components/ui/textarea";
 import { DatePicker } from "@/components/ui/date-picker";
 
-import { Loader2, Info, Trash2, Ban } from "lucide-react";
+import { ArrowUpRight, Loader2, Info, Trash2, Ban } from "lucide-react";
 import { toast } from "sonner";
 import {
 	updateUnifiedTransaction,
@@ -21,7 +22,8 @@ import {
 import { AutocompleteInput } from "@/components/ui/autocomplete-input";
 import { VIRTUAL_UNCATEGORIZED_ID } from "../types";
 import type { Transaction, AllocationCategory } from "../types";
-import { getTransferAccountIds } from "../utils/transfer-accounts";
+import { getLinkedAccountIds, getTransferAccountIds } from "../utils/transfer-accounts";
+import { accountHref } from "@/lib/account-links";
 import type { AccountWithType } from "@/app/accounts/types";
 import { FormSection } from "@/components/FormSection";
 import { TransactionTypeSwitch } from "@/components/dialogs/transaction-type-switch";
@@ -238,6 +240,13 @@ export function TransactionDialog({
 		transaction.linked_account_transaction_id != null &&
 		transaction.linked_account_transaction?.account_id == null;
 
+	// From the saved row, not the form, so the links match what is recorded.
+	const savedAccounts = transaction
+		? getLinkedAccountIds(transaction)
+				.map((id) => accounts.find((account) => account.id === id))
+				.filter((account): account is AccountWithType => !!account)
+		: [];
+
 	return (
 		<ControlBasedDialog
 			open={open}
@@ -270,6 +279,22 @@ export function TransactionDialog({
 								Its bill or subscription was paused or deleted, so no more payments will be added automatically.
 							</p>
 						</div>
+					</div>
+				)}
+
+				{savedAccounts.length > 0 && (
+					<div className="flex flex-wrap items-center gap-2">
+						<span className="type-body-xs text-muted-foreground">
+							{savedAccounts.length > 1 ? "Accounts" : "Account"}
+						</span>
+						{savedAccounts.map((account) => (
+							<Button key={account.id} asChild variant="outline" size="sm" className="h-11 rounded-full sm:h-8">
+								<Link href={accountHref(account.id)} onClick={() => onOpenChange(false)}>
+									{formatAccountDisplayName(account)}
+									<ArrowUpRight className="h-3.5 w-3.5" aria-hidden />
+								</Link>
+							</Button>
+						))}
 					</div>
 				)}
 

@@ -1,7 +1,7 @@
 // Query parameters each signed-in section reads; any other one in a typed or reloaded URL is dropped.
 const SECTION_PARAMS: Record<string, readonly string[]> = {
 	"/accounts": [],
-	"/allocations": ["month", "year"],
+	"/allocations": ["month", "year", "transaction"],
 	"/dashboard": [],
 	"/recurring": [],
 	"/settings": [],

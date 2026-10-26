@@ -26,10 +26,12 @@ import { PerformanceCard } from "./components/PerformanceCard";
 import { NotesCard } from "./components/NotesCard";
 import { ActivityCard } from "./components/ActivityCard";
 import { OtherAccountsCard } from "./components/OtherAccountsCard";
+import { RecurringChargesCard } from "./components/RecurringChargesCard";
 import { EditAccountDialog } from "./components/EditAccountDialog";
 import { AccountTransactionDialog } from "./components/AccountTransactionDialog";
 
 import { deleteAccount, getAccountTransactions, getAccountById } from "../actions";
+import type { AccountRecurringItem } from "../actions";
 import { AccountDetailLoadingSkeleton } from "../components/account-detail-loading-skeleton";
 import { TYPE_ICON } from "../components/account-row";
 import { sparklinePoints, type BalancePoint } from "../account-insights";
@@ -54,6 +56,8 @@ interface AccountDetailClientProps {
 	history: BalancePoint[];
 	/** YYYY-MM-DD in the user's timezone. */
 	today: string;
+	/** Active bills and subscriptions paid from this account. */
+	recurring: AccountRecurringItem[];
 }
 
 export function AccountDetailClient({
@@ -64,6 +68,7 @@ export function AccountDetailClient({
 	contribution,
 	history,
 	today,
+	recurring,
 }: AccountDetailClientProps) {
 	useFormatSettings();
 	const router = useRouter();
@@ -306,6 +311,7 @@ export function AccountDetailClient({
 
 				<div className="flex min-w-0 flex-col gap-5 lg:gap-6">
 					<PerformanceCard account={account} transactions={transactions} formatCurrency={formatCurrency} />
+					<RecurringChargesCard account={account} items={recurring} />
 					<OtherAccountsCard accounts={otherAccounts} />
 				</div>
 			</div>
@@ -349,6 +355,7 @@ export function AccountDetailClient({
 				onOpenChange={setEditTransactionDialogOpen}
 				transaction={editingTransaction}
 				onSuccess={handleTransactionSuccess}
+				isLiability={isLiability}
 			/>
 		</SurfacePage>
 	);

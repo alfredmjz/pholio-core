@@ -11,6 +11,8 @@ import {
 import { Logger } from "@/lib/logger";
 import { isSampleDataMode } from "@/lib/demo-mode.server";
 import { formatDateString } from "@/lib/date-utils";
+import { formatAccountDisplayName } from "@/lib/account-utils";
+import { getMockRecurringExpenses } from "@/mock-data/recurring";
 import type { BalancePoint } from "./account-insights";
 
 import type {
@@ -430,7 +432,120 @@ export async function getAccountTransactions(accountId: string, limit: number = 
 		throw new Error("Failed to fetch transactions");
 	}
 
-	return data || [];
+	return attachTransactionLinks(supabase, (data || []) as AccountTransaction[]);
+}
+
+/**
+ * Adds each row's budget row (to link to Allocations) and, for a transfer leg, the account on the
+ * other side. Read by id: account_transactions has foreign keys both ways with transactions, so an
+ * embed would need hints. A transfer's legs share one budget row; older legs may only be linked
+ * to each other.
+ */
+async function attachTransactionLinks(
+	supabase: Awaited<ReturnType<typeof createClient>>,
+	rows: AccountTransaction[]
+): Promise<AccountTransaction[]> {
+	const unique = (ids: (string | null | undefined)[]) => Array.from(new Set(ids.filter((id): id is string => !!id)));
+	const transfers = rows.filter((row) => row.transaction_type === "transfer");
+	const budgetIds = unique(rows.map((row) => row.linked_allocation_transaction_id));
+	const transferBudgetIds = unique(transfers.map((row) => row.linked_allocation_transaction_id));
+	const pairedLegIds = unique(transfers.map((row) => row.linked_transfer_transaction_id));
+	if (budgetIds.length === 0 && pairedLegIds.length === 0) return rows;
+
+	const legColumns = "id, account_id, linked_allocation_transaction_id, account:accounts(id, name, institution)";
+	const [budgetResult, sharedLegResult, pairedLegResult] = await Promise.all([
+		budgetIds.length
+			? supabase.from("transactions").select("id, transaction_date, category:allocation_categories(name)").in("id", budgetIds)
+			: Promise.resolve({ data: [], error: null }),
+		transferBudgetIds.length
+			? supabase.from("account_transactions").select(legColumns).in("linked_allocation_transaction_id", transferBudgetIds)
+			: Promise.resolve({ data: [], error: null }),
+		pairedLegIds.length
+			? supabase.from("account_transactions").select(legColumns).in("id", pairedLegIds)
+			: Promise.resolve({ data: [], error: null }),
+	]);
+
+	const linkError = budgetResult.error || sharedLegResult.error || pairedLegResult.error;
+	if (linkError) {
+		Logger.error("Error fetching account transaction links", { error: linkError });
+		return rows;
+	}
+
+	const budgetById = new Map<string, any>((budgetResult.data ?? []).map((row: any) => [row.id, row]));
+	const legs = [...(sharedLegResult.data ?? []), ...(pairedLegResult.data ?? [])] as any[];
+
+	return rows.map((row) => {
+		const budget = row.linked_allocation_transaction_id ? budgetById.get(row.linked_allocation_transaction_id) : null;
+		const linked: AccountTransaction = {
+			...row,
+			budget_link: budget
+				? { id: budget.id, transaction_date: budget.transaction_date, category_name: budget.category?.name ?? null }
+				: null,
+		};
+		if (row.transaction_type !== "transfer") return linked;
+
+		const otherLeg =
+			legs.find((leg) => leg.id === row.linked_transfer_transaction_id) ??
+			legs.find(
+				(leg) =>
+					leg.id !== row.id &&
+					row.linked_allocation_transaction_id &&
+					leg.linked_allocation_transaction_id === row.linked_allocation_transaction_id
+			);
+		const otherAccount = otherLeg?.account;
+		return {
+			...linked,
+			transfer_account: otherAccount ? { id: otherAccount.id, label: formatAccountDisplayName(otherAccount) } : null,
+		};
+	});
+}
+
+export interface AccountRecurringItem {
+	id: string;
+	name: string;
+	amount: number;
+	billing_period: string;
+	next_due_date: string;
+	category: string;
+}
+
+/** Active bills and subscriptions paid from this account, soonest first. */
+export async function getRecurringForAccount(accountId: string): Promise<AccountRecurringItem[]> {
+	const pick = (rows: AccountRecurringItem[]) =>
+		rows.map(({ id, name, amount, billing_period, next_due_date, category }) => ({
+			id,
+			name,
+			amount: Number(amount),
+			billing_period,
+			next_due_date: next_due_date.slice(0, 10),
+			category,
+		}));
+
+	if (await isSampleDataMode()) {
+		return pick(getMockRecurringExpenses().filter((item) => item.account_id === accountId && item.is_active !== false)).sort(
+			(a, b) => a.next_due_date.localeCompare(b.next_due_date)
+		);
+	}
+
+	const supabase = await createClient();
+	const {
+		data: { user },
+	} = await supabase.auth.getUser();
+	if (!user) return [];
+
+	const { data, error } = await supabase
+		.from("recurring_expenses")
+		.select("id, name, amount, billing_period, next_due_date, category")
+		.eq("user_id", user.id)
+		.eq("account_id", accountId)
+		.eq("is_active", true)
+		.order("next_due_date", { ascending: true });
+
+	if (error) {
+		Logger.error("Error fetching recurring items for account", { error });
+		return [];
+	}
+	return pick(data || []);
 }
 
 /**

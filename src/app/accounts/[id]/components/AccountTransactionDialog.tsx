@@ -1,18 +1,20 @@
 "use client";
 
 import { useState, useEffect } from "react";
+import Link from "next/link";
 import { Button } from "@/components/ui/button";
 import { ControlBasedDialog } from "@/components/dialogWrapper";
 import { DialogFooter } from "@/components/ui/dialog";
 import { CancelShortcut, SubmitShortcut } from "@/components/common/dialog-shortcuts";
 import { Label } from "@/components/ui/label";
 import { DatePicker } from "@/components/ui/date-picker";
-import { Loader2, Info, Trash2 } from "lucide-react";
+import { ArrowUpRight, Loader2, Info, Trash2 } from "lucide-react";
 import { toast } from "sonner";
 import { updateAccountTransaction, deleteAccountTransaction } from "@/lib/actions/account-transaction-actions";
 import { getTransactionDescriptions } from "@/lib/actions/unified-transaction-actions";
 import { AutocompleteInput } from "@/components/ui/autocomplete-input";
 import type { AccountTransaction } from "@/app/accounts/types";
+import { accountHref, allocationsHref, transferDirection } from "@/lib/account-links";
 import { FormSection } from "@/components/FormSection";
 import { ProminentAmountInput } from "@/components/ProminentAmountInput";
 import {
@@ -32,6 +34,7 @@ interface AccountTransactionDialogProps {
 	onOpenChange: (open: boolean) => void;
 	transaction: AccountTransaction | null;
 	onSuccess?: () => void;
+	isLiability?: boolean;
 }
 
 export function AccountTransactionDialog({
@@ -39,6 +42,7 @@ export function AccountTransactionDialog({
 	onOpenChange,
 	transaction,
 	onSuccess,
+	isLiability = false,
 }: AccountTransactionDialogProps) {
 	const [isLoading, setIsLoading] = useState(false);
 	const [isDeleting, setIsDeleting] = useState(false);
@@ -156,11 +160,49 @@ export function AccountTransactionDialog({
 					</div>
 				</FormSection>
 
-				{transaction.linked_allocation_transaction_id && (
-					<p className="text-sm text-muted-foreground flex items-start gap-2 p-3 bg-muted rounded-lg">
-						<Info className="h-4 w-4 shrink-0 mt-0.5" />
-						<span>This transaction is linked to your budget. Changes will update both.</span>
-					</p>
+				{(transaction.linked_allocation_transaction_id || transaction.transfer_account) && (
+					<div className="flex flex-col gap-3 rounded-lg bg-muted p-3">
+						<div className="type-body-sm flex items-start gap-2 text-muted-foreground">
+							<Info className="mt-0.5 h-4 w-4 shrink-0" aria-hidden />
+							<div className="flex flex-col gap-1">
+								{transaction.transfer_account && (
+									<span>
+										{transferDirection(transaction.amount, isLiability) === "to" ? "Sent to" : "Received from"}{" "}
+										<span className="text-primary">{transaction.transfer_account.label}</span>.
+									</span>
+								)}
+								{transaction.linked_allocation_transaction_id && (
+									<span>This transaction is linked to your budget. Changes will update both.</span>
+								)}
+							</div>
+						</div>
+						{(transaction.budget_link || transaction.transfer_account) && (
+							<div className="flex flex-wrap gap-2 pl-6">
+								{transaction.budget_link && (
+									<Button asChild variant="outline" size="sm" className="h-11 rounded-full sm:h-9">
+										<Link
+											href={allocationsHref(transaction.budget_link.transaction_date, transaction.budget_link.id)}
+											onClick={() => onOpenChange(false)}
+										>
+											View in Allocations
+											<ArrowUpRight className="h-3.5 w-3.5" aria-hidden />
+										</Link>
+									</Button>
+								)}
+								{transaction.transfer_account && (
+									<Button asChild variant="outline" size="sm" className="h-11 rounded-full sm:h-9">
+										<Link
+											href={accountHref(transaction.transfer_account.id)}
+											onClick={() => onOpenChange(false)}
+										>
+											Open {transaction.transfer_account.label}
+											<ArrowUpRight className="h-3.5 w-3.5" aria-hidden />
+										</Link>
+									</Button>
+								)}
+							</div>
+						)}
+					</div>
 				)}
 
 				<DialogFooter className="flex items-center justify-between sm:justify-between w-full">

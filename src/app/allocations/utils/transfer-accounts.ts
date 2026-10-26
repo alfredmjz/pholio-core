@@ -16,3 +16,13 @@ export function getTransferAccountIds(transaction: Transaction): {
 
 	return { fromAccountId, toAccountId };
 }
+
+/** The accounts a budget row touches: source then destination for a transfer, else its one account. */
+export function getLinkedAccountIds(transaction: Transaction): string[] {
+	if (transaction.source === "transfer") {
+		const { fromAccountId, toAccountId } = getTransferAccountIds(transaction);
+		return [fromAccountId, toAccountId].filter((id): id is string => !!id);
+	}
+	const accountId = transaction.account_id ?? transaction.linked_account_transaction?.account_id ?? null;
+	return accountId ? [accountId] : [];
+}

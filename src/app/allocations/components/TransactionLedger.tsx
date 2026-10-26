@@ -1,6 +1,8 @@
 "use client";
 
-import { useState, useMemo } from "react";
+import { useState, useMemo, useEffect, Fragment } from "react";
+import Link from "next/link";
+import { usePathname, useRouter, useSearchParams } from "next/navigation";
 import { Search, X, ArrowUpDown, ChevronUp, ChevronDown, Ban, RotateCcw, SlidersHorizontal } from "lucide-react";
 import { Input } from "@/components/ui/input";
 import { Button } from "@/components/ui/button";
@@ -16,7 +18,8 @@ import { SurfaceSection } from "@/components/layout/surface-section";
 import { formatCurrency } from "@/app/dashboard/utils";
 import type { AccountWithType } from "@/app/accounts/types";
 import type { AllocationCategory, Transaction } from "../types";
-import { getTransferAccountIds } from "../utils/transfer-accounts";
+import { getLinkedAccountIds, getTransferAccountIds } from "../utils/transfer-accounts";
+import { accountHref } from "@/lib/account-links";
 import type { TransactionType } from "./TransactionTypeIcon";
 import { inferTransactionType, TRANSACTION_TYPE_CONFIG } from "./TransactionTypeIcon";
 import { getCategoryColor } from "../utils/colors";
@@ -71,6 +74,33 @@ function resolveAccountLabel(transaction: Transaction, accounts: AccountWithType
 	return accountName(transaction.account_id ?? transaction.linked_account_transaction?.account_id ?? null) ?? "—";
 }
 
+/** The Account cell: each tracked account links to its page; anything else reads as in the label. */
+function AccountCell({ transaction, accounts }: { transaction: Transaction; accounts: AccountWithType[] }) {
+	const linked = getLinkedAccountIds(transaction)
+		.map((id) => accounts.find((account) => account.id === id))
+		.filter((account): account is AccountWithType => !!account);
+	const isTransfer = transaction.source === "transfer";
+	const expected = isTransfer ? 2 : 1;
+	if (linked.length < expected) return <>{resolveAccountLabel(transaction, accounts)}</>;
+
+	return (
+		<>
+			{linked.map((account, index) => (
+				<Fragment key={account.id}>
+					{index > 0 && " → "}
+					<Link
+						href={accountHref(account.id)}
+						onClick={(event) => event.stopPropagation()}
+						className="underline-offset-2 hover:text-primary hover:underline"
+					>
+						{formatAccountDisplayName(account)}
+					</Link>
+				</Fragment>
+			))}
+		</>
+	);
+}
+
 function compareTransactions(a: Transaction, b: Transaction, field: SortField, accounts: AccountWithType[]): number {
 	switch (field) {
 		case "name":
@@ -116,6 +146,21 @@ export function TransactionLedger({
 		setSelectedTransaction(transaction);
 		setDialogOpen(true);
 	};
+
+	// A link from an account page (?transaction=<id>) opens that row once, then leaves the URL.
+	const router = useRouter();
+	const pathname = usePathname();
+	const searchParams = useSearchParams();
+	const linkedTransactionId = searchParams.get("transaction");
+	useEffect(() => {
+		if (!linkedTransactionId) return;
+		const linked = transactions.find((t) => t.id === linkedTransactionId);
+		if (linked) handleEditTransaction(linked);
+		const params = new URLSearchParams(searchParams.toString());
+		params.delete("transaction");
+		const query = params.toString();
+		router.replace(query ? `${pathname}?${query}` : pathname, { scroll: false });
+	}, [linkedTransactionId, transactions]);
 
 	const filteredTransactions = useMemo(() => {
 		let filtered = transactions;
@@ -479,7 +524,7 @@ export function TransactionLedger({
 												</span>
 											</td>
 											<td className="type-body-sm px-3 py-3 text-muted-foreground">
-												{resolveAccountLabel(transaction, accounts)}
+												<AccountCell transaction={transaction} accounts={accounts} />
 											</td>
 											<td className="px-3 py-3">
 												<span className="type-body-sm inline-flex items-center gap-1.5 text-muted-foreground">

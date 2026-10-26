@@ -4,7 +4,7 @@ import { getAccountContributionSummary } from "@/lib/actions/contribution-action
 import { formatDateString, getTodayDateString } from "@/lib/date-utils";
 import { isSampleDataMode } from "@/lib/demo-mode.server";
 import { getDemoNow } from "@/mock-data/demo-date";
-import { getAccountById, getAccountHistory, getAccountTransactions, getAccounts } from "../actions";
+import { getAccountById, getAccountHistory, getAccountTransactions, getAccounts, getRecurringForAccount } from "../actions";
 import type { BalancePoint } from "../account-insights";
 import { AccountDetailClient } from "./AccountDetailClient";
 
@@ -22,7 +22,7 @@ const HISTORY_LIMIT = 180;
 export default async function AccountDetailPage({ params }: AccountDetailPageProps) {
 	const { id } = await params;
 
-	const [account, transactions, allAccounts, sampleMode, contribution, historyRows, timezone] = await Promise.all([
+	const [account, transactions, allAccounts, sampleMode, contribution, historyRows, timezone, recurring] = await Promise.all([
 		getAccountById(id),
 		getAccountTransactions(id),
 		getAccounts(),
@@ -30,6 +30,7 @@ export default async function AccountDetailPage({ params }: AccountDetailPagePro
 		getAccountContributionSummary(id),
 		getAccountHistory(id, HISTORY_LIMIT).catch(() => []),
 		getTimezone(),
+		getRecurringForAccount(id),
 	]);
 
 	// Account was deleted (or never existed) — send the user back to the parent page.
@@ -54,6 +55,7 @@ export default async function AccountDetailPage({ params }: AccountDetailPagePro
 			contribution={contribution}
 			history={history}
 			today={today}
+			recurring={recurring}
 		/>
 	);
 }

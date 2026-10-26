@@ -7,6 +7,7 @@ import { Button } from "@/components/ui/button";
 import { Skeleton } from "@/components/ui/skeleton";
 import { cn } from "@/lib/utils";
 import { formatFullDate } from "@/lib/date-utils";
+import { transferDirection } from "@/lib/account-links";
 import type { AccountTransaction } from "../../types";
 
 interface ActivityCardProps {
@@ -19,8 +20,12 @@ interface ActivityCardProps {
 
 const PREVIEW_COUNT = 8;
 
+// A transfer lowers the balance or debt when its amount is negative: money out of an asset, or a
+// payment into a liability.
 const isOutflow = (txn: AccountTransaction) =>
-	txn.transaction_type === "withdrawal" || txn.transaction_type === "payment";
+	txn.transaction_type === "withdrawal" ||
+	txn.transaction_type === "payment" ||
+	(txn.transaction_type === "transfer" && txn.amount < 0);
 
 function TransactionIcon({ type }: { type: string }) {
 	switch (type) {
@@ -62,7 +67,9 @@ const getTransactionTitle = (txn: AccountTransaction, isLiability: boolean) => {
 		case "adjustment":
 			return "Balance adjustment";
 		case "transfer":
-			return "Transfer";
+			return txn.transfer_account
+				? `Transfer ${transferDirection(txn.amount, isLiability)} ${txn.transfer_account.label}`
+				: "Transfer";
 		default:
 			return "Transaction";
 	}

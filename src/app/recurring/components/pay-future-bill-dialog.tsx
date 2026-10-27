@@ -1,21 +1,20 @@
-import { useState, useMemo } from "react";
-import {
-	Dialog,
-	DialogContent,
-	DialogDescription,
-	DialogFooter,
-	DialogHeader,
-	DialogTitle,
-} from "@/components/ui/dialog";
+"use client";
+
+import { useEffect, useMemo, useState } from "react";
+import { ArrowRight, Loader2, Minus, Plus } from "lucide-react";
+import { toast } from "sonner";
+import { ControlBasedDialog } from "@/components/dialogWrapper";
+import { DialogFooter } from "@/components/ui/dialog";
 import { Button } from "@/components/ui/button";
 import { CancelShortcut, SubmitShortcut } from "@/components/common/dialog-shortcuts";
-import { handleEnterSubmit } from "@/lib/enter-submit";
-import { RecurringExpense, payRecurringExpense } from "../actions";
-import { formatFullDate, calculateNextDueDate, getTodayDateString, parseLocalDate } from "@/lib/date-utils";
-import { toast } from "sonner";
-import { Loader2, Check } from "lucide-react";
-import { cn } from "@/lib/utils";
+import { formatFullDate, formatShortDate, getTodayDateString } from "@/lib/date-utils";
 import { formatMoney } from "@/lib/format";
+import { RecurringExpense, payRecurringExpense } from "../actions";
+import { earlyPaymentPlan, PAY_AHEAD_MONTHS, upcomingOccurrences } from "../recurring-schedule";
+
+/** Up to this many covered bills are each shown; more show as first → last. */
+const CHIP_LIMIT = 4;
+const CHIP_CLASS = "type-body-xs rounded-full border border-border bg-card px-2.5 py-1 tabular-nums text-primary";
 
 interface PayFutureBillDialogProps {
 	open: boolean;
@@ -24,8 +23,14 @@ interface PayFutureBillDialogProps {
 	onSuccess?: () => void;
 	onUpdate?: (id: string, updates: Partial<RecurringExpense>) => void;
 	timezone?: string | null;
+	/** The account the bill is paid from, named in the description. */
+	accountLabel?: string | null;
 }
 
+/**
+ * Pays the next few bills now. Each one is recorded today, the day the money leaves, and the due
+ * date moves past the bills covered.
+ */
 export function PayFutureBillDialog({
 	open,
 	onOpenChange,
@@ -33,166 +38,154 @@ export function PayFutureBillDialog({
 	onSuccess,
 	onUpdate,
 	timezone,
+	accountLabel,
 }: PayFutureBillDialogProps) {
-	const [selectedCount, setSelectedCount] = useState(0);
+	const [count, setCount] = useState(1);
 	const [isSubmitting, setIsSubmitting] = useState(false);
 
-	const potentialBills = useMemo(() => {
-		const bills = [];
-		let currentDate = new Date(expense.next_due_date);
-		const todayStr = getTodayDateString(timezone || undefined);
-		const today = parseLocalDate(todayStr);
-		const currentMonth = today.getMonth();
-		const currentYear = today.getFullYear();
+	useEffect(() => {
+		if (open) setCount(1);
+	}, [open]);
 
-		for (let i = 0; i < 12; i++) {
-			if (currentDate.getMonth() !== currentMonth || currentDate.getFullYear() !== currentYear) {
-				break;
-			}
-
-			bills.push({
-				index: i,
-				date: new Date(currentDate),
-				amount: Number(expense.amount),
-			});
-			currentDate = calculateNextDueDate(currentDate, expense.billing_period);
-		}
-		return bills;
-	}, [expense]);
-
-	const handleRowClick = (index: number) => {
-		if (selectedCount === index + 1) {
-			setSelectedCount(index);
-		} else {
-			setSelectedCount(index + 1);
-		}
-	};
-
-	const totalAmount = selectedCount * Number(expense.amount);
-	const nextDueDate =
-		selectedCount > 0
-			? calculateNextDueDate(potentialBills[selectedCount - 1].date, expense.billing_period)
-			: potentialBills.length > 0
-				? potentialBills[0].date
-				: new Date(expense.next_due_date);
+	const today = getTodayDateString(timezone || undefined);
+	const available = useMemo(
+		() => upcomingOccurrences(expense.next_due_date, expense.billing_period, today).length,
+		[expense.next_due_date, expense.billing_period, today]
+	);
+	const plan = earlyPaymentPlan(expense.next_due_date, expense.billing_period, Math.min(count, Math.max(available, 1)));
+	const total = count * Number(expense.amount);
+	const thisYear = today.slice(0, 4);
+	const dueLabel = (date: string) => (date.startsWith(thisYear) ? formatShortDate(date) : formatFullDate(date));
+	// A long run shows only its first and last due dates, so the dialog keeps its height at any count.
+	const covered = plan.covered;
+	const isLongRun = covered.length > CHIP_LIMIT;
 
 	const handlePay = async () => {
-		if (selectedCount === 0) return;
-
+		if (available === 0 || isSubmitting) return;
 		setIsSubmitting(true);
-
-		onUpdate?.(expense.id, {
-			next_due_date: nextDueDate.toISOString(),
-			paid_count: (expense.paid_count || 0) + selectedCount,
-		});
+		onUpdate?.(expense.id, { next_due_date: plan.nextDue, paid_count: (expense.paid_count || 0) + count });
 
 		try {
-			const success = await payRecurringExpense(expense.id, selectedCount);
-			if (success) {
-				toast.success(`Successfully paid ${selectedCount} bill(s)`);
+			if (await payRecurringExpense(expense.id, count, { early: true })) {
+				toast.success(`Paid ${count} ${count === 1 ? "bill" : "bills"} early`, {
+					description: `Next one is due ${formatFullDate(plan.nextDue)}.`,
+				});
 				onOpenChange(false);
 				onSuccess?.();
-				setSelectedCount(0);
 			} else {
-				toast.error("Couldn't record the payment", {
-					description: "Could not process the future payments.",
-				});
+				toast.error("Couldn't record the payment", { description: "Try again in a moment." });
 			}
-		} catch (err) {
-			toast.error("Something went wrong", {
-				description: "An unexpected error occurred.",
-			});
+		} catch {
+			toast.error("Couldn't record the payment", { description: "Try again in a moment." });
 		} finally {
 			setIsSubmitting(false);
 		}
 	};
 
 	return (
-		<Dialog open={open} onOpenChange={onOpenChange}>
-			<DialogContent className="sm:max-w-[425px]" onKeyDown={(event) => handleEnterSubmit(event, handlePay)}>
-				<DialogHeader>
-					<DialogTitle>Pay future bills</DialogTitle>
-					<DialogDescription>Pick the upcoming bills you want to pay early.</DialogDescription>
-				</DialogHeader>
-
-				<div className="py-4 space-y-4">
-					<div className="border border-border rounded-md overflow-hidden">
-						<div className="grid grid-cols-2 bg-muted/50 p-2 text-xs font-medium text-muted-foreground">
-							<div>Due Date</div>
-							<div className="text-right">Amount</div>
+		<ControlBasedDialog
+			open={open}
+			onOpenChange={onOpenChange}
+			title="Pay bills early"
+			description={`Recorded today, ${formatFullDate(today)}${accountLabel ? `, from ${accountLabel}` : ""}.`}
+			className="sm:max-w-[440px]"
+			onEnterSubmit={handlePay}
+		>
+			{available === 0 ? (
+				<p className="type-body-sm py-6 text-center text-muted-foreground">
+					Nothing is due in the next {PAY_AHEAD_MONTHS} months.
+				</p>
+			) : (
+				<div className="flex flex-col gap-5 py-2">
+					<div className="flex items-center justify-between gap-4">
+						<div className="min-w-0">
+							<p id="early-count-label" className="type-label text-primary">
+								Bills to pay
+							</p>
+							<p className="type-body-xs text-muted-foreground">
+								Up to {available} in the next {PAY_AHEAD_MONTHS} months
+							</p>
 						</div>
-						<div className="max-h-[300px] overflow-y-auto">
-							{potentialBills.map((bill, i) => {
-								const isSelected = i < selectedCount;
-								return (
-									<div
-										key={i}
-										onClick={() => handleRowClick(i)}
-										className={cn(
-											"grid grid-cols-2 p-3 text-sm cursor-pointer transition-colors border-t border-border/50",
-											isSelected ? "bg-primary/10 hover:bg-primary/20" : "hover:bg-muted/50"
-										)}
-									>
-										<div className="flex items-center gap-2">
-											<div
-												className={cn(
-													"w-4 h-4 rounded-full border flex items-center justify-center transition-colors",
-													isSelected
-														? "bg-primary border-primary text-primary-foreground"
-														: "border-muted-foreground/30"
-												)}
-											>
-												{isSelected && <Check className="w-2.5 h-2.5" />}
-											</div>
-											<span className={cn(isSelected && "font-medium")}>{formatFullDate(bill.date)}</span>
-										</div>
-										<div className={cn("text-right", isSelected && "font-medium")}>
-											{formatMoney(bill.amount, { showCents: true })}
-										</div>
-									</div>
-								);
-							})}
+						<div
+							role="group"
+							aria-labelledby="early-count-label"
+							className="flex shrink-0 items-center rounded-full border border-border"
+						>
+							<Button
+								type="button"
+								variant="ghost"
+								size="icon"
+								className="h-11 w-11 rounded-full sm:h-9 sm:w-9"
+								onClick={() => setCount((n) => Math.max(1, n - 1))}
+								disabled={count <= 1}
+								aria-label="One fewer bill"
+							>
+								<Minus className="h-4 w-4" />
+							</Button>
+							<span className="type-value w-8 text-center tabular-nums text-primary" aria-live="polite">
+								{count}
+							</span>
+							<Button
+								type="button"
+								variant="ghost"
+								size="icon"
+								className="h-11 w-11 rounded-full sm:h-9 sm:w-9"
+								onClick={() => setCount((n) => Math.min(available, n + 1))}
+								disabled={count >= available}
+								aria-label="One more bill"
+							>
+								<Plus className="h-4 w-4" />
+							</Button>
 						</div>
 					</div>
 
-					{potentialBills.length === 0 ? (
-						<div className="text-center py-6 text-muted-foreground text-sm">No more bills due this month!</div>
-					) : (
-						selectedCount > 0 && (
-							<div className="rounded-md bg-muted/50 p-4 text-sm space-y-2 animate-in fade-in slide-in-from-top-1 duration-200 border border-border/50 shadow-sm mx-auto w-full max-w-[350px]">
-								<div className="flex justify-between items-center">
-									<span className="text-muted-foreground">Bills selected:</span>
-									<div className="flex items-center justify-center w-6 h-6 bg-background rounded-md border">
-										<span className="font-medium text-xs">{selectedCount}</span>
-									</div>
-								</div>
-								<div className="flex justify-between items-center">
-									<span className="text-muted-foreground">Total Amount:</span>
-									<span className="font-bold text-lg text-primary">
-										{formatMoney(totalAmount, { showCents: true })}
-									</span>
-								</div>
-								<div className="flex justify-between items-center pt-2 border-t border-border/50 mt-2">
-									<span className="text-muted-foreground">New Next Due Date:</span>
-									<span className="font-medium text-primary">{formatFullDate(nextDueDate)}</span>
-								</div>
+					<div className="rounded-2xl border border-border bg-card-muted/50 p-4">
+						<p className="type-body-xs text-muted-foreground">
+							{isLongRun ? `Covers ${covered.length} bills due from` : "Covers the bills due"}
+						</p>
+						{isLongRun ? (
+							<p
+								className="mt-2 flex flex-wrap items-center gap-1.5"
+								aria-label={`From ${formatFullDate(covered[0])} to ${formatFullDate(covered[covered.length - 1])}`}
+							>
+								<span className={CHIP_CLASS}>{formatFullDate(covered[0])}</span>
+								<ArrowRight className="h-3.5 w-3.5 text-muted-foreground" aria-hidden />
+								<span className={CHIP_CLASS}>{formatFullDate(covered[covered.length - 1])}</span>
+							</p>
+						) : (
+							<ul className="mt-2 flex flex-wrap gap-1.5" aria-label="Bills covered">
+								{covered.map((date) => (
+									<li key={date} className={CHIP_CLASS}>
+										{dueLabel(date)}
+									</li>
+								))}
+							</ul>
+						)}
+						<dl className="mt-4 grid grid-cols-2 gap-3 border-t border-border/60 pt-3">
+							<div>
+								<dt className="type-body-xs text-muted-foreground">Paid today</dt>
+								<dd className="type-value text-primary">{formatMoney(total, { showCents: true })}</dd>
 							</div>
-						)
-					)}
+							<div>
+								<dt className="type-body-xs text-muted-foreground">Next bill due</dt>
+								<dd className="type-body-sm mt-0.5 text-primary">{formatFullDate(plan.nextDue)}</dd>
+							</div>
+						</dl>
+					</div>
 				</div>
+			)}
 
-				<DialogFooter>
-					<Button variant="outline" onClick={() => onOpenChange(false)} disabled={isSubmitting}>
-						Cancel
-						<CancelShortcut />
-					</Button>
-					<Button onClick={handlePay} disabled={selectedCount === 0 || isSubmitting}>
-						{isSubmitting && <Loader2 className="mr-2 h-4 w-4 animate-spin" />}
-						Pay {selectedCount > 0 && formatMoney(totalAmount, { showCents: true })}
-						<SubmitShortcut />
-					</Button>
-				</DialogFooter>
-			</DialogContent>
-		</Dialog>
+			<DialogFooter>
+				<Button variant="outline" onClick={() => onOpenChange(false)} disabled={isSubmitting}>
+					Cancel
+					<CancelShortcut />
+				</Button>
+				<Button onClick={handlePay} disabled={available === 0 || isSubmitting}>
+					{isSubmitting && <Loader2 className="mr-2 h-4 w-4 animate-spin" />}
+					Pay {formatMoney(total, { showCents: true })}
+					<SubmitShortcut />
+				</Button>
+			</DialogFooter>
+		</ControlBasedDialog>
 	);
 }

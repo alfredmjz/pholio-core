@@ -63,3 +63,9 @@ export function sanitizeIntegerInput(value: string): string {
 	if (!value) return "";
 	return stripLeadingZeros(value.replace(/[^0-9]/g, ""));
 }
+
+/** Like sanitizeIntegerInput, for counts that start at 1: a lone 0 is dropped as well. */
+export function sanitizePositiveIntegerInput(value: string): string {
+	const digits = sanitizeIntegerInput(value);
+	return digits === "0" ? "" : digits;
+}

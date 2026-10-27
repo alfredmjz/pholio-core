@@ -220,7 +220,7 @@ async function syncRecurringExpenses(
 
 	const { data: existingTransactions } = await supabase
 		.from("transactions")
-		.select("id, recurring_expense_id, transaction_date, amount, name")
+		.select("id, recurring_expense_id, transaction_date, covers_due_date, amount, name, category_id")
 		.eq("user_id", userId)
 		.gte("transaction_date", startDate)
 		.lte("transaction_date", endDate)
@@ -486,11 +486,25 @@ async function syncRecurringExpenses(
 		if (customCategory) categoryIdByName.set(key, customCategory.id);
 	}
 
+	// A bill paid early, before this month's budget existed, was recorded without a category.
+	const idsByCategory = new Map<string, string[]>();
+	for (const transaction of existingTransactions || []) {
+		if (transaction.category_id) continue;
+		const expense = allRecurring.find((r) => r.id === transaction.recurring_expense_id);
+		const categoryId = expense ? categoryIdByName.get(resolveRecurringCategoryName(expense).toLowerCase()) : undefined;
+		if (categoryId) idsByCategory.set(categoryId, [...(idsByCategory.get(categoryId) ?? []), transaction.id]);
+	}
+	for (const [categoryId, ids] of Array.from(idsByCategory.entries())) {
+		const { error } = await supabase.from("transactions").update({ category_id: categoryId }).in("id", ids);
+		if (error) Logger.error("Error categorizing early recurring payments", { error });
+	}
+
 	const transactionsToCreate: Array<{
 		user_id: string;
 		name: string;
 		amount: number;
 		transaction_date: string;
+		covers_due_date: string;
 		category_id: string | null;
 		source: string;
 		recurring_expense_id: string;
@@ -499,7 +513,8 @@ async function syncRecurringExpenses(
 
 	const existingTransactionMap = new Map(
 		(existingTransactions || []).map((t) => {
-			const dateStr = t.transaction_date ? t.transaction_date.split("T")[0] : "";
+			const covered = t.covers_due_date ?? t.transaction_date;
+			const dateStr = covered ? covered.split("T")[0] : "";
 			return [`${t.recurring_expense_id}:${dateStr}`, t];
 		})
 	);
@@ -532,6 +547,7 @@ async function syncRecurringExpenses(
 				name: expense.name,
 				amount: -Math.abs(Number(expense.amount)),
 				transaction_date: dateStr,
+				covers_due_date: dateStr,
 				category_id: categoryIdByName.get(resolveRecurringCategoryName(expense).toLowerCase()) ?? null,
 				source: "recurring",
 				recurring_expense_id: expense.id,
@@ -693,14 +709,16 @@ async function syncRecurringExpenses(
 
 		const { data: missedExisting } = await supabase
 			.from("transactions")
-			.select("recurring_expense_id, transaction_date")
+			.select("recurring_expense_id, transaction_date, covers_due_date")
 			.eq("user_id", userId)
 			.gte("transaction_date", missedMonthStart)
 			.lte("transaction_date", missedMonthEnd)
 			.not("recurring_expense_id", "is", null);
 
 		const missedExistingKeys = new Set(
-			(missedExisting || []).map((t) => `${t.recurring_expense_id}:${t.transaction_date.split("T")[0]}`)
+			(missedExisting || []).map(
+				(t) => `${t.recurring_expense_id}:${(t.covers_due_date ?? t.transaction_date).split("T")[0]}`
+			)
 		);
 
 		const missedTransactions = items
@@ -710,6 +728,7 @@ async function syncRecurringExpenses(
 				name: item.expense.name,
 				amount: -Math.abs(Number(item.expense.amount)),
 				transaction_date: item.dateStr,
+				covers_due_date: item.dateStr,
 				category_id: missedCategoryIdByName.get(resolveRecurringCategoryName(item.expense).toLowerCase()) ?? null,
 				source: "recurring",
 				recurring_expense_id: item.expense.id,

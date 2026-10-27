@@ -35,7 +35,7 @@ export function RecurringAccountField({ id, value, onChange, accounts }: Recurri
 			<p className="type-body-xs text-muted-foreground">
 				{value === NO_ACCOUNT
 					? "Payments only go to your budget."
-					: "Each payment is also recorded on this account, so don't add it there by hand."}
+					: "Every payment is also recorded on this account and linked to it, so editing or deleting one updates both."}
 			</p>
 		</div>
 	);

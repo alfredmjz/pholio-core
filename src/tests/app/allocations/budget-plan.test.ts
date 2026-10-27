@@ -30,6 +30,16 @@ describe("buildBudgetPlan", () => {
 		expect(plan.remainder.fillPercent).toBe(6);
 	});
 
+	test("segments run from the biggest budget to the smallest, ties in category order", () => {
+		const plan = buildBudgetPlan(1000, [
+			{ id: "bills", name: "Bills", budget: 120, spent: 60 },
+			{ id: "test", name: "Test", budget: 123, spent: 66 },
+			{ id: "fun", name: "Fun", budget: 50, spent: 0 },
+			{ id: "gym", name: "Gym", budget: 50, spent: 0 },
+		]);
+		expect(plan.segments.map((s) => s.id)).toEqual(["test", "bills", "fun", "gym"]);
+	});
+
 	test("an over-allocated month scales the ribbon to the budgets", () => {
 		const plan = buildBudgetPlan(3000, [
 			{ id: "a", name: "A", budget: 2500, spent: 0 },

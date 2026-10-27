@@ -10,6 +10,7 @@ import { AddCategoryDialog } from "./AddCategoryDialog";
 import { ImportTemplateDialog } from "./ImportTemplateDialog";
 import { ExportDialog } from "./ExportDialog";
 import { SurfacePage } from "@/components/layout/surface-page";
+import { AllocationsContentSkeleton } from "./allocations-loading-skeleton";
 
 import type {
 	MonthYear,
@@ -26,6 +27,8 @@ interface AllocationsDashboardViewProps {
 	// Status
 	isConnected: boolean;
 	isRefetching: boolean;
+	/** A new month's data is on its way; the page below the header shows a skeleton until it lands. */
+	isChangingMonth?: boolean;
 
 	// Data
 	currentMonth: MonthYear;
@@ -80,6 +83,7 @@ interface AllocationsDashboardViewProps {
 export function AllocationsDashboardView({
 	isConnected,
 	isRefetching,
+	isChangingMonth = false,
 	currentMonth,
 	summary,
 	categories,
@@ -140,33 +144,39 @@ export function AllocationsDashboardView({
 				onImportTemplate={() => setTemplateDialogOpen(true)}
 			/>
 
-			<BudgetPlanCard
-				expectedIncome={summary.allocation.expected_income}
-				categories={categories}
-				contributions={contributions}
-				incomeVerification={incomeVerification}
-				allocationId={summary.allocation.id}
-			/>
+			{isChangingMonth ? (
+				<AllocationsContentSkeleton />
+			) : (
+				<>
+					<BudgetPlanCard
+						expectedIncome={summary.allocation.expected_income}
+						categories={categories}
+						contributions={contributions}
+						incomeVerification={incomeVerification}
+						allocationId={summary.allocation.id}
+					/>
 
-			<CategoryList
-				categories={categories}
-				onAddCategory={() => setAddCategoryDialogOpen(true)}
-				usedColors={usedColors}
-				usedNames={usedNames}
-				contributions={contributions}
-				year={currentMonth.year}
-				onContributionPlanChanged={onContributionsChanged}
-			/>
+					<CategoryList
+						categories={categories}
+						onAddCategory={() => setAddCategoryDialogOpen(true)}
+						usedColors={usedColors}
+						usedNames={usedNames}
+						contributions={contributions}
+						year={currentMonth.year}
+						onContributionPlanChanged={onContributionsChanged}
+					/>
 
-			<TransactionLedger
-				transactions={transactions}
-				categories={categories}
-				accounts={accounts}
-				externalTypeFilter={typeFilter}
-				onClearExternalFilter={() => onSetTypeFilter(null)}
-				onTransactionSuccess={onTransactionSuccess}
-				currentMonth={currentMonth}
-			/>
+					<TransactionLedger
+						transactions={transactions}
+						categories={categories}
+						accounts={accounts}
+						externalTypeFilter={typeFilter}
+						onClearExternalFilter={() => onSetTypeFilter(null)}
+						onTransactionSuccess={onTransactionSuccess}
+						currentMonth={currentMonth}
+					/>
+				</>
+			)}
 
 			<AddCategoryDialog
 				open={addCategoryDialogOpen}

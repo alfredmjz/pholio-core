@@ -1,6 +1,8 @@
 import { test, expect, expectNoHorizontalScroll, openDialog, uniqueName } from "@/e2e/fixtures";
 
 test("create an account and record a deposit", { tag: "@smoke" }, async ({ page }, testInfo) => {
+	// An account creation, a page load and a deposit: past the default 30s when the suite runs in parallel.
+	test.slow();
 	const accountName = uniqueName("E2E Chequing", testInfo.project.name);
 
 	await page.goto("/accounts");

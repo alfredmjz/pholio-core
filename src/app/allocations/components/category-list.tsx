@@ -1,5 +1,6 @@
 "use client";
 
+import { useState } from "react";
 import { toast } from "sonner";
 import { Plus } from "lucide-react";
 import {
@@ -23,7 +24,6 @@ import { Button } from "@/components/ui/button";
 import { SurfaceSection } from "@/components/layout/surface-section";
 import { cn } from "@/lib/utils";
 import type { AllocationContributions } from "@/lib/types/contribution";
-import { reorderCategories } from "../actions";
 import { useAllocationContext } from "../context/AllocationContext";
 import type { AllocationCategory } from "../types";
 import { VIRTUAL_UNCATEGORIZED_ID } from "../types";
@@ -51,13 +51,17 @@ export function CategoryList({
 	year,
 	onContributionPlanChanged,
 }: CategoryListProps) {
-	const { optimisticallyReorderCategories } = useAllocationContext();
+	const { saveCategoryOrder } = useAllocationContext();
 
 	const isUncategorized = (cat: AllocationCategory) =>
 		cat.id === VIRTUAL_UNCATEGORIZED_ID || cat.name.toLowerCase() === "uncategorized";
 	const budgeted = categories.filter((cat) => !isUncategorized(cat));
 	const uncategorized = categories.find(isUncategorized);
 	const uncategorizedRow = uncategorized ? { ...uncategorized, id: VIRTUAL_UNCATEGORIZED_ID } : null;
+
+	// How many times each row has been dropped; a row's bar wiggles in place when its own count
+	// goes up. Counts are per row so dropping one row never changes another's.
+	const [dropCounts, setDropCounts] = useState<Record<string, number>>({});
 
 	const sensors = useSensors(
 		useSensor(MouseSensor, { activationConstraint: { distance: 4 } }),
@@ -66,14 +70,15 @@ export function CategoryList({
 	);
 
 	const handleDragEnd = ({ active, over }: DragEndEvent) => {
-		if (!over || active.id === over.id) return;
+		if (!over) return;
+		const id = String(active.id);
+		setDropCounts((prev) => ({ ...prev, [id]: (prev[id] ?? 0) + 1 }));
+		if (active.id === over.id) return;
 		const oldIndex = categories.findIndex((c) => c.id === active.id);
 		const newIndex = categories.findIndex((c) => c.id === over.id);
 		if (oldIndex === -1 || newIndex === -1) return;
 
-		const newOrder = arrayMove(categories, oldIndex, newIndex);
-		optimisticallyReorderCategories(newOrder);
-		reorderCategories(newOrder.map((cat, index) => ({ id: cat.id, display_order: index }))).then((success) => {
+		saveCategoryOrder(arrayMove(categories, oldIndex, newIndex)).then((success) => {
 			if (!success) toast.error("Couldn't save the new order", { description: "Try dragging it again." });
 		});
 	};
@@ -92,13 +97,14 @@ export function CategoryList({
 		takenPlans: takenPlansFor(category.id),
 		year,
 		onContributionPlanChanged,
+		dropCount: dropCounts[category.id] ?? 0,
 	});
 
 	return (
 		<SurfaceSection
 			id="categories-heading"
 			title="Categories"
-			note={budgeted.length > 1 ? "Drag the handle to reorder. Select a row to edit it." : undefined}
+			note={budgeted.length > 1 ? "Drag the handle to reorder. Use the pencil to edit one." : undefined}
 			headerActions={
 				<Button variant="outline" size="sm" onClick={onAddCategory} className="h-9 gap-1.5 rounded-full px-3.5">
 					<Plus className="h-4 w-4" aria-hidden />

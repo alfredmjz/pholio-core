@@ -1,11 +1,12 @@
 "use client";
 
 import { createContext, useContext, ReactNode } from "react";
-import type { AllocationSummary } from "../types";
+import type { AllocationCategory, AllocationSummary } from "../types";
 
 interface AllocationContextValue {
 	optimisticallyReorderCategories: (newCategories: any[]) => void;
 	rollback: (previousSummary: AllocationSummary) => void;
+	saveCategoryOrder: (newCategories: AllocationCategory[]) => Promise<boolean>;
 }
 
 const AllocationContext = createContext<AllocationContextValue | null>(null);

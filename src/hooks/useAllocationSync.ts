@@ -3,7 +3,7 @@
 import { useEffect, useRef, useState } from "react";
 import { supabase } from "@/lib/supabase/client";
 import type { AllocationSummary, Transaction, AllocationCategory } from "@/app/allocations/types";
-import { getAllocationSummary, getTransactionsForMonth } from "@/app/allocations/actions";
+import { getAllocationSummary, getTransactionsForMonth, reorderCategories } from "@/app/allocations/actions";
 import { toast } from "sonner";
 import { useOptimisticAllocation } from "./useOptimisticAllocation";
 
@@ -14,7 +14,14 @@ interface UseAllocationSyncReturn {
 	isRefetching: boolean;
 	optimisticallyReorderCategories: (newCategories: AllocationCategory[]) => void;
 	rollback: (previousSummary: AllocationSummary) => void;
+	/** Shows the new order at once and saves it; resolves to whether the save worked. */
+	saveCategoryOrder: (newCategories: AllocationCategory[]) => Promise<boolean>;
 }
+
+/** Coming back to the tab refetches only when the data is older than this. */
+const FOCUS_REFRESH_MS = 60_000;
+
+const sameData = (a: unknown, b: unknown) => JSON.stringify(a) === JSON.stringify(b);
 
 /**
  * Custom hook for Realtime synchronization of allocation data
@@ -46,9 +53,22 @@ export function useAllocationSync(
 
 	const refetchTimeoutRef = useRef<NodeJS.Timeout | null>(null);
 	const hasShownDisconnectToast = useRef(false);
+	const summaryRef = useRef(summary);
+	summaryRef.current = summary;
+	const transactionsRef = useRef(transactions);
+	transactionsRef.current = transactions;
+	const lastFetchedAt = useRef(Date.now());
+	// While a reorder saves, each row's update fires a Realtime event; a refetch then would show
+	// the rows half saved and swap them back. Refetches wait and run once the save is done.
+	const savesInFlight = useRef(0);
+	const refetchWaiting = useRef(false);
 
 	// Debounced refetch function to prevent excessive refetches
 	const scheduleRefetch = () => {
+		if (savesInFlight.current > 0) {
+			refetchWaiting.current = true;
+			return;
+		}
 		if (refetchTimeoutRef.current) {
 			clearTimeout(refetchTimeoutRef.current);
 		}
@@ -63,8 +83,10 @@ export function useAllocationSync(
 					getTransactionsForMonth(year, month),
 				]);
 
-				if (freshSummary) syncWithServer(freshSummary);
-				setTransactions(freshTransactions);
+				lastFetchedAt.current = Date.now();
+				// Unchanged data is not applied, so nothing on the page re-renders or re-animates.
+				if (freshSummary && !sameData(freshSummary, summaryRef.current)) syncWithServer(freshSummary);
+				if (!sameData(freshTransactions, transactionsRef.current)) setTransactions(freshTransactions);
 			} catch (error) {
 				const errorMessage = error instanceof Error ? error.message : "Connection or server error.";
 				toast.error("Sync Failed", {
@@ -78,9 +100,25 @@ export function useAllocationSync(
 
 	// Update state when initial props change (e.g., month navigation)
 	useEffect(() => {
-		if (initialSummary) syncWithServer(initialSummary);
-		setTransactions(initialTransactions);
+		lastFetchedAt.current = Date.now();
+		if (initialSummary && !sameData(initialSummary, summaryRef.current)) syncWithServer(initialSummary);
+		if (!sameData(initialTransactions, transactionsRef.current)) setTransactions(initialTransactions);
 	}, [initialSummary, initialTransactions, syncWithServer]);
+
+	const saveCategoryOrder = async (newCategories: AllocationCategory[]) => {
+		const ordered = newCategories.map((category, index) => ({ ...category, display_order: index }));
+		optimisticallyReorderCategories(ordered);
+		savesInFlight.current += 1;
+		try {
+			return await reorderCategories(ordered.map(({ id, display_order }) => ({ id, display_order })));
+		} finally {
+			savesInFlight.current -= 1;
+			if (savesInFlight.current === 0 && refetchWaiting.current) {
+				refetchWaiting.current = false;
+				scheduleRefetch();
+			}
+		}
+	};
 
 	// Subscribe to Realtime changes
 	useEffect(() => {
@@ -147,7 +185,9 @@ export function useAllocationSync(
 		// Refetch when the tab regains focus so changes made elsewhere (for example
 		// deleting an account, which nulls the linked account transaction) show up.
 		const handleFocus = () => {
-			if (document.visibilityState === "visible") scheduleRefetch();
+			if (document.visibilityState === "visible" && Date.now() - lastFetchedAt.current >= FOCUS_REFRESH_MS) {
+				scheduleRefetch();
+			}
 		};
 		window.addEventListener("focus", handleFocus);
 		document.addEventListener("visibilitychange", handleFocus);
@@ -172,5 +212,6 @@ export function useAllocationSync(
 		isRefetching,
 		optimisticallyReorderCategories,
 		rollback,
+		saveCategoryOrder,
 	};
 }

@@ -1,10 +1,17 @@
 "use client";
 
 import * as React from "react";
-import { ChevronLeft, ChevronRight, Calendar as CalendarIcon } from "lucide-react";
+import { ChevronDownIcon, ChevronLeft, ChevronRight, Calendar as CalendarIcon } from "lucide-react";
 import { cn } from "@/lib/utils";
 import { Button } from "@/components/ui/button";
 import { Popover, PopoverContent, PopoverTrigger } from "@/components/ui/popover";
+import {
+	CALENDAR_MONTH_NAMES,
+	CALENDAR_NAV_BUTTON,
+	CALENDAR_YEARS_PER_PAGE,
+	CalendarCaptionButton,
+	CalendarGridOption,
+} from "@/components/ui/calendar";
 import { formatMonthYear } from "@/lib/date-utils";
 
 interface MonthPickerProps {
@@ -14,10 +21,15 @@ interface MonthPickerProps {
 	className?: string;
 	align?: "center" | "start" | "end";
 	customLabel?: React.ReactNode;
+	/** Names the trigger when it shows only an icon. */
+	ariaLabel?: string;
 }
 
-const MONTH_NAMES = ["Jan", "Feb", "Mar", "Apr", "May", "Jun", "Jul", "Aug", "Sep", "Oct", "Nov", "Dec"];
-
+/**
+ * Picks a month, in the same style as the date picker's month grid: the year reads left with the
+ * arrows beside it, months are round, the picked one is filled with ink and this month is marked
+ * in the accent colour. The year opens a grid of years.
+ */
 export function MonthPicker({
 	date,
 	setDate,
@@ -25,28 +37,35 @@ export function MonthPicker({
 	className,
 	align = "start",
 	customLabel,
+	ariaLabel,
 }: MonthPickerProps) {
-	const [viewYear, setViewYear] = React.useState<number>(new Date().getFullYear());
 	const [isOpen, setIsOpen] = React.useState(false);
+	const [viewYear, setViewYear] = React.useState<number>(date?.getFullYear() ?? new Date().getFullYear());
+	const [view, setView] = React.useState<"months" | "years">("months");
+	const [yearPageStart, setYearPageStart] = React.useState(viewYear - 3);
+	const today = new Date();
 
 	React.useEffect(() => {
-		if (date) {
-			setViewYear(date.getFullYear());
+		if (isOpen) {
+			setViewYear(date?.getFullYear() ?? today.getFullYear());
+			setView("months");
 		}
-	}, [date, isOpen]);
+	}, [isOpen]);
 
-	const handleMonthSelect = (monthIndex: number) => {
-		// Create new date at 1st of month
-		const newDate = new Date(viewYear, monthIndex, 1);
-		setDate(newDate);
-		setIsOpen(false);
+	const openYears = () => {
+		// The shown year sits in the second row, with earlier and later years around it.
+		setYearPageStart(viewYear - 3);
+		setView("years");
 	};
+
+	const isMonths = view === "months";
 
 	return (
 		<Popover open={isOpen} onOpenChange={setIsOpen}>
 			<PopoverTrigger asChild>
 				<Button
 					variant={"outline"}
+					aria-label={ariaLabel}
 					className={cn(
 						"w-full justify-start text-left font-normal transform-none transition-none",
 						!date && "text-primary",
@@ -57,39 +76,85 @@ export function MonthPicker({
 					{customLabel ? customLabel : date ? formatMonthYear(date) : <span>{placeholder}</span>}
 				</Button>
 			</PopoverTrigger>
-			<PopoverContent className="w-64 p-3" align={align}>
-				{/* Year Navigation */}
-				<div className="flex items-center justify-between mb-2">
-					<Button variant="ghost" size="icon" className="h-7 w-7" onClick={() => setViewYear(viewYear - 1)}>
-						<ChevronLeft className="h-4 w-4" />
-					</Button>
-					<span className="font-semibold">{viewYear}</span>
-					<Button variant="ghost" size="icon" className="h-7 w-7" onClick={() => setViewYear(viewYear + 1)}>
-						<ChevronRight className="h-4 w-4" />
-					</Button>
-				</div>
-
-				{/* Month Grid */}
-				<div className="grid grid-cols-3 gap-2">
-					{MONTH_NAMES.map((month, index) => {
-						const isSelected = date?.getFullYear() === viewYear && date?.getMonth() === index;
-						const isCurrentMonth = new Date().getFullYear() === viewYear && new Date().getMonth() === index;
-
-						return (
-							<Button
-								key={month}
-								variant={isSelected ? "default" : "outline"}
-								size="sm"
-								className={cn(
-									"h-9 text-xs",
-									!isSelected && isCurrentMonth && "border-primary/50 text-primary font-semibold"
-								)}
-								onClick={() => handleMonthSelect(index)}
+			<PopoverContent className="w-auto rounded-2xl p-1" align={align}>
+				<div className="flex w-[17.25rem] flex-col p-3 [--cell-size:2.25rem]">
+					<div className="flex h-[--cell-size] items-center justify-between pl-1">
+						{isMonths ? (
+							<CalendarCaptionButton onClick={openYears} label={`Choose year, ${viewYear}`}>
+								{viewYear}
+							</CalendarCaptionButton>
+						) : (
+							<button
+								type="button"
+								onClick={() => setView("months")}
+								className="type-body flex h-8 items-center gap-1 rounded-full px-2 font-semibold text-primary transition-colors hover:bg-primary/[0.05] focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring"
+								aria-label="Back to months"
 							>
-								{month}
+								{yearPageStart} – {yearPageStart + CALENDAR_YEARS_PER_PAGE - 1}
+								<ChevronDownIcon className="size-3.5 rotate-180 text-muted-foreground" aria-hidden />
+							</button>
+						)}
+						<div className="flex items-center gap-0.5">
+							<Button
+								type="button"
+								variant="ghost"
+								className={CALENDAR_NAV_BUTTON}
+								onClick={() =>
+									isMonths ? setViewYear(viewYear - 1) : setYearPageStart(yearPageStart - CALENDAR_YEARS_PER_PAGE)
+								}
+								aria-label={isMonths ? "Previous year" : "Earlier years"}
+							>
+								<ChevronLeft className="size-4" />
 							</Button>
-						);
-					})}
+							<Button
+								type="button"
+								variant="ghost"
+								className={CALENDAR_NAV_BUTTON}
+								onClick={() =>
+									isMonths ? setViewYear(viewYear + 1) : setYearPageStart(yearPageStart + CALENDAR_YEARS_PER_PAGE)
+								}
+								aria-label={isMonths ? "Next year" : "Later years"}
+							>
+								<ChevronRight className="size-4" />
+							</Button>
+						</div>
+					</div>
+
+					<div
+						className="mt-3 grid grid-cols-3 gap-x-1.5 gap-y-2"
+						role="group"
+						aria-label={isMonths ? `Months of ${viewYear}` : "Years"}
+					>
+						{isMonths
+							? CALENDAR_MONTH_NAMES.map((name, index) => (
+									<CalendarGridOption
+										key={name}
+										isCurrent={date?.getFullYear() === viewYear && date?.getMonth() === index}
+										isNow={viewYear === today.getFullYear() && index === today.getMonth()}
+										disabled={false}
+										onClick={() => {
+											setDate(new Date(viewYear, index, 1));
+											setIsOpen(false);
+										}}
+									>
+										{name}
+									</CalendarGridOption>
+								))
+							: Array.from({ length: CALENDAR_YEARS_PER_PAGE }, (_, i) => yearPageStart + i).map((year) => (
+									<CalendarGridOption
+										key={year}
+										isCurrent={year === viewYear}
+										isNow={year === today.getFullYear()}
+										disabled={false}
+										onClick={() => {
+											setViewYear(year);
+											setView("months");
+										}}
+									>
+										{year}
+									</CalendarGridOption>
+								))}
+					</div>
 				</div>
 			</PopoverContent>
 		</Popover>

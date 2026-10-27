@@ -409,4 +409,12 @@ function CalendarDayButton({ className, day, modifiers, ...props }: ComponentPro
 	);
 }
 
-export { Calendar, CalendarDayButton };
+export {
+	Calendar,
+	CalendarDayButton,
+	CaptionButton as CalendarCaptionButton,
+	GridOption as CalendarGridOption,
+	MONTH_NAMES as CALENDAR_MONTH_NAMES,
+	NAV_BUTTON as CALENDAR_NAV_BUTTON,
+	YEARS_PER_PAGE as CALENDAR_YEARS_PER_PAGE,
+};

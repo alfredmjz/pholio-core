@@ -22,7 +22,7 @@ import {
 import { AutocompleteInput } from "@/components/ui/autocomplete-input";
 import { VIRTUAL_UNCATEGORIZED_ID } from "../types";
 import type { Transaction, AllocationCategory } from "../types";
-import { getLinkedAccountIds, getTransferAccountIds } from "../utils/transfer-accounts";
+import { accountBeforeSavedRow, getLinkedAccountIds, getTransferAccountIds } from "../utils/transfer-accounts";
 import { accountHref } from "@/lib/account-links";
 import type { AccountWithType } from "@/app/accounts/types";
 import { FormSection } from "@/components/FormSection";
@@ -34,6 +34,7 @@ import { getTodayDateString } from "@/lib/date-utils";
 import { formatAccountDisplayName, sortAccounts } from "@/lib/account-utils";
 import { sortAlphabetically } from "@/lib/sort-utils";
 import { checkTransactionCaps } from "@/lib/account-validation-utils";
+import { CapWarning } from "@/components/dialogs/cap-warning";
 import {
 	AlertDialog,
 	AlertDialogAction,
@@ -109,14 +110,17 @@ export function TransactionDialog({
 
 	const [allowOverpayment, setAllowOverpayment] = useState(false);
 
+	// An edit is capped against the balance without the row's own amount. A recurring payment is
+	// never capped: it posts whatever the balance, like the bill it records.
+	const findAccount = (id: string) => accountBeforeSavedRow(accounts.find((a) => a.id === id), transaction);
 	const capCheck =
-		amount && parseFloat(amount) > 0
+		amount && parseFloat(amount) > 0 && !transaction?.recurring_expense_id
 			? checkTransactionCaps({
 					intent: type,
 					amount: parseFloat(amount),
-					account: type === "transfer" ? null : accounts.find((a) => a.id === accountId),
-					fromAccount: type === "transfer" ? accounts.find((a) => a.id === fromAccountId) : null,
-					toAccount: type === "transfer" ? accounts.find((a) => a.id === toAccountId) : null,
+					account: type === "transfer" ? null : findAccount(accountId),
+					fromAccount: type === "transfer" ? findAccount(fromAccountId) : null,
+					toAccount: type === "transfer" ? findAccount(toAccountId) : null,
 				})
 			: { isValid: true, violations: [] as ReturnType<typeof checkTransactionCaps>["violations"] };
 
@@ -308,37 +312,16 @@ export function TransactionDialog({
 						<ProminentAmountInput id="amount" value={amount} onChange={setAmount} hasError={false} />
 					</div>
 
-					{!capCheck.isValid && (
-						<div className="flex flex-col gap-2 rounded-lg border border-warning/30 bg-warning-muted p-2.5 text-warning">
-							<div className="flex items-start gap-1.5">
-								<Info className="mt-0.5 h-4 w-4 shrink-0" />
-								<span className="text-xs">{firstViolation?.message}</span>
-							</div>
-							<div className="flex items-center justify-between border-t border-warning/20 pt-1">
-								{maxAllowed !== undefined && (
-									<Button
-										type="button"
-										variant="outline"
-										size="sm"
-										className="h-7 border-warning/40 text-xs font-medium text-warning hover:bg-warning/15"
-										onClick={() => setAmount(maxAllowed.toFixed(2))}
-									>
-										Use the most allowed (${maxAllowed.toFixed(2)})
-									</Button>
-								)}
-								{overridable && (
-									<label className="flex cursor-pointer items-center gap-1.5 type-caption">
-										<input
-											type="checkbox"
-											checked={allowOverpayment}
-											onChange={(e) => setAllowOverpayment(e.target.checked)}
-											className="rounded border-warning/60 accent-[hsl(var(--warning))]"
-										/>
-										Allow overpayment
-									</label>
-								)}
-							</div>
-						</div>
+					{!capCheck.isValid && firstViolation && (
+						<CapWarning
+							message={firstViolation.message}
+							maxAllowed={maxAllowed}
+							onUseMax={(max) => setAmount(max.toFixed(2))}
+							overridable={overridable}
+							allowOverpayment={allowOverpayment}
+							onAllowOverpaymentChange={setAllowOverpayment}
+							id="edit-allow-overpayment"
+						/>
 					)}
 
 					{type === "transfer" ? (

@@ -51,7 +51,6 @@ export default async function SettingsPage() {
 		<SurfacePage className="max-w-[1080px]">
 			<header>
 				<h1 className="type-h2 text-primary">Settings</h1>
-				<p className="type-body mt-1 text-muted-foreground">Your profile, preferences and data.</p>
 			</header>
 
 			<div className="xl:grid xl:grid-cols-[180px_minmax(0,1fr)] xl:gap-10">

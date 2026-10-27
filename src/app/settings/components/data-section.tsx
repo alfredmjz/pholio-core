@@ -75,14 +75,13 @@ export function DataSection({ isSampleData }: { isSampleData: boolean }) {
 		<SettingsSection
 			id="data"
 			title="Your data"
-			note="Download a copy of what you've saved, start over, or delete your account."
 		>
 			<SettingRow
 				label="Export"
 				description={
 					isSampleData
 						? "Exports and resets are off while you're using sample data."
-						: "One CSV file with your accounts, account activity, budget transactions and recurring items, one table after another."
+						: "One CSV file of everything you've saved."
 				}
 			>
 				<Button

@@ -30,7 +30,7 @@ export function BudgetingSection({ newMonthDefault, defaultTemplateId, templates
 	);
 
 	return (
-		<SettingsSection id="budgeting" title="Budgeting" note="How Allocations sets up a month without a budget.">
+		<SettingsSection id="budgeting" title="Budgeting">
 			<SettingRow
 				label="New month"
 				htmlFor="newMonthDefault"
@@ -58,9 +58,7 @@ export function BudgetingSection({ newMonthDefault, defaultTemplateId, templates
 				label="Default template"
 				htmlFor="defaultTemplate"
 				description={
-					templates.length === 0
-						? "Save a month as a template in Allocations to choose one here."
-						: "Used when a new month starts from a template."
+					templates.length === 0 ? "Save a month as a template in Allocations to choose one here." : undefined
 				}
 			>
 				<Select value={templateId} onValueChange={setTemplateId} disabled={savingTemplate || templates.length === 0}>

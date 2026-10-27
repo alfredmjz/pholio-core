@@ -53,7 +53,7 @@ export function ProfileSection({ profile, email }: ProfileSectionProps) {
 	};
 
 	return (
-		<SettingsSection id="profile" title="Profile" note="How you appear in Pholio.">
+		<SettingsSection id="profile" title="Profile">
 			<div className="flex items-center gap-4 pb-4">
 				<ProfileAvatarUpload currentAvatarUrl={profile.avatar_url} currentInitials={initialsFor(savedName, email)} />
 				<div className="min-w-0">
@@ -64,7 +64,7 @@ export function ProfileSection({ profile, email }: ProfileSectionProps) {
 				</div>
 			</div>
 
-			<SettingRow label="Name" htmlFor="fullName" description="Shown in the sidebar and greetings.">
+			<SettingRow label="Name" htmlFor="fullName">
 				<form onSubmit={save} className="flex w-full items-center gap-2 row-wide:w-80">
 					<Input
 						id="fullName"

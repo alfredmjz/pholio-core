@@ -17,6 +17,8 @@ test("a bill paid from an account links its payment across pages", { tag: "@smok
 	await addAccount.getByRole("button", { name: /Continue/ }).click();
 	await addAccount.getByRole("button", { name: /Create Account/ }).click();
 	await expect(page.getByText("Account created successfully")).toBeVisible();
+	// The page refreshes itself after a save; leaving before that ends interrupts the next goto.
+	await page.waitForLoadState("networkidle");
 
 	// A manual bill due today, paid from the new account.
 	await page.goto("/recurring");

@@ -55,6 +55,7 @@ export function useAllocationSync(
 	const onRefetchedRef = useRef(onRefetched);
 	onRefetchedRef.current = onRefetched;
 	const lastFetchedAt = useRef(Date.now());
+	const isFetching = useRef(false);
 
 	// Update state when initial props change (e.g., month navigation, or a save on the page)
 	useEffect(() => {
@@ -72,6 +73,7 @@ export function useAllocationSync(
 
 			// focus and visibilitychange fire together; the debounce sends one request
 			refetchTimeoutRef.current = setTimeout(async () => {
+				isFetching.current = true;
 				setIsRefetching(true);
 				try {
 					const fresh = await getAllocationPageData(allocationId || null, year, month);
@@ -89,13 +91,19 @@ export function useAllocationSync(
 						description: `Failed to refresh your budget data. ${errorMessage}`,
 					});
 				} finally {
+					isFetching.current = false;
 					setIsRefetching(false);
 				}
 			}, 300);
 		};
 
 		const handleFocus = () => {
-			if (document.visibilityState === "visible" && Date.now() - lastFetchedAt.current >= FOCUS_REFRESH_MS) {
+			// lastFetchedAt only moves when a response arrives, so skip while a refetch is in flight.
+			if (
+				document.visibilityState === "visible" &&
+				!isFetching.current &&
+				Date.now() - lastFetchedAt.current >= FOCUS_REFRESH_MS
+			) {
 				refetch();
 			}
 		};

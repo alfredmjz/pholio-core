@@ -12,6 +12,14 @@ export interface ChangelogEntry {
 /** What's new in Pholio, newest first. Every user-facing release adds an entry at the top. */
 export const CHANGELOG: ChangelogEntry[] = [
 	{
+		id: "2026-10-weather-behind-text",
+		date: "2026-10-28",
+		title: "The weather runs behind your numbers",
+		items: [
+			"The background weather now flows behind headings, totals, budget bars and charts, instead of stopping around them. It fades softly under words so they stay easy to read.",
+		],
+	},
+	{
 		id: "2026-10-account-links",
 		date: "2026-10-27",
 		title: "Accounts, bills and transactions now connect",

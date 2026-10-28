@@ -2,7 +2,7 @@ import { createRandom } from "@/components/common/ledger-field";
 import { CELL_H, CELL_W, nearPointer, noise, type SceneFrame } from "./scene";
 
 const RAMP = [".", "-", "-", "=", "=", "~", "+"];
-/** How close to content, in pixels, a cloud starts to part around it. */
+/** How close to a sheet, in pixels, a cloud starts to part around it. */
 const FLOW_RADIUS = 36;
 
 interface Puff {

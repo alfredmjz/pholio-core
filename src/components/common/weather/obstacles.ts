@@ -1,10 +1,12 @@
 /**
- * Where the page's content sits, so the weather can flow around it instead of across it.
+ * Where the page's sheets sit, so the weather can flow around them instead of across them.
  *
- * Cards, buttons, inputs, small graphics and every line of text are read from the layout, padded
- * a little, and drawn into a coarse grid. A distance field over that grid tells clouds and debris
- * how close the nearest content is and which way is clear. The tops of those boxes, and the lines
- * drawn in charts, are also kept as surfaces that rain lands and splashes on.
+ * Sheets have their own background; everything else (text, buttons, graphs) sits straight on the
+ * backdrop and the weather runs behind it, fading softly under each line of text so the words stay
+ * readable. Sheets are read from the layout, padded a little, and drawn into a coarse grid. A
+ * distance field over that grid tells clouds and debris how close the nearest sheet is and which
+ * way is clear. The tops of sheets, and the lines drawn in charts, are also kept as surfaces that
+ * rain lands and splashes on.
  */
 
 export interface Rect {
@@ -21,30 +23,24 @@ export interface Point {
 
 export interface Obstacles {
 	rects: Rect[];
+	/** Lines of text outside sheets. */
+	halos: Rect[];
 	/** Lines drawn in charts, as points in the canvas's coordinates. */
 	lines: Point[][];
 }
-
-const ELEMENTS = [
-	".surface-sheet",
-	"button",
-	"a[href]",
-	"input",
-	"select",
-	"textarea",
-	"svg",
-	"img",
-	"[role='progressbar']",
-	".progress-line",
-].join(",");
 
 const CHART_SIZE = 120;
 /** Pixels between samples along a chart line. */
 const LINE_SAMPLE = 6;
 /** Width of the columns rain checks for a surface to land on. */
 const LANDING_STEP = 3;
-const TEXT_PADDING = 6;
-const ELEMENT_PADDING = 4;
+const SHEET_PADDING = 4;
+/** Rings around a line of text, outermost first: how far each reaches and how much of the weather it takes away. */
+const HALO_RINGS = [
+	{ padding: 7, fade: 0.35 },
+	{ padding: 3, fade: 0.4 },
+	{ padding: 0, fade: 0.45 },
+];
 const CELL = 8;
 const FAR = 1e6;
 
@@ -88,15 +84,16 @@ function chartLines(svg: SVGSVGElement, origin: DOMRect): Point[][] {
 	return lines;
 }
 
-/** Content in the canvas's coordinates: padded boxes (content inside a card is covered by the card) and chart lines. */
+/** Sheets as padded boxes, lines of text and chart lines outside sheets, in the canvas's coordinates. */
 export function collectObstacles(root: Element, origin: DOMRect): Obstacles {
 	const rects: Rect[] = [];
+	const halos: Rect[] = [];
 	const lines: Point[][] = [];
-	const add = (rect: DOMRect, padding: number) => {
+	const add = (to: Rect[], rect: DOMRect, padding: number) => {
 		if (rect.width < 1 || rect.height < 1) return;
 		if (rect.bottom < origin.top || rect.top > origin.bottom || rect.right < origin.left || rect.left > origin.right)
 			return;
-		rects.push({
+		to.push({
 			x: rect.left - origin.left - padding,
 			y: rect.top - origin.top - padding,
 			w: rect.width + padding * 2,
@@ -104,39 +101,39 @@ export function collectObstacles(root: Element, origin: DOMRect): Obstacles {
 		});
 	};
 
-	root.querySelectorAll(ELEMENTS).forEach((element) => {
-		if (inside(element, ".surface-sheet")) return;
-		const rect = element.getBoundingClientRect();
-		// A chart is mostly empty space around a thin line: only the line itself is a surface.
-		if (element.tagName.toLowerCase() === "svg" && rect.width > CHART_SIZE && rect.height > CHART_SIZE) {
-			lines.push(...chartLines(element as SVGSVGElement, origin));
-			return;
-		}
-		add(rect, ELEMENT_PADDING);
+	root.querySelectorAll(".surface-sheet").forEach((sheet) => {
+		if (!inside(sheet, ".surface-sheet")) add(rects, sheet.getBoundingClientRect(), SHEET_PADDING);
 	});
 
 	const walker = document.createTreeWalker(root, NodeFilter.SHOW_TEXT);
 	const range = document.createRange();
 	for (let node = walker.nextNode(); node; node = walker.nextNode()) {
-		if (!node.textContent?.trim()) continue;
-		const parent = node.parentElement;
-		if (!parent || parent.closest(".surface-sheet") || parent.closest(ELEMENTS)) continue;
+		if (!node.textContent?.trim() || node.parentElement?.closest(".surface-sheet")) continue;
 		range.selectNodeContents(node);
-		for (const rect of Array.from(range.getClientRects())) add(rect, TEXT_PADDING);
+		for (const rect of Array.from(range.getClientRects())) add(halos, rect, 0);
 	}
-	return { rects, lines };
+
+	// A chart is mostly empty space around a thin line: only the line itself is a surface.
+	root.querySelectorAll<SVGSVGElement>("svg").forEach((svg) => {
+		if (inside(svg, ".surface-sheet")) return;
+		const rect = svg.getBoundingClientRect();
+		if (rect.width > CHART_SIZE && rect.height > CHART_SIZE) lines.push(...chartLines(svg, origin));
+	});
+	return { rects, halos, lines };
 }
 
 export class ObstacleField {
 	rects: Rect[] = [];
+	halos: Rect[] = [];
 	private cols = 0;
 	private rows = 0;
 	private distance = new Float32Array(0);
 	/** For each narrow column of the page, the heights of the surfaces in it. */
 	private landings: number[][] = [];
 
-	update({ rects, lines }: Obstacles, width: number, height: number) {
+	update({ rects, halos, lines }: Obstacles, width: number, height: number) {
 		this.rects = rects;
+		this.halos = halos;
 		this.buildLandings(rects, lines, width);
 		this.cols = Math.ceil(width / CELL) + 1;
 		this.rows = Math.ceil(height / CELL) + 1;
@@ -209,7 +206,7 @@ export class ObstacleField {
 		return first;
 	}
 
-	/** Pixels to the nearest content; 0 inside it. Far away (or before the first update) is a large number. */
+	/** Pixels to the nearest sheet; 0 inside it. Far away (or before the first update) is a large number. */
 	distanceAt(x: number, y: number): number {
 		if (this.cols === 0) return FAR;
 		const col = Math.min(this.cols - 1, Math.max(0, Math.round(x / CELL)));
@@ -217,7 +214,7 @@ export class ObstacleField {
 		return Math.min(FAR, this.distance[row * this.cols + col] * CELL);
 	}
 
-	/** The direction away from the nearest content, as a unit vector (0, 0 when nothing is near). */
+	/** The direction away from the nearest sheet, as a unit vector (0, 0 when nothing is near). */
 	awayFrom(x: number, y: number): { x: number; y: number } {
 		const gx = this.distanceAt(x + CELL, y) - this.distanceAt(x - CELL, y);
 		const gy = this.distanceAt(x, y + CELL) - this.distanceAt(x, y - CELL);
@@ -225,15 +222,24 @@ export class ObstacleField {
 		return length > 0 ? { x: gx / length, y: gy / length } : { x: 0, y: 0 };
 	}
 
-	/** Wipes anything drawn over content, so the weather never sits on top of words. */
+	/** Wipes anything drawn over sheets, which have their own background, and fades it under text. */
 	clear(context: CanvasRenderingContext2D) {
-		if (this.rects.length === 0) return;
+		if (this.rects.length === 0 && this.halos.length === 0) return;
 		context.save();
 		context.globalAlpha = 1;
 		context.globalCompositeOperation = "destination-out";
 		context.beginPath();
 		for (const rect of this.rects) context.rect(rect.x, rect.y, rect.w, rect.h);
 		context.fill();
+		for (const ring of HALO_RINGS) {
+			context.globalAlpha = ring.fade;
+			context.beginPath();
+			for (const { x, y, w, h } of this.halos) {
+				const p = ring.padding;
+				context.roundRect(x - p, y - p, w + p * 2, h + p * 2, p + 2);
+			}
+			context.fill();
+		}
 		context.restore();
 	}
 }

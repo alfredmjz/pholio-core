@@ -51,8 +51,11 @@ test("a bill paid from an account links its payment across pages", { tag: "@smok
 	await openDialog(page.getByRole("button", { name: new RegExp(billName) }), editLedger);
 	await editLedger.getByRole("link", { name: /View in Allocations/ }).click();
 
-	// Allocations opens that month with the budget row open, then drops the parameter.
-	const editBudget = page.getByRole("dialog", { name: "Edit transaction" });
+	// Allocations opens that month with the budget row open, then drops the parameter. The account
+	// page stays on screen until Allocations has loaded, and its own "Edit Transaction" dialog would
+	// match a case-insensitive name, so wait for the URL and match the name exactly.
+	await expect(page).toHaveURL(/\/allocations/, { timeout: 20_000 });
+	const editBudget = page.getByRole("dialog", { name: "Edit transaction", exact: true });
 	await expect(editBudget).toBeVisible({ timeout: 20_000 });
 	await expect(page).not.toHaveURL(/transaction=/);
 	await expect(editBudget.getByPlaceholder("e.g. Grocery Store")).toHaveValue(billName);

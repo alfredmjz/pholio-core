@@ -37,15 +37,18 @@ test("the jump list moves to a group and marks it", { tag: "@smoke" }, async ({ 
 });
 
 test("the old settings pages open their group", { tag: "@smoke" }, async ({ page }) => {
+	// Four Settings page loads in a row.
+	test.slow();
 	for (const [path, hash] of [
 		["/settings/profile", "#profile"],
 		["/settings/security", "#sign-in"],
 		["/settings/preferences", "#appearance"],
 		["/settings/data-privacy", "#data"],
 	]) {
-		// Only the redirect matters, so don't wait for the whole Settings page to load each time.
 		await page.goto(path, { waitUntil: "commit" });
 		await expect(page).toHaveURL(new RegExp(`/settings${hash}$`));
+		// Leaving a half-loaded page cancels its script chunks, which WebKit reports as uncaught errors.
+		await page.waitForLoadState("load");
 	}
 });
 

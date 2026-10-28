@@ -6,6 +6,7 @@ import { CircleOff, CloudSun, Monitor, Moon, Sun, Wind } from "lucide-react";
 import { useBackdrop } from "@/components/providers/weather-provider";
 import type { BackdropPreference } from "@/lib/backdrop-preference";
 import { SegmentedChoice, type SegmentedOption } from "@/components/common/segmented-choice";
+import { InfoTip } from "@/components/common/info-tip";
 import { SettingRow, SettingsSection } from "./settings-section";
 
 type ThemeChoice = "dark" | "light" | "system";
@@ -31,8 +32,8 @@ export function AppearanceSection() {
 	useEffect(() => setMounted(true), []);
 
 	return (
-		<SettingsSection id="appearance" title="Appearance" note="Saved on this device.">
-			<SettingRow label="Theme" description="System follows your device's light or dark mode.">
+		<SettingsSection id="appearance" title="Appearance">
+			<SettingRow label="Theme">
 				<SegmentedChoice
 					label="Theme"
 					value={mounted ? (theme as ThemeChoice) : undefined}
@@ -42,7 +43,35 @@ export function AppearanceSection() {
 			</SettingRow>
 			<SettingRow
 				label="Background"
-				description="Adaptive turns sunny, cloudy, windy or rainy with how your finances are going."
+				description={
+					backdrop === "adaptive" && (
+						<>
+							Adaptive turns sunny, cloudy, windy or rainy with how your finances are going.{" "}
+							<InfoTip label="How Adaptive works">
+								<p className="type-label text-primary">How Adaptive works</p>
+								<p className="mt-1.5">
+									Pholio looks at your month so far: your budget, your income and spending, your bills and your balances
+									over time.
+								</p>
+								<ul className="mt-2 space-y-1">
+									<li>
+										<span className="text-primary">Sunny:</span> you&apos;re on track.
+									</li>
+									<li>
+										<span className="text-primary">Cloudy:</span> mostly fine, with a few things to watch.
+									</li>
+									<li>
+										<span className="text-primary">Windy:</span> a busy, up-and-down stretch.
+									</li>
+									<li>
+										<span className="text-primary">Rainy:</span> money is tight, or a bill is overdue.
+									</li>
+								</ul>
+								<p className="mt-2">It updates as you add transactions. Only you can see it.</p>
+							</InfoTip>
+						</>
+					)
+				}
 			>
 				<SegmentedChoice label="Background" value={backdrop} options={BACKDROP_OPTIONS} onChange={setBackdrop} />
 			</SettingRow>

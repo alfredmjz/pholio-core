@@ -1,5 +1,10 @@
 import { describe, expect, test } from "bun:test";
-import { sanitizeDecimalInput, sanitizeIntegerInput, validateDecimalInput } from "@/lib/input-utils";
+import {
+	sanitizeDecimalInput,
+	sanitizeIntegerInput,
+	sanitizePositiveIntegerInput,
+	validateDecimalInput,
+} from "@/lib/input-utils";
 
 describe("sanitizeDecimalInput", () => {
 	test("strips leading zeros from the whole-number part", () => {
@@ -37,6 +42,16 @@ describe("sanitizeIntegerInput", () => {
 		expect(sanitizeIntegerInput("0")).toBe("0");
 		expect(sanitizeIntegerInput("1a2")).toBe("12");
 		expect(sanitizeIntegerInput("120")).toBe("120");
+	});
+});
+
+describe("sanitizePositiveIntegerInput", () => {
+	test("drops leading zeros and a lone zero", () => {
+		expect(sanitizePositiveIntegerInput("02")).toBe("2");
+		expect(sanitizePositiveIntegerInput("0")).toBe("");
+		expect(sanitizePositiveIntegerInput("00")).toBe("");
+		expect(sanitizePositiveIntegerInput("10")).toBe("10");
+		expect(sanitizePositiveIntegerInput("3w")).toBe("3");
 	});
 });
 

@@ -41,6 +41,7 @@ import { getAccountTransactionTypeOptions, getDefaultAccountTransactionType } fr
 import { compareAlphabetically, sortAlphabetically } from "@/lib/sort-utils";
 import { ManagePresetsDialog } from "./ManagePresetsDialog";
 import { TransferRoute, TransferRouteSummary } from "./transfer-route";
+import { CapWarning } from "./cap-warning";
 import { isSampleDataActive } from "@/lib/demo-mode";
 import { createDemoId, recordDemoUnifiedTransaction, useDemoStore } from "@/lib/demo-store";
 import { calculateAccountStanding, checkTransactionCaps } from "@/lib/account-validation-utils";
@@ -676,40 +677,19 @@ export function UnifiedTransactionDialog({
 															)}
 														</div>
 
-														{!validationResult.isValid && (
-															<div className="mt-1 flex flex-col gap-2 rounded-lg border border-warning/30 bg-warning-muted p-2.5 text-warning">
-																<div className="flex items-start gap-1.5">
-																	<Info className="mt-0.5 h-4 w-4 shrink-0" />
-																	<span className="text-xs">{validationResult.warning}</span>
-																</div>
-																<div className="flex items-center justify-between border-t border-warning/20 pt-1">
-																	{validationResult.maxAllowed !== undefined && (
-																		<Button
-																			type="button"
-																			variant="outline"
-																			size="sm"
-																			data-dialog-ignore-enter=""
-																			className="h-7 border-warning/40 text-xs font-medium text-warning hover:bg-warning/15"
-																			onClick={() => {
-																				setAmount(validationResult.maxAllowed!.toFixed(2));
-																				if (errors.amount) setErrors({ ...errors, amount: undefined });
-																			}}
-																		>
-																			Use the most allowed (${validationResult.maxAllowed.toFixed(2)})
-																		</Button>
-																	)}
-																	{validationResult.overridable && (
-																		<label className="flex cursor-pointer items-center gap-1.5 type-caption">
-																			<input
-																				type="checkbox"
-																				checked={allowOverpayment}
-																				onChange={(e) => setAllowOverpayment(e.target.checked)}
-																				className="rounded border-warning/60 accent-[hsl(var(--warning))]"
-																			/>
-																			Allow overpayment
-																		</label>
-																	)}
-																</div>
+														{!validationResult.isValid && validationResult.warning && (
+															<div className="mt-1">
+																<CapWarning
+																	message={validationResult.warning}
+																	maxAllowed={validationResult.maxAllowed}
+																	onUseMax={(max) => {
+																		setAmount(max.toFixed(2));
+																		if (errors.amount) setErrors({ ...errors, amount: undefined });
+																	}}
+																	overridable={validationResult.overridable}
+																	allowOverpayment={allowOverpayment}
+																	onAllowOverpaymentChange={setAllowOverpayment}
+																/>
 															</div>
 														)}
 													</div>

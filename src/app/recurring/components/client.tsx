@@ -12,6 +12,7 @@ import { SHORTCUTS, ShortcutId } from "@/lib/keyboard-shortcuts";
 import { getTodayDateString } from "@/lib/date-utils";
 import { formatCurrency } from "@/app/dashboard/utils";
 import { cn } from "@/lib/utils";
+import type { AccountWithType } from "@/app/accounts/types";
 import type { RecurringExpense } from "../actions";
 import { monthlyEquivalent } from "../recurring-schedule";
 import { AddRecurringDialog } from "./add-recurring-dialog";
@@ -25,6 +26,7 @@ interface RecurringClientProps {
 	initialExpenses: RecurringExpense[];
 	timezone: string | null;
 	categoryOptions?: string[];
+	accounts?: AccountWithType[];
 }
 
 const byDueDate = (a: RecurringExpense, b: RecurringExpense) => a.next_due_date.localeCompare(b.next_due_date);
@@ -47,7 +49,12 @@ function ColumnHeader({ labels }: { labels: [string, string, string, string] }) 
 	);
 }
 
-export function RecurringClient({ initialExpenses, timezone, categoryOptions = [] }: RecurringClientProps) {
+export function RecurringClient({
+	initialExpenses,
+	timezone,
+	categoryOptions = [],
+	accounts = [],
+}: RecurringClientProps) {
 	useFormatSettings();
 	const { expenses, optimisticallyAdd, optimisticallyDelete, optimisticallyUpdate } =
 		useOptimisticRecurring(initialExpenses);
@@ -118,6 +125,7 @@ export function RecurringClient({ initialExpenses, timezone, categoryOptions = [
 									onUpdate={optimisticallyUpdate}
 									timezone={timezone}
 									categoryOptions={categoryOptions}
+									accounts={accounts}
 								/>
 							))}
 						</ul>
@@ -151,6 +159,7 @@ export function RecurringClient({ initialExpenses, timezone, categoryOptions = [
 									onDelete={optimisticallyDelete}
 									onUpdate={optimisticallyUpdate}
 									categoryOptions={categoryOptions}
+									accounts={accounts}
 								/>
 							))}
 						</ul>
@@ -163,6 +172,7 @@ export function RecurringClient({ initialExpenses, timezone, categoryOptions = [
 				onOpenChange={setIsAddOpen}
 				onSuccess={optimisticallyAdd}
 				categoryOptions={categoryOptions}
+				accounts={accounts}
 			/>
 		</SurfacePage>
 	);

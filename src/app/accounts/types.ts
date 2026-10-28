@@ -145,7 +145,18 @@ export interface AccountTransaction {
 	description: string;
 	transaction_date: string;
 	linked_allocation_transaction_id: string | null;
+	linked_transfer_transaction_id?: string | null;
 	created_at: string;
+	/** The budget row this ledger row belongs to, for linking to Allocations. */
+	budget_link?: AccountTransactionBudgetLink | null;
+	/** For a transfer leg, the account on the other side (null when it was deleted). */
+	transfer_account?: { id: string; label: string } | null;
+}
+
+export interface AccountTransactionBudgetLink {
+	id: string;
+	transaction_date: string;
+	category_name: string | null;
 }
 
 // ============================================================================

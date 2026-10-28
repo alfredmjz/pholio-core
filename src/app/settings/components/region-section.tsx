@@ -48,13 +48,13 @@ export function RegionSection({
 	const localeOptions = useMemo(() => getLocaleOptions(new Date(new Date().getFullYear(), 0, 31)), []);
 
 	return (
-		<SettingsSection id="region" title="Region" note="Your time zone and how amounts and dates are written.">
+		<SettingsSection id="region" title="Region">
 			<TimezoneRow savedTimezone={savedTimezone} />
 
 			<SettingRow
 				label="Default currency"
 				htmlFor="defaultCurrency"
-				description="Every amount in Pholio is shown in it. Only the symbol changes; amounts aren't converted."
+				description="Amounts aren't converted, only the symbol changes."
 			>
 				<Select value={currency} onValueChange={(value) => setCurrency(value as Currency)} disabled={savingCurrency}>
 					<SelectTrigger id="defaultCurrency" className="w-full row-wide:w-64">
@@ -73,7 +73,7 @@ export function RegionSection({
 			<SettingRow
 				label="Number and date format"
 				htmlFor="locale"
-				description="Changes how numbers and dates look. Pholio's text stays in English."
+				description="Pholio's text stays in English."
 			>
 				<Select value={locale} onValueChange={(value) => setLocale(value as FormatLocale)} disabled={savingLocale}>
 					<SelectTrigger id="locale" className="w-full row-wide:w-64">
@@ -146,11 +146,9 @@ function TimezoneRow({ savedTimezone }: { savedTimezone: string | null }) {
 			description={
 				clock ? (
 					<>
-						It's <span className="tabular-nums text-primary">{clock}</span> there. Decides when today starts.
+						It's <span className="tabular-nums text-primary">{clock}</span> there.
 					</>
-				) : (
-					"Decides when today starts for budgets and due dates."
-				)
+				) : undefined
 			}
 		>
 			<Popover open={open} onOpenChange={setOpen}>

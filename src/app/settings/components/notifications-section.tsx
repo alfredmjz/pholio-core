@@ -51,12 +51,11 @@ export function NotificationsSection({ email, notifyInApp, notifyEmail, leadDays
 		<SettingsSection
 			id="notifications"
 			title="Notifications"
-			note="Reminders before a credit card payment, bill or subscription is due. Turn both off for none."
+			note="Reminders before a credit card payment, bill or subscription is due."
 		>
 			<SettingRow
 				label="In Pholio"
 				htmlFor="notifyInApp"
-				description="Shown under the bell, with a dot until you've seen them."
 			>
 				<Switch id="notifyInApp" checked={inApp} onCheckedChange={setInApp} disabled={savingInApp} />
 			</SettingRow>
@@ -75,7 +74,7 @@ export function NotificationsSection({ email, notifyInApp, notifyEmail, leadDays
 
 			<SettingRow
 				label="Remind me"
-				description={enabled ? "How long before the due date." : "Turn on In Pholio or By email to choose."}
+				description={enabled ? undefined : "Turn on In Pholio or By email to choose."}
 			>
 				<SegmentedChoice
 					label="Days before the due date"

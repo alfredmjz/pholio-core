@@ -43,7 +43,8 @@ test("the old settings pages open their group", { tag: "@smoke" }, async ({ page
 		["/settings/preferences", "#appearance"],
 		["/settings/data-privacy", "#data"],
 	]) {
-		await page.goto(path);
+		// Only the redirect matters, so don't wait for the whole Settings page to load each time.
+		await page.goto(path, { waitUntil: "commit" });
 		await expect(page).toHaveURL(new RegExp(`/settings${hash}$`));
 	}
 });

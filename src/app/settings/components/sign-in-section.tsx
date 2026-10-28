@@ -37,7 +37,7 @@ export function SignInSection({ email }: { email: string }) {
 	};
 
 	return (
-		<SettingsSection id="sign-in" title="Sign-in" note="Pholio signs you in with a one-time link sent by email.">
+		<SettingsSection id="sign-in" title="Sign-in">
 			<SettingRow
 				label="Sign-in email"
 				description={

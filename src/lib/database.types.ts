@@ -66,6 +66,7 @@ export interface Database {
 					created_at: string;
 					updated_at: string;
 					recurring_expense_id: string | null;
+					covers_due_date: string | null;
 				};
 				Insert: {
 					id?: string;
@@ -79,6 +80,7 @@ export interface Database {
 					created_at?: string;
 					updated_at?: string;
 					recurring_expense_id?: string | null;
+					covers_due_date?: string | null;
 				};
 				Update: {
 					id?: string;
@@ -92,6 +94,7 @@ export interface Database {
 					created_at?: string;
 					updated_at?: string;
 					recurring_expense_id?: string | null;
+					covers_due_date?: string | null;
 				};
 			};
 			recurring_expenses: {
@@ -105,6 +108,7 @@ export interface Database {
 					next_due_date: string;
 					category: string;
 					budget_category: string | null;
+					account_id: string | null;
 					is_active: boolean | null;
 					service_provider: string | null;
 					meta_data: Json | null;
@@ -121,6 +125,7 @@ export interface Database {
 					next_due_date: string;
 					category: string;
 					budget_category?: string | null;
+					account_id?: string | null;
 					is_active?: boolean | null;
 					service_provider?: string | null;
 					meta_data?: Json | null;
@@ -137,6 +142,7 @@ export interface Database {
 					next_due_date?: string;
 					category?: string;
 					budget_category?: string | null;
+					account_id?: string | null;
 					is_active?: boolean | null;
 					service_provider?: string | null;
 					meta_data?: Json | null;

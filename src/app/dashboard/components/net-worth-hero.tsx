@@ -7,6 +7,7 @@ import { ToggleGroup, ToggleGroupItem } from "@/components/ui/toggle-group";
 import { cn } from "@/lib/utils";
 import { formatFullDate } from "@/lib/date-utils";
 import { formatCurrency } from "@/app/dashboard/utils";
+import { splitMoney } from "@/lib/format";
 import {
 	NET_WORTH_RANGES,
 	rangeStartDate,
@@ -30,13 +31,6 @@ const RANGE_LABELS: Record<NetWorthRange, string> = {
 	"6M": "the last 6 months",
 	"1Y": "the last year",
 };
-
-/** Splits a dollar amount into "$12,345" and ".67" so the cents can be set smaller. */
-function splitMoney(value: number) {
-	const full = formatCurrency(value, { showCents: true });
-	const dot = full.lastIndexOf(".");
-	return dot === -1 ? { whole: full, cents: "" } : { whole: full.slice(0, dot), cents: full.slice(dot) };
-}
 
 /** Animates from `from` to `to` once on mount, the page's single load-in moment. */
 function useCountUp(from: number, to: number) {

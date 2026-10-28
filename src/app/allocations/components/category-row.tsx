@@ -1,6 +1,6 @@
 "use client";
 
-import { useState } from "react";
+import { useEffect, useState } from "react";
 import { useSortable } from "@dnd-kit/sortable";
 import { CSS } from "@dnd-kit/utilities";
 import { GripVertical, Pencil, ShieldCheck } from "lucide-react";
@@ -29,6 +29,8 @@ interface CategoryRowProps {
 	onContributionPlanChanged?: () => void;
 	/** Uncategorized can't be reordered or edited. */
 	sortable?: boolean;
+	/** Bumped each time this row is dropped, to wiggle its bar in place; 0 means never dropped. */
+	dropCount?: number;
 }
 
 const wholeDollars = (value: number) => formatCurrency(value);
@@ -43,8 +45,13 @@ export function CategoryRow({
 	year,
 	onContributionPlanChanged,
 	sortable = true,
+	dropCount = 0,
 }: CategoryRowProps) {
 	const [editOpen, setEditOpen] = useState(false);
+	const [wiggling, setWiggling] = useState(false);
+	useEffect(() => {
+		if (dropCount > 0) setWiggling(true);
+	}, [dropCount]);
 	const { attributes, listeners, setNodeRef, setActivatorNodeRef, transform, transition, isDragging } = useSortable({
 		id: category.id,
 		disabled: !sortable,
@@ -91,6 +98,7 @@ export function CategoryRow({
 		<ProgressLine
 			value={isUncategorized ? (spent > 0 ? 100 : 0) : Math.min(utilization, 100)}
 			tone={isUncategorized ? "bg-primary/25" : over ? "bg-error" : color.bg}
+			replayKey={dropCount}
 		/>
 	);
 
@@ -105,12 +113,7 @@ export function CategoryRow({
 			)}
 		>
 			<div
-				className={cn(
-					CATEGORY_GRID,
-					"items-center gap-4 px-2 py-3 md:px-3",
-					editable && "row-interactive cursor-pointer rounded-xl"
-				)}
-				onClick={() => editable && setEditOpen(true)}
+				className={cn(CATEGORY_GRID, "items-center gap-4 px-2 py-3 md:px-3", editable && "row-interactive rounded-xl")}
 			>
 				{/* Name, with the drag handle at its start */}
 				<div className="flex min-w-0 items-start gap-2">
@@ -158,7 +161,11 @@ export function CategoryRow({
 				</div>
 
 				{/* Progress */}
-				<div className="mt-2.5 pl-7 md:mt-0 md:pl-0">{bar}</div>
+				<div className="mt-2.5 pl-7 md:mt-0 md:pl-0">
+					<div className={cn(wiggling && "progress-wiggle")} onAnimationEnd={() => setWiggling(false)}>
+						{bar}
+					</div>
+				</div>
 
 				{/* Spent of budget (desktop) */}
 				<p className="type-value hidden text-right md:block">

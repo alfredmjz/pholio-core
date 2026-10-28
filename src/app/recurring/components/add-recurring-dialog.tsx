@@ -18,6 +18,9 @@ import { toast } from "sonner";
 import { ServiceLogo } from "@/components/service-logo";
 import { ServiceAutocomplete } from "@/components/service-autocomplete";
 import { ProminentAmountInput } from "@/components/ProminentAmountInput";
+import { sanitizePositiveIntegerInput } from "@/lib/input-utils";
+import type { AccountWithType } from "@/app/accounts/types";
+import { NO_ACCOUNT, RecurringAccountField } from "./recurring-account-field";
 
 interface AddRecurringDialogProps {
 	open: boolean;
@@ -25,6 +28,7 @@ interface AddRecurringDialogProps {
 	onSuccess?: (expense: RecurringExpense) => void;
 	/** Allocation category names to choose from; empty falls back to Subscriptions/Bills. */
 	categoryOptions?: string[];
+	accounts?: AccountWithType[];
 }
 
 const PRESET_PROVIDERS = [
@@ -62,7 +66,13 @@ const PRESET_PROVIDERS = [
 	},
 ];
 
-export function AddRecurringDialog({ open, onOpenChange, onSuccess, categoryOptions = [] }: AddRecurringDialogProps) {
+export function AddRecurringDialog({
+	open,
+	onOpenChange,
+	onSuccess,
+	categoryOptions = [],
+	accounts = [],
+}: AddRecurringDialogProps) {
 	const [step, setStep] = useState(1);
 	const [formData, setFormData] = useState({
 		name: "",
@@ -72,6 +82,7 @@ export function AddRecurringDialog({ open, onOpenChange, onSuccess, categoryOpti
 		next_due_date: new Date(),
 		category: "subscription",
 		budget_category: "__default__",
+		account_id: NO_ACCOUNT,
 		service_provider: "",
 		isCustom: false,
 		is_automated: true,
@@ -159,6 +170,7 @@ export function AddRecurringDialog({ open, onOpenChange, onSuccess, categoryOpti
 				next_due_date: formatDateString(formData.next_due_date),
 				category: formData.category,
 				budget_category: formData.budget_category === "__default__" ? null : formData.budget_category,
+				account_id: formData.account_id === NO_ACCOUNT ? null : formData.account_id,
 				service_provider: serviceProvider,
 				is_active: true,
 				currency: "USD",
@@ -183,6 +195,7 @@ export function AddRecurringDialog({ open, onOpenChange, onSuccess, categoryOpti
 					next_due_date: new Date(),
 					category: "subscription",
 					budget_category: "__default__",
+					account_id: NO_ACCOUNT,
 					service_provider: "",
 					isCustom: false,
 					is_automated: true,
@@ -298,7 +311,7 @@ export function AddRecurringDialog({ open, onOpenChange, onSuccess, categoryOpti
 									inputMode="numeric"
 									value={formData.frequency_value}
 									onChange={(e) => {
-										const val = e.target.value.replace(/[^0-9]/g, "");
+										const val = sanitizePositiveIntegerInput(e.target.value);
 										setFormData({ ...formData, frequency_value: val });
 									}}
 									className="h-10 w-20"
@@ -351,6 +364,12 @@ export function AddRecurringDialog({ open, onOpenChange, onSuccess, categoryOpti
 						</Select>
 						<p className="text-xs text-muted-foreground">Which budget category this recurring expense is added to.</p>
 					</div>
+					<RecurringAccountField
+						id="recurring-account"
+						value={formData.account_id}
+						onChange={(v) => setFormData({ ...formData, account_id: v })}
+						accounts={accounts}
+					/>
 					{formData.category === "bill" && (
 						<div className="flex items-center justify-between space-x-2 pt-2">
 							<div className="flex flex-col gap-1">

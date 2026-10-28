@@ -14,6 +14,7 @@ describe("withoutUnknownParams", () => {
 
 	test("keeps the ones it does read", () => {
 		expect(strip("/allocations", "year=2026&month=10&weather=rainy")).toBe("year=2026&month=10");
+		expect(strip("/allocations", "year=2026&month=10&transaction=abc")).toBeUndefined();
 	});
 
 	test("leaves a clean URL alone", () => {

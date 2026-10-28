@@ -6,6 +6,9 @@
  * fits (its budgets simply run past where income ends). Each budget segment is filled by what
  * was spent in it. Spending with no budget behind it (uncategorized, or a category with a zero
  * budget) fills the unbudgeted part, because that is the money it actually came out of.
+ *
+ * Segments run from the biggest budget to the smallest, so the small ones sit together at the end;
+ * equal budgets keep the categories' own order.
  */
 
 export interface PlanCategoryInput {
@@ -65,15 +68,17 @@ export function buildBudgetPlan(income: number, categories: PlanCategoryInput[])
 	const scale = Math.max(income, totalBudget, 0);
 	const share = (amount: number) => (scale > 0 ? (amount / scale) * 100 : 0);
 
-	const segments: PlanSegment[] = budgeted.map((c) => ({
-		id: c.id,
-		name: c.name,
-		budget: c.budget,
-		spent: c.spent,
-		widthPercent: share(c.budget),
-		fillPercent: Math.min(100, Math.max(0, (c.spent / c.budget) * 100)),
-		overBy: roundCents(Math.max(0, c.spent - c.budget)),
-	}));
+	const segments: PlanSegment[] = [...budgeted]
+		.sort((a, b) => b.budget - a.budget)
+		.map((c) => ({
+			id: c.id,
+			name: c.name,
+			budget: c.budget,
+			spent: c.spent,
+			widthPercent: share(c.budget),
+			fillPercent: Math.min(100, Math.max(0, (c.spent / c.budget) * 100)),
+			overBy: roundCents(Math.max(0, c.spent - c.budget)),
+		}));
 
 	const notBudgeted = roundCents(income - totalBudget);
 	const remainderAmount = Math.max(0, notBudgeted);

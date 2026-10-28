@@ -1,6 +1,7 @@
 "use client";
 
-import { MoreHorizontal, Zap } from "lucide-react";
+import Link from "next/link";
+import { AlertTriangle, MoreHorizontal, Zap } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import {
 	DropdownMenu,
@@ -11,21 +12,26 @@ import {
 } from "@/components/ui/dropdown-menu";
 import { ServiceLogo } from "@/components/service-logo";
 import { formatFrequency } from "@/lib/date-utils";
+import { formatAccountDisplayName } from "@/lib/account-utils";
+import { accountHref, accountWarning, accountWarningText } from "@/lib/account-links";
+import type { AccountWithType } from "@/app/accounts/types";
 import type { RecurringExpense } from "../actions";
 
 /** Columns shared by the section header and every row (desktop). */
 export const RECURRING_GRID =
 	"row-wide:grid row-wide:grid-cols-[minmax(9rem,1.5fr)_minmax(6rem,1fr)_minmax(6rem,1fr)_5.5rem_7.5rem] row-wide:items-center row-wide:gap-3";
 
-/** Logo, name and how often it repeats (plus "Auto" when it's recorded automatically). */
+/** Logo, name, how often it repeats, "Auto" when it's recorded automatically, and the account it's paid from. */
 export function RecurringIdentity({
 	expense,
 	muted = false,
 	automated = false,
+	account = null,
 }: {
 	expense: RecurringExpense;
 	muted?: boolean;
 	automated?: boolean;
+	account?: AccountWithType | null;
 }) {
 	const meta = expense.meta_data as { domain?: string; no_logo_lookup?: boolean } | null;
 	return (
@@ -49,8 +55,8 @@ export function RecurringIdentity({
 				>
 					{expense.name}
 				</p>
-				<p className="type-body-xs flex items-center gap-1.5 text-muted-foreground">
-					{formatFrequency(expense.billing_period)}
+				<p className="type-body-xs flex min-w-0 items-center gap-1.5 text-muted-foreground">
+					<span className="shrink-0">{formatFrequency(expense.billing_period)}</span>
 					{automated && (
 						<span className="inline-flex items-center gap-0.5" title="Recorded automatically">
 							<span aria-hidden>·</span>
@@ -58,9 +64,34 @@ export function RecurringIdentity({
 							Auto
 						</span>
 					)}
+					{account && (
+						<>
+							<span aria-hidden>·</span>
+							<Link
+								href={accountHref(account.id)}
+								onClick={(event) => event.stopPropagation()}
+								className="truncate underline-offset-2 hover:text-primary hover:underline"
+								title={`Paid from ${formatAccountDisplayName(account)}`}
+							>
+								{formatAccountDisplayName(account)}
+							</Link>
+						</>
+					)}
 				</p>
 			</div>
 		</div>
+	);
+}
+
+/** Warns when the account a recurring item is paid from is below zero or past its limit. */
+export function RecurringAccountWarning({ account }: { account: AccountWithType | null }) {
+	const warning = account ? accountWarning(account) : null;
+	if (!account || !warning) return null;
+	return (
+		<span className="inline-flex items-center gap-1 text-warning">
+			<AlertTriangle className="h-3 w-3" aria-hidden />
+			{accountWarningText(warning, formatAccountDisplayName(account))}. Payments still post to it.
+		</span>
 	);
 }
 

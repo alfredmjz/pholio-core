@@ -15,6 +15,11 @@ import { getAllocationSettings } from "@/app/settings/actions";
 import { AllocationsLoadingSkeleton } from "./components/allocations-loading-skeleton";
 import { isSampleDataMode } from "@/lib/demo-mode.server";
 
+export const metadata = {
+	title: "Allocations | Pholio",
+	description: "Your monthly budget",
+};
+
 export default async function AllocationsPage({
 	searchParams,
 }: {

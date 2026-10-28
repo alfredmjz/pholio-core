@@ -22,6 +22,7 @@ export const CHANGELOG: ChangelogEntry[] = [
 			"Pay bills early: pick how many upcoming bills to cover and they're recorded today.",
 			"Moving between months in Allocations shows a placeholder until the new month loads, and the month picker has a new look.",
 			"Fixed: editing a payment no longer says it's more than your balance.",
+			"Fixed: an amount over an account's balance now says so, and its amounts show in your currency format.",
 		],
 	},
 	{

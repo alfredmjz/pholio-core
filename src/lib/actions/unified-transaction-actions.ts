@@ -10,7 +10,7 @@
  * This eliminates duplicate data entry and ensures consistency.
  */
 
-import { createClient } from "@/lib/supabase/server";
+import { createClient, getReadUserId } from "@/lib/supabase/server";
 import { revalidatePath } from "next/cache";
 import type { UnifiedTransactionInput, UnifiedTransactionResult } from "@/lib/types/unified-transaction";
 import type { AccountWithType } from "@/app/accounts/types";
@@ -416,16 +416,14 @@ export async function getAccountsForSelector(): Promise<AccountWithType[]> {
 
 	try {
 		const supabase = await createClient();
-		const {
-			data: { user },
-		} = await supabase.auth.getUser();
+		const userId = await getReadUserId(supabase);
 
-		if (!user) return [];
+		if (!userId) return [];
 
 		const { data: accounts } = await supabase
 			.from("accounts")
 			.select("*, account_type:account_types(*)")
-			.eq("user_id", user.id)
+			.eq("user_id", userId)
 			.eq("is_active", true)
 			.order("display_order");
 

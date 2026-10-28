@@ -1,4 +1,5 @@
-import type { RegisteredPlan } from "@/app/accounts/types";
+import type { AccountWithType, RegisteredPlan } from "@/app/accounts/types";
+import type { AllocationContributions } from "@/lib/types/contribution";
 
 export const VIRTUAL_UNCATEGORIZED_ID = "00000000-0000-0000-0000-000000000000";
 
@@ -98,6 +99,14 @@ export interface AllocationSummary {
 		unallocated_funds: number;
 		overall_utilization: number;
 	};
+}
+
+/** Everything the Allocations page refetches, returned by one request. */
+export interface AllocationPageData {
+	summary: AllocationSummary | null;
+	transactions: Transaction[];
+	accounts: AccountWithType[];
+	contributions: AllocationContributions;
 }
 
 export type ViewMode = "overview" | "transactions";

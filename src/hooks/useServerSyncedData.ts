@@ -10,6 +10,8 @@ interface UseServerSyncedDataOptions {
 	debounceMs?: number;
 	/** Run an initial fetch on mount (for data with no server-provided initial value). */
 	fetchOnMount?: boolean;
+	/** Coming back to the tab refetches only when the data is older than this. Default 60s. */
+	focusRefreshMs?: number;
 }
 
 /**
@@ -18,7 +20,8 @@ interface UseServerSyncedDataOptions {
  *  - seeds state from `initialValue`;
  *  - re-syncs when `initialValue` changes (server re-render / router.refresh);
  *  - refetches via `fetcher` when the window regains focus or the tab becomes visible
- *    again (cross-tab / cross-device changes);
+ *    again (cross-tab / cross-device changes), at most once per `focusRefreshMs`;
+ *  - keeps the current data when a refetch returns the same values, so nothing re-renders;
  *  - optionally fetches once on mount.
  *
  * `fetcher` is a server action or any async function returning `T`. Refetches never
@@ -37,16 +40,20 @@ export function useServerSyncedData<T>(
 	setData: Dispatch<SetStateAction<T>>;
 	refresh: () => Promise<void>;
 	isRefreshing: boolean;
+	/** True only until the first fetch of a `fetchOnMount` hook settles; later refetches keep the data shown. */
+	isLoading: boolean;
 } {
-	const { refreshOnFocus = true, debounceMs = 300, fetchOnMount = false } = options;
+	const { refreshOnFocus = true, debounceMs = 300, fetchOnMount = false, focusRefreshMs = 60_000 } = options;
 
 	const [data, setData] = useState<T>(initialValue);
 	const [isRefreshing, setIsRefreshing] = useState(fetchOnMount);
+	const [hasFetched, setHasFetched] = useState(!fetchOnMount);
 
 	const fetcherRef = useRef(fetcher);
 	fetcherRef.current = fetcher;
 
 	const timeoutRef = useRef<ReturnType<typeof setTimeout> | null>(null);
+	const lastFetchedAt = useRef(Date.now());
 
 	const refresh = useCallback(async () => {
 		setIsRefreshing(true);
@@ -54,11 +61,13 @@ export function useServerSyncedData<T>(
 			const next = await fetcherRef.current();
 			// A server action from an older deployment (or a dev rebuild) resolves to undefined
 			// instead of throwing; keep the data we have rather than blanking the page.
-			if (next !== undefined) setData(next);
+			lastFetchedAt.current = Date.now();
+			if (next !== undefined) setData((current) => (JSON.stringify(current) === JSON.stringify(next) ? current : next));
 		} catch {
 			// Background refresh must never disrupt the page.
 		} finally {
 			setIsRefreshing(false);
+			setHasFetched(true);
 		}
 	}, []);
 
@@ -71,6 +80,7 @@ export function useServerSyncedData<T>(
 
 	// Re-sync when the server passes fresh data (e.g. after router.refresh()).
 	useEffect(() => {
+		lastFetchedAt.current = Date.now();
 		setData(initialValue);
 	}, [initialValue]);
 
@@ -84,7 +94,9 @@ export function useServerSyncedData<T>(
 		if (!refreshOnFocus) return;
 
 		const handle = () => {
-			if (document.visibilityState === "visible") debouncedRefresh();
+			if (document.visibilityState === "visible" && Date.now() - lastFetchedAt.current >= focusRefreshMs) {
+				debouncedRefresh();
+			}
 		};
 
 		window.addEventListener("focus", handle);
@@ -94,7 +106,7 @@ export function useServerSyncedData<T>(
 			document.removeEventListener("visibilitychange", handle);
 			if (timeoutRef.current) clearTimeout(timeoutRef.current);
 		};
-	}, [refreshOnFocus, debouncedRefresh]);
+	}, [refreshOnFocus, debouncedRefresh, focusRefreshMs]);
 
-	return { data, setData, refresh, isRefreshing };
+	return { data, setData, refresh, isRefreshing, isLoading: !hasFetched };
 }

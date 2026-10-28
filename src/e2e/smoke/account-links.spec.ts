@@ -15,10 +15,14 @@ test("a bill paid from an account links its payment across pages", { tag: "@smok
 	await addAccount.getByLabel(/Account name/i).fill(accountName);
 	await addAccount.getByLabel(/Current balance/i).fill("100");
 	await addAccount.getByRole("button", { name: /Continue/ }).click();
+	// The page refreshes itself after the save. Leaving mid-refresh aborts it, and Next answers an
+	// aborted refresh with a full reload of /accounts that cancels the next goto.
+	const refreshed = page.waitForResponse(
+		(response) => new URL(response.url()).pathname === "/accounts" && response.request().headers()["rsc"] === "1"
+	);
 	await addAccount.getByRole("button", { name: /Create Account/ }).click();
 	await expect(page.getByText("Account created successfully")).toBeVisible();
-	// The page refreshes itself after a save; leaving before that ends interrupts the next goto.
-	await page.waitForLoadState("networkidle");
+	await refreshed;
 
 	// A manual bill due today, paid from the new account.
 	await page.goto("/recurring");

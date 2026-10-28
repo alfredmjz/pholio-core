@@ -15,17 +15,14 @@ test("a bill paid from an account links its payment across pages", { tag: "@smok
 	await addAccount.getByLabel(/Account name/i).fill(accountName);
 	await addAccount.getByLabel(/Current balance/i).fill("100");
 	await addAccount.getByRole("button", { name: /Continue/ }).click();
-	// The page refreshes itself after the save. Leaving mid-refresh aborts it, and Next answers an
-	// aborted refresh with a full reload of /accounts that cancels the next goto.
-	const refreshed = page.waitForResponse(
-		(response) => new URL(response.url()).pathname === "/accounts" && response.request().headers()["rsc"] === "1"
-	);
 	await addAccount.getByRole("button", { name: /Create Account/ }).click();
 	await expect(page.getByText("Account created successfully")).toBeVisible();
-	await refreshed;
 
-	// A manual bill due today, paid from the new account.
-	await page.goto("/recurring");
+	// A manual bill due today, paid from the new account. The page is still refreshing after the
+	// save: a full page.goto would cut that refresh off and Next would answer with a reload of
+	// /accounts, so leave through the app's own link like a user would.
+	await page.getByRole("link", { name: "Recurring", exact: true }).filter({ visible: true }).first().click();
+	await expect(page).toHaveURL(/\/recurring$/);
 	const addBill = page.getByRole("dialog", { name: "Add Recurring Expense" });
 	await openDialog(page.getByRole("button", { name: /Add recurring/i }), addBill);
 	await addBill.getByText("Bill", { exact: true }).click();

@@ -16,7 +16,7 @@ interface ProminentAmountInputProps {
 	hasError?: boolean;
 }
 
-/** The dialog's hero field: a large amount on a single rule that lights up on focus. */
+/** The dialog's hero field: a large amount on a single rule that lights up on focus; the symbol turns green once the amount is valid. */
 export function ProminentAmountInput({
 	value,
 	onChange,
@@ -26,6 +26,7 @@ export function ProminentAmountInput({
 	id,
 	hasError,
 }: ProminentAmountInputProps) {
+	const isFilled = !hasError && parseFloat(value) > 0;
 	return (
 		<div className={cn("space-y-2", className)}>
 			{label && (
@@ -33,7 +34,11 @@ export function ProminentAmountInput({
 					{label}
 				</Label>
 			)}
-			<div className="field-amount" data-invalid={hasError ? "true" : undefined}>
+			<div
+				className="field-amount"
+				data-invalid={hasError ? "true" : undefined}
+				data-filled={isFilled ? "true" : undefined}
+			>
 				<span className="field-amount-currency" aria-hidden>
 					{currency}
 				</span>

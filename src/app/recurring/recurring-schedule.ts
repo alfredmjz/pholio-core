@@ -6,7 +6,7 @@
  * first, so a "3:months" bill is never mistaken for a monthly one.
  */
 
-import { formatDateString, getDaysInMonth, parseLocalDate, stepDate } from "@/lib/date-utils";
+import { calculateNextDueDate, formatDateString, getDaysInMonth, parseLocalDate, stepDate } from "@/lib/date-utils";
 
 export type PeriodUnit = "days" | "weeks" | "months" | "years";
 
@@ -66,6 +66,70 @@ export function monthlyEquivalent(amount: number, billingPeriod: string): number
 		default:
 			return perOccurrence / value;
 	}
+}
+
+/** The due date a payment settles: the one it was recorded for, else its own date (older rows). */
+export function coveredDueDate(payment: { covers_due_date?: string | null; transaction_date: string }): string {
+	return (payment.covers_due_date || payment.transaction_date).slice(0, 10);
+}
+
+/**
+ * The payments that count toward a month: recurring ones by the due date they cover, so a bill
+ * paid early counts in the month it was due; others (matched by name) by their own date.
+ */
+export function paymentsForMonth<
+	T extends { covers_due_date?: string | null; transaction_date: string; recurring_expense_id?: string | null },
+>(payments: T[], monthStart: string, monthEnd: string): T[] {
+	return payments.filter((payment) => {
+		const date = payment.recurring_expense_id ? coveredDueDate(payment) : payment.transaction_date.slice(0, 10);
+		return date >= monthStart && date <= monthEnd;
+	});
+}
+
+/** How far ahead, and how many, bills can be paid early. */
+export const PAY_AHEAD_MONTHS = 12;
+export const PAY_AHEAD_MAX = 24;
+
+/**
+ * The next unpaid due dates (YYYY-MM-DD), oldest first, from `nextDueDate` up to `months` after
+ * today: how many bills can be paid early. Steps the same way as earlyPaymentPlan.
+ */
+export function upcomingOccurrences(
+	nextDueDate: string,
+	billingPeriod: string,
+	today: string,
+	months = PAY_AHEAD_MONTHS,
+	max = PAY_AHEAD_MAX
+): string[] {
+	const horizon = formatDateString(stepDate(parseLocalDate(today), months, "months", 1));
+	const dates: string[] = [];
+	let cursor = parseLocalDate(nextDueDate);
+	while (dates.length < max) {
+		const date = formatDateString(cursor);
+		if (date > horizon) break;
+		dates.push(date);
+		cursor = calculateNextDueDate(cursor, billingPeriod);
+	}
+	return dates;
+}
+
+/**
+ * Which due dates paying `count` bills covers, starting at `nextDueDate`, and the due date that
+ * follows them. Every 2 weeks from Jan 14, three bills cover Jan 14, Jan 28 and Feb 11; the next
+ * one is due Feb 25.
+ */
+export function earlyPaymentPlan(
+	nextDueDate: string,
+	billingPeriod: string,
+	count: number
+): { covered: string[]; nextDue: string } {
+	const covered: string[] = [];
+	let cursor = parseLocalDate(nextDueDate);
+	for (let i = 0; i < count; i++) {
+		covered.push(formatDateString(cursor));
+		cursor = calculateNextDueDate(cursor, billingPeriod);
+	}
+	return { covered, nextDue: formatDateString(cursor) };
 }
 
 export type OccurrenceState = "paid" | "overdue" | "due_today" | "upcoming";

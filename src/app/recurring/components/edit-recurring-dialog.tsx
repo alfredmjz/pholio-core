@@ -14,6 +14,7 @@ import { Switch } from "@/components/ui/switch";
 import { formatDateString, parseLocalDate } from "@/lib/date-utils";
 import { toast } from "sonner";
 import { ProminentAmountInput } from "@/components/ProminentAmountInput";
+import { sanitizePositiveIntegerInput } from "@/lib/input-utils";
 import type { AccountWithType } from "@/app/accounts/types";
 import { NO_ACCOUNT, RecurringAccountField } from "./recurring-account-field";
 
@@ -217,7 +218,7 @@ export function EditRecurringDialog({
 								inputMode="numeric"
 								value={formData.frequency_value}
 								onChange={(e) => {
-									const val = e.target.value.replace(/[^0-9]/g, "");
+									const val = sanitizePositiveIntegerInput(e.target.value);
 									setFormData({ ...formData, frequency_value: val });
 								}}
 								className="h-10 w-20"

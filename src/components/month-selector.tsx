@@ -73,6 +73,7 @@ export function MonthSelector({ currentMonth, onMonthChange }: MonthSelectorProp
 					date={currentDate}
 					setDate={handleDateChange}
 					customLabel={<CalendarIcon className="h-4 w-4 text-foreground" />}
+					ariaLabel="Choose month"
 					className="h-8 w-8 shrink-0 justify-center rounded-full border-0 bg-transparent p-0 shadow-none hover:bg-hover"
 					align="start"
 				/>

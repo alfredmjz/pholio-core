@@ -10,6 +10,7 @@ import { DeleteConfirmDialog } from "@/components/dialogs/DeleteConfirmDialog";
 import { cn } from "@/lib/utils";
 import { formatCurrency } from "@/app/dashboard/utils";
 import { accountWarning } from "@/lib/account-links";
+import { formatAccountDisplayName } from "@/lib/account-utils";
 import {
 	calculateNextDueDate,
 	differenceInDays,
@@ -185,7 +186,7 @@ export function BillRow({ bill, onDelete, onUpdate, timezone, categoryOptions = 
 						name={bill.name}
 						items={[
 							{ label: "Edit", onSelect: () => setIsEditOpen(true) },
-							...(!isAutomated ? [{ label: "Pay a future bill", onSelect: () => setIsPayFutureOpen(true) }] : []),
+							...(!isAutomated ? [{ label: "Pay bills early", onSelect: () => setIsPayFutureOpen(true) }] : []),
 						]}
 						onDelete={() => setDeleteOpen(true)}
 						deleting={isDeleting}
@@ -210,6 +211,7 @@ export function BillRow({ bill, onDelete, onUpdate, timezone, categoryOptions = 
 				onUpdate={onUpdate}
 				onSuccess={() => router.refresh()}
 				timezone={timezone}
+				accountLabel={account ? formatAccountDisplayName(account) : null}
 			/>
 			<DeleteConfirmDialog
 				open={deleteOpen}

@@ -66,6 +66,7 @@ export interface Database {
 					created_at: string;
 					updated_at: string;
 					recurring_expense_id: string | null;
+					covers_due_date: string | null;
 				};
 				Insert: {
 					id?: string;
@@ -79,6 +80,7 @@ export interface Database {
 					created_at?: string;
 					updated_at?: string;
 					recurring_expense_id?: string | null;
+					covers_due_date?: string | null;
 				};
 				Update: {
 					id?: string;
@@ -92,6 +94,7 @@ export interface Database {
 					created_at?: string;
 					updated_at?: string;
 					recurring_expense_id?: string | null;
+					covers_due_date?: string | null;
 				};
 			};
 			recurring_expenses: {

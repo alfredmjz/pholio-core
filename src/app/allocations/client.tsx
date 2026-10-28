@@ -1,6 +1,6 @@
 "use client";
 
-import { useState, useEffect } from "react";
+import { useState, useEffect, useTransition } from "react";
 import { useRouter } from "next/navigation";
 import { toast } from "sonner";
 import { sameData, useAllocationSync } from "@/hooks/useAllocationSync";
@@ -108,22 +108,25 @@ export function AllocationClient({
 	const [isSavingTemplate, setIsSavingTemplate] = useState(false);
 	const [exportDialogOpen, setExportDialogOpen] = useState(false);
 	const [typeFilter, setTypeFilter] = useState<TransactionType | null>(null);
+	// The header shows the new month at once; its data arrives with the navigation.
+	const [isChangingMonth, startMonthChange] = useTransition();
 
-	const { summary, transactions, isRefetching, optimisticallyReorderCategories, rollback } = useAllocationSync(
-		initialSummary?.allocation.id || "",
-		currentMonth.year,
-		currentMonth.month,
-		initialSummary,
-		initialTransactions,
-		(fresh) => {
-			setAccounts((current) => (sameData(current, fresh.accounts) ? current : fresh.accounts));
-			setContributions((current) => (sameData(current, fresh.contributions) ? current : fresh.contributions));
-		}
-	);
+	const { summary, transactions, isRefetching, optimisticallyReorderCategories, rollback, saveCategoryOrder } =
+		useAllocationSync(
+			initialSummary?.allocation.id || "",
+			currentMonth.year,
+			currentMonth.month,
+			initialSummary,
+			initialTransactions,
+			(fresh) => {
+				setAccounts((current) => (sameData(current, fresh.accounts) ? current : fresh.accounts));
+				setContributions((current) => (sameData(current, fresh.contributions) ? current : fresh.contributions));
+			}
+		);
 
 	useEffect(() => {
 		// Only act if we have no summary (truly empty month)
-		if (!summary && !templateDialogOpen) {
+		if (!summary && !templateDialogOpen && !isChangingMonth) {
 			// Delay to avoid flash on initial load
 			const timer = setTimeout(() => {
 				// All default behaviors currently open the template dialog
@@ -131,12 +134,12 @@ export function AllocationClient({
 			}, 500);
 			return () => clearTimeout(timer);
 		}
-	}, [summary, currentMonth, userSettings?.newMonthDefault]);
+	}, [summary, currentMonth, userSettings?.newMonthDefault, isChangingMonth]);
 
 	const handleMonthChange = (newMonth: MonthYear) => {
 		setCurrentMonth(newMonth);
 		setTypeFilter(null); // Reset filters on month change
-		router.push(`/allocations?year=${newMonth.year}&month=${newMonth.month}`);
+		startMonthChange(() => router.push(`/allocations?year=${newMonth.year}&month=${newMonth.month}`));
 	};
 
 	const handleAddCategorySubmit = async (
@@ -256,10 +259,12 @@ export function AllocationClient({
 				value={{
 					optimisticallyReorderCategories,
 					rollback,
+					saveCategoryOrder,
 				}}
 			>
 				<AllocationsEmptyView
 					currentMonth={currentMonth}
+					isChangingMonth={isChangingMonth}
 					onMonthChange={handleMonthChange}
 					onSetupBudget={() => setTemplateDialogOpen(true)}
 					onExport={() => setExportDialogOpen(true)}
@@ -293,10 +298,12 @@ export function AllocationClient({
 			value={{
 				optimisticallyReorderCategories,
 				rollback,
+				saveCategoryOrder,
 			}}
 		>
 			<AllocationsDashboardView
 				isRefetching={isRefetching}
+				isChangingMonth={isChangingMonth}
 				currentMonth={currentMonth}
 				summary={summary}
 				categories={categories}

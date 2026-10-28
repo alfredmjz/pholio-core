@@ -6,11 +6,19 @@ import { Database } from "@/lib/database.types";
 import { getMockRecurringExpenses } from "@/mock-data/recurring";
 import { getMockTransactions } from "@/mock-data/transactions";
 import { Logger } from "@/lib/logger";
-import { calculateNextDueDate, formatDateString, parseLocalDate } from "@/lib/date-utils";
+import {
+	calculateNextDueDate,
+	formatDateString,
+	formatFullDate,
+	getTodayDateString,
+	parseLocalDate,
+} from "@/lib/date-utils";
 import { compareAlphabetically } from "@/lib/sort-utils";
 import { sampleAllocationSummary } from "@/mock-data/allocations";
 import { getAllocation, autoCreateAllocationWithDefaults } from "../allocations/actions";
 import { isSampleDataMode } from "@/lib/demo-mode.server";
+import { getTimezone } from "@/app/settings/actions";
+import { coveredDueDate, earlyPaymentPlan, PAY_AHEAD_MAX, paymentsForMonth } from "./recurring-schedule";
 
 /**
  * The allocation category NAME a recurring expense is bundled into. A user-chosen
@@ -42,6 +50,8 @@ export async function getRecurringExpenses(): Promise<RecurringExpense[]> {
 	const now = new Date();
 	const startOfMonth = new Date(now.getFullYear(), now.getMonth(), 1).toISOString();
 	const endOfMonth = new Date(now.getFullYear(), now.getMonth() + 1, 0).toISOString();
+	const monthStart = formatDateString(new Date(now.getFullYear(), now.getMonth(), 1));
+	const monthEnd = formatDateString(new Date(now.getFullYear(), now.getMonth() + 1, 0));
 
 	let expenses: RecurringExpense[] = [];
 	let transactions: any[] = [];
@@ -68,12 +78,14 @@ export async function getRecurringExpenses(): Promise<RecurringExpense[]> {
 		}
 		expenses = dbExpenses || [];
 
+		// Payments made this month, and bills due this month that were paid early.
 		const { data: dbTransactions } = await supabase
 			.from("transactions")
-			.select("id, name, amount, transaction_date, recurring_expense_id")
+			.select("id, name, amount, transaction_date, recurring_expense_id, covers_due_date")
 			.eq("user_id", user.id)
-			.gte("transaction_date", startOfMonth)
-			.lte("transaction_date", endOfMonth);
+			.or(
+				`and(transaction_date.gte.${monthStart},transaction_date.lte.${monthEnd}),and(covers_due_date.gte.${monthStart},covers_due_date.lte.${monthEnd})`
+			);
 
 		transactions = dbTransactions || [];
 
@@ -90,6 +102,7 @@ export async function getRecurringExpenses(): Promise<RecurringExpense[]> {
 	}
 
 	if (!expenses.length) return [];
+	transactions = paymentsForMonth(transactions, monthStart, monthEnd);
 
 	const enrichedExpenses = expenses.map((expense) => {
 		let status: RecurringExpenseStatus = "upcoming";
@@ -134,7 +147,7 @@ export async function getRecurringExpenses(): Promise<RecurringExpense[]> {
 		};
 
 		// Set of dates already paid for this expense
-		const paidDates = new Set(paidTransactions.map((t) => toDateStr(t.transaction_date)));
+		const paidDates = new Set(paidTransactions.map((t) => coveredDueDate(t)));
 
 		// Recorded occurrences for this expense in the current month. An occurrence
 		// whose transaction was deleted still counts as an occurrence (0 of 1 paid).
@@ -321,7 +334,7 @@ async function getCategoryIdForExpense(
 	dateStr: string,
 	categoryName: string
 ): Promise<string | null> {
-	const date = new Date(dateStr);
+	const date = parseLocalDate(dateStr);
 	const year = date.getFullYear();
 	const month = date.getMonth() + 1;
 
@@ -395,12 +408,21 @@ export async function markAsPaid(expenseId: string): Promise<boolean> {
 	return payRecurringExpense(expenseId, 1);
 }
 
-export async function payRecurringExpense(expenseId: string, count: number): Promise<boolean> {
+/**
+ * Records `count` bills from the next due date and moves the due date past them. A bill paid when
+ * due is recorded on its due date. Paying early records each bill today, the day the money leaves,
+ * so it lands in this month's budget, with the due date it covers in its note.
+ */
+export async function payRecurringExpense(
+	expenseId: string,
+	count: number,
+	options: { early?: boolean } = {}
+): Promise<boolean> {
 	const supabase = await createClient();
 	const {
 		data: { user },
 	} = await supabase.auth.getUser();
-	if (!user || count < 1) return false;
+	if (!user || count < 1 || count > PAY_AHEAD_MAX) return false;
 
 	const { data: expense, error: fetchError } = await supabase
 		.from("recurring_expenses")
@@ -413,28 +435,24 @@ export async function payRecurringExpense(expenseId: string, count: number): Pro
 		return false;
 	}
 
-	let currentDueDate = new Date(expense.next_due_date);
+	const { covered, nextDue } = earlyPaymentPlan(expense.next_due_date, expense.billing_period, count);
+	const today = options.early ? getTodayDateString((await getTimezone()) ?? undefined) : null;
 
-	for (let i = 0; i < count; i++) {
+	for (const dueDate of covered) {
 		const success = await createRecurringTransaction(
 			supabase,
 			user.id,
 			expense,
-			currentDueDate,
-			count > 1 ? `Future payment (${i + 1}/${count})` : "Manual payment"
+			today ?? dueDate,
+			dueDate,
+			today ? `Paid early for the ${formatFullDate(dueDate)} bill` : `Manual payment for ${expense.name}`
 		);
-
-		if (!success) {
-			return false;
-		}
-
-		// Advance date for next iteration
-		currentDueDate = calculateNextDueDate(currentDueDate, expense.billing_period);
+		if (!success) return false;
 	}
 
 	const { error: updateError } = await supabase
 		.from("recurring_expenses")
-		.update({ next_due_date: currentDueDate.toISOString() })
+		.update({ next_due_date: nextDue })
 		.eq("id", expenseId);
 
 	if (updateError) {
@@ -470,16 +488,15 @@ async function createRecurringTransaction(
 	supabase: any,
 	userId: string,
 	expense: RecurringExpense,
-	date: Date,
-	notePrefix: string = "Payment"
+	transactionDate: string,
+	coversDueDate: string,
+	notes: string
 ): Promise<boolean> {
-	const dueDateStr = date.toISOString().split("T")[0];
-
 	// Attempt to link category
 	const categoryId = await getCategoryIdForExpense(
 		supabase,
 		userId,
-		dueDateStr,
+		transactionDate,
 		resolveRecurringCategoryName(expense)
 	);
 
@@ -487,11 +504,12 @@ async function createRecurringTransaction(
 		user_id: userId,
 		name: expense.name,
 		amount: -Math.abs(Number(expense.amount)),
-		transaction_date: dueDateStr,
+		transaction_date: transactionDate,
+		covers_due_date: coversDueDate,
 		category_id: categoryId,
 		source: "recurring",
 		recurring_expense_id: expense.id,
-		notes: `${notePrefix} for ${expense.name}`,
+		notes,
 	});
 
 	if (txError) {

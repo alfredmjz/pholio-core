@@ -18,6 +18,7 @@ import { toast } from "sonner";
 import { ServiceLogo } from "@/components/service-logo";
 import { ServiceAutocomplete } from "@/components/service-autocomplete";
 import { ProminentAmountInput } from "@/components/ProminentAmountInput";
+import { sanitizePositiveIntegerInput } from "@/lib/input-utils";
 import type { AccountWithType } from "@/app/accounts/types";
 import { NO_ACCOUNT, RecurringAccountField } from "./recurring-account-field";
 
@@ -310,7 +311,7 @@ export function AddRecurringDialog({
 									inputMode="numeric"
 									value={formData.frequency_value}
 									onChange={(e) => {
-										const val = e.target.value.replace(/[^0-9]/g, "");
+										const val = sanitizePositiveIntegerInput(e.target.value);
 										setFormData({ ...formData, frequency_value: val });
 									}}
 									className="h-10 w-20"

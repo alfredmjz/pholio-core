@@ -12,6 +12,19 @@ export interface ChangelogEntry {
 /** What's new in Pholio, newest first. Every user-facing release adds an entry at the top. */
 export const CHANGELOG: ChangelogEntry[] = [
 	{
+		id: "2026-10-account-links",
+		date: "2026-10-27",
+		title: "Accounts, bills and transactions now connect",
+		items: [
+			"Choose the account each bill or subscription is paid from. Its payments are recorded on that account for you.",
+			"Each account lists the bills it pays, and its transfers name the other account.",
+			"Jump from an account's activity to the same transaction in Allocations, and back.",
+			"Pay bills early: pick how many upcoming bills to cover and they're recorded today.",
+			"Moving between months in Allocations shows a placeholder until the new month loads, and the month picker has a new look.",
+			"Fixed: editing a payment no longer says it's more than your balance.",
+		],
+	},
+	{
 		id: "2026-10-ascii-logo",
 		date: "2026-10-24",
 		title: "A new Pholio logo",

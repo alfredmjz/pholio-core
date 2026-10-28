@@ -199,6 +199,11 @@
 	font-size: clamp(1.25rem, 4vw, 1.6rem);
 	font-weight: 500;
 	color: hsl(var(--text-muted));
+	transition: color 0.2s ease;
+}
+
+.field-amount[data-filled="true"] .field-amount-currency {
+	color: hsl(var(--accent));
 }
 
 .field-amount-input {
@@ -406,6 +411,11 @@
 	animation: progress-wave var(--progress-duration) var(--progress-ease) 1 both;
 }
 
+/* Rolled once and at rest where the animation ended (translateX(0)), so moving it can't replay it. */
+.progress-line-wave[data-settled="true"] {
+	animation: none;
+}
+
 /* Caps the end of the fill, where the wave is cut off. */
 .progress-line-dot {
 	position: absolute;
@@ -426,13 +436,38 @@
 	}
 }
 
+/* A short, settling shake in place, e.g. on the bar of a category row just dropped. */
+.progress-wiggle {
+	animation: progress-wiggle 0.6s var(--progress-ease) 1;
+}
+
+@keyframes progress-wiggle {
+	0%,
+	100% {
+		transform: translateX(0);
+	}
+	20% {
+		transform: translateX(-4px);
+	}
+	40% {
+		transform: translateX(3px);
+	}
+	60% {
+		transform: translateX(-2px);
+	}
+	80% {
+		transform: translateX(1px);
+	}
+}
+
 @media (prefers-reduced-motion: reduce) {
 	.progress-line-fill,
 	.progress-line-track,
 	.progress-line-dot {
 		transition: none;
 	}
-	.progress-line-wave {
+	.progress-line-wave,
+	.progress-wiggle {
 		animation: none;
 	}
 }

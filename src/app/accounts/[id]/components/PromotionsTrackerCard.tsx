@@ -51,7 +51,7 @@ export function PromotionsTrackerCard({ accountId, formatCurrency }: PromotionsT
 	const {
 		data: promotions,
 		refresh,
-		isRefreshing,
+		isLoading,
 	} = useServerSyncedData<AccountPromotion[]>(EMPTY_PROMOTIONS, () => getAccountPromotions(accountId), {
 		fetchOnMount: true,
 	});
@@ -97,7 +97,7 @@ export function PromotionsTrackerCard({ accountId, formatCurrency }: PromotionsT
 			}
 		>
 			{promotions.length === 0 ? (
-				isRefreshing ? (
+				isLoading ? (
 					<Skeleton className="h-24 w-full rounded-xl" />
 				) : (
 					<p className="type-body-sm text-muted-foreground">

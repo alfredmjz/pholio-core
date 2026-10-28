@@ -63,6 +63,8 @@ export interface Transaction {
 	category_name?: string;
 
 	recurring_expense_id?: string | null;
+	/** The bill due date a recurring payment settles; null means its transaction date. */
+	covers_due_date?: string | null;
 	is_recurring_stopped?: boolean;
 }
 

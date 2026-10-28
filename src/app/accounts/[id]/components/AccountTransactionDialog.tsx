@@ -172,7 +172,7 @@ export function AccountTransactionDialog({
 									</span>
 								)}
 								{transaction.linked_allocation_transaction_id && (
-									<span>This transaction is linked to your budget. Changes will update both.</span>
+									<span>This transaction is linked to your budget.</span>
 								)}
 							</div>
 						</div>

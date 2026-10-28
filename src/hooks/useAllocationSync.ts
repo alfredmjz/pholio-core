@@ -2,7 +2,7 @@
 
 import { useEffect, useRef, useState } from "react";
 import type { AllocationPageData, AllocationSummary, Transaction, AllocationCategory } from "@/app/allocations/types";
-import { getAllocationPageData } from "@/app/allocations/actions";
+import { getAllocationPageData, reorderCategories } from "@/app/allocations/actions";
 import { toast } from "sonner";
 import { useOptimisticAllocation } from "./useOptimisticAllocation";
 
@@ -12,6 +12,8 @@ interface UseAllocationSyncReturn {
 	isRefetching: boolean;
 	optimisticallyReorderCategories: (newCategories: AllocationCategory[]) => void;
 	rollback: (previousSummary: AllocationSummary) => void;
+	/** Shows the new order at once and saves it; resolves to whether the save worked. */
+	saveCategoryOrder: (newCategories: AllocationCategory[]) => Promise<boolean>;
 }
 
 /** Coming back to the tab refetches only when the data is older than this. */
@@ -56,6 +58,8 @@ export function useAllocationSync(
 	onRefetchedRef.current = onRefetched;
 	const lastFetchedAt = useRef(Date.now());
 	const isFetching = useRef(false);
+	// A refetch while a reorder saves would show the rows half saved and swap them back.
+	const savesInFlight = useRef(0);
 
 	// Update state when initial props change (e.g., month navigation, or a save on the page)
 	useEffect(() => {
@@ -63,6 +67,17 @@ export function useAllocationSync(
 		if (initialSummary && !sameData(initialSummary, summaryRef.current)) syncWithServer(initialSummary);
 		if (!sameData(initialTransactions, transactionsRef.current)) setTransactions(initialTransactions);
 	}, [initialSummary, initialTransactions, syncWithServer]);
+
+	const saveCategoryOrder = async (newCategories: AllocationCategory[]) => {
+		const ordered = newCategories.map((category, index) => ({ ...category, display_order: index }));
+		optimisticallyReorderCategories(ordered);
+		savesInFlight.current += 1;
+		try {
+			return await reorderCategories(ordered.map(({ id, display_order }) => ({ id, display_order })));
+		} finally {
+			savesInFlight.current -= 1;
+		}
+	};
 
 	// Refetch when the tab regains focus so changes made elsewhere (for example
 	// deleting an account, which nulls the linked account transaction) show up.
@@ -73,6 +88,7 @@ export function useAllocationSync(
 
 			// focus and visibilitychange fire together; the debounce sends one request
 			refetchTimeoutRef.current = setTimeout(async () => {
+				if (savesInFlight.current > 0) return;
 				isFetching.current = true;
 				setIsRefetching(true);
 				try {
@@ -102,6 +118,7 @@ export function useAllocationSync(
 			if (
 				document.visibilityState === "visible" &&
 				!isFetching.current &&
+				savesInFlight.current === 0 &&
 				Date.now() - lastFetchedAt.current >= FOCUS_REFRESH_MS
 			) {
 				refetch();
@@ -123,5 +140,6 @@ export function useAllocationSync(
 		isRefetching,
 		optimisticallyReorderCategories,
 		rollback,
+		saveCategoryOrder,
 	};
 }

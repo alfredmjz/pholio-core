@@ -37,6 +37,7 @@ import { getTodayDateString, parseLocalDate, formatDateString, formatFullDate } 
 import { handleEnterSubmit } from "@/lib/enter-submit";
 import { VIRTUAL_UNCATEGORIZED_ID } from "@/app/allocations/types";
 import { formatAccountDisplayName, sortAccounts } from "@/lib/account-utils";
+import { formatMoney } from "@/lib/format";
 import { getAccountTransactionTypeOptions, getDefaultAccountTransactionType } from "@/lib/account-transaction-types";
 import { compareAlphabetically, sortAlphabetically } from "@/lib/sort-utils";
 import { ManagePresetsDialog } from "./ManagePresetsDialog";
@@ -327,14 +328,18 @@ export function UnifiedTransactionDialog({
 			isValid = false;
 		}
 
-		if (!validationResult.isValid && !(allowOverpayment && validationResult.overridable)) {
+		const overLimit = !validationResult.isValid && !(allowOverpayment && validationResult.overridable);
+		if (overLimit) {
 			newErrors.amount = validationResult.warning || "Amount exceeds account limit";
 			isValid = false;
 		}
 
 		setErrors(newErrors);
-		if (!isValid)
+		if (overLimit && Object.keys(newErrors).length === 1) {
+			toast.error("The amount is too high", { description: newErrors.amount });
+		} else if (!isValid) {
 			toast.error("Please fill in all required fields", { description: "Check the form for displayed errors." });
+		}
 		return isValid;
 	};
 
@@ -664,14 +669,14 @@ export function UnifiedTransactionDialog({
 																<>
 																	<span className="text-muted-foreground">Debt left today</span>
 																	<span className="type-value text-error">
-																		${selectedAccountStanding.remainingDebt.toFixed(2)}
+																		{formatMoney(selectedAccountStanding.remainingDebt, { showCents: true })}
 																	</span>
 																</>
 															) : (
 																<>
 																	<span className="text-muted-foreground">Available balance</span>
 																	<span className="type-value text-primary">
-																		${selectedAccountStanding.availableBalance.toFixed(2)}
+																		{formatMoney(selectedAccountStanding.availableBalance, { showCents: true })}
 																	</span>
 																</>
 															)}

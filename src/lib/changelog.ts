@@ -12,6 +12,14 @@ export interface ChangelogEntry {
 /** What's new in Pholio, newest first. Every user-facing release adds an entry at the top. */
 export const CHANGELOG: ChangelogEntry[] = [
 	{
+		id: "2026-10-clearer-amount-limits",
+		date: "2026-10-28",
+		title: "Clearer messages when an amount is too high",
+		items: [
+			"When an amount is more than an account's balance, the message now says so and shows amounts in your currency format.",
+		],
+	},
+	{
 		id: "2026-10-weather-behind-text",
 		date: "2026-10-28",
 		title: "The weather runs behind your numbers",

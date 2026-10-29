@@ -2,7 +2,7 @@
 
 import { useState, useMemo, useEffect, Fragment } from "react";
 import Link from "next/link";
-import { usePathname, useRouter, useSearchParams } from "next/navigation";
+import { usePathname, useSearchParams } from "next/navigation";
 import { Search, X, ArrowUpDown, ChevronUp, ChevronDown, Ban, RotateCcw, SlidersHorizontal } from "lucide-react";
 import { Input } from "@/components/ui/input";
 import { Button } from "@/components/ui/button";
@@ -148,7 +148,6 @@ export function TransactionLedger({
 	};
 
 	// A link from an account page (?transaction=<id>) opens that row once, then leaves the URL.
-	const router = useRouter();
 	const pathname = usePathname();
 	const searchParams = useSearchParams();
 	const linkedTransactionId = searchParams.get("transaction");
@@ -159,7 +158,8 @@ export function TransactionLedger({
 		const params = new URLSearchParams(searchParams.toString());
 		params.delete("transaction");
 		const query = params.toString();
-		router.replace(query ? `${pathname}?${query}` : pathname, { scroll: false });
+		// Only the URL changes, so skip router.replace's server render of the whole page.
+		window.history.replaceState(null, "", query ? `${pathname}?${query}` : pathname);
 	}, [linkedTransactionId, transactions]);
 
 	const filteredTransactions = useMemo(() => {

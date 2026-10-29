@@ -3,7 +3,7 @@
 import { useState, useEffect, useTransition } from "react";
 import { useRouter } from "next/navigation";
 import { toast } from "sonner";
-import { useAllocationSync } from "@/hooks/useAllocationSync";
+import { sameData, useAllocationSync } from "@/hooks/useAllocationSync";
 import { useServerSyncedData } from "@/hooks/useServerSyncedData";
 import { getAccountsForSelector } from "@/lib/actions/unified-transaction-actions";
 import { getAllocationContributions } from "@/lib/actions/contribution-actions";
@@ -82,15 +82,25 @@ export function AllocationClient({
 	useFormatSettings();
 	const router = useRouter();
 
-	const { data: accounts } = useServerSyncedData<AccountWithType[]>(initialAccounts, () => getAccountsForSelector());
+	// Accounts and contributions refresh with the page's single catch-up refetch in useAllocationSync.
+	const { data: accounts, setData: setAccounts } = useServerSyncedData<AccountWithType[]>(
+		initialAccounts,
+		() => getAccountsForSelector(),
+		{ refreshOnFocus: false }
+	);
 
 	const [currentMonth, setCurrentMonth] = useState<MonthYear>({
 		year: initialYear,
 		month: initialMonth,
 	});
-	const { data: contributions, refresh: refreshContributions } = useServerSyncedData<AllocationContributions>(
+	const {
+		data: contributions,
+		setData: setContributions,
+		refresh: refreshContributions,
+	} = useServerSyncedData<AllocationContributions>(
 		initialContributions,
-		() => getAllocationContributions(currentMonth.year, currentMonth.month)
+		() => getAllocationContributions(currentMonth.year, currentMonth.month),
+		{ refreshOnFocus: false }
 	);
 	const [addCategoryDialogOpen, setAddCategoryDialogOpen] = useState(false);
 	const [templateDialogOpen, setTemplateDialogOpen] = useState(false);
@@ -101,21 +111,17 @@ export function AllocationClient({
 	// The header shows the new month at once; its data arrives with the navigation.
 	const [isChangingMonth, startMonthChange] = useTransition();
 
-	const {
-		summary,
-		transactions,
-		isConnected,
-		isRefetching,
-		optimisticallyReorderCategories,
-		rollback,
-		saveCategoryOrder,
-	} =
+	const { summary, transactions, isRefetching, optimisticallyReorderCategories, rollback, saveCategoryOrder } =
 		useAllocationSync(
 			initialSummary?.allocation.id || "",
 			currentMonth.year,
 			currentMonth.month,
 			initialSummary,
-			initialTransactions
+			initialTransactions,
+			(fresh) => {
+				setAccounts((current) => (sameData(current, fresh.accounts) ? current : fresh.accounts));
+				setContributions((current) => (sameData(current, fresh.contributions) ? current : fresh.contributions));
+			}
 		);
 
 	useEffect(() => {
@@ -296,7 +302,6 @@ export function AllocationClient({
 			}}
 		>
 			<AllocationsDashboardView
-				isConnected={isConnected}
 				isRefetching={isRefetching}
 				isChangingMonth={isChangingMonth}
 				currentMonth={currentMonth}

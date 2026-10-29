@@ -1,11 +1,12 @@
 "use server";
 
-import { createClient } from "@/lib/supabase/server";
+import { createClient, getReadUserId } from "@/lib/supabase/server";
 import { revalidatePath } from "next/cache";
 import { VIRTUAL_UNCATEGORIZED_ID } from "./types";
 import type {
 	Allocation,
 	AllocationCategory,
+	AllocationPageData,
 	AllocationSummary,
 	AllocationTemplate,
 	Transaction,
@@ -17,6 +18,8 @@ import { Logger } from "@/lib/logger";
 import { isSampleDataMode } from "@/lib/demo-mode.server";
 import { parseLocalDate, calculateNextDueDate, getTodayDateString, formatDateString, stepDate } from "@/lib/date-utils";
 import { getAllocationSettings, getTimezone } from "@/app/settings/actions";
+import { getAccountsForSelector } from "@/lib/actions/unified-transaction-actions";
+import { getAllocationContributions } from "@/lib/actions/contribution-actions";
 
 // ============================================================================
 // Sample-data mode: in-memory allocations so month navigation and "create budget"
@@ -1072,10 +1075,8 @@ export async function getTransactionsForMonth(year: number, month: number): Prom
 
 	const supabase = await createClient();
 
-	const {
-		data: { user },
-	} = await supabase.auth.getUser();
-	if (!user) return [];
+	const userId = await getReadUserId(supabase);
+	if (!userId) return [];
 
 	// Calculate date range for the month
 	const startDate = `${year}-${String(month).padStart(2, "0")}-01`;
@@ -1096,7 +1097,7 @@ export async function getTransactionsForMonth(year: number, month: number): Prom
 			)
 		`
 		)
-		.eq("user_id", user.id)
+		.eq("user_id", userId)
 		.gte("transaction_date", startDate)
 		.lte("transaction_date", endDateStr)
 		.order("transaction_date", { ascending: false });
@@ -1149,6 +1150,21 @@ export async function getTransactionsForMonth(year: number, month: number): Prom
 			linked_account_transactions: linkedAccountTxMap.get(t.id) ?? [],
 		};
 	}) as Transaction[];
+}
+
+/** The page's catch-up refetch: summary, transactions, accounts and contributions in one request. */
+export async function getAllocationPageData(
+	allocationId: string | null,
+	year: number,
+	month: number
+): Promise<AllocationPageData> {
+	const [summary, transactions, accounts, contributions] = await Promise.all([
+		allocationId ? getAllocationSummary(allocationId) : null,
+		getTransactionsForMonth(year, month),
+		getAccountsForSelector(),
+		getAllocationContributions(year, month),
+	]);
+	return { summary, transactions, accounts, contributions };
 }
 
 export async function getUserTemplates(): Promise<

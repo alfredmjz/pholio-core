@@ -94,5 +94,5 @@ export async function expectNoHorizontalScroll(page: Page) {
 
 /** A name that is unique per project and run, so parallel projects never collide. */
 export function uniqueName(prefix: string, projectName: string) {
-	return `${prefix} ${projectName} ${Date.now().toString(36)}`;
+	return `${prefix} ${projectName} ${Date.now().toString(36)}${Math.random().toString(36).slice(2, 5)}`;
 }

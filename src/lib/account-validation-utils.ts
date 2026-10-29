@@ -1,4 +1,7 @@
 import type { AccountWithType, AccountTransaction } from "@/app/accounts/types";
+import { formatMoney } from "@/lib/format";
+
+const money = (amount: number) => formatMoney(amount, { showCents: true });
 
 export interface AccountStanding {
 	accountClass: "asset" | "liability";
@@ -199,7 +202,7 @@ function evaluateAccountCap(account: AccountWithType, delta: number, allowOverpa
 		if (delta < 0 && abs > balance) {
 			return {
 				ok: false,
-				message: `Amount ($${abs.toFixed(2)}) exceeds available account balance ($${balance.toFixed(2)}).`,
+				message: `Amount (${money(abs)}) exceeds available account balance (${money(balance)}).`,
 				maxAllowed: balance,
 				overridable: false,
 			};
@@ -213,7 +216,7 @@ function evaluateAccountCap(account: AccountWithType, delta: number, allowOverpa
 			if (allowOverpayment) return { ok: true };
 			return {
 				ok: false,
-				message: `Amount ($${abs.toFixed(2)}) exceeds remaining debt ($${balance.toFixed(2)}).`,
+				message: `Amount (${money(abs)}) exceeds remaining debt (${money(balance)}).`,
 				maxAllowed: balance,
 				overridable: true,
 			};
@@ -227,7 +230,7 @@ function evaluateAccountCap(account: AccountWithType, delta: number, allowOverpa
 		if (abs > availableCredit) {
 			return {
 				ok: false,
-				message: `Amount ($${abs.toFixed(2)}) exceeds available credit ($${availableCredit.toFixed(2)}).`,
+				message: `Amount (${money(abs)}) exceeds available credit (${money(availableCredit)}).`,
 				maxAllowed: availableCredit,
 				overridable: false,
 			};

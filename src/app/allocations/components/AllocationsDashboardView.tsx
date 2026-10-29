@@ -1,7 +1,7 @@
 "use client";
 
 import { Badge } from "@/components/ui/badge";
-import { WifiOff, Loader2 } from "lucide-react";
+import { Loader2 } from "lucide-react";
 import { AllocationsHeader } from "./AllocationsHeader";
 import { BudgetPlanCard } from "./budget-plan-card";
 import { CategoryList } from "./category-list";
@@ -25,7 +25,6 @@ import type { TransactionType } from "./TransactionTypeIcon";
 
 interface AllocationsDashboardViewProps {
 	// Status
-	isConnected: boolean;
 	isRefetching: boolean;
 	/** A new month's data is on its way; the page below the header shows a skeleton until it lands. */
 	isChangingMonth?: boolean;
@@ -81,7 +80,6 @@ interface AllocationsDashboardViewProps {
 }
 
 export function AllocationsDashboardView({
-	isConnected,
 	isRefetching,
 	isChangingMonth = false,
 	currentMonth,
@@ -117,19 +115,12 @@ export function AllocationsDashboardView({
 
 	return (
 		<SurfacePage className="gap-8 md:gap-10">
-			{(!isConnected || isRefetching) && (
+			{isRefetching && (
 				<div className="fixed bottom-24 right-4 z-40 lg:bottom-6">
-					{!isConnected ? (
-						<Badge variant="destructive" className="gap-1.5 rounded-full px-3 py-1 shadow-raised">
-							<WifiOff className="h-3 w-3" />
-							Offline
-						</Badge>
-					) : (
-						<Badge variant="secondary" className="gap-1.5 rounded-full px-3 py-1 shadow-raised">
-							<Loader2 className="h-3 w-3 animate-spin" />
-							Syncing
-						</Badge>
-					)}
+					<Badge variant="secondary" className="gap-1.5 rounded-full px-3 py-1 shadow-raised">
+						<Loader2 className="h-3 w-3 animate-spin" />
+						Syncing
+					</Badge>
 				</div>
 			)}
 

@@ -14,9 +14,12 @@ test.describe("demo dashboard", { tag: "@smoke" }, () => {
 	test.use({ storageState: SIGNED_OUT });
 
 	test("net worth line can be scrubbed by keyboard and the range changed", async ({ page }) => {
+		// Starting the demo re-renders the layout and then the whole demo dashboard, which is slow
+		// under a full parallel run.
+		test.slow();
 		await page.goto("/login");
 		await page.getByRole("button", { name: "Try the demo" }).click();
-		await expect(page).toHaveURL(/\/dashboard/);
+		await expect(page).toHaveURL(/\/dashboard/, { timeout: 30_000 });
 
 		const line = page.getByRole("slider", { name: "Net worth over time" });
 		await expect(line).toBeVisible();

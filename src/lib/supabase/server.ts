@@ -34,6 +34,16 @@ export async function createClient() {
 	});
 }
 
+/**
+ * Signed-in user's id for read-only queries. getClaims() verifies the JWT locally against the
+ * project's cached signing keys instead of asking Supabase Auth like getUser() does; RLS still
+ * guards every row. Keep getUser() for writes and anything security-sensitive.
+ */
+export async function getReadUserId(supabase: Awaited<ReturnType<typeof createClient>>): Promise<string | null> {
+	const { data } = await supabase.auth.getClaims();
+	return data?.claims.sub ?? null;
+}
+
 import { createClient as createSupabaseClient } from "@supabase/supabase-js";
 
 /**

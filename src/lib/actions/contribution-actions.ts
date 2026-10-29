@@ -9,7 +9,7 @@
  */
 
 import { revalidatePath } from "next/cache";
-import { createClient } from "@/lib/supabase/server";
+import { createClient, getReadUserId } from "@/lib/supabase/server";
 import { Logger } from "@/lib/logger";
 import { isSampleDataMode } from "@/lib/demo-mode.server";
 import {
@@ -75,11 +75,7 @@ export async function getContributionSummaries(year: number, month: number): Pro
 	}
 
 	const supabase = await createClient();
-	const {
-		data: { user },
-	} = await supabase.auth.getUser();
-
-	if (!user) return [];
+	if (!(await getReadUserId(supabase))) return [];
 
 	const { data, error } = await supabase.rpc("get_contribution_summaries", { p_year: year, p_month: month });
 
@@ -119,15 +115,13 @@ export async function getAllocationContributions(year: number, month: number): P
 	}
 
 	const supabase = await createClient();
-	const {
-		data: { user },
-	} = await supabase.auth.getUser();
+	const userId = await getReadUserId(supabase);
 
-	if (!user) return { pools: [], categoryPlans: {} };
+	if (!userId) return { pools: [], categoryPlans: {} };
 
 	const [pools, { data: allocation }] = await Promise.all([
 		getContributionSummaries(year, month),
-		supabase.from("allocations").select("id").eq("user_id", user.id).eq("year", year).eq("month", month).maybeSingle(),
+		supabase.from("allocations").select("id").eq("user_id", userId).eq("year", year).eq("month", month).maybeSingle(),
 	]);
 
 	const categoryPlans: Record<string, RegisteredPlan> = {};

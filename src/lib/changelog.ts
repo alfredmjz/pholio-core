@@ -17,6 +17,7 @@ export const CHANGELOG: ChangelogEntry[] = [
 		title: "The weather runs behind your numbers",
 		items: [
 			"The background weather now flows behind headings, totals, budget bars and charts, instead of stopping around them. It fades softly under words so they stay easy to read.",
+			"Pickers like the net worth range and the theme switch now show the chosen option as a solid pill, and highlight the one you point at.",
 		],
 	},
 	{

@@ -1,8 +1,9 @@
 "use client";
 
 import { useMemo } from "react";
+import { interestEarned, monthlyInterest } from "@/lib/interest";
 import type { AccountWithType, AccountTransaction } from "../../types";
-import { GlanceSection } from "./PerformanceCard";
+import { GlanceSection, type GlanceRow } from "./PerformanceCard";
 
 interface BankPerformanceProps {
 	account: AccountWithType;
@@ -29,8 +30,18 @@ export function BankPerformance({ account, transactions, formatCurrency }: BankP
 			totalWithdrawals,
 			fees,
 			netCashFlow,
+			hasInterestRate: Number(account.interest_rate) > 0,
+			interestEarned: interestEarned(transactions),
+			monthlyInterestEstimate: monthlyInterest(account.current_balance, account.interest_rate),
 		};
-	}, [transactions]);
+	}, [transactions, account]);
+
+	const interestRows: GlanceRow[] = stats.hasInterestRate
+		? [
+				{ label: "Interest earned", value: formatCurrency(stats.interestEarned), tone: "success" },
+				{ label: "Expected interest a month", value: formatCurrency(stats.monthlyInterestEstimate), tone: "muted" },
+			]
+		: [];
 
 	return (
 		<GlanceSection
@@ -43,6 +54,7 @@ export function BankPerformance({ account, transactions, formatCurrency }: BankP
 					value: `${stats.netCashFlow >= 0 ? "+" : "-"}${formatCurrency(Math.abs(stats.netCashFlow))}`,
 					tone: stats.netCashFlow >= 0 ? "success" : "error",
 				},
+				...interestRows,
 			]}
 		/>
 	);

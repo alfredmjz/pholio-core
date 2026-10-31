@@ -3,6 +3,7 @@
 import { useMemo } from "react";
 import { parseLocalDate } from "@/lib/date-utils";
 import { isInvestmentAccount } from "@/lib/account-validation-utils";
+import { interestEarned, monthlyInterest } from "@/lib/interest";
 import { summarizeInvestmentFlows } from "@/lib/investment-balance";
 import type { AccountWithType, AccountTransaction } from "../../types";
 import { GlanceSection } from "./PerformanceCard";
@@ -15,16 +16,9 @@ interface AssetPerformanceProps {
 
 export function AssetPerformance({ account, transactions, formatCurrency }: AssetPerformanceProps) {
 	const stats = useMemo(() => {
-		const interestEarned = transactions
-			.filter((t) => t.transaction_type === "interest")
-			.reduce((sum, t) => sum + t.amount, 0);
-
 		const totalDeposits = transactions
 			.filter((t) => t.transaction_type === "deposit" || t.transaction_type === "contribution")
 			.reduce((sum, t) => sum + Math.abs(t.amount), 0);
-
-		const monthlyInterestEstimate =
-			account.interest_rate && account.current_balance ? account.current_balance * (account.interest_rate / 12) : 0;
 
 		const now = new Date();
 		const thisMonthInterest = transactions
@@ -43,9 +37,9 @@ export function AssetPerformance({ account, transactions, formatCurrency }: Asse
 
 		return {
 			investmentFlows,
-			interestEarned,
+			interestEarned: interestEarned(transactions),
 			totalDeposits,
-			monthlyInterestEstimate,
+			monthlyInterestEstimate: monthlyInterest(account.current_balance, account.interest_rate),
 			annualGrowthRate,
 			isInvestment,
 		};

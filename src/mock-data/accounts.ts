@@ -228,6 +228,38 @@ export const sampleAccounts: AccountWithType[] = [
 		created_at: "2022-03-10T10:00:00Z",
 		updated_at: "2024-12-15T10:00:00Z",
 	},
+	{
+		id: "acc-6",
+		user_id: "sample-user",
+		name: "Chequing",
+		account_type_id: "type-1",
+		account_type: sampleAccountTypes[0],
+		institution: "Wealthsimple",
+		current_balance: 3200,
+		currency: "CAD",
+		credit_limit: null,
+		original_amount: null,
+		interest_rate: 0.0175,
+		interest_type: "compound",
+		loan_start_date: null,
+		loan_term_months: null,
+		payment_due_date: null,
+		target_balance: null,
+		overdraft_protection: false,
+		nsf_fee: null,
+		track_contribution_room: false,
+		contribution_plan: null,
+		contribution_room: null,
+		contribution_room_as_of: null,
+		annual_contribution_limit: null,
+		notes: "Everyday spending; pays interest on the balance",
+		color: null,
+		icon: null,
+		display_order: 4,
+		is_active: true,
+		created_at: "2024-02-01T10:00:00Z",
+		updated_at: "2024-12-15T10:00:00Z",
+	},
 
 	// Liabilities
 	{
@@ -439,6 +471,38 @@ export function getSampleAccountTransactions(now: Date = getDemoNow()): Record<s
 				linked_allocation_transaction_id: null,
 			},
 		],
+		"acc-6": [
+			{
+				id: "txn-10",
+				account_id: "acc-6",
+				user_id: "sample-user",
+				amount: 2400,
+				transaction_type: "deposit",
+				description: "Paycheque",
+				...at(5),
+				linked_allocation_transaction_id: null,
+			},
+			{
+				id: "txn-11",
+				account_id: "acc-6",
+				user_id: "sample-user",
+				amount: -1850,
+				transaction_type: "withdrawal",
+				description: "Rent",
+				...at(4),
+				linked_allocation_transaction_id: null,
+			},
+			{
+				id: "txn-12",
+				account_id: "acc-6",
+				user_id: "sample-user",
+				amount: 3.82,
+				transaction_type: "interest",
+				description: "Monthly compound interest",
+				...at(20),
+				linked_allocation_transaction_id: null,
+			},
+		],
 	};
 }
 
@@ -461,6 +525,7 @@ export function getSampleAccountHistory(now: Date = getDemoNow()): Record<string
 		"acc-3": build("acc-3", 40000, 45000, 0),
 		"acc-4": build("acc-4", 3000, 2450, 0.003),
 		"acc-5": build("acc-5", 20000, 18500, 0.001),
+		"acc-6": build("acc-6", 2900, 3200, 0.01),
 	};
 }
 

@@ -39,6 +39,16 @@ export const CHANGELOG: ChangelogEntry[] = [
 		],
 	},
 	{
+		id: "2026-10-chequing-interest",
+		date: "2026-10-31",
+		title: "Chequing accounts can earn interest",
+		items: [
+			"Chequing accounts now have an interest rate. Set it when you add or edit the account, or leave it empty if the account pays none.",
+			"Interest is added once a month while the balance is above zero. An overdrawn account earns none and keeps its separate overdraft interest.",
+			"The account page shows the interest earned and what to expect each month.",
+		],
+	},
+	{
 		id: "2026-10-investments-amount-deposited",
 		date: "2026-10-31",
 		title: "Investments show the amount you deposited",

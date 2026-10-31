@@ -13,7 +13,7 @@ export interface ChangelogEntry {
 export const CHANGELOG: ChangelogEntry[] = [
 	{
 		id: "2026-10-overdraft-fees",
-		date: "2026-10-29",
+		date: "2026-10-31",
 		title: "Overdraft and over-limit fees",
 		items: [
 			"Bank accounts can now record their overdraft protection, overdraft fee, NSF fee and overdraft interest, and credit cards their over-limit fee.",
@@ -22,6 +22,15 @@ export const CHANGELOG: ChangelogEntry[] = [
 			"Add the other fees an account charges, like a monthly account fee, a card's annual fee or its cash advance fee, and Pholio adds them when they are due.",
 			"A monthly fee can be waived when the balance stays above a minimum, as many banks do.",
 			'The Fees figure on an account now counts only fees Pholio has added, not any payment with "fee" in its name.',
+		],
+	},
+	{
+		id: "2026-10-clearer-pickers",
+		date: "2026-10-30",
+		title: "Clearer pickers and a tidier subscription list",
+		items: [
+			"Pickers like the net worth range and the theme switch now show the chosen option as a solid pill, and highlight the one you point at.",
+			"Subscriptions no longer show an estimated monthly cost on each row. The Subscriptions total still shows what they cost a month.",
 		],
 	},
 	{

@@ -3,9 +3,8 @@ import type { ContributionSummary } from "@/lib/types/contribution";
 import { parseLocalDate } from "@/lib/date-utils";
 import { formatMoney } from "@/lib/format";
 
-/** CRA My Account: the only place an individual can see their official contribution room. */
-export const CRA_MY_ACCOUNT_URL =
-	"https://www.canada.ca/en/revenue-agency/services/e-services/digital-services-individuals/account-individuals.html";
+/** CRA sign-in services: where an individual signs in to see their official contribution room. */
+export const CRA_LOGIN_URL = "https://www.canada.ca/en/revenue-agency/services/e-services/cra-login-services.html";
 
 /** CRA lets RRSP holders go over their deduction limit by up to $2,000 without the 1% tax. */
 const RRSP_OVER_CONTRIBUTION_BUFFER = 2000;

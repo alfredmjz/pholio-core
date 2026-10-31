@@ -43,7 +43,7 @@ function preset(overrides: Partial<FieldVisibility>): FieldVisibility {
  * type stable `code`, never by its display name.
  */
 export const CORE_TYPE_PRESETS: Record<CoreAccountTypeCode, FieldVisibility> = {
-	chequing: preset({ showOverdraft: true }),
+	chequing: preset({ showInterestRate: true, showOverdraft: true }),
 	savings: preset({ showTargetGoal: true, showInterestRate: true, showOverdraft: true, interestRateLabel: "APY (%)" }),
 	investment: preset({
 		showContributionRoom: true,

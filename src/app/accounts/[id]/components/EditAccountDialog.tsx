@@ -162,6 +162,8 @@ export function EditAccountDialog({ open, onOpenChange, account, onSuccess }: Ed
 				target_balance: visibility.showTargetGoal ? parseFloat(formData.target_balance) || null : null,
 				original_amount: visibility.showOriginalAmount ? parseFloat(formData.original_amount) || null : null,
 				interest_rate: formData.interest_rate ? parseFloat(formData.interest_rate) / 100 : null,
+				// The monthly interest job only pays accounts with an interest type, as the add form sets.
+				interest_type: formData.interest_rate ? (account.interest_type ?? "compound") : null,
 				notes: isNotesEmpty(formData.notes) ? null : formData.notes,
 				payment_due_date: formData.payment_due_date ? parseInt(formData.payment_due_date) : null,
 				...(visibility.showStatementDay && formData.statement_day !== (account.statement_day?.toString() || "")

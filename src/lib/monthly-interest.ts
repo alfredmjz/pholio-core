@@ -3,6 +3,7 @@ import { Logger } from "@/lib/logger";
 import { isInvestmentAccount } from "@/lib/account-validation-utils";
 import { isCardInterestWaived, lastEndedCycle } from "@/lib/credit-card-statement";
 import { getTodayDateString } from "@/lib/date-utils";
+import { monthlyInterest } from "@/lib/interest";
 import { overdraftInterest } from "@/lib/overdraft";
 
 /**
@@ -42,7 +43,8 @@ export async function processGlobalMonthlyInterest(): Promise<{ success: boolean
 			// An investment's balance is the amount deposited; interest would make it a market value.
 			if (isInvestmentAccount({ account_type: type })) continue;
 			try {
-				const interestAmount = account.current_balance * (account.interest_rate / 12);
+				// Zero for a balance at or below zero, so an overdrawn account never earns deposit interest.
+				const interestAmount = monthlyInterest(account.current_balance, account.interest_rate);
 				if (interestAmount <= 0) continue;
 				if (await isStatementPaidInFull(supabase, account)) continue;
 
@@ -59,7 +61,7 @@ export async function processGlobalMonthlyInterest(): Promise<{ success: boolean
 
 				const { error: updateError } = await supabase
 					.from("accounts")
-					.update({ current_balance: account.current_balance + interestAmount })
+					.update({ current_balance: Math.round((Number(account.current_balance) + interestAmount) * 100) / 100 })
 					.eq("id", account.id);
 
 				if (updateError) throw updateError;

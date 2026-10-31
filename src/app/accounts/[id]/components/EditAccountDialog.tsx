@@ -16,6 +16,7 @@ import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
 import { ScratchPad } from "@/components/common/scratch-pad";
 import { isNotesEmpty, notesToHtml } from "@/lib/notes";
+import { cn } from "@/lib/utils";
 import { updateAccount } from "../../actions";
 import { isSampleDataActive } from "@/lib/demo-mode";
 import type { AccountWithType, AccountFieldConfig, UpdateAccountInput } from "../../types";
@@ -62,6 +63,7 @@ export function EditAccountDialog({ open, onOpenChange, account, onSuccess }: Ed
 		interest_rate: account.interest_rate ? (account.interest_rate * 100).toString() : "",
 		notes: notesToHtml(account.notes),
 		payment_due_date: account.payment_due_date?.toString() || "",
+		statement_day: account.statement_day?.toString() || "",
 		credit_limit: account.credit_limit?.toString() || "",
 		loan_term_months: account.loan_term_months?.toString() || "",
 	});
@@ -156,6 +158,9 @@ export function EditAccountDialog({ open, onOpenChange, account, onSuccess }: Ed
 				interest_rate: formData.interest_rate ? parseFloat(formData.interest_rate) / 100 : null,
 				notes: isNotesEmpty(formData.notes) ? null : formData.notes,
 				payment_due_date: formData.payment_due_date ? parseInt(formData.payment_due_date) : null,
+				...(visibility.showStatementDay && formData.statement_day !== (account.statement_day?.toString() || "")
+					? { statement_day: formData.statement_day ? parseInt(formData.statement_day) : null }
+					: {}),
 				credit_limit: formData.credit_limit ? parseFloat(formData.credit_limit) : null,
 				loan_term_months: formData.loan_term_months ? parseInt(formData.loan_term_months) : null,
 				field_visibility: isOtherType ? fieldConfig : null,
@@ -313,22 +318,39 @@ export function EditAccountDialog({ open, onOpenChange, account, onSuccess }: Ed
 									</div>
 								)}
 							</div>
-							<div className="space-y-2">
-								<Label htmlFor="interest_rate">{visibility.interestRateLabel}</Label>
-								<Input
-									id="interest_rate"
-									type="text"
-									inputMode="decimal"
-									placeholder="e.g., 19.99"
-									value={formData.interest_rate}
-									onChange={(e) => {
-										const val = sanitizeDecimalInput(e.target.value, 2);
-										setFormData({ ...formData, interest_rate: val });
-										if (errors.interest_rate) setErrors({ ...errors, interest_rate: undefined });
-									}}
-									className={errors.interest_rate ? "border-error" : ""}
-								/>
-								{errors.interest_rate && <p className="text-sm text-error">{errors.interest_rate}</p>}
+							<div className={cn("grid grid-cols-1 gap-4", visibility.showStatementDay && "sm:grid-cols-2")}>
+								{visibility.showStatementDay && (
+									<div className="space-y-2">
+										<Label htmlFor="statement_day">Statement Closes (1-31)</Label>
+										<Input
+											id="statement_day"
+											type="text"
+											inputMode="numeric"
+											placeholder="21 days before due"
+											value={formData.statement_day}
+											onChange={(e) =>
+												setFormData({ ...formData, statement_day: sanitizeIntegerInput(e.target.value) })
+											}
+										/>
+									</div>
+								)}
+								<div className="space-y-2">
+									<Label htmlFor="interest_rate">{visibility.interestRateLabel}</Label>
+									<Input
+										id="interest_rate"
+										type="text"
+										inputMode="decimal"
+										placeholder="e.g., 19.99"
+										value={formData.interest_rate}
+										onChange={(e) => {
+											const val = sanitizeDecimalInput(e.target.value, 2);
+											setFormData({ ...formData, interest_rate: val });
+											if (errors.interest_rate) setErrors({ ...errors, interest_rate: undefined });
+										}}
+										className={errors.interest_rate ? "border-error" : ""}
+									/>
+									{errors.interest_rate && <p className="text-sm text-error">{errors.interest_rate}</p>}
+								</div>
 							</div>
 						</>
 					)}

@@ -105,6 +105,7 @@ export function AddAccountDialog({ open, onOpenChange, onSuccess }: AddAccountDi
 			interest_rate: vis.showInterestRate ? prev.interest_rate : "",
 			loan_term_months: vis.showLoanTerm ? prev.loan_term_months : "",
 			payment_due_date: vis.showDueDate ? prev.payment_due_date : "",
+			statement_day: vis.showStatementDay ? prev.statement_day : "",
 		}));
 		if (!vis.showContributionRoom) setContribution(EMPTY_CONTRIBUTION_ROOM_VALUES);
 		setErrors({});
@@ -145,6 +146,7 @@ export function AddAccountDialog({ open, onOpenChange, onSuccess }: AddAccountDi
 				institution: form.institution.trim() || null,
 				notes: isNotesEmpty(form.notes) ? null : form.notes,
 				payment_due_date: form.payment_due_date ? parseInt(form.payment_due_date) : null,
+				...(form.statement_day ? { statement_day: parseInt(form.statement_day) } : {}),
 				credit_limit: form.credit_limit ? parseFloat(form.credit_limit) : null,
 				loan_term_months: form.loan_term_months ? parseInt(form.loan_term_months) : null,
 				field_visibility: isOtherType ? fieldConfig : null,

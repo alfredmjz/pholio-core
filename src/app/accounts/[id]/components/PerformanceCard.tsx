@@ -1,6 +1,7 @@
 "use client";
 
 import { SurfaceSection } from "@/components/layout/surface-section";
+import type { CardStatement } from "@/lib/credit-card-statement";
 import { cn } from "@/lib/utils";
 import type { AccountWithType, AccountTransaction } from "../../types";
 import { AssetPerformance } from "./AssetPerformance";
@@ -46,17 +47,25 @@ export function GlanceSection({ rows }: { rows: GlanceRow[] }) {
 interface PerformanceCardProps {
 	account: AccountWithType;
 	transactions: AccountTransaction[];
+	/** A credit card's latest closed statement. */
+	statement?: CardStatement | null;
+	/** YYYY-MM-DD in the user's timezone. */
+	today: string;
 	formatCurrency: (amount: number) => string;
 }
 
 /** Picks the figures by account type code; legacy rows without a code fall back to their category. */
-export function PerformanceCard({ account, transactions, formatCurrency }: PerformanceCardProps) {
+export function PerformanceCard({ account, transactions, statement, today, formatCurrency }: PerformanceCardProps) {
 	const { code, category, class: accountClass } = account.account_type;
 	const props = { account, transactions, formatCurrency };
 
 	if (accountClass === "liability") {
 		const isRevolving = code ? code === "credit_card" || code === "line_of_credit" : category === "credit";
-		return isRevolving ? <CreditCardPerformance {...props} /> : <LoanPerformance {...props} />;
+		return isRevolving ? (
+			<CreditCardPerformance {...props} statement={statement} today={today} />
+		) : (
+			<LoanPerformance {...props} />
+		);
 	}
 
 	const isEveryday = code ? code === "chequing" || code === "other" : category === "banking";

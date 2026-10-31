@@ -12,6 +12,17 @@ export interface ChangelogEntry {
 /** What's new in Pholio, newest first. Every user-facing release adds an entry at the top. */
 export const CHANGELOG: ChangelogEntry[] = [
 	{
+		id: "2026-10-card-statement-balance",
+		date: "2026-10-31",
+		title: "Credit cards show a statement balance",
+		items: [
+			"Credit cards now show the statement balance next to the current balance, with what's still due and when.",
+			"Pay the statement in full by its due date and no interest is added that month.",
+			"Set the day your statement closes when you add or edit a card. If you leave it empty, it closes 21 days before the due date.",
+			"Card payment reminders ask for what's left on the statement, not the whole balance.",
+		],
+	},
+	{
 		id: "2026-10-clearer-amount-limits",
 		date: "2026-10-28",
 		title: "Clearer messages when an amount is too high",

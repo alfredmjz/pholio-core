@@ -5,6 +5,9 @@ import { isCardInterestWaived, lastEndedCycle } from "@/lib/credit-card-statemen
 import { getTodayDateString } from "@/lib/date-utils";
 import { overdraftInterest } from "@/lib/overdraft";
 
+/** Postgres error code for the one-interest-row-per-month index (migration 014). */
+const UNIQUE_VIOLATION = "23505";
+
 /**
  * Process monthly interest for all accounts (Called by Cron Job).
  *
@@ -24,20 +27,21 @@ export async function processGlobalMonthlyInterest(): Promise<{ success: boolean
 			.eq("is_active", true)
 			.not("interest_rate", "is", null)
 			.gt("interest_rate", 0)
-			.in("interest_type", ["simple", "compound"]);
+			// A rate saved without an interest type (the Edit dialog never set one) still earns interest.
+			.or("interest_type.is.null,interest_type.in.(simple,compound)");
 
 		if (error) {
 			Logger.error("Error fetching accounts for interest", { error });
 			return { success: false, processed: 0, error: "Failed to fetch accounts" };
 		}
 
-		if (!accounts || accounts.length === 0) {
-			return { success: true, processed: 0 };
-		}
-
+		// One interest row per account per month, so a retried or repeated run skips accounts already paid.
+		const period = `${getTodayDateString().slice(0, 7)}-01`;
+		const posted = await accountsWithInterest(supabase, period);
 		let processedCount = 0;
 
-		for (const account of accounts) {
+		for (const account of accounts ?? []) {
+			if (posted.has(account.id)) continue;
 			const type = Array.isArray(account.account_types) ? account.account_types[0] : account.account_types;
 			// An investment's balance is the amount deposited; interest would make it a market value.
 			if (isInvestmentAccount({ account_type: type })) continue;
@@ -51,10 +55,13 @@ export async function processGlobalMonthlyInterest(): Promise<{ success: boolean
 					user_id: account.user_id,
 					amount: interestAmount,
 					transaction_type: "interest",
-					description: `Monthly ${account.interest_type} interest`,
+					description: `Monthly ${account.interest_type ?? "compound"} interest`,
 					transaction_date: new Date().toISOString().split("T")[0],
+					interest_period: period,
 				});
 
+				// Another run posted this month between the check above and this insert.
+				if (txError?.code === UNIQUE_VIOLATION) continue;
 				if (txError) throw txError;
 
 				const { error: updateError } = await supabase
@@ -70,7 +77,7 @@ export async function processGlobalMonthlyInterest(): Promise<{ success: boolean
 			}
 		}
 
-		processedCount += await chargeOverdraftInterest(supabase);
+		processedCount += await chargeOverdraftInterest(supabase, period, posted);
 
 		return { success: true, processed: processedCount };
 	} catch (error) {
@@ -108,7 +115,11 @@ async function isStatementPaidInFull(
 }
 
 /** One month of overdraft interest on every protected account below zero. Returns how many were charged. */
-async function chargeOverdraftInterest(supabase: ReturnType<typeof createAdminClient>): Promise<number> {
+async function chargeOverdraftInterest(
+	supabase: ReturnType<typeof createAdminClient>,
+	period: string,
+	posted: Set<string>
+): Promise<number> {
 	const { data: accounts, error } = await supabase
 		.from("accounts")
 		.select("id, user_id, current_balance, overdraft_interest_rate")
@@ -124,6 +135,7 @@ async function chargeOverdraftInterest(supabase: ReturnType<typeof createAdminCl
 
 	let charged = 0;
 	for (const account of accounts ?? []) {
+		if (posted.has(account.id)) continue;
 		const amount = overdraftInterest(Number(account.current_balance), Number(account.overdraft_interest_rate));
 		if (amount === 0) continue;
 		try {
@@ -134,7 +146,9 @@ async function chargeOverdraftInterest(supabase: ReturnType<typeof createAdminCl
 				transaction_type: "interest",
 				description: "Overdraft interest",
 				transaction_date: getTodayDateString(),
+				interest_period: period,
 			});
+			if (txError?.code === UNIQUE_VIOLATION) continue;
 			if (txError) throw txError;
 
 			const { error: updateError } = await supabase
@@ -149,4 +163,11 @@ async function chargeOverdraftInterest(supabase: ReturnType<typeof createAdminCl
 		}
 	}
 	return charged;
+}
+
+/** Accounts that already have an interest row for the month starting on `period`. */
+async function accountsWithInterest(supabase: ReturnType<typeof createAdminClient>, period: string): Promise<Set<string>> {
+	const { data, error } = await supabase.from("account_transactions").select("account_id").eq("interest_period", period);
+	if (error) throw error;
+	return new Set((data ?? []).map((row) => row.account_id as string));
 }

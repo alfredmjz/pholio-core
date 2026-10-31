@@ -21,6 +21,7 @@ function FeeInput({
 	onChange,
 	placeholder,
 	hint,
+	decimals = 2,
 }: {
 	id: keyof FeeTermsFormValues;
 	label: string;
@@ -28,6 +29,7 @@ function FeeInput({
 	onChange: (value: string) => void;
 	placeholder: string;
 	hint?: string;
+	decimals?: number;
 }) {
 	return (
 		<div className="space-y-2">
@@ -37,7 +39,7 @@ function FeeInput({
 				inputMode="decimal"
 				value={value}
 				placeholder={placeholder}
-				onChange={(event) => onChange(sanitizeDecimalInput(event.target.value, 2))}
+				onChange={(event) => onChange(sanitizeDecimalInput(event.target.value, decimals))}
 				className="h-10"
 			/>
 			{hint && <p className="type-body-xs text-muted-foreground">{hint}</p>}
@@ -100,6 +102,7 @@ export function FeeTermsFields({ values, onChange, visibility }: FeeTermsFieldsP
 									onChange={(value) => onChange({ overdraft_interest_rate: value })}
 									placeholder="21.00"
 									hint="Charged monthly on the overdrawn amount."
+									decimals={3}
 								/>
 							</>
 						)}

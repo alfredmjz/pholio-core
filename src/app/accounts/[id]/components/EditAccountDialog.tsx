@@ -14,14 +14,16 @@ import { Button } from "@/components/ui/button";
 import { CancelShortcut, SubmitShortcut } from "@/components/common/dialog-shortcuts";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
+import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
 import { ScratchPad } from "@/components/common/scratch-pad";
 import { isNotesEmpty, notesToHtml } from "@/lib/notes";
 import { isInvestmentAccount } from "@/lib/account-validation-utils";
 import { INVESTMENT_BALANCE_HINT, INVESTMENT_BALANCE_LABEL } from "@/lib/investment-balance";
 import { cn } from "@/lib/utils";
-import { updateAccount } from "../../actions";
+import { getAccountTypes, updateAccount } from "../../actions";
 import { isSampleDataActive } from "@/lib/demo-mode";
-import type { AccountWithType, AccountFieldConfig, UpdateAccountInput } from "../../types";
+import type { AccountType, AccountWithType, AccountFieldConfig, UpdateAccountInput } from "../../types";
+import { applyTypeChange, describeTypeChange, getTypeChangeOptions, toFieldConfig } from "../../account-type-change";
 import { sanitizeDecimalInput, sanitizeIntegerInput } from "@/lib/input-utils";
 import { getFieldVisibility } from "../../field-visibility";
 import { AccountFieldConfigurator } from "../../components/AccountFieldConfigurator";
@@ -80,11 +82,17 @@ export function EditAccountDialog({ open, onOpenChange, account, onSuccess }: Ed
 	});
 	const [planRooms, setPlanRooms] = useState<ContributionRoomSetting[]>([]);
 	const [feeTerms, setFeeTerms] = useState<FeeTermsFormValues>(() => toFeeTermsValues(account));
+	const [accountTypes, setAccountTypes] = useState<AccountType[]>([]);
+	const [typeId, setTypeId] = useState(account.account_type_id);
 
 	// Registered plans keep their room in the shared plan room: load it when the dialog opens
 	// and show it in place of the (empty) account columns.
 	useEffect(() => {
 		if (!open) return;
+		setTypeId(account.account_type_id);
+		getAccountTypes()
+			.then(setAccountTypes)
+			.catch(() => setAccountTypes([]));
 		getContributionRooms()
 			.then((rooms) => {
 				setPlanRooms(rooms);
@@ -93,10 +101,29 @@ export function EditAccountDialog({ open, onOpenChange, account, onSuccess }: Ed
 			.catch(() => setPlanRooms([]));
 	}, [open]);
 
+	// A legacy type is retired, so it is not in the loaded list; keep it as the current choice.
+	const typeOptions = getTypeChangeOptions(
+		[account.account_type, ...accountTypes.filter((type) => type.id !== account.account_type.id)],
+		account.account_type
+	);
+	const selectedType = typeOptions.find((type) => type.id === typeId) ?? account.account_type;
+	const typeChanged = selectedType.id !== account.account_type.id;
+
 	// "Other" accounts allow the owner to choose which fields are tracked.
-	const isOtherType = account.account_type?.code === "other";
-	const isInvestment = isInvestmentAccount(account);
-	const visibility = getFieldVisibility(account.account_type, isOtherType ? fieldConfig : null);
+	const isOtherType = selectedType.code === "other";
+	const isInvestment = isInvestmentAccount({ account_type: selectedType });
+	const visibility = getFieldVisibility(selectedType, isOtherType ? fieldConfig : null);
+	const typeChangeNotes = describeTypeChange(account, account.account_type, selectedType, visibility);
+
+	const pickType = (id: string) => {
+		const type = typeOptions.find((option) => option.id === id);
+		if (!type) return;
+		setTypeId(id);
+		// Moving to "Other" starts from the fields the account already shows.
+		if (type.code === "other" && !Object.values(fieldConfig).some(Boolean)) {
+			setFieldConfig(toFieldConfig(getFieldVisibility(account.account_type, account.field_visibility)));
+		}
+	};
 
 	const validateForm = (): boolean => {
 		const newErrors: ValidationErrors = {};
@@ -155,7 +182,7 @@ export function EditAccountDialog({ open, onOpenChange, account, onSuccess }: Ed
 				return;
 			}
 
-			const updates: UpdateAccountInput = {
+			const fields: UpdateAccountInput = {
 				name: formData.name,
 				institution: formData.institution || null,
 				current_balance: parseFloat(formData.current_balance) || 0,
@@ -173,6 +200,15 @@ export function EditAccountDialog({ open, onOpenChange, account, onSuccess }: Ed
 				...(visibility.showContributionRoom ? toContributionRoomInput(contribution) : {}),
 				...toFeeTermsInput(feeTerms, visibility),
 			};
+			const updates = typeChanged
+				? applyTypeChange({ ...fields, account_type_id: selectedType.id }, account.account_type, selectedType)
+				: fields;
+			if (!updates) {
+				toast.error("Couldn't change the account type", {
+					description: "Pick a type from the list.",
+				});
+				return;
+			}
 			// Sample data: the account page keeps the change in the demo store (via onSuccess).
 			const result = isSampleDataActive() ? updates : await updateAccount(account.id, updates);
 
@@ -181,7 +217,7 @@ export function EditAccountDialog({ open, onOpenChange, account, onSuccess }: Ed
 				onSuccess({
 					...account,
 					...result,
-					account_type: account.account_type,
+					account_type: selectedType,
 				});
 				onOpenChange(false);
 			} else {
@@ -236,12 +272,34 @@ export function EditAccountDialog({ open, onOpenChange, account, onSuccess }: Ed
 						/>
 					</div>
 
-					{/* Account Type (Read-only display) */}
+					{/* Account Type: same class only, since past activity is signed by it */}
 					<div className="space-y-2">
-						<Label>Account Type</Label>
-						<div className="h-9 px-3 py-2 text-sm rounded-md border border-border bg-muted">
-							{account.account_type?.name}
-						</div>
+						<Label htmlFor="account_type">Account Type</Label>
+						<Select value={selectedType.id} onValueChange={pickType}>
+							<SelectTrigger id="account_type">
+								<SelectValue />
+							</SelectTrigger>
+							<SelectContent>
+								{typeOptions.map((type) => (
+									<SelectItem key={type.id} value={type.id}>
+										{type.name}
+									</SelectItem>
+								))}
+							</SelectContent>
+						</Select>
+						{typeChangeNotes.length > 0 ? (
+							<ul className="space-y-1 type-body-xs text-muted-foreground">
+								{typeChangeNotes.map((note) => (
+									<li key={note}>{note}</li>
+								))}
+							</ul>
+						) : (
+							<p className="type-body-xs text-muted-foreground">
+								{selectedType.class === "liability"
+									? "To track something you own instead, add a new account."
+									: "To track something you owe instead, add a new account."}
+							</p>
+						)}
 					</div>
 
 					{/* Generic Base Fields */}
@@ -274,7 +332,7 @@ export function EditAccountDialog({ open, onOpenChange, account, onSuccess }: Ed
 								<AccountFieldConfigurator
 									value={fieldConfig}
 									onChange={setFieldConfig}
-									accountClass={account.account_type?.class}
+									accountClass={selectedType.class}
 								/>
 							</div>
 						)}

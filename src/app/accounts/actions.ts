@@ -16,6 +16,7 @@ import { formatAccountDisplayName } from "@/lib/account-utils";
 import { getMockRecurringExpenses } from "@/mock-data/recurring";
 import type { StatementLedgerRow } from "@/lib/credit-card-statement";
 import type { BalancePoint } from "./account-insights";
+import { applyTypeChange, isMovingIntoInvestment, type AccountTypeRef } from "./account-type-change";
 
 import type {
 	Account,
@@ -340,7 +341,10 @@ export async function updateAccount(id: string, input: UpdateAccountInput): Prom
 	if (await isSampleDataMode()) {
 		const existing = sampleAccounts.find((account) => account.id === id);
 		if (!existing) return null;
-		return { ...existing, ...input, updated_at: new Date().toISOString() };
+		const nextType = sampleAccountTypes.find((type) => type.id === (input.account_type_id ?? existing.account_type_id));
+		const update = applyTypeChange(input, existing.account_type, nextType);
+		if (!update) return null;
+		return { ...existing, ...update, updated_at: new Date().toISOString() };
 	}
 
 	const supabase = await createClient();
@@ -353,13 +357,36 @@ export async function updateAccount(id: string, input: UpdateAccountInput): Prom
 	}
 
 	const { data: before } =
-		input.current_balance === undefined
+		input.current_balance === undefined && input.account_type_id === undefined
 			? { data: null }
-			: await supabase.from("accounts").select("current_balance").eq("id", id).eq("user_id", user.id).single();
+			: await supabase
+					.from("accounts")
+					.select("current_balance, account_type:account_types(id, code, class, category, is_active)")
+					.eq("id", id)
+					.eq("user_id", user.id)
+					.single();
+
+	let update = input;
+	let movedIntoInvestment = false;
+	if (input.account_type_id !== undefined) {
+		const fromType = before?.account_type as unknown as AccountTypeRef | null;
+		const { data: toType } = await supabase
+			.from("account_types")
+			.select("id, code, class, category, is_active")
+			.eq("id", input.account_type_id)
+			.maybeSingle();
+		const changed = fromType ? applyTypeChange(input, fromType, toType) : null;
+		if (!fromType || !changed) {
+			Logger.warn("Rejected account type change", { accountId: id, typeId: input.account_type_id });
+			return null;
+		}
+		update = changed;
+		movedIntoInvestment = !!toType && isMovingIntoInvestment(fromType, toType);
+	}
 
 	const { data, error } = await supabase
 		.from("accounts")
-		.update(input)
+		.update(update)
 		.eq("id", id)
 		.eq("user_id", user.id)
 		.select()
@@ -381,7 +408,19 @@ export async function updateAccount(id: string, input: UpdateAccountInput): Prom
 		);
 	}
 
+	// Investment accounts have no fees, and the charges card is hidden for them, so retire the
+	// charges rather than let the monthly job keep posting them.
+	if (movedIntoInvestment) {
+		const { error: chargeError } = await supabase
+			.from("account_charges")
+			.update({ is_active: false })
+			.eq("account_id", id)
+			.eq("user_id", user.id);
+		if (chargeError) Logger.error("Error retiring charges after a type change", { error: chargeError });
+	}
+
 	revalidatePath("/accounts");
+	if (update.account_type_id !== undefined) revalidatePath("/dashboard");
 	return data;
 }
 

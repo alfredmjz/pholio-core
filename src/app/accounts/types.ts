@@ -334,6 +334,8 @@ export interface CreateAccountInput {
 
 export interface UpdateAccountInput {
 	name?: string;
+	/** Same class only; see applyTypeChange. */
+	account_type_id?: string;
 	institution?: string | null;
 	current_balance?: number;
 	credit_limit?: number | null;

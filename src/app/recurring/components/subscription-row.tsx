@@ -10,7 +10,6 @@ import { formatCurrency } from "@/app/dashboard/utils";
 import { accountWarning } from "@/lib/account-links";
 import { differenceInDays, formatShortDate, getTodayDateString, parseLocalDate } from "@/lib/date-utils";
 import { deleteRecurringExpense, toggleSubscription, type RecurringExpense } from "../actions";
-import { monthlyEquivalent, parsePeriod } from "../recurring-schedule";
 import { EditRecurringDialog } from "./edit-recurring-dialog";
 import type { AccountWithType } from "@/app/accounts/types";
 import { RECURRING_GRID, RecurringAccountWarning, RecurringIdentity, RowMenu } from "./recurring-row-parts";
@@ -96,10 +95,6 @@ export function SubscriptionRow({
 		parseLocalDate(subscription.next_due_date),
 		parseLocalDate(getTodayDateString(timezone || undefined))
 	);
-	const isMonthly = (() => {
-		const { value, unit } = parsePeriod(subscription.billing_period);
-		return value === 1 && unit === "months";
-	})();
 
 	return (
 		<li>
@@ -137,14 +132,7 @@ export function SubscriptionRow({
 					)}
 				</div>
 
-				<div className="hidden row-wide:block">
-					{!isMonthly && (
-						<p className="type-body-xs text-muted-foreground">
-							About {formatCurrency(monthlyEquivalent(amount, subscription.billing_period), { showCents: true })} a
-							month
-						</p>
-					)}
-				</div>
+				<div className="hidden row-wide:block" />
 
 				<p className="type-value hidden text-right text-primary row-wide:block">
 					{formatCurrency(amount, { showCents: true })}

@@ -12,6 +12,15 @@ export interface ChangelogEntry {
 /** What's new in Pholio, newest first. Every user-facing release adds an entry at the top. */
 export const CHANGELOG: ChangelogEntry[] = [
 	{
+		id: "2026-10-clearer-pickers",
+		date: "2026-10-30",
+		title: "Clearer pickers and a tidier subscription list",
+		items: [
+			"Pickers like the net worth range and the theme switch now show the chosen option as a solid pill, and highlight the one you point at.",
+			"Subscriptions no longer show an estimated monthly cost on each row. The Subscriptions total still shows what they cost a month.",
+		],
+	},
+	{
 		id: "2026-10-clearer-amount-limits",
 		date: "2026-10-28",
 		title: "Clearer messages when an amount is too high",

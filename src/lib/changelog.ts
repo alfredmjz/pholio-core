@@ -12,6 +12,18 @@ export interface ChangelogEntry {
 /** What's new in Pholio, newest first. Every user-facing release adds an entry at the top. */
 export const CHANGELOG: ChangelogEntry[] = [
 	{
+		id: "2026-10-rrsp-balance-counts",
+		date: "2026-10-31",
+		title: "Balance updates now count toward contribution room",
+		items: ["Setting or raising the balance of an account with room tracking on now counts the increase as a deposit, so your room and annual contribution move."],
+	},
+	{
+		id: "2026-10-cra-sign-in-link",
+		date: "2026-10-31",
+		title: "CRA link goes to the sign-in page",
+		items: ["The CRA link on contribution room now opens the CRA sign-in services page and is labelled just \"CRA\"."],
+	},
+	{
 		id: "2026-10-clearer-amount-limits",
 		date: "2026-10-28",
 		title: "Clearer messages when an amount is too high",

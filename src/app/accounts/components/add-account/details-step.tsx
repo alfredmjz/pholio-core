@@ -253,11 +253,11 @@ export function DetailsStep({
 					{visibility.showStatementDay && (
 						<TextField
 							id="statement_day"
-							label="Statement closes (day of month)"
+							label="Statement Close Date (1-31)"
 							inputMode="numeric"
 							value={form.statement_day}
 							onChange={(value) => setField("statement_day", sanitizeIntegerInput(value))}
-							placeholder="21 days before due"
+							placeholder="e.g., 21"
 						/>
 					)}
 					{visibility.showLoanTerm && (

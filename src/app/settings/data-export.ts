@@ -34,7 +34,9 @@ const BUILDERS: Record<ExportKind, (rows: Row[]) => string> = {
 					Balance: amount(row.current_balance),
 					"Credit limit": amount(row.credit_limit),
 					"Interest rate (%)":
-						row.interest_rate === null || row.interest_rate === undefined ? "" : Number(row.interest_rate) * 100,
+						row.interest_rate === null || row.interest_rate === undefined
+							? ""
+							: Math.round(Number(row.interest_rate) * 10_000) / 100,
 					"Payment due day": amount(row.payment_due_date),
 					Active: row.is_active === false ? "No" : "Yes",
 					Created: text(row.created_at).slice(0, 10),

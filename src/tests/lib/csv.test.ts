@@ -59,6 +59,11 @@ test("accounts show the rate as a percentage", () => {
 	expect(csv.split("\r\n")[1]).toBe("Savings,EQ,Savings,asset,5000,,2.75,,Yes,2026-01-05");
 });
 
+test("the rate percentage has no float noise", () => {
+	const csv = buildExportCsv("accounts", [{ name: "Visa", interest_rate: 0.2199, account_type: null }]);
+	expect(csv.split("\r\n")[1]).toContain(",21.99,");
+});
+
 test("everything goes in one file, each table under its title with a blank line between", () => {
 	const csv = buildFullExportCsv({
 		accounts: [],

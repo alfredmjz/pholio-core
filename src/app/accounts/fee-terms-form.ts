@@ -1,6 +1,6 @@
 // Pure helpers for the bank-fee fields of the Add/Edit Account dialogs (FeeTermsFields), kept
-// free of React so they can be unit tested. Rates are typed as percentages and stored as fractions,
-// like interest_rate.
+// free of React so they can be unit tested. Rates are typed as percentages with up to 3 decimals and
+// stored as fractions, like interest_rate.
 
 import type { FieldVisibility } from "./field-visibility";
 import type { Account, CreateAccountInput } from "./types";
@@ -60,7 +60,7 @@ export function toFeeTermsInput(values: FeeTermsFormValues, visibility: FieldVis
 		overdraft_protection: isProtected,
 		overdraft_limit: isProtected ? toAmount(values.overdraft_limit) : null,
 		overdraft_fee: isProtected ? toAmount(values.overdraft_fee) : null,
-		overdraft_interest_rate: isProtected && rate ? Math.round(rate * 100) / 10_000 : null,
+		overdraft_interest_rate: isProtected && rate ? Math.round(rate * 1000) / 100_000 : null,
 		nsf_fee: overdraft ? toAmount(values.nsf_fee) : null,
 		over_limit_fee: visibility.showOverLimitFee ? toAmount(values.over_limit_fee) : null,
 	};

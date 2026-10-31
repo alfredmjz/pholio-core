@@ -20,6 +20,16 @@ export const CHANGELOG: ChangelogEntry[] = [
 		],
 	},
 	{
+		id: "2026-10-interest-fixes",
+		date: "2026-10-31",
+		title: "Interest fixes",
+		items: [
+			"Interest is now added once a month, never twice.",
+			"An account that got its interest rate after it was created now earns or pays interest too.",
+			"Overdraft interest rates can have up to 3 decimals, like 19.875%.",
+		],
+	},
+	{
 		id: "2026-10-investments-amount-deposited",
 		date: "2026-10-31",
 		title: "Investments show the amount you deposited",

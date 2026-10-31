@@ -16,6 +16,8 @@ import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
 import { ScratchPad } from "@/components/common/scratch-pad";
 import { isNotesEmpty, notesToHtml } from "@/lib/notes";
+import { isInvestmentAccount } from "@/lib/account-validation-utils";
+import { INVESTMENT_BALANCE_HINT, INVESTMENT_BALANCE_LABEL } from "@/lib/investment-balance";
 import { cn } from "@/lib/utils";
 import { updateAccount } from "../../actions";
 import { isSampleDataActive } from "@/lib/demo-mode";
@@ -93,6 +95,7 @@ export function EditAccountDialog({ open, onOpenChange, account, onSuccess }: Ed
 
 	// "Other" accounts allow the owner to choose which fields are tracked.
 	const isOtherType = account.account_type?.code === "other";
+	const isInvestment = isInvestmentAccount(account);
 	const visibility = getFieldVisibility(account.account_type, isOtherType ? fieldConfig : null);
 
 	const validateForm = (): boolean => {
@@ -244,7 +247,7 @@ export function EditAccountDialog({ open, onOpenChange, account, onSuccess }: Ed
 					{/* Generic Base Fields */}
 					<div className="grid grid-cols-1 gap-4 sm:grid-cols-2">
 						<div className="space-y-2">
-							<Label htmlFor="current_balance">Current Balance</Label>
+							<Label htmlFor="current_balance">{isInvestment ? INVESTMENT_BALANCE_LABEL : "Current Balance"}</Label>
 							<Input
 								id="current_balance"
 								type="text"
@@ -258,7 +261,11 @@ export function EditAccountDialog({ open, onOpenChange, account, onSuccess }: Ed
 								}}
 								className={errors.current_balance ? "border-error" : ""}
 							/>
-							{errors.current_balance && <p className="text-sm text-error">{errors.current_balance}</p>}
+							{errors.current_balance ? (
+								<p className="text-sm text-error">{errors.current_balance}</p>
+							) : (
+								isInvestment && <p className="type-body-xs text-muted-foreground">{INVESTMENT_BALANCE_HINT}</p>
+							)}
 						</div>
 
 						{isOtherType && (

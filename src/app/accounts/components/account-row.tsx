@@ -15,6 +15,7 @@ import {
 	Wallet,
 } from "lucide-react";
 import { cn } from "@/lib/utils";
+import { isInvestmentAccount } from "@/lib/account-validation-utils";
 import { ProgressLine } from "@/components/ui/progress-line";
 import { formatCurrency } from "@/app/dashboard/utils";
 import type { AccountTypeCode, AccountWithType } from "../types";
@@ -53,6 +54,7 @@ export function AccountRow({ account, history, sortable = true }: AccountRowProp
 	const Icon = TYPE_ICON[(account.account_type?.code as AccountTypeCode) ?? "other"] ?? Wallet;
 	const progress = accountProgress(account);
 	const balance = Number(account.current_balance);
+	const isInvestment = isInvestmentAccount(account);
 
 	return (
 		<li
@@ -98,8 +100,9 @@ export function AccountRow({ account, history, sortable = true }: AccountRowProp
 								{[account.institution, account.account_type?.name].filter(Boolean).join(", ")}
 							</span>
 						</span>
-						<span className="type-value shrink-0 text-primary row-wide:hidden">
-							{formatCurrency(balance, { showCents: true })}
+						<span className="shrink-0 text-right row-wide:hidden">
+							<span className="type-value block text-primary">{formatCurrency(balance, { showCents: true })}</span>
+							{isInvestment && <span className="type-caption block text-muted-foreground">deposited</span>}
 						</span>
 					</div>
 
@@ -131,8 +134,9 @@ export function AccountRow({ account, history, sortable = true }: AccountRowProp
 						)}
 					</div>
 
-					<span className="type-value hidden text-right text-primary row-wide:block">
-						{formatCurrency(balance, { showCents: true })}
+					<span className="hidden text-right row-wide:block">
+						<span className="type-value block text-primary">{formatCurrency(balance, { showCents: true })}</span>
+						{isInvestment && <span className="type-caption block text-muted-foreground">deposited</span>}
 					</span>
 				</Link>
 			</div>

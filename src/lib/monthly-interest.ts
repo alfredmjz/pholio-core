@@ -1,5 +1,6 @@
 import { createAdminClient } from "@/lib/supabase/server";
 import { Logger } from "@/lib/logger";
+import { isInvestmentAccount } from "@/lib/account-validation-utils";
 import { isCardInterestWaived, lastEndedCycle } from "@/lib/credit-card-statement";
 import { getTodayDateString } from "@/lib/date-utils";
 import { overdraftInterest } from "@/lib/overdraft";
@@ -18,7 +19,7 @@ export async function processGlobalMonthlyInterest(): Promise<{ success: boolean
 		const { data: accounts, error } = await supabase
 			.from("accounts")
 			.select(
-				"id, current_balance, interest_rate, interest_type, user_id, payment_due_date, statement_day, account_types(code)"
+				"id, current_balance, interest_rate, interest_type, user_id, payment_due_date, statement_day, account_types(code, category)"
 			)
 			.eq("is_active", true)
 			.not("interest_rate", "is", null)
@@ -37,6 +38,9 @@ export async function processGlobalMonthlyInterest(): Promise<{ success: boolean
 		let processedCount = 0;
 
 		for (const account of accounts) {
+			const type = Array.isArray(account.account_types) ? account.account_types[0] : account.account_types;
+			// An investment's balance is the amount deposited; interest would make it a market value.
+			if (isInvestmentAccount({ account_type: type })) continue;
 			try {
 				const interestAmount = account.current_balance * (account.interest_rate / 12);
 				if (interestAmount <= 0) continue;

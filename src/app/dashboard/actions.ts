@@ -9,6 +9,7 @@ import { getTimezone } from "@/app/settings/actions";
 import { getAllocationSummary, getHistoricalPace } from "@/app/allocations/actions";
 import { getRecurringExpenses, type RecurringExpense } from "@/app/recurring/actions";
 import { getOpenPromotions } from "@/lib/actions/promotion-actions";
+import { isInvestmentAccount } from "@/lib/account-validation-utils";
 import type { AccountWithType } from "@/app/accounts/types";
 import type { AllocationSummary } from "@/app/allocations/types";
 import type { DashboardAccount, DashboardData, Transaction } from "./types";
@@ -216,6 +217,7 @@ function toDashboardAccount(account: AccountWithType): DashboardAccount {
 		typeName: account.account_type?.name ?? "Account",
 		class: account.account_type?.class === "liability" ? "liability" : "asset",
 		balance: Number(account.current_balance),
+		isInvestment: isInvestmentAccount(account),
 	};
 }
 

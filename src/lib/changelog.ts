@@ -12,6 +12,16 @@ export interface ChangelogEntry {
 /** What's new in Pholio, newest first. Every user-facing release adds an entry at the top. */
 export const CHANGELOG: ChangelogEntry[] = [
 	{
+		id: "2026-10-investments-amount-deposited",
+		date: "2026-10-31",
+		title: "Investments show the amount you deposited",
+		items: [
+			"Pholio doesn't connect to your brokerage, so an investment account now shows what you've put in, less withdrawals, instead of a market value that would go out of date.",
+			"Deposits, contributions and transfers in add to it, and withdrawals and transfers out take away from it. Interest is no longer added to investment accounts.",
+			"If an investment account shows a market value from before, edit the account and enter the amount you've deposited.",
+		],
+	},
+	{
 		id: "2026-10-card-statement-balance",
 		date: "2026-10-31",
 		title: "Credit cards show a statement balance",
@@ -39,13 +49,15 @@ export const CHANGELOG: ChangelogEntry[] = [
 		id: "2026-10-rrsp-balance-counts",
 		date: "2026-10-31",
 		title: "Balance updates now count toward contribution room",
-		items: ["Setting or raising the balance of an account with room tracking on now counts the increase as a deposit, so your room and annual contribution move."],
+		items: [
+			"Setting or raising the balance of an account with room tracking on now counts the increase as a deposit, so your room and annual contribution move.",
+		],
 	},
 	{
 		id: "2026-10-cra-sign-in-link",
 		date: "2026-10-31",
 		title: "CRA link goes to the sign-in page",
-		items: ["The CRA link on contribution room now opens the CRA sign-in services page and is labelled just \"CRA\"."],
+		items: ['The CRA link on contribution room now opens the CRA sign-in services page and is labelled just "CRA".'],
 	},
 	{
 		id: "2026-10-clearer-pickers",

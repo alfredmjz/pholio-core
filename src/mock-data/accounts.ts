@@ -190,7 +190,6 @@ export const sampleAccounts: AccountWithType[] = [
 		notes: "Index funds and stocks",
 		color: null,
 		icon: null,
-		percent_change: 12.3,
 		display_order: 2,
 		is_active: true,
 		created_at: "2023-06-01T10:00:00Z",
@@ -224,7 +223,6 @@ export const sampleAccounts: AccountWithType[] = [
 		notes: "Tax-free savings for retirement",
 		color: null,
 		icon: null,
-		percent_change: -2.1,
 		display_order: 3,
 		is_active: true,
 		created_at: "2022-03-10T10:00:00Z",
@@ -458,8 +456,9 @@ export function getSampleAccountHistory(now: Date = getDemoNow()): Record<string
 
 	return {
 		"acc-1": build("acc-1", 7500, 8500, 0.005),
-		"acc-2": build("acc-2", 28000, 32100, 0.01),
-		"acc-3": build("acc-3", 40000, 45000, 0.002),
+		// Investments hold the amount deposited, so they climb with deposits instead of wandering like a market.
+		"acc-2": build("acc-2", 28000, 32100, 0),
+		"acc-3": build("acc-3", 40000, 45000, 0),
 		"acc-4": build("acc-4", 3000, 2450, 0.003),
 		"acc-5": build("acc-5", 20000, 18500, 0.001),
 	};

@@ -9,7 +9,8 @@ import { ProgressLine } from "@/components/ui/progress-line";
 import type { CardStatement } from "@/lib/credit-card-statement";
 import { formatFullDate, formatShortDate } from "@/lib/date-utils";
 import { splitMoney } from "@/lib/format";
-import { calculateAccountStanding } from "@/lib/account-validation-utils";
+import { calculateAccountStanding, isInvestmentAccount } from "@/lib/account-validation-utils";
+import { INVESTMENT_BALANCE_HINT, INVESTMENT_BALANCE_LABEL } from "@/lib/investment-balance";
 import { NetWorthThread } from "@/app/dashboard/components/net-worth-thread";
 import type { AccountWithType, AccountTransaction } from "../../types";
 import type { BalancePoint } from "../../account-insights";
@@ -59,6 +60,7 @@ export function BalanceHero({
 	const standing = useMemo(() => calculateAccountStanding(account, transactions), [account, transactions]);
 	const visibility = getFieldVisibility(account.account_type, account.field_visibility);
 	const isLiability = standing.accountClass === "liability";
+	const isInvestment = isInvestmentAccount(account);
 	const isCard = visibility.showStatementDay;
 	// Paying the statement is worth its own button only when it is less than paying everything off.
 	const statementDue = statement && statement.remainingDue < standing.remainingDebt ? statement.remainingDue : 0;
@@ -85,12 +87,21 @@ export function BalanceHero({
 			<div className="flex flex-wrap items-end justify-between gap-x-6 gap-y-2">
 				<div className="min-w-0">
 					<h2 id="balance-heading" className="type-body-sm text-muted-foreground">
-						{active ? formatFullDate(active.date) : isCard ? "Current balance" : isLiability ? "Owing" : "Balance"}
+						{active
+							? formatFullDate(active.date)
+							: isCard
+								? "Current balance"
+								: isLiability
+									? "Owing"
+									: isInvestment
+										? INVESTMENT_BALANCE_LABEL
+										: "Balance"}
 					</h2>
 					<p className="type-display mt-1 flex items-start tabular-nums text-primary">
 						<span>{whole}</span>
 						<span className="dash-figure-cents">{cents}</span>
 					</p>
+					{isInvestment && <p className="type-body-xs mt-1 text-muted-foreground">{INVESTMENT_BALANCE_HINT}</p>}
 					{statement && (
 						<p className="type-body-sm mt-1 text-muted-foreground">
 							Statement balance{" "}
@@ -139,7 +150,10 @@ export function BalanceHero({
 					</dl>
 				) : (
 					<dl className="grid grid-cols-2 gap-4 sm:grid-cols-3">
-						<Stat label="Available to spend" value={formatCurrency(standing.availableBalance)} />
+						<Stat
+							label={isInvestment ? "Available to withdraw" : "Available to spend"}
+							value={formatCurrency(standing.availableBalance)}
+						/>
 						{goal ? <Stat label="Goal" value={formatCurrency(goal)} /> : null}
 						{goal ? (
 							<Stat

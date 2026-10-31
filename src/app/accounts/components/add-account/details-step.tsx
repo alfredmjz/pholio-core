@@ -7,6 +7,8 @@ import { ProminentAmountInput } from "@/components/ProminentAmountInput";
 import { cn } from "@/lib/utils";
 import { sanitizeDecimalInput, sanitizeIntegerInput } from "@/lib/input-utils";
 import type { ContributionRoomSetting } from "@/lib/types/contribution";
+import { isInvestmentAccount } from "@/lib/account-validation-utils";
+import { INVESTMENT_BALANCE_HINT } from "@/lib/investment-balance";
 import type { AccountClass, AccountFieldConfig, AccountType, AccountTypeCode } from "../../types";
 import type { FieldVisibility } from "../../field-visibility";
 import type { ContributionRoomFormValues } from "../../contribution-room-form";
@@ -116,6 +118,7 @@ export function DetailsStep({
 }: DetailsStepProps) {
 	const Icon = TYPE_ICON[(selectedType.code as AccountTypeCode) ?? "other"] ?? Wallet;
 	const isOther = selectedType.code === "other";
+	const isInvestment = isInvestmentAccount({ account_type: selectedType });
 	const isLiability = accountClass === "liability";
 	const rateLabel = visibility.interestRateLabel.replace(" (%)", "");
 
@@ -171,14 +174,16 @@ export function DetailsStep({
 
 			<div className="space-y-2">
 				<Label htmlFor="balance" className="type-label text-muted-foreground">
-					{isLiability ? "Current balance owing" : "Current balance"}
+					{isLiability ? "Current balance owing" : isInvestment ? "Amount deposited so far" : "Current balance"}
 				</Label>
 				<ProminentAmountInput
 					id="balance"
 					value={form.current_balance}
 					onChange={(value) => setField("current_balance", value)}
 				/>
-				<p className="type-body-xs text-muted-foreground">Leave it blank to start at $0.00.</p>
+				<p className="type-body-xs text-muted-foreground">
+					{isInvestment ? `${INVESTMENT_BALANCE_HINT} ` : ""}Leave it blank to start at $0.00.
+				</p>
 			</div>
 
 			{isOther && (

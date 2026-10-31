@@ -3,6 +3,7 @@
 import Link from "next/link";
 import { SurfaceSection } from "@/components/layout/surface-section";
 import { formatCurrency } from "@/app/dashboard/utils";
+import { isInvestmentAccount } from "@/lib/account-validation-utils";
 import type { AccountWithType } from "../../types";
 
 interface OtherAccountsCardProps {
@@ -31,9 +32,14 @@ export function OtherAccountsCard({ accounts }: OtherAccountsCardProps) {
 								<span className="type-body-sm block truncate font-medium text-primary">{account.name}</span>
 								<span className="type-body-xs block truncate text-muted-foreground">{account.account_type?.name}</span>
 							</span>
-							<span className="type-value shrink-0 text-primary">
-								{account.account_type?.class === "liability" ? "-" : ""}
-								{formatCurrency(Number(account.current_balance))}
+							<span className="shrink-0 text-right">
+								<span className="type-value text-primary">
+									{account.account_type?.class === "liability" ? "-" : ""}
+									{formatCurrency(Number(account.current_balance))}
+								</span>
+								{isInvestmentAccount(account) && (
+									<span className="type-caption block text-muted-foreground">deposited</span>
+								)}
 							</span>
 						</Link>
 					</li>

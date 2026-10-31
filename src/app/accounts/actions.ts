@@ -10,7 +10,8 @@ import {
 } from "@/mock-data/accounts";
 import { Logger } from "@/lib/logger";
 import { isSampleDataMode } from "@/lib/demo-mode.server";
-import { formatDateString } from "@/lib/date-utils";
+import { formatDateString, getTodayDateString } from "@/lib/date-utils";
+import { balanceIncreaseDeposit } from "@/lib/balance-deposit";
 import { formatAccountDisplayName } from "@/lib/account-utils";
 import { getMockRecurringExpenses } from "@/mock-data/recurring";
 import type { BalancePoint } from "./account-insights";
@@ -253,8 +254,33 @@ export async function createAccount(input: CreateAccountInput): Promise<AccountW
 		return null;
 	}
 
+	await recordBalanceDeposit(supabase, user.id, data.id, data.track_contribution_room, 0, data.current_balance);
+
 	revalidatePath("/accounts");
 	return data;
+}
+
+/** Ledgers a balance increase on a room-tracked account as a deposit so contribution room counts it. */
+async function recordBalanceDeposit(
+	supabase: Awaited<ReturnType<typeof createClient>>,
+	userId: string,
+	accountId: string,
+	tracksRoom: boolean | null,
+	previousBalance: number,
+	newBalance: number
+) {
+	const amount = balanceIncreaseDeposit(Boolean(tracksRoom), Number(previousBalance), Number(newBalance));
+	if (amount === null) return;
+
+	const { error } = await supabase.from("account_transactions").insert({
+		user_id: userId,
+		account_id: accountId,
+		amount,
+		transaction_type: "deposit",
+		description: "Balance update",
+		transaction_date: getTodayDateString(),
+	});
+	if (error) Logger.error("Error recording balance deposit", { error });
 }
 
 /**
@@ -324,6 +350,11 @@ export async function updateAccount(id: string, input: UpdateAccountInput): Prom
 		throw new Error("Unauthorized");
 	}
 
+	const { data: before } =
+		input.current_balance === undefined
+			? { data: null }
+			: await supabase.from("accounts").select("current_balance").eq("id", id).eq("user_id", user.id).single();
+
 	const { data, error } = await supabase
 		.from("accounts")
 		.update(input)
@@ -335,6 +366,17 @@ export async function updateAccount(id: string, input: UpdateAccountInput): Prom
 	if (error) {
 		Logger.error("Error updating account", { error });
 		return null;
+	}
+
+	if (before) {
+		await recordBalanceDeposit(
+			supabase,
+			user.id,
+			id,
+			data.track_contribution_room,
+			before.current_balance,
+			data.current_balance
+		);
 	}
 
 	revalidatePath("/accounts");

@@ -7,7 +7,7 @@ import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@
 import { ProminentAmountInput } from "@/components/ProminentAmountInput";
 import {
 	CONTRIBUTION_PLAN_OPTIONS,
-	CRA_MY_ACCOUNT_URL,
+	CRA_LOGIN_URL,
 	getContributionPlanLabel,
 	getRoomFieldLabel,
 	getRoomHint,
@@ -144,12 +144,12 @@ export function ContributionRoomFields({ values, onChange, planRooms, error }: C
 							<p className="type-caption text-muted-foreground">
 								CRA does not share contribution room with apps. Copy your figures from{" "}
 								<Link
-									href={CRA_MY_ACCOUNT_URL}
+									href={CRA_LOGIN_URL}
 									target="_blank"
 									rel="noopener noreferrer"
 									className="underline underline-offset-2 hover:text-primary"
 								>
-									CRA My Account
+									CRA
 								</Link>{" "}
 								or your Notice of Assessment.
 							</p>

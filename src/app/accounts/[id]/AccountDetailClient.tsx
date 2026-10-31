@@ -20,6 +20,7 @@ import { UnifiedTransactionDialog } from "@/components/dialogs/UnifiedTransactio
 
 import { BalanceHero } from "./components/balance-hero";
 import { PromotionsTrackerCard } from "./components/PromotionsTrackerCard";
+import { AccountChargesCard } from "./components/AccountChargesCard";
 import { ContributionRoomCard } from "./components/ContributionRoomCard";
 import { InsightsCard } from "./components/InsightsCard";
 import { PerformanceCard } from "./components/PerformanceCard";
@@ -30,14 +31,21 @@ import { RecurringChargesCard } from "./components/RecurringChargesCard";
 import { EditAccountDialog } from "./components/EditAccountDialog";
 import { AccountTransactionDialog } from "./components/AccountTransactionDialog";
 
-import { deleteAccount, getAccountTransactions, getAccountById } from "../actions";
+import { deleteAccount, getAccountTransactions, getAccountTransactionsSince, getAccountById } from "../actions";
 import type { AccountRecurringItem } from "../actions";
 import { AccountDetailLoadingSkeleton } from "../components/account-detail-loading-skeleton";
 import { TYPE_ICON } from "../components/account-row";
 import { sparklinePoints, type BalancePoint } from "../account-insights";
+import { getFieldVisibility } from "../field-visibility";
 import { useServerSyncedData } from "@/hooks/useServerSyncedData";
 import { cn } from "@/lib/utils";
 import { isInvestmentAccount } from "@/lib/account-validation-utils";
+import {
+	cardStatement,
+	latestClosedCycle,
+	statementLedgerSince,
+	type StatementLedgerRow,
+} from "@/lib/credit-card-statement";
 import { isSampleDataActive } from "@/lib/demo-mode";
 import { useDemoStore } from "@/lib/demo-store";
 import type { AccountTypeCode, AccountWithType, AccountTransaction } from "../types";
@@ -58,6 +66,8 @@ interface AccountDetailClientProps {
 	today: string;
 	/** Active bills and subscriptions paid from this account. */
 	recurring: AccountRecurringItem[];
+	/** A credit card's ledger far enough back to work out its latest statement; null for other accounts. */
+	statementLedger: StatementLedgerRow[] | null;
 }
 
 export function AccountDetailClient({
@@ -69,6 +79,7 @@ export function AccountDetailClient({
 	history,
 	today,
 	recurring,
+	statementLedger: initialStatementLedger,
 }: AccountDetailClientProps) {
 	useFormatSettings();
 	const router = useRouter();
@@ -92,6 +103,14 @@ export function AccountDetailClient({
 		initialTransactions,
 		() => getAccountTransactions(accountId),
 		{ refreshOnFocus: dataSource === "server" }
+	);
+	const hasStatement = initialStatementLedger !== null;
+	const fetchStatementLedger = () =>
+		hasStatement ? getAccountTransactionsSince(accountId, statementLedgerSince(today)) : Promise.resolve(null);
+	const { data: serverStatementLedger, setData: setStatementLedger } = useServerSyncedData<StatementLedgerRow[] | null>(
+		initialStatementLedger,
+		fetchStatementLedger,
+		{ refreshOnFocus: dataSource === "server" && hasStatement }
 	);
 	const [isLoadingTransactions, setIsLoadingTransactions] = useState(false);
 
@@ -118,6 +137,15 @@ export function AccountDetailClient({
 	const account = isDemo ? demoAccount : serverAccount;
 	const transactions = isDemo ? demoTransactions : serverTransactions;
 	const otherAccounts = isDemo ? demoOtherAccounts : serverOtherAccounts;
+
+	// The demo store holds the whole ledger, so a demo card works its statement out from that.
+	const statement = useMemo(() => {
+		if (!account || !getFieldVisibility(account.account_type, account.field_visibility).showStatementDay) return null;
+		const cycle = latestClosedCycle({ dueDay: account.payment_due_date, statementDay: account.statement_day }, today);
+		const rows = isDemo ? transactions : serverStatementLedger;
+		return cycle && rows ? cardStatement(Number(account.current_balance), rows, cycle) : null;
+	}, [account, isDemo, transactions, serverStatementLedger, today]);
+
 	const setAccount = (updated: AccountWithType) => {
 		if (isDemo) useDemoStore.getState().updateAccount(updated);
 		else setServerAccount(updated);
@@ -180,11 +208,13 @@ export function AccountDetailClient({
 		// Refresh transactions and account balance
 		setIsLoadingTransactions(true);
 		try {
-			const [txns, updatedAccount] = await Promise.all([
+			const [txns, updatedAccount, ledger] = await Promise.all([
 				getAccountTransactions(account.id),
 				getAccountById(account.id),
+				fetchStatementLedger(),
 			]);
 			setTransactions(txns);
+			setStatementLedger(ledger);
 			if (updatedAccount) {
 				setServerAccount(updatedAccount);
 			}
@@ -276,6 +306,7 @@ export function AccountDetailClient({
 				account={account}
 				transactions={transactions}
 				history={balanceHistory}
+				statement={statement}
 				formatCurrency={formatCurrency}
 				onPayRemaining={(amount) => {
 					// Settle the debt as a transfer from a source account into this
@@ -305,13 +336,22 @@ export function AccountDetailClient({
 						formatCurrency={formatCurrency}
 						onTransactionClick={handleTransactionClick}
 					/>
+					{!isInvestmentAccount(account) && (
+						<AccountChargesCard account={account} today={today} formatCurrency={formatCurrency} />
+					)}
 					<PromotionsTrackerCard accountId={account.id} formatCurrency={formatCurrency} />
 					<NotesCard account={account} onAccountUpdated={handleAccountUpdated} />
 				</div>
 
 				<div className="flex min-w-0 flex-col gap-5 lg:gap-6">
-					<PerformanceCard account={account} transactions={transactions} formatCurrency={formatCurrency} />
-					<RecurringChargesCard account={account} items={recurring} />
+					<PerformanceCard
+						account={account}
+						transactions={transactions}
+						statement={statement}
+						today={today}
+						formatCurrency={formatCurrency}
+					/>
+					<RecurringChargesCard account={account} items={recurring} today={today} />
 					<OtherAccountsCard accounts={otherAccounts} />
 				</div>
 			</div>

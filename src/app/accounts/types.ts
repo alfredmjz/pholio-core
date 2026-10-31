@@ -50,6 +50,8 @@ export interface AccountFieldConfig {
 	showLoanTerm?: boolean;
 	showDueDate?: boolean;
 	showContributionRoom?: boolean;
+	showOverdraft?: boolean;
+	showOverLimitFee?: boolean;
 }
 
 export interface AccountType {
@@ -80,7 +82,8 @@ export type TransactionType =
 	| "adjustment"
 	| "contribution"
 	| "transfer"
-	| "refund";
+	| "refund"
+	| "fee";
 
 export interface Account {
 	id: string;
@@ -97,6 +100,8 @@ export interface Account {
 	loan_start_date: string | null;
 	loan_term_months: number | null;
 	payment_due_date: number | null;
+	/** Day of the month a card's statement closes; null = 21 days before the due date. */
+	statement_day?: number | null;
 	target_balance: number | null;
 	// Field visibility chosen by the owner (only meaningful for the "Other" type)
 	field_visibility?: AccountFieldConfig | null;
@@ -106,6 +111,13 @@ export interface Account {
 	contribution_room: number | null;
 	contribution_room_as_of: string | null;
 	annual_contribution_limit: number | null;
+	// Bank fees (#150): posted by post_account_fee() when a payment goes past the line
+	overdraft_protection?: boolean;
+	overdraft_limit?: number | null;
+	overdraft_fee?: number | null;
+	nsf_fee?: number | null;
+	over_limit_fee?: number | null;
+	overdraft_interest_rate?: number | null;
 	// Display
 	notes: string | null;
 	color: string | null;
@@ -147,6 +159,9 @@ export interface AccountTransaction {
 	linked_allocation_transaction_id: string | null;
 	linked_transfer_transaction_id?: string | null;
 	created_at: string;
+	/** The account charge that posted this fee row. */
+	charge_id?: string | null;
+	is_cash_advance?: boolean;
 	/** The budget row this ledger row belongs to, for linking to Allocations. */
 	budget_link?: AccountTransactionBudgetLink | null;
 	/** For a transfer leg, the account on the other side (null when it was deleted). */
@@ -203,6 +218,41 @@ export interface UpdatePromotionInput {
 	end_date?: string;
 	is_completed?: boolean;
 	notes?: string | null;
+}
+
+// ============================================================================
+// Account charges (monthly / yearly fees, cash advance fees)
+// ============================================================================
+
+export type ChargeFrequency = "monthly" | "yearly" | "cash_advance";
+
+export interface AccountCharge {
+	id: string;
+	account_id: string;
+	user_id: string;
+	name: string;
+	frequency: ChargeFrequency;
+	/** Flat amount; for a cash advance, the minimum fee. */
+	amount: number | null;
+	/** Share of a cash advance as a fraction (0.05 for 5%). */
+	rate: number | null;
+	charge_day: number | null;
+	/** YYYY-MM-DD, monthly and yearly only. */
+	next_charge_date: string | null;
+	/** Monthly only: no fee for a month the balance never closed a day below this. */
+	waive_min_balance: number | null;
+	is_active: boolean;
+	created_at: string;
+	updated_at: string;
+}
+
+export interface AccountChargeInput {
+	name: string;
+	frequency: ChargeFrequency;
+	amount: number | null;
+	rate: number | null;
+	next_charge_date: string | null;
+	waive_min_balance: number | null;
 }
 
 // ============================================================================
@@ -264,12 +314,19 @@ export interface CreateAccountInput {
 	field_visibility?: AccountFieldConfig | null;
 	loan_term_months?: number | null;
 	payment_due_date?: number | null;
+	statement_day?: number | null;
 	target_balance?: number | null;
 	track_contribution_room?: boolean;
 	contribution_plan?: ContributionPlan | null;
 	contribution_room?: number | null;
 	contribution_room_as_of?: string | null;
 	annual_contribution_limit?: number | null;
+	overdraft_protection?: boolean;
+	overdraft_limit?: number | null;
+	overdraft_fee?: number | null;
+	nsf_fee?: number | null;
+	over_limit_fee?: number | null;
+	overdraft_interest_rate?: number | null;
 	notes?: string | null;
 	color?: string | null;
 	icon?: string | null;
@@ -285,12 +342,19 @@ export interface UpdateAccountInput {
 	interest_type?: InterestType | null;
 	loan_term_months?: number | null;
 	payment_due_date?: number | null;
+	statement_day?: number | null;
 	target_balance?: number | null;
 	track_contribution_room?: boolean;
 	contribution_plan?: ContributionPlan | null;
 	contribution_room?: number | null;
 	contribution_room_as_of?: string | null;
 	annual_contribution_limit?: number | null;
+	overdraft_protection?: boolean;
+	overdraft_limit?: number | null;
+	overdraft_fee?: number | null;
+	nsf_fee?: number | null;
+	over_limit_fee?: number | null;
+	overdraft_interest_rate?: number | null;
 	notes?: string | null;
 	color?: string | null;
 	icon?: string | null;

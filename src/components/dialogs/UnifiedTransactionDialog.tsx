@@ -11,6 +11,8 @@ import {
 } from "@/components/ui/dialog";
 import { Button } from "@/components/ui/button";
 import { Label } from "@/components/ui/label";
+import { Switch } from "@/components/ui/switch";
+import { takesCashAdvances } from "@/app/accounts/account-charge-form";
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
 import { Textarea } from "@/components/ui/textarea";
 import { DatePicker } from "@/components/ui/date-picker";
@@ -166,6 +168,7 @@ export function UnifiedTransactionDialog({
 				)
 			);
 			setNotes("");
+			setIsCashAdvance(false);
 			setErrors({});
 			setActiveTab("manual");
 			setSelectedDatesMap({});
@@ -219,6 +222,9 @@ export function UnifiedTransactionDialog({
 		type === "transfer" ? accounts.find((a) => a.id === fromAccountId) : accounts.find((a) => a.id === accountId);
 
 	const selectedAccountStanding = selectedTargetAccount ? calculateAccountStanding(selectedTargetAccount) : null;
+
+	const [isCashAdvance, setIsCashAdvance] = useState(false);
+	const canCashAdvance = type === "expense" && !!selectedTargetAccount && takesCashAdvances(selectedTargetAccount);
 
 	const fromAccount = type === "transfer" ? accounts.find((a) => a.id === fromAccountId) : null;
 	const toAccount = type === "transfer" ? accounts.find((a) => a.id === toAccountId) : null;
@@ -361,6 +367,7 @@ export function UnifiedTransactionDialog({
 				transactionType: transactionType as any,
 				notes: notes || undefined,
 				allowOverpayment,
+				isCashAdvance: canCashAdvance && isCashAdvance,
 				source: type === "transfer" ? "transfer" : isAllocationsContext && type === "income" ? incomeSource : "manual",
 			};
 
@@ -700,6 +707,14 @@ export function UnifiedTransactionDialog({
 													</div>
 												)}
 												{errors.amount && <p className="text-sm text-error">{errors.amount}</p>}
+												{canCashAdvance && (
+													<div className="mt-3 flex items-center gap-2">
+														<Switch id="cash-advance" checked={isCashAdvance} onCheckedChange={setIsCashAdvance} />
+														<Label htmlFor="cash-advance" className="type-body-sm cursor-pointer text-muted-foreground">
+															Cash advance (adds the card&apos;s cash advance fee)
+														</Label>
+													</div>
+												)}
 											</div>
 
 											<div className="flex flex-col gap-4 sm:flex-row sm:justify-between">

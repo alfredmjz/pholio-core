@@ -7,7 +7,7 @@ import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { saveContributionRoom } from "@/lib/actions/contribution-actions";
 import {
-	CRA_MY_ACCOUNT_URL,
+	CRA_LOGIN_URL,
 	REGISTERED_PLANS,
 	getContributionPlanLabel,
 	getRoomFieldLabel,
@@ -33,12 +33,12 @@ export function ContributionRoomSection({ rooms }: { rooms: ContributionRoomSett
 			<p className="type-body-sm pt-4 text-muted-foreground">
 				CRA doesn&apos;t share contribution room with apps. Copy your figures from{" "}
 				<Link
-					href={CRA_MY_ACCOUNT_URL}
+					href={CRA_LOGIN_URL}
 					target="_blank"
 					rel="noopener noreferrer"
 					className="underline underline-offset-2 hover:text-primary"
 				>
-					CRA My Account
+					CRA
 				</Link>{" "}
 				or your Notice of Assessment.
 			</p>

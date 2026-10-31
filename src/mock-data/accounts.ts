@@ -4,6 +4,7 @@ import type {
 	AccountTransaction,
 	HistoricalDataPoint,
 	AccountHistory,
+	AccountCharge,
 } from "@/app/accounts/types";
 import type { RecentActivityItem } from "@/app/accounts/actions";
 import { getDemoNow, daysBefore, toDateOnly } from "./demo-date";
@@ -148,6 +149,8 @@ export const sampleAccounts: AccountWithType[] = [
 		loan_term_months: null,
 		payment_due_date: null,
 		target_balance: 10000,
+		overdraft_protection: false,
+		nsf_fee: 48,
 		track_contribution_room: false,
 		contribution_plan: null,
 		contribution_room: null,
@@ -237,12 +240,14 @@ export const sampleAccounts: AccountWithType[] = [
 		current_balance: 2450,
 		currency: "CAD",
 		credit_limit: 15000,
+		over_limit_fee: 29,
 		original_amount: null,
 		interest_rate: 0.2499,
 		interest_type: "compound",
 		loan_start_date: null,
 		loan_term_months: null,
-		payment_due_date: null,
+		payment_due_date: 21,
+		statement_day: null,
 		target_balance: null,
 		track_contribution_room: false,
 		contribution_plan: null,
@@ -390,6 +395,49 @@ export function getSampleAccountTransactions(now: Date = getDemoNow()): Record<s
 				budget_link: { id: "tx-linked-debt", transaction_date: at(7).transaction_date, category_name: null },
 				transfer_account: { id: "acc-1", label: "Ally Bank - Emergency Fund" },
 			},
+			{
+				id: "txn-6",
+				account_id: "acc-4",
+				user_id: "sample-user",
+				amount: 86.4,
+				transaction_type: "adjustment",
+				description: "Groceries",
+				...at(3),
+				linked_allocation_transaction_id: "tx-linked-txn-6",
+				budget_link: { id: "tx-linked-txn-6", transaction_date: at(3).transaction_date, category_name: "Groceries" },
+			},
+			{
+				id: "txn-7",
+				account_id: "acc-4",
+				user_id: "sample-user",
+				amount: 142.75,
+				transaction_type: "adjustment",
+				description: "Dinner out",
+				...at(12),
+				linked_allocation_transaction_id: "tx-linked-txn-7",
+				budget_link: { id: "tx-linked-txn-7", transaction_date: at(12).transaction_date, category_name: "Dining" },
+			},
+			{
+				id: "txn-8",
+				account_id: "acc-4",
+				user_id: "sample-user",
+				amount: 64.99,
+				transaction_type: "adjustment",
+				description: "Phone bill",
+				...at(26),
+				linked_allocation_transaction_id: "tx-linked-txn-8",
+				budget_link: { id: "tx-linked-txn-8", transaction_date: at(26).transaction_date, category_name: "Utilities" },
+			},
+			{
+				id: "txn-9",
+				account_id: "acc-4",
+				user_id: "sample-user",
+				amount: -1200,
+				transaction_type: "transfer",
+				description: "Card payment",
+				...at(40),
+				linked_allocation_transaction_id: null,
+			},
 		],
 	};
 }
@@ -473,4 +521,57 @@ export function getSampleRecentActivity(now: Date = getDemoNow()): RecentActivit
 			timestamp: getRecentTimestamp(now, 60 * 48), // 2 days ago
 		},
 	];
+}
+
+/** Fees listed on the sample accounts: a waivable monthly fee on savings and the card's annual and cash advance fees. */
+export function getSampleAccountCharges(now: Date = getDemoNow()): Record<string, AccountCharge[]> {
+	const nextMonthStart = new Date(now.getFullYear(), now.getMonth() + 1, 1);
+	const cardAnniversary = daysBefore(now, -45);
+	const base = {
+		user_id: "sample-user",
+		rate: null,
+		is_active: true,
+		created_at: now.toISOString(),
+		updated_at: now.toISOString(),
+	};
+	return {
+		"acc-1": [
+			{
+				...base,
+				id: "charge-sample-1",
+				account_id: "acc-1",
+				name: "Monthly account fee",
+				frequency: "monthly",
+				amount: 4.95,
+				charge_day: 1,
+				next_charge_date: toDateOnly(nextMonthStart),
+				waive_min_balance: 5000,
+			},
+		],
+		"acc-4": [
+			{
+				...base,
+				id: "charge-sample-2",
+				account_id: "acc-4",
+				name: "Annual fee",
+				frequency: "yearly",
+				amount: 795,
+				charge_day: cardAnniversary.getDate(),
+				next_charge_date: toDateOnly(cardAnniversary),
+				waive_min_balance: null,
+			},
+			{
+				...base,
+				id: "charge-sample-3",
+				account_id: "acc-4",
+				name: "Cash advance fee",
+				frequency: "cash_advance",
+				amount: 3.5,
+				rate: 0.05,
+				charge_day: null,
+				next_charge_date: null,
+				waive_min_balance: null,
+			},
+		],
+	};
 }

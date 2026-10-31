@@ -12,8 +12,10 @@ import { INVESTMENT_BALANCE_HINT } from "@/lib/investment-balance";
 import type { AccountClass, AccountFieldConfig, AccountType, AccountTypeCode } from "../../types";
 import type { FieldVisibility } from "../../field-visibility";
 import type { ContributionRoomFormValues } from "../../contribution-room-form";
+import type { FeeTermsFormValues } from "../../fee-terms-form";
 import { AccountFieldConfigurator } from "../AccountFieldConfigurator";
 import { ContributionRoomFields } from "../ContributionRoomFields";
+import { FeeTermsFields } from "../FeeTermsFields";
 import { TYPE_ICON } from "../account-row";
 
 export interface AccountFormState {
@@ -26,6 +28,7 @@ export interface AccountFormState {
 	institution: string;
 	notes: string;
 	payment_due_date: string;
+	statement_day: string;
 	credit_limit: string;
 	loan_term_months: string;
 }
@@ -40,6 +43,7 @@ export const EMPTY_ACCOUNT_FORM: AccountFormState = {
 	institution: "",
 	notes: "",
 	payment_due_date: "",
+	statement_day: "",
 	credit_limit: "",
 	loan_term_months: "",
 };
@@ -56,6 +60,8 @@ interface DetailsStepProps {
 	contribution: ContributionRoomFormValues;
 	planRooms: ContributionRoomSetting[];
 	onContributionChange: (changes: Partial<ContributionRoomFormValues>) => void;
+	feeTerms: FeeTermsFormValues;
+	onFeeTermsChange: (changes: Partial<FeeTermsFormValues>) => void;
 	onChangeType: () => void;
 }
 
@@ -106,6 +112,8 @@ export function DetailsStep({
 	contribution,
 	planRooms,
 	onContributionChange,
+	feeTerms,
+	onFeeTermsChange,
 	onChangeType,
 }: DetailsStepProps) {
 	const Icon = TYPE_ICON[(selectedType.code as AccountTypeCode) ?? "other"] ?? Wallet;
@@ -181,7 +189,7 @@ export function DetailsStep({
 			{isOther && (
 				<div className="space-y-2">
 					<Label>Fields to track</Label>
-					<AccountFieldConfigurator value={fieldConfig} onChange={onFieldConfigChange} />
+					<AccountFieldConfigurator value={fieldConfig} onChange={onFieldConfigChange} accountClass={accountClass} />
 				</div>
 			)}
 
@@ -242,6 +250,16 @@ export function DetailsStep({
 							placeholder="e.g. 21"
 						/>
 					)}
+					{visibility.showStatementDay && (
+						<TextField
+							id="statement_day"
+							label="Statement closes (day of month)"
+							inputMode="numeric"
+							value={form.statement_day}
+							onChange={(value) => setField("statement_day", sanitizeIntegerInput(value))}
+							placeholder="21 days before due"
+						/>
+					)}
 					{visibility.showLoanTerm && (
 						<TextField
 							id="loan_term"
@@ -263,6 +281,8 @@ export function DetailsStep({
 					error={errors.contribution_room}
 				/>
 			)}
+
+			<FeeTermsFields values={feeTerms} onChange={onFeeTermsChange} visibility={visibility} />
 		</div>
 	);
 }

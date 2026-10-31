@@ -2,7 +2,7 @@
 
 import { useEffect, useState } from "react";
 import Link from "next/link";
-import { CalendarClock, CreditCard, Loader2 } from "lucide-react";
+import { AlertTriangle, CalendarClock, CreditCard, Loader2 } from "lucide-react";
 import { SegmentedChoice } from "@/components/common/segmented-choice";
 import { Button } from "@/components/ui/button";
 import { getAccountNotifications } from "@/lib/actions/notification-actions";
@@ -14,6 +14,8 @@ import { cn } from "@/lib/utils";
 import { useNotifications } from "./notifications-provider";
 
 export type NotificationTab = "account" | "changelog";
+
+const NOTIFICATION_ICON = { card_due: CreditCard, recurring_due: CalendarClock, fee_due: AlertTriangle };
 
 interface NotificationPanelProps {
 	tab: NotificationTab;
@@ -158,7 +160,7 @@ function AccountList({
 		<ul className="divide-y divide-border/50" aria-label="Account notifications">
 			{notifications.map((notification) => {
 				const unread = !notification.readAt;
-				const Icon = notification.kind === "card_due" ? CreditCard : CalendarClock;
+				const Icon = NOTIFICATION_ICON[notification.kind] ?? CalendarClock;
 				return (
 					<li key={notification.id}>
 						<Link

@@ -7,7 +7,11 @@ export interface FieldVisibility {
 	showInterestRate: boolean;
 	showLoanTerm: boolean;
 	showDueDate: boolean;
+	showStatementDay: boolean;
 	showContributionRoom: boolean;
+	/** Overdraft protection, NSF fee and overdraft interest (bank accounts). */
+	showOverdraft: boolean;
+	showOverLimitFee: boolean;
 	interestRateLabel: string;
 	institutionLabel: string;
 	institutionPlaceholder: string;
@@ -23,7 +27,10 @@ function preset(overrides: Partial<FieldVisibility>): FieldVisibility {
 		showInterestRate: false,
 		showLoanTerm: false,
 		showDueDate: false,
+		showStatementDay: false,
 		showContributionRoom: false,
+		showOverdraft: false,
+		showOverLimitFee: false,
 		interestRateLabel: "Interest Rate (%)",
 		institutionLabel: "Institution",
 		institutionPlaceholder: "Bank, lender, brokerage, etc.",
@@ -36,8 +43,8 @@ function preset(overrides: Partial<FieldVisibility>): FieldVisibility {
  * type stable `code`, never by its display name.
  */
 export const CORE_TYPE_PRESETS: Record<CoreAccountTypeCode, FieldVisibility> = {
-	chequing: preset({}),
-	savings: preset({ showTargetGoal: true, showInterestRate: true, interestRateLabel: "APY (%)" }),
+	chequing: preset({ showOverdraft: true }),
+	savings: preset({ showTargetGoal: true, showInterestRate: true, showOverdraft: true, interestRateLabel: "APY (%)" }),
 	investment: preset({
 		showContributionRoom: true,
 		interestRateLabel: "Yield (%)",
@@ -48,12 +55,15 @@ export const CORE_TYPE_PRESETS: Record<CoreAccountTypeCode, FieldVisibility> = {
 		showCreditLimit: true,
 		showInterestRate: true,
 		showDueDate: true,
+		showStatementDay: true,
+		showOverLimitFee: true,
 		institutionLabel: "Credit Card Issuer",
 		institutionPlaceholder: "Chase, Amex, Capital One, etc.",
 	}),
 	line_of_credit: preset({
 		showCreditLimit: true,
 		showInterestRate: true,
+		showOverLimitFee: true,
 		interestRateLabel: "Variable APR (%)",
 		institutionLabel: "Lender / Institution",
 		institutionPlaceholder: "TD, RBC, Scotiabank, etc.",
@@ -109,6 +119,8 @@ export function customFieldVisibility(config?: AccountFieldConfig | null): Field
 		showLoanTerm: config?.showLoanTerm ?? false,
 		showDueDate: config?.showDueDate ?? false,
 		showContributionRoom: config?.showContributionRoom ?? false,
+		showOverdraft: config?.showOverdraft ?? false,
+		showOverLimitFee: config?.showOverLimitFee ?? false,
 	});
 }
 

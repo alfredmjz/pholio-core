@@ -10,9 +10,11 @@ import {
 } from "@/mock-data/accounts";
 import { Logger } from "@/lib/logger";
 import { isSampleDataMode } from "@/lib/demo-mode.server";
-import { formatDateString } from "@/lib/date-utils";
+import { formatDateString, getTodayDateString } from "@/lib/date-utils";
+import { balanceIncreaseDeposit } from "@/lib/balance-deposit";
 import { formatAccountDisplayName } from "@/lib/account-utils";
 import { getMockRecurringExpenses } from "@/mock-data/recurring";
+import type { StatementLedgerRow } from "@/lib/credit-card-statement";
 import type { BalancePoint } from "./account-insights";
 
 import type {
@@ -253,8 +255,33 @@ export async function createAccount(input: CreateAccountInput): Promise<AccountW
 		return null;
 	}
 
+	await recordBalanceDeposit(supabase, user.id, data.id, data.track_contribution_room, 0, data.current_balance);
+
 	revalidatePath("/accounts");
 	return data;
+}
+
+/** Ledgers a balance increase on a room-tracked account as a deposit so contribution room counts it. */
+async function recordBalanceDeposit(
+	supabase: Awaited<ReturnType<typeof createClient>>,
+	userId: string,
+	accountId: string,
+	tracksRoom: boolean | null,
+	previousBalance: number,
+	newBalance: number
+) {
+	const amount = balanceIncreaseDeposit(Boolean(tracksRoom), Number(previousBalance), Number(newBalance));
+	if (amount === null) return;
+
+	const { error } = await supabase.from("account_transactions").insert({
+		user_id: userId,
+		account_id: accountId,
+		amount,
+		transaction_type: "deposit",
+		description: "Balance update",
+		transaction_date: getTodayDateString(),
+	});
+	if (error) Logger.error("Error recording balance deposit", { error });
 }
 
 /**
@@ -281,6 +308,7 @@ function buildSampleAccount(input: CreateAccountInput, id = `account-sample-${Da
 		loan_start_date: input.loan_start_date ?? null,
 		loan_term_months: input.loan_term_months ?? null,
 		payment_due_date: input.payment_due_date ?? null,
+		statement_day: input.statement_day ?? null,
 		target_balance: input.target_balance ?? null,
 		field_visibility: input.field_visibility ?? null,
 		track_contribution_room: input.track_contribution_room ?? false,
@@ -288,6 +316,12 @@ function buildSampleAccount(input: CreateAccountInput, id = `account-sample-${Da
 		contribution_room: input.contribution_room ?? null,
 		contribution_room_as_of: input.contribution_room_as_of ?? null,
 		annual_contribution_limit: input.annual_contribution_limit ?? null,
+		overdraft_protection: input.overdraft_protection ?? false,
+		overdraft_limit: input.overdraft_limit ?? null,
+		overdraft_fee: input.overdraft_fee ?? null,
+		nsf_fee: input.nsf_fee ?? null,
+		over_limit_fee: input.over_limit_fee ?? null,
+		overdraft_interest_rate: input.overdraft_interest_rate ?? null,
 		notes: input.notes ?? null,
 		color: input.color ?? null,
 		icon: input.icon ?? null,
@@ -318,6 +352,11 @@ export async function updateAccount(id: string, input: UpdateAccountInput): Prom
 		throw new Error("Unauthorized");
 	}
 
+	const { data: before } =
+		input.current_balance === undefined
+			? { data: null }
+			: await supabase.from("accounts").select("current_balance").eq("id", id).eq("user_id", user.id).single();
+
 	const { data, error } = await supabase
 		.from("accounts")
 		.update(input)
@@ -329,6 +368,17 @@ export async function updateAccount(id: string, input: UpdateAccountInput): Prom
 	if (error) {
 		Logger.error("Error updating account", { error });
 		return null;
+	}
+
+	if (before) {
+		await recordBalanceDeposit(
+			supabase,
+			user.id,
+			id,
+			data.track_contribution_room,
+			before.current_balance,
+			data.current_balance
+		);
 	}
 
 	revalidatePath("/accounts");
@@ -435,6 +485,36 @@ export async function getAccountTransactions(accountId: string, limit: number = 
 	return attachTransactionLinks(supabase, (data || []) as AccountTransaction[]);
 }
 
+/** Every ledger row dated on or after `since`, for working out a card's statement. */
+export async function getAccountTransactionsSince(accountId: string, since: string): Promise<StatementLedgerRow[]> {
+	if (await isSampleDataMode()) {
+		return (getSampleAccountTransactions()[accountId] || []).filter((tx) => tx.transaction_date >= since);
+	}
+
+	const supabase = await createClient();
+	const {
+		data: { user },
+	} = await supabase.auth.getUser();
+
+	if (!user) {
+		throw new Error("Unauthorized");
+	}
+
+	const { data, error } = await supabase
+		.from("account_transactions")
+		.select("amount, transaction_date")
+		.eq("account_id", accountId)
+		.eq("user_id", user.id)
+		.gte("transaction_date", since);
+
+	if (error) {
+		Logger.error("Error fetching statement transactions", { error });
+		throw new Error("Failed to fetch transactions");
+	}
+
+	return (data || []).map((row) => ({ amount: Number(row.amount), transaction_date: row.transaction_date }));
+}
+
 /**
  * Adds each row's budget row (to link to Allocations) and, for a transfer leg, the account on the
  * other side. Read by id: account_transactions has foreign keys both ways with transactions, so an
@@ -455,10 +535,16 @@ async function attachTransactionLinks(
 	const legColumns = "id, account_id, linked_allocation_transaction_id, account:accounts(id, name, institution)";
 	const [budgetResult, sharedLegResult, pairedLegResult] = await Promise.all([
 		budgetIds.length
-			? supabase.from("transactions").select("id, transaction_date, category:allocation_categories(name)").in("id", budgetIds)
+			? supabase
+					.from("transactions")
+					.select("id, transaction_date, category:allocation_categories(name)")
+					.in("id", budgetIds)
 			: Promise.resolve({ data: [], error: null }),
 		transferBudgetIds.length
-			? supabase.from("account_transactions").select(legColumns).in("linked_allocation_transaction_id", transferBudgetIds)
+			? supabase
+					.from("account_transactions")
+					.select(legColumns)
+					.in("linked_allocation_transaction_id", transferBudgetIds)
 			: Promise.resolve({ data: [], error: null }),
 		pairedLegIds.length
 			? supabase.from("account_transactions").select(legColumns).in("id", pairedLegIds)
@@ -522,9 +608,9 @@ export async function getRecurringForAccount(accountId: string): Promise<Account
 		}));
 
 	if (await isSampleDataMode()) {
-		return pick(getMockRecurringExpenses().filter((item) => item.account_id === accountId && item.is_active !== false)).sort(
-			(a, b) => a.next_due_date.localeCompare(b.next_due_date)
-		);
+		return pick(
+			getMockRecurringExpenses().filter((item) => item.account_id === accountId && item.is_active !== false)
+		).sort((a, b) => a.next_due_date.localeCompare(b.next_due_date));
 	}
 
 	const supabase = await createClient();

@@ -6,7 +6,8 @@ import { ArrowRight, CheckCircle2 } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { cn } from "@/lib/utils";
 import { ProgressLine } from "@/components/ui/progress-line";
-import { formatFullDate } from "@/lib/date-utils";
+import type { CardStatement } from "@/lib/credit-card-statement";
+import { formatFullDate, formatShortDate } from "@/lib/date-utils";
 import { splitMoney } from "@/lib/format";
 import { calculateAccountStanding, isInvestmentAccount } from "@/lib/account-validation-utils";
 import { INVESTMENT_BALANCE_HINT, INVESTMENT_BALANCE_LABEL } from "@/lib/investment-balance";
@@ -20,6 +21,8 @@ interface BalanceHeroProps {
 	transactions: AccountTransaction[];
 	/** Recorded balances, oldest first, ending with today's balance. */
 	history: BalancePoint[];
+	/** A credit card's latest closed statement. */
+	statement?: CardStatement | null;
 	formatCurrency: (amount: number) => string;
 	/** Opens a transfer into this liability for what is left to pay. */
 	onPayRemaining: (amount: number) => void;
@@ -45,12 +48,22 @@ function Stat({ label, value, tone }: { label: string; value: string; tone?: "su
  * The account's balance as a large figure over its own running thread, with what it can still
  * cover (assets) or what is left to pay (liabilities), and progress toward a goal or payoff.
  */
-export function BalanceHero({ account, transactions, history, formatCurrency, onPayRemaining }: BalanceHeroProps) {
+export function BalanceHero({
+	account,
+	transactions,
+	history,
+	statement,
+	formatCurrency,
+	onPayRemaining,
+}: BalanceHeroProps) {
 	const [activeIndex, setActiveIndex] = useState<number | null>(null);
 	const standing = useMemo(() => calculateAccountStanding(account, transactions), [account, transactions]);
 	const visibility = getFieldVisibility(account.account_type, account.field_visibility);
 	const isLiability = standing.accountClass === "liability";
 	const isInvestment = isInvestmentAccount(account);
+	const isCard = visibility.showStatementDay;
+	// Paying the statement is worth its own button only when it is less than paying everything off.
+	const statementDue = statement && statement.remainingDue < standing.remainingDebt ? statement.remainingDue : 0;
 	const balance = Number(account.current_balance);
 
 	const points = useMemo(() => history.map((p) => ({ date: p.date, value: p.balance })), [history]);
@@ -76,17 +89,26 @@ export function BalanceHero({ account, transactions, history, formatCurrency, on
 					<h2 id="balance-heading" className="type-body-sm text-muted-foreground">
 						{active
 							? formatFullDate(active.date)
-							: isLiability
-								? "Owing"
-								: isInvestment
-									? INVESTMENT_BALANCE_LABEL
-									: "Balance"}
+							: isCard
+								? "Current balance"
+								: isLiability
+									? "Owing"
+									: isInvestment
+										? INVESTMENT_BALANCE_LABEL
+										: "Balance"}
 					</h2>
 					<p className="type-display mt-1 flex items-start tabular-nums text-primary">
 						<span>{whole}</span>
 						<span className="dash-figure-cents">{cents}</span>
 					</p>
 					{isInvestment && <p className="type-body-xs mt-1 text-muted-foreground">{INVESTMENT_BALANCE_HINT}</p>}
+					{statement && (
+						<p className="type-body-sm mt-1 text-muted-foreground">
+							Statement balance{" "}
+							<span className="tabular-nums text-primary">{formatCurrency(statement.statementBalance)}</span>, closed{" "}
+							{formatShortDate(statement.closeDate)}
+						</p>
+					)}
 				</div>
 				{rate !== null && (
 					<p className="type-body-sm text-muted-foreground">
@@ -166,15 +188,28 @@ export function BalanceHero({ account, transactions, history, formatCurrency, on
 							: "Withdrawals and transfers out can't go over the available balance."}
 					</p>
 					{isLiability && standing.remainingDebt > 0 && (
-						<Button
-							size="sm"
-							variant="outline"
-							className="shrink-0 gap-1.5 rounded-full"
-							onClick={() => onPayRemaining(standing.remainingDebt)}
-						>
-							Pay off {formatCurrency(standing.remainingDebt)}
-							<ArrowRight className="h-3.5 w-3.5" aria-hidden />
-						</Button>
+						<div className="flex shrink-0 flex-wrap gap-2">
+							{statementDue > 0 && (
+								<Button
+									size="sm"
+									variant="outline"
+									className="gap-1.5 rounded-full"
+									onClick={() => onPayRemaining(statementDue)}
+								>
+									Pay statement {formatCurrency(statementDue)}
+									<ArrowRight className="h-3.5 w-3.5" aria-hidden />
+								</Button>
+							)}
+							<Button
+								size="sm"
+								variant="outline"
+								className="shrink-0 gap-1.5 rounded-full"
+								onClick={() => onPayRemaining(standing.remainingDebt)}
+							>
+								Pay off {formatCurrency(standing.remainingDebt)}
+								<ArrowRight className="h-3.5 w-3.5" aria-hidden />
+							</Button>
+						</div>
 					)}
 				</div>
 			</div>

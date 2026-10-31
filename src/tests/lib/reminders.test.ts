@@ -65,6 +65,29 @@ describe("findDueReminders", () => {
 		expect(reminders).toEqual([]);
 	});
 
+	test("asks for the statement balance still due once the statement has closed", () => {
+		// Due 27 October, so the statement closed 6 October. Owing 450 today.
+		const remind = (ledger: ReminderCard["ledger"], overrides: Partial<ReminderCard> = {}) =>
+			findDueReminders({ today, leadDays: 7, cards: [card({ ledger, ...overrides })], recurring: [] });
+
+		// After the close: -100 paid, +250 charged = +150, so the statement was 300 and 200 is still due.
+		const partly = remind([
+			{ transaction_date: "2026-10-10", amount: -100 },
+			{ transaction_date: "2026-10-15", amount: 250 },
+		]);
+		expect(partly.map((r) => r.amount)).toEqual([200]);
+
+		// -300 paid, +450 charged: the 300 statement is paid in full, so there's nothing to remind about.
+		const paid = remind([
+			{ transaction_date: "2026-10-10", amount: -300 },
+			{ transaction_date: "2026-10-15", amount: 450 },
+		]);
+		expect(paid).toEqual([]);
+
+		// Closing on the 25th, the statement due 27 October isn't out yet, so the reminder is for the whole balance.
+		expect(remind([], { statementDay: 25 }).map((r) => r.amount)).toEqual([450]);
+	});
+
 	test("counts days across a month end", () => {
 		const reminders = findDueReminders({
 			today: "2026-10-30",
@@ -73,6 +96,66 @@ describe("findDueReminders", () => {
 			recurring: [],
 		});
 		expect(reminders.map((r) => [r.dueDate, r.daysUntil])).toEqual([["2026-11-02", 3]]);
+	});
+
+	test("warns about fees the account's bills would charge, one reminder per account and day", () => {
+		const bill = (id: string, amount: number, next: string) => ({
+			id,
+			name: id,
+			amount,
+			next_due_date: next,
+			billing_period: "1:months",
+		});
+		const reminders = findDueReminders({
+			today,
+			leadDays: 7,
+			cards: [],
+			recurring: [],
+			feeAccounts: [
+				{
+					id: "chq",
+					name: "Chequing",
+					terms: { current_balance: 100, credit_limit: null, nsf_fee: 45, account_type: { class: "asset" } },
+					// Overdue rent (Oct 20) still uses up the balance: 100 - 90 = 10. Phone and Gym on
+					// Oct 26: 10 - 30 = -20 (NSF), -65 - 25 = -90 (NSF). Insurance on Nov 5 is past 7 days.
+					items: [
+						bill("Rent", 90, "2026-10-20"),
+						bill("Phone", 30, "2026-10-26"),
+						bill("Gym", 25, "2026-10-26"),
+						bill("Insurance", 500, "2026-11-05"),
+					],
+				},
+			],
+		});
+		expect(reminders).toEqual([
+			{
+				kind: "fee_due",
+				refId: "chq",
+				name: "Chequing",
+				dueDate: "2026-10-26",
+				daysUntil: 2,
+				amount: 90,
+				detail: "2 fees if Gym and Phone post",
+			},
+		]);
+	});
+
+	test("a single fee names the fee and the payment", () => {
+		const [reminder] = findDueReminders({
+			today,
+			leadDays: 3,
+			cards: [],
+			recurring: [],
+			feeAccounts: [
+				{
+					id: "visa",
+					name: "Visa",
+					terms: { current_balance: 990, credit_limit: 1000, over_limit_fee: 29, account_type: { class: "liability" } },
+					items: [{ id: "s", name: "Streaming", amount: 20, next_due_date: "2026-10-25", billing_period: "1:months" }],
+				},
+			],
+		});
+		expect(reminder).toMatchObject({ amount: 29, detail: "Over-limit fee if Streaming posts", dueDate: "2026-10-25" });
 	});
 });
 

@@ -29,6 +29,7 @@ import {
 	validateContributionRoom,
 	type ContributionRoomFormValues,
 } from "../contribution-room-form";
+import { EMPTY_FEE_TERMS_VALUES, toFeeTermsInput, type FeeTermsFormValues } from "../fee-terms-form";
 import { TypeStep } from "./add-account/type-step";
 import { DetailsStep, EMPTY_ACCOUNT_FORM, type AccountFormState } from "./add-account/details-step";
 
@@ -61,6 +62,7 @@ export function AddAccountDialog({ open, onOpenChange, onSuccess }: AddAccountDi
 	const [fieldConfig, setFieldConfig] = useState<AccountFieldConfig>({});
 	const [contribution, setContribution] = useState<ContributionRoomFormValues>(EMPTY_CONTRIBUTION_ROOM_VALUES);
 	const [planRooms, setPlanRooms] = useState<ContributionRoomSetting[]>([]);
+	const [feeTerms, setFeeTerms] = useState<FeeTermsFormValues>(EMPTY_FEE_TERMS_VALUES);
 	const [errors, setErrors] = useState<ValidationErrors>({});
 
 	const setField = <K extends keyof AccountFormState>(key: K, value: AccountFormState[K]) => {
@@ -80,6 +82,7 @@ export function AddAccountDialog({ open, onOpenChange, onSuccess }: AddAccountDi
 		setForm(EMPTY_ACCOUNT_FORM);
 		setFieldConfig({});
 		setContribution(EMPTY_CONTRIBUTION_ROOM_VALUES);
+		setFeeTerms(EMPTY_FEE_TERMS_VALUES);
 		setErrors({});
 		getContributionRooms()
 			.then(setPlanRooms)
@@ -105,6 +108,7 @@ export function AddAccountDialog({ open, onOpenChange, onSuccess }: AddAccountDi
 			interest_rate: vis.showInterestRate ? prev.interest_rate : "",
 			loan_term_months: vis.showLoanTerm ? prev.loan_term_months : "",
 			payment_due_date: vis.showDueDate ? prev.payment_due_date : "",
+			statement_day: vis.showStatementDay ? prev.statement_day : "",
 		}));
 		if (!vis.showContributionRoom) setContribution(EMPTY_CONTRIBUTION_ROOM_VALUES);
 		setErrors({});
@@ -145,10 +149,12 @@ export function AddAccountDialog({ open, onOpenChange, onSuccess }: AddAccountDi
 				institution: form.institution.trim() || null,
 				notes: isNotesEmpty(form.notes) ? null : form.notes,
 				payment_due_date: form.payment_due_date ? parseInt(form.payment_due_date) : null,
+				...(form.statement_day ? { statement_day: parseInt(form.statement_day) } : {}),
 				credit_limit: form.credit_limit ? parseFloat(form.credit_limit) : null,
 				loan_term_months: form.loan_term_months ? parseInt(form.loan_term_months) : null,
 				field_visibility: isOtherType ? fieldConfig : null,
 				...toContributionRoomInput(contribution),
+				...toFeeTermsInput(feeTerms, visibility),
 			};
 
 			const result = await createAccount(input);
@@ -223,6 +229,8 @@ export function AddAccountDialog({ open, onOpenChange, onSuccess }: AddAccountDi
 								setContribution((prev) => ({ ...prev, ...changes }));
 								if (errors.contribution_room) setErrors((prev) => ({ ...prev, contribution_room: undefined }));
 							}}
+							feeTerms={feeTerms}
+							onFeeTermsChange={(changes) => setFeeTerms((prev) => ({ ...prev, ...changes }))}
 							onChangeType={() => setStep(0)}
 						/>
 					)}

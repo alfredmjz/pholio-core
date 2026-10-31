@@ -29,7 +29,12 @@ function AccountGroup({ title, accounts, tone }: { title: string; accounts: Dash
 											<span className="type-body-xs ml-2 text-muted-foreground">{account.institution}</span>
 										)}
 									</span>
-									<span className="type-value shrink-0 text-primary">{formatCurrency(account.balance)}</span>
+									<span className="shrink-0 text-right">
+										<span className="type-value text-primary">{formatCurrency(account.balance)}</span>
+										{account.isInvestment && (
+											<span className="type-caption ml-1.5 text-muted-foreground">deposited</span>
+										)}
+									</span>
 								</span>
 								<ProgressLine
 									value={share}

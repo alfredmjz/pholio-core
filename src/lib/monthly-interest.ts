@@ -1,5 +1,7 @@
 import { createAdminClient } from "@/lib/supabase/server";
 import { Logger } from "@/lib/logger";
+import { isInvestmentAccount } from "@/lib/account-validation-utils";
+import type { AccountWithType } from "@/app/accounts/types";
 
 /**
  * Process monthly interest for all accounts (Called by Cron Job).
@@ -14,7 +16,7 @@ export async function processGlobalMonthlyInterest(): Promise<{ success: boolean
 
 		const { data: accounts, error } = await supabase
 			.from("accounts")
-			.select("id, current_balance, interest_rate, interest_type, user_id")
+			.select("id, current_balance, interest_rate, interest_type, user_id, account_type:account_types(code, category)")
 			.eq("is_active", true)
 			.not("interest_rate", "is", null)
 			.gt("interest_rate", 0)
@@ -32,6 +34,8 @@ export async function processGlobalMonthlyInterest(): Promise<{ success: boolean
 		let processedCount = 0;
 
 		for (const account of accounts) {
+			// An investment's balance is the amount deposited; interest would make it a market value.
+			if (isInvestmentAccount(account as unknown as Pick<AccountWithType, "account_type">)) continue;
 			try {
 				const interestAmount = account.current_balance * (account.interest_rate / 12);
 				if (interestAmount <= 0) continue;

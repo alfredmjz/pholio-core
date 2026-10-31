@@ -5,6 +5,7 @@ import { computeMonthPace, type PaceExpense } from "@/app/dashboard/month-pace";
 import { buildMonthlyCashflow, isTransfer, type CashflowTransaction } from "@/app/dashboard/cashflow";
 import { buildHeadsUp, selectUpcomingBills, type BillInput, type HeadsUpPromotion } from "@/app/dashboard/heads-up";
 import { getDaysInMonth } from "@/lib/date-utils";
+import { isInvestmentAccount } from "@/lib/account-validation-utils";
 import type { WeatherInput } from "@/lib/financial-weather";
 import { accountsForWeather, billsForWeather } from "@/lib/weather-input";
 import { sampleAccounts } from "./accounts";
@@ -231,6 +232,7 @@ export function getSampleDashboardData(now: Date = getDemoNow(), bills: BillInpu
 			typeName: a.account_type.name,
 			class: a.account_type.class === "liability" ? "liability" : "asset",
 			balance: Number(a.current_balance),
+			isInvestment: isInvestmentAccount(a),
 		})),
 		monthPace: computeMonthPace({
 			year: now.getFullYear(),

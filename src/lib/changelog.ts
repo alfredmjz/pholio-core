@@ -12,6 +12,16 @@ export interface ChangelogEntry {
 /** What's new in Pholio, newest first. Every user-facing release adds an entry at the top. */
 export const CHANGELOG: ChangelogEntry[] = [
 	{
+		id: "2026-10-investments-amount-deposited",
+		date: "2026-10-31",
+		title: "Investments show the amount you deposited",
+		items: [
+			"Pholio doesn't connect to your brokerage, so an investment account now shows what you've put in, less withdrawals, instead of a market value that would go out of date.",
+			"Deposits, contributions and transfers in add to it, and withdrawals and transfers out take away from it. Interest is no longer added to investment accounts.",
+			"If an investment account shows a market value from before, edit the account and enter the amount you've deposited.",
+		],
+	},
+	{
 		id: "2026-10-clearer-amount-limits",
 		date: "2026-10-28",
 		title: "Clearer messages when an amount is too high",

@@ -3,6 +3,7 @@
 import { useMemo } from "react";
 import { parseLocalDate } from "@/lib/date-utils";
 import { isInvestmentAccount } from "@/lib/account-validation-utils";
+import { summarizeInvestmentFlows } from "@/lib/investment-balance";
 import type { AccountWithType, AccountTransaction } from "../../types";
 import { GlanceSection } from "./PerformanceCard";
 
@@ -22,10 +23,6 @@ export function AssetPerformance({ account, transactions, formatCurrency }: Asse
 			.filter((t) => t.transaction_type === "deposit" || t.transaction_type === "contribution")
 			.reduce((sum, t) => sum + Math.abs(t.amount), 0);
 
-		const totalWithdrawals = transactions
-			.filter((t) => t.transaction_type === "withdrawal")
-			.reduce((sum, t) => sum + Math.abs(t.amount), 0);
-
 		const monthlyInterestEstimate =
 			account.interest_rate && account.current_balance ? account.current_balance * (account.interest_rate / 12) : 0;
 
@@ -42,11 +39,12 @@ export function AssetPerformance({ account, transactions, formatCurrency }: Asse
 		const annualGrowthRate = account.current_balance > 0 ? (thisMonthInterest * 12) / account.current_balance : 0;
 
 		const isInvestment = isInvestmentAccount(account);
+		const investmentFlows = summarizeInvestmentFlows(transactions);
 
 		return {
+			investmentFlows,
 			interestEarned,
 			totalDeposits,
-			totalWithdrawals,
 			monthlyInterestEstimate,
 			annualGrowthRate,
 			isInvestment,
@@ -58,8 +56,9 @@ export function AssetPerformance({ account, transactions, formatCurrency }: Asse
 			rows={
 				stats.isInvestment
 					? [
-							{ label: "Deposited", value: formatCurrency(stats.totalDeposits), tone: "success" },
-							{ label: "Withdrawn", value: formatCurrency(stats.totalWithdrawals) },
+							// Transfers count too: they move money in and out like deposits and withdrawals.
+							{ label: "Deposited", value: formatCurrency(stats.investmentFlows.deposited), tone: "success" },
+							{ label: "Withdrawn", value: formatCurrency(stats.investmentFlows.withdrawn) },
 						]
 					: [
 							{ label: "Deposited", value: formatCurrency(stats.totalDeposits), tone: "success" },

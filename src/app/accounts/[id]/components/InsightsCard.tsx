@@ -1,9 +1,7 @@
 "use client";
 
 import { CheckCircle2, TrendingUp } from "lucide-react";
-import { PieChart, Pie, Cell, Tooltip as RechartsTooltip, ResponsiveContainer } from "recharts";
 import { SurfaceSection } from "@/components/layout/surface-section";
-import { cn } from "@/lib/utils";
 import { parseLocalDate } from "@/lib/date-utils";
 import type { AccountWithType, AccountTransaction } from "../../types";
 import { getFieldVisibility } from "../../field-visibility";
@@ -18,21 +16,16 @@ interface InsightsCardProps {
 
 export function InsightsCard({ account, transactions, accountClass, formatCurrency }: InsightsCardProps) {
 	const visibility = getFieldVisibility(account.account_type, account.field_visibility);
-	const category = account.account_type?.category;
-	const isInvestment =
-		account.account_type?.code === "investment" ||
-		category === "investment" ||
-		(category as string | undefined) === "retirement";
 	const isLiability = accountClass === "liability";
 
-	const goalValue = visibility.showOriginalAmount ? account.original_amount : account.target_balance;
+	const goalValue = visibility.showOriginalAmount
+		? account.original_amount
+		: visibility.showTargetGoal
+			? account.target_balance
+			: null;
 
-	// 1. Investments -> what was put in vs. what it grew by
-	if (isInvestment) {
-		return <InvestmentComposition account={account} transactions={transactions} formatCurrency={formatCurrency} />;
-	}
-
-	// 2. Loans -> principal vs. interest paid
+	// Investments show no growth split: their balance is what was deposited, not market value.
+	// 1. Loans -> principal vs. interest paid
 	if (isLiability && visibility.showOriginalAmount && account.original_amount) {
 		return (
 			<LoanComposition
@@ -44,7 +37,7 @@ export function InsightsCard({ account, transactions, accountClass, formatCurren
 		);
 	}
 
-	// 3. Savings, payoffs and other goals -> when the goal will be reached at the current pace
+	// 2. Savings, payoffs and other goals -> when the goal will be reached at the current pace
 	if (goalValue && goalValue > 0) {
 		return (
 			<GoalTimelineProjection
@@ -157,83 +150,6 @@ interface CompositionProps {
 	account: AccountWithType;
 	transactions: AccountTransaction[];
 	formatCurrency: (amount: number) => string;
-}
-
-// Classes, not fill colours: SVG fill attributes can't read the theme's CSS variables.
-const INK = "fill-primary/75 bg-primary/75";
-const GROWTH = "fill-accent bg-accent";
-
-function InvestmentComposition({ account, transactions, formatCurrency }: CompositionProps) {
-	const totalDeposits = transactions
-		.filter((t) => t.transaction_type === "deposit" || t.transaction_type === "contribution")
-		.reduce((sum, t) => sum + Math.abs(t.amount), 0);
-
-	const returns = account.current_balance - totalDeposits;
-
-	const data = [
-		{ name: "Put in", value: totalDeposits, tone: INK },
-		{ name: "Growth", value: returns > 0 ? returns : 0, tone: GROWTH },
-	];
-
-	return (
-		<SurfaceSection id="insight-heading" title="Growth" note="What you put in, and what it grew by">
-			<div className="grid items-center gap-6 sm:grid-cols-[180px_1fr]">
-				<div className="relative mx-auto h-[180px] w-[180px]">
-					<ResponsiveContainer width="100%" height="100%">
-						<PieChart>
-							<Pie
-								data={data}
-								innerRadius={64}
-								outerRadius={84}
-								paddingAngle={4}
-								dataKey="value"
-								stroke="none"
-								cornerRadius={6}
-							>
-								{data.map((entry) => (
-									<Cell key={entry.name} className={entry.tone} />
-								))}
-							</Pie>
-							<RechartsTooltip
-								content={({ active, payload }) =>
-									active && payload?.length ? (
-										<div className="rounded-xl border border-border bg-card px-3 py-2 shadow-raised">
-											<p className="type-body-xs text-muted-foreground">{payload[0].name}</p>
-											<p className="type-value text-primary">{formatCurrency(Number(payload[0].value))}</p>
-										</div>
-									) : null
-								}
-							/>
-						</PieChart>
-					</ResponsiveContainer>
-					<div className="pointer-events-none absolute inset-0 flex flex-col items-center justify-center px-8 text-center">
-						<span className="type-body-xs text-muted-foreground">Worth</span>
-						<span className="type-value break-words text-primary">{formatCurrency(account.current_balance)}</span>
-					</div>
-				</div>
-
-				<dl className="flex flex-col gap-4">
-					<div className="flex items-baseline justify-between gap-3">
-						<dt className="type-body-sm flex items-center gap-2 text-muted-foreground">
-							<span className={cn("h-2.5 w-2.5 rounded-full", INK)} aria-hidden />
-							Put in
-						</dt>
-						<dd className="type-value text-primary">{formatCurrency(totalDeposits)}</dd>
-					</div>
-					<div className="flex items-baseline justify-between gap-3">
-						<dt className="type-body-sm flex items-center gap-2 text-muted-foreground">
-							<span className={cn("h-2.5 w-2.5 rounded-full", GROWTH)} aria-hidden />
-							Growth
-						</dt>
-						<dd className={cn("type-value", returns >= 0 ? "text-success" : "text-error")}>
-							{returns > 0 ? "+" : ""}
-							{formatCurrency(returns)}
-						</dd>
-					</div>
-				</dl>
-			</div>
-		</SurfaceSection>
-	);
 }
 
 function LoanComposition({

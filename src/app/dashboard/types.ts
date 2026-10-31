@@ -27,6 +27,8 @@ export interface DashboardAccount {
 	typeName: string;
 	class: "asset" | "liability";
 	balance: number;
+	/** Investment balances are the amount deposited, not market value. */
+	isInvestment: boolean;
 }
 
 export interface DashboardData {

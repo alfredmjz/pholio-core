@@ -23,6 +23,8 @@ import { sanitizeDecimalInput, sanitizeIntegerInput } from "@/lib/input-utils";
 import { getFieldVisibility } from "../../field-visibility";
 import { AccountFieldConfigurator } from "../../components/AccountFieldConfigurator";
 import { ContributionRoomFields } from "../../components/ContributionRoomFields";
+import { FeeTermsFields } from "../../components/FeeTermsFields";
+import { toFeeTermsInput, toFeeTermsValues, type FeeTermsFormValues } from "../../fee-terms-form";
 import {
 	toContributionRoomInput,
 	toPlanRoomSetting,
@@ -73,6 +75,7 @@ export function EditAccountDialog({ open, onOpenChange, account, onSuccess }: Ed
 		annual_contribution_limit: account.annual_contribution_limit?.toString() || "",
 	});
 	const [planRooms, setPlanRooms] = useState<ContributionRoomSetting[]>([]);
+	const [feeTerms, setFeeTerms] = useState<FeeTermsFormValues>(() => toFeeTermsValues(account));
 
 	// Registered plans keep their room in the shared plan room: load it when the dialog opens
 	// and show it in place of the (empty) account columns.
@@ -160,6 +163,7 @@ export function EditAccountDialog({ open, onOpenChange, account, onSuccess }: Ed
 				loan_term_months: formData.loan_term_months ? parseInt(formData.loan_term_months) : null,
 				field_visibility: isOtherType ? fieldConfig : null,
 				...(visibility.showContributionRoom ? toContributionRoomInput(contribution) : {}),
+				...toFeeTermsInput(feeTerms, visibility),
 			};
 			// Sample data: the account page keeps the change in the demo store (via onSuccess).
 			const result = isSampleDataActive() ? updates : await updateAccount(account.id, updates);
@@ -255,7 +259,11 @@ export function EditAccountDialog({ open, onOpenChange, account, onSuccess }: Ed
 						{isOtherType && (
 							<div className="space-y-2">
 								<Label>Fields to track</Label>
-								<AccountFieldConfigurator value={fieldConfig} onChange={setFieldConfig} />
+								<AccountFieldConfigurator
+									value={fieldConfig}
+									onChange={setFieldConfig}
+									accountClass={account.account_type?.class}
+								/>
 							</div>
 						)}
 
@@ -436,6 +444,12 @@ export function EditAccountDialog({ open, onOpenChange, account, onSuccess }: Ed
 							{errors.interest_rate && <p className="text-sm text-error">{errors.interest_rate}</p>}
 						</div>
 					)}
+
+					<FeeTermsFields
+						values={feeTerms}
+						onChange={(changes) => setFeeTerms((prev) => ({ ...prev, ...changes }))}
+						visibility={visibility}
+					/>
 
 					{/* Notes */}
 					<div className="space-y-2">

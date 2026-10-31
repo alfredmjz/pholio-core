@@ -208,7 +208,13 @@ export function AccountTransactionDialog({
 				<DialogFooter className="flex items-center justify-between sm:justify-between w-full">
 					<AlertDialog>
 						<AlertDialogTrigger asChild>
-							<Button type="button" variant="destructive" size="icon" disabled={isLoading || isDeleting}>
+							<Button
+								type="button"
+								variant="destructive"
+								size="icon"
+								disabled={isLoading || isDeleting}
+								aria-label="Delete transaction"
+							>
 								<Trash2 className="h-4 w-4" />
 							</Button>
 						</AlertDialogTrigger>

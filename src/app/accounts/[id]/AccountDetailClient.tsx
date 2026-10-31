@@ -311,7 +311,7 @@ export function AccountDetailClient({
 
 				<div className="flex min-w-0 flex-col gap-5 lg:gap-6">
 					<PerformanceCard account={account} transactions={transactions} formatCurrency={formatCurrency} />
-					<RecurringChargesCard account={account} items={recurring} />
+					<RecurringChargesCard account={account} items={recurring} today={today} />
 					<OtherAccountsCard accounts={otherAccounts} />
 				</div>
 			</div>

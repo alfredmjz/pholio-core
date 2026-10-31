@@ -11,9 +11,11 @@ import {
 	DropdownMenuTrigger,
 } from "@/components/ui/dropdown-menu";
 import { ServiceLogo } from "@/components/service-logo";
-import { formatFrequency } from "@/lib/date-utils";
+import { formatCurrency } from "@/app/dashboard/utils";
+import { formatFrequency, formatShortDate, parseLocalDate } from "@/lib/date-utils";
 import { formatAccountDisplayName } from "@/lib/account-utils";
 import { accountHref, accountWarning, accountWarningText } from "@/lib/account-links";
+import { projectedFeeText, type ProjectedFee } from "@/lib/overdraft";
 import type { AccountWithType } from "@/app/accounts/types";
 import type { RecurringExpense } from "../actions";
 
@@ -83,15 +85,40 @@ export function RecurringIdentity({
 	);
 }
 
-/** Warns when the account a recurring item is paid from is below zero or past its limit. */
-export function RecurringAccountWarning({ account }: { account: AccountWithType | null }) {
+/**
+ * Warns when the account a recurring item is paid from is below zero or past its limit, and when
+ * the item's next payment would charge the account a fee.
+ */
+export function RecurringAccountWarning({
+	account,
+	fee = null,
+}: {
+	account: AccountWithType | null;
+	fee?: ProjectedFee | null;
+}) {
 	const warning = account ? accountWarning(account) : null;
-	if (!account || !warning) return null;
+	if (!account || (!warning && !fee)) return null;
+	const label = formatAccountDisplayName(account);
 	return (
-		<span className="inline-flex items-center gap-1 text-warning">
-			<AlertTriangle className="h-3 w-3" aria-hidden />
-			{accountWarningText(warning, formatAccountDisplayName(account))}. Payments still post to it.
-		</span>
+		<>
+			{warning && (
+				<span className="inline-flex items-center gap-1 text-warning">
+					<AlertTriangle className="h-3 w-3" aria-hidden />
+					{accountWarningText(warning, label)}. Payments still post to it.
+				</span>
+			)}
+			{fee && (
+				<span className="inline-flex items-center gap-1 text-warning">
+					<AlertTriangle className="h-3 w-3 shrink-0" aria-hidden />
+					{projectedFeeText(fee, {
+						account: label,
+						subject: "The payment",
+						money: (amount) => formatCurrency(amount, { showCents: true }),
+						date: (date) => formatShortDate(parseLocalDate(date)),
+					})}
+				</span>
+			)}
+		</>
 	);
 }
 

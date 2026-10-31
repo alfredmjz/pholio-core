@@ -1,6 +1,6 @@
 "use client";
 
-import { useState } from "react";
+import { useMemo, useState } from "react";
 import { Plus } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { SurfacePage } from "@/components/layout/surface-page";
@@ -11,6 +11,7 @@ import { useKeyboardShortcut } from "@/hooks/use-keyboard-shortcut";
 import { SHORTCUTS, ShortcutId } from "@/lib/keyboard-shortcuts";
 import { getTodayDateString } from "@/lib/date-utils";
 import { formatCurrency } from "@/app/dashboard/utils";
+import { feeWarningUntil, projectedFeesByRecurring } from "@/lib/overdraft";
 import { cn } from "@/lib/utils";
 import type { AccountWithType } from "@/app/accounts/types";
 import type { RecurringExpense } from "../actions";
@@ -63,6 +64,10 @@ export function RecurringClient({
 	useKeyboardShortcut(SHORTCUTS[ShortcutId.AddRecurring].keys, () => setIsAddOpen(true));
 
 	const today = getTodayDateString(timezone || undefined);
+	const feeWarnings = useMemo(
+		() => projectedFeesByRecurring(expenses, accounts, feeWarningUntil(today)),
+		[expenses, accounts, today]
+	);
 	const bills = expenses.filter((e) => e.category === "bill").sort(byDueDate);
 	// Active subscriptions first, by next payment; paused ones after.
 	const subscriptions = expenses
@@ -126,6 +131,7 @@ export function RecurringClient({
 									timezone={timezone}
 									categoryOptions={categoryOptions}
 									accounts={accounts}
+									feeWarning={feeWarnings.get(bill.id) ?? null}
 								/>
 							))}
 						</ul>
@@ -160,6 +166,7 @@ export function RecurringClient({
 									onUpdate={optimisticallyUpdate}
 									categoryOptions={categoryOptions}
 									accounts={accounts}
+									feeWarning={feeWarnings.get(sub.id) ?? null}
 								/>
 							))}
 						</ul>

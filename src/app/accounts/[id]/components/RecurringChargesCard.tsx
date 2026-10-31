@@ -6,18 +6,22 @@ import { SurfaceSection } from "@/components/layout/surface-section";
 import { formatCurrency } from "@/app/dashboard/utils";
 import { formatFrequency, formatShortDate, parseLocalDate } from "@/lib/date-utils";
 import { accountWarning, accountWarningText } from "@/lib/account-links";
+import { feeWarningUntil, projectAccountFees, projectedFeeText, scheduledPayments } from "@/lib/overdraft";
 import type { AccountRecurringItem } from "../../actions";
 import type { AccountWithType } from "../../types";
 
 interface RecurringChargesCardProps {
 	account: AccountWithType;
 	items: AccountRecurringItem[];
+	/** YYYY-MM-DD in the user's timezone. */
+	today: string;
 }
 
-/** Bills and subscriptions paid from this account. Hidden when there are none. */
-export function RecurringChargesCard({ account, items }: RecurringChargesCardProps) {
+/** Bills and subscriptions paid from this account, and the fees they would charge. Hidden when there are none. */
+export function RecurringChargesCard({ account, items, today }: RecurringChargesCardProps) {
 	if (items.length === 0) return null;
 	const warning = accountWarning(account);
+	const fees = projectAccountFees(account, scheduledPayments(items, feeWarningUntil(today)));
 	const monthlyNote = `${items.length} ${items.length === 1 ? "item is" : "items are"} paid from this account`;
 
 	return (
@@ -33,6 +37,16 @@ export function RecurringChargesCard({ account, items }: RecurringChargesCardPro
 					{accountWarningText(warning, "This account")}. Payments still post to it.
 				</p>
 			)}
+			{fees.map((fee) => (
+				<p key={`${fee.recurringId}-${fee.date}`} className="type-body-xs mb-2 flex items-start gap-1.5 text-warning">
+					<AlertTriangle className="mt-0.5 h-3 w-3 shrink-0" aria-hidden />
+					{projectedFeeText(fee, {
+						account: "this account",
+						money: (amount) => formatCurrency(amount, { showCents: true }),
+						date: (date) => formatShortDate(parseLocalDate(date)),
+					})}
+				</p>
+			))}
 			<ul className="-mx-2 flex flex-col">
 				{items.map((item) => (
 					<li key={item.id}>

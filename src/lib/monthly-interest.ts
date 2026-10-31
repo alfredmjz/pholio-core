@@ -1,5 +1,6 @@
 import { createAdminClient } from "@/lib/supabase/server";
 import { Logger } from "@/lib/logger";
+import { isCardInterestWaived, lastEndedCycle } from "@/lib/credit-card-statement";
 
 /**
  * Process monthly interest for all accounts (Called by Cron Job).
@@ -14,7 +15,9 @@ export async function processGlobalMonthlyInterest(): Promise<{ success: boolean
 
 		const { data: accounts, error } = await supabase
 			.from("accounts")
-			.select("id, current_balance, interest_rate, interest_type, user_id")
+			.select(
+				"id, current_balance, interest_rate, interest_type, user_id, payment_due_date, statement_day, account_types(code)"
+			)
 			.eq("is_active", true)
 			.not("interest_rate", "is", null)
 			.gt("interest_rate", 0)
@@ -35,6 +38,7 @@ export async function processGlobalMonthlyInterest(): Promise<{ success: boolean
 			try {
 				const interestAmount = account.current_balance * (account.interest_rate / 12);
 				if (interestAmount <= 0) continue;
+				if (await isStatementPaidInFull(supabase, account)) continue;
 
 				const { error: txError } = await supabase.from("account_transactions").insert({
 					account_id: account.id,
@@ -65,4 +69,32 @@ export async function processGlobalMonthlyInterest(): Promise<{ success: boolean
 		Logger.error("Failed global interest processing", { error });
 		return { success: false, processed: 0, error: "Internal processing error" };
 	}
+}
+
+/** A card whose last statement was paid in full by its due date owes no interest this month. */
+async function isStatementPaidInFull(
+	supabase: ReturnType<typeof createAdminClient>,
+	account: {
+		id: string;
+		current_balance: number;
+		payment_due_date: number | null;
+		statement_day: number | null;
+		account_types: { code: string | null } | { code: string | null }[] | null;
+	}
+): Promise<boolean> {
+	const type = Array.isArray(account.account_types) ? account.account_types[0] : account.account_types;
+	if (type?.code !== "credit_card") return false;
+	const runDate = new Date().toISOString().split("T")[0];
+	const settings = { dueDay: account.payment_due_date, statementDay: account.statement_day };
+	const cycle = lastEndedCycle(settings, runDate);
+	if (!cycle) return false;
+
+	const { data: rows, error } = await supabase
+		.from("account_transactions")
+		.select("amount, transaction_date")
+		.eq("account_id", account.id)
+		.gt("transaction_date", cycle.closeDate);
+	if (error) throw error;
+
+	return isCardInterestWaived(settings, Number(account.current_balance), rows ?? [], runDate);
 }

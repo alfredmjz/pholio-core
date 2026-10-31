@@ -12,6 +12,15 @@ export interface ChangelogEntry {
 /** What's new in Pholio, newest first. Every user-facing release adds an entry at the top. */
 export const CHANGELOG: ChangelogEntry[] = [
 	{
+		id: "2026-10-interest-rate-decimals",
+		date: "2026-10-31",
+		title: "Cleaner interest rates",
+		items: [
+			"Interest rates show with up to 2 decimals when you edit an account, like 21.99%, instead of a long run of digits. The same goes for your data export.",
+			'The credit card field for the statement day is now called "Statement Close Date".',
+		],
+	},
+	{
 		id: "2026-10-investments-amount-deposited",
 		date: "2026-10-31",
 		title: "Investments show the amount you deposited",

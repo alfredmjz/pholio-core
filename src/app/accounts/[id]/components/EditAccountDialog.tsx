@@ -37,6 +37,7 @@ import {
 } from "../../contribution-room-form";
 import { getContributionRooms, saveContributionRoom } from "@/lib/actions/contribution-actions";
 import { isRegisteredPlan } from "@/lib/contribution-plans";
+import { percentInputToRate, rateToPercentInput } from "@/lib/interest-rate";
 import type { ContributionRoomSetting } from "@/lib/types/contribution";
 
 interface EditAccountDialogProps {
@@ -64,7 +65,7 @@ export function EditAccountDialog({ open, onOpenChange, account, onSuccess }: Ed
 		current_balance: account.current_balance.toString(),
 		target_balance: account.target_balance?.toString() || "",
 		original_amount: account.original_amount?.toString() || "",
-		interest_rate: account.interest_rate ? (account.interest_rate * 100).toString() : "",
+		interest_rate: rateToPercentInput(account.interest_rate),
 		notes: notesToHtml(account.notes),
 		payment_due_date: account.payment_due_date?.toString() || "",
 		statement_day: account.statement_day?.toString() || "",
@@ -161,7 +162,7 @@ export function EditAccountDialog({ open, onOpenChange, account, onSuccess }: Ed
 				current_balance: parseFloat(formData.current_balance) || 0,
 				target_balance: visibility.showTargetGoal ? parseFloat(formData.target_balance) || null : null,
 				original_amount: visibility.showOriginalAmount ? parseFloat(formData.original_amount) || null : null,
-				interest_rate: formData.interest_rate ? parseFloat(formData.interest_rate) / 100 : null,
+				interest_rate: percentInputToRate(formData.interest_rate),
 				notes: isNotesEmpty(formData.notes) ? null : formData.notes,
 				payment_due_date: formData.payment_due_date ? parseInt(formData.payment_due_date) : null,
 				...(visibility.showStatementDay && formData.statement_day !== (account.statement_day?.toString() || "")
@@ -336,12 +337,12 @@ export function EditAccountDialog({ open, onOpenChange, account, onSuccess }: Ed
 							<div className={cn("grid grid-cols-1 gap-4", visibility.showStatementDay && "sm:grid-cols-2")}>
 								{visibility.showStatementDay && (
 									<div className="space-y-2">
-										<Label htmlFor="statement_day">Statement Closes (1-31)</Label>
+										<Label htmlFor="statement_day">Statement Close Date (1-31)</Label>
 										<Input
 											id="statement_day"
 											type="text"
 											inputMode="numeric"
-											placeholder="21 days before due"
+											placeholder="e.g., 21"
 											value={formData.statement_day}
 											onChange={(e) =>
 												setFormData({ ...formData, statement_day: sanitizeIntegerInput(e.target.value) })

@@ -100,6 +100,8 @@ export interface Account {
 	loan_start_date: string | null;
 	loan_term_months: number | null;
 	payment_due_date: number | null;
+	/** Day of the month a card's statement closes; null = 21 days before the due date. */
+	statement_day?: number | null;
 	target_balance: number | null;
 	// Field visibility chosen by the owner (only meaningful for the "Other" type)
 	field_visibility?: AccountFieldConfig | null;
@@ -312,6 +314,7 @@ export interface CreateAccountInput {
 	field_visibility?: AccountFieldConfig | null;
 	loan_term_months?: number | null;
 	payment_due_date?: number | null;
+	statement_day?: number | null;
 	target_balance?: number | null;
 	track_contribution_room?: boolean;
 	contribution_plan?: ContributionPlan | null;
@@ -339,6 +342,7 @@ export interface UpdateAccountInput {
 	interest_type?: InterestType | null;
 	loan_term_months?: number | null;
 	payment_due_date?: number | null;
+	statement_day?: number | null;
 	target_balance?: number | null;
 	track_contribution_room?: boolean;
 	contribution_plan?: ContributionPlan | null;

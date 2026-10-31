@@ -1,10 +1,19 @@
 import { redirect } from "next/navigation";
 import { getTimezone } from "@/app/settings/actions";
 import { getAccountContributionSummary } from "@/lib/actions/contribution-actions";
+import { statementLedgerSince } from "@/lib/credit-card-statement";
 import { formatDateString, getTodayDateString } from "@/lib/date-utils";
 import { isSampleDataMode } from "@/lib/demo-mode.server";
 import { getDemoNow } from "@/mock-data/demo-date";
-import { getAccountById, getAccountHistory, getAccountTransactions, getAccounts, getRecurringForAccount } from "../actions";
+import {
+	getAccountById,
+	getAccountHistory,
+	getAccountTransactions,
+	getAccountTransactionsSince,
+	getAccounts,
+	getRecurringForAccount,
+} from "../actions";
+import { getFieldVisibility } from "../field-visibility";
 import type { BalancePoint } from "../account-insights";
 import { AccountDetailClient } from "./AccountDetailClient";
 
@@ -22,16 +31,17 @@ const HISTORY_LIMIT = 180;
 export default async function AccountDetailPage({ params }: AccountDetailPageProps) {
 	const { id } = await params;
 
-	const [account, transactions, allAccounts, sampleMode, contribution, historyRows, timezone, recurring] = await Promise.all([
-		getAccountById(id),
-		getAccountTransactions(id),
-		getAccounts(),
-		isSampleDataMode(),
-		getAccountContributionSummary(id),
-		getAccountHistory(id, HISTORY_LIMIT).catch(() => []),
-		getTimezone(),
-		getRecurringForAccount(id),
-	]);
+	const [account, transactions, allAccounts, sampleMode, contribution, historyRows, timezone, recurring] =
+		await Promise.all([
+			getAccountById(id),
+			getAccountTransactions(id),
+			getAccounts(),
+			isSampleDataMode(),
+			getAccountContributionSummary(id),
+			getAccountHistory(id, HISTORY_LIMIT).catch(() => []),
+			getTimezone(),
+			getRecurringForAccount(id),
+		]);
 
 	// Account was deleted (or never existed) — send the user back to the parent page.
 	// In sample-data mode the account may exist only in the browser's demo store (created
@@ -45,6 +55,11 @@ export default async function AccountDetailPage({ params }: AccountDetailPagePro
 		.map((row) => ({ date: String(row.recorded_at).slice(0, 10), balance: Number(row.balance) }))
 		.sort((a, b) => a.date.localeCompare(b.date));
 	const otherAccounts = allAccounts.filter((acc) => acc.id !== id);
+	// The activity list holds only the latest rows, so a card's statement gets its own ledger.
+	const statementLedger =
+		account && getFieldVisibility(account.account_type, account.field_visibility).showStatementDay
+			? await getAccountTransactionsSince(id, statementLedgerSince(today))
+			: null;
 
 	return (
 		<AccountDetailClient
@@ -56,6 +71,7 @@ export default async function AccountDetailPage({ params }: AccountDetailPagePro
 			history={history}
 			today={today}
 			recurring={recurring}
+			statementLedger={statementLedger}
 		/>
 	);
 }

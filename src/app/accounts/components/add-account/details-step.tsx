@@ -26,6 +26,7 @@ export interface AccountFormState {
 	institution: string;
 	notes: string;
 	payment_due_date: string;
+	statement_day: string;
 	credit_limit: string;
 	loan_term_months: string;
 }
@@ -40,6 +41,7 @@ export const EMPTY_ACCOUNT_FORM: AccountFormState = {
 	institution: "",
 	notes: "",
 	payment_due_date: "",
+	statement_day: "",
 	credit_limit: "",
 	loan_term_months: "",
 };
@@ -241,6 +243,16 @@ export function DetailsStep({
 							value={form.payment_due_date}
 							onChange={(value) => setField("payment_due_date", sanitizeIntegerInput(value))}
 							placeholder="e.g. 21"
+						/>
+					)}
+					{visibility.showStatementDay && (
+						<TextField
+							id="statement_day"
+							label="Statement closes (day of month)"
+							inputMode="numeric"
+							value={form.statement_day}
+							onChange={(value) => setField("statement_day", sanitizeIntegerInput(value))}
+							placeholder="21 days before due"
 						/>
 					)}
 					{visibility.showLoanTerm && (

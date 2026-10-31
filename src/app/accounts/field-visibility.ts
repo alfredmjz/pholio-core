@@ -7,6 +7,7 @@ export interface FieldVisibility {
 	showInterestRate: boolean;
 	showLoanTerm: boolean;
 	showDueDate: boolean;
+	showStatementDay: boolean;
 	showContributionRoom: boolean;
 	/** Overdraft protection, NSF fee and overdraft interest (bank accounts). */
 	showOverdraft: boolean;
@@ -26,6 +27,7 @@ function preset(overrides: Partial<FieldVisibility>): FieldVisibility {
 		showInterestRate: false,
 		showLoanTerm: false,
 		showDueDate: false,
+		showStatementDay: false,
 		showContributionRoom: false,
 		showOverdraft: false,
 		showOverLimitFee: false,
@@ -53,6 +55,7 @@ export const CORE_TYPE_PRESETS: Record<CoreAccountTypeCode, FieldVisibility> = {
 		showCreditLimit: true,
 		showInterestRate: true,
 		showDueDate: true,
+		showStatementDay: true,
 		showOverLimitFee: true,
 		institutionLabel: "Credit Card Issuer",
 		institutionPlaceholder: "Chase, Amex, Capital One, etc.",

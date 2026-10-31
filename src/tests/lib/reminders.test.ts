@@ -65,6 +65,29 @@ describe("findDueReminders", () => {
 		expect(reminders).toEqual([]);
 	});
 
+	test("asks for the statement balance still due once the statement has closed", () => {
+		// Due 27 October, so the statement closed 6 October. Owing 450 today.
+		const remind = (ledger: ReminderCard["ledger"], overrides: Partial<ReminderCard> = {}) =>
+			findDueReminders({ today, leadDays: 7, cards: [card({ ledger, ...overrides })], recurring: [] });
+
+		// After the close: -100 paid, +250 charged = +150, so the statement was 300 and 200 is still due.
+		const partly = remind([
+			{ transaction_date: "2026-10-10", amount: -100 },
+			{ transaction_date: "2026-10-15", amount: 250 },
+		]);
+		expect(partly.map((r) => r.amount)).toEqual([200]);
+
+		// -300 paid, +450 charged: the 300 statement is paid in full, so there's nothing to remind about.
+		const paid = remind([
+			{ transaction_date: "2026-10-10", amount: -300 },
+			{ transaction_date: "2026-10-15", amount: 450 },
+		]);
+		expect(paid).toEqual([]);
+
+		// Closing on the 25th, the statement due 27 October isn't out yet, so the reminder is for the whole balance.
+		expect(remind([], { statementDay: 25 }).map((r) => r.amount)).toEqual([450]);
+	});
+
 	test("counts days across a month end", () => {
 		const reminders = findDueReminders({
 			today: "2026-10-30",

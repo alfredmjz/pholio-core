@@ -1,4 +1,5 @@
 import type { SupabaseClient } from "@supabase/supabase-js";
+import { statementLedgerSince, type StatementLedgerRow } from "@/lib/credit-card-statement";
 import { getTodayDateString } from "@/lib/date-utils";
 import { sendEmail } from "@/lib/email";
 import { toFormatSettings, type FormatSettings } from "@/lib/format";
@@ -15,6 +16,7 @@ import { createAdminClient } from "@/lib/supabase/server";
 // Pholio is built around Canadian accounts, so a user who never picked a time zone gets Toronto's.
 export const REMINDER_FALLBACK_TIMEZONE = "America/Toronto";
 const KEEP_DAYS = 60;
+const PAGE_SIZE = 1000;
 
 export interface ReminderUser {
 	id: string;
@@ -43,7 +45,9 @@ export async function loadReminderItems(
 	const [cardsResult, recurringResult] = await Promise.all([
 		supabase
 			.from("accounts")
-			.select("id, user_id, name, institution, current_balance, payment_due_date, account_types!inner(code)")
+			.select(
+				"id, user_id, name, institution, current_balance, payment_due_date, statement_day, account_types!inner(code)"
+			)
 			.in("user_id", userIds)
 			.eq("is_active", true)
 			.eq("account_types.code", "credit_card")
@@ -58,7 +62,12 @@ export async function loadReminderItems(
 	if (cardsResult.error) throw cardsResult.error;
 	if (recurringResult.error) throw recurringResult.error;
 
-	for (const row of cardsResult.data ?? []) {
+	const cards = cardsResult.data ?? [];
+	const ledgers = await loadStatementLedgers(
+		supabase,
+		cards.map((row) => row.id)
+	);
+	for (const row of cards) {
 		const institution = typeof row.institution === "string" ? row.institution.trim() : "";
 		byUser.get(row.user_id)?.cards.push({
 			id: row.id,
@@ -66,6 +75,8 @@ export async function loadReminderItems(
 				institution && institution.toLowerCase() !== row.name.toLowerCase() ? `${institution} - ${row.name}` : row.name,
 			balance: Number(row.current_balance),
 			dueDay: Number(row.payment_due_date),
+			statementDay: row.statement_day,
+			ledger: ledgers.get(row.id),
 		});
 	}
 	for (const row of recurringResult.data ?? []) {
@@ -79,6 +90,32 @@ export async function loadReminderItems(
 	}
 
 	return byUser;
+}
+
+/** Each card's recent ledger rows, enough to work out its latest statement. */
+async function loadStatementLedgers(
+	supabase: SupabaseClient,
+	cardIds: string[]
+): Promise<Map<string, StatementLedgerRow[]>> {
+	const byCard = new Map<string, StatementLedgerRow[]>(cardIds.map((id) => [id, []]));
+	if (cardIds.length === 0) return byCard;
+
+	const since = statementLedgerSince(new Date().toISOString().slice(0, 10));
+	for (let from = 0; ; from += PAGE_SIZE) {
+		const { data, error } = await supabase
+			.from("account_transactions")
+			.select("id, account_id, amount, transaction_date")
+			.in("account_id", cardIds)
+			.gte("transaction_date", since)
+			.order("id")
+			.range(from, from + PAGE_SIZE - 1);
+		if (error) throw error;
+		for (const row of data ?? []) {
+			byCard.get(row.account_id)?.push({ amount: Number(row.amount), transaction_date: row.transaction_date });
+		}
+		if (!data || data.length < PAGE_SIZE) break;
+	}
+	return byCard;
 }
 
 export function remindersFor(user: ReminderUser, items: ReminderItems): { today: string; reminders: DueReminder[] } {

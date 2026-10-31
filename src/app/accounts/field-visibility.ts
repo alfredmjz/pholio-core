@@ -7,6 +7,7 @@ export interface FieldVisibility {
 	showInterestRate: boolean;
 	showLoanTerm: boolean;
 	showDueDate: boolean;
+	showStatementDay: boolean;
 	showContributionRoom: boolean;
 	interestRateLabel: string;
 	institutionLabel: string;
@@ -23,6 +24,7 @@ function preset(overrides: Partial<FieldVisibility>): FieldVisibility {
 		showInterestRate: false,
 		showLoanTerm: false,
 		showDueDate: false,
+		showStatementDay: false,
 		showContributionRoom: false,
 		interestRateLabel: "Interest Rate (%)",
 		institutionLabel: "Institution",
@@ -48,6 +50,7 @@ export const CORE_TYPE_PRESETS: Record<CoreAccountTypeCode, FieldVisibility> = {
 		showCreditLimit: true,
 		showInterestRate: true,
 		showDueDate: true,
+		showStatementDay: true,
 		institutionLabel: "Credit Card Issuer",
 		institutionPlaceholder: "Chase, Amex, Capital One, etc.",
 	}),

@@ -4,7 +4,7 @@ import { cn } from "@/lib/utils";
 import { ProgressLine } from "@/components/ui/progress-line";
 import { formatFullDate } from "@/lib/date-utils";
 import {
-	CRA_MY_ACCOUNT_URL,
+	CRA_LOGIN_URL,
 	capitalizeRoomTerm,
 	getContributionNotices,
 	getContributionPlanLabel,
@@ -183,12 +183,12 @@ export function ContributionDetails({
 
 					{showCraLink && (
 						<Link
-							href={CRA_MY_ACCOUNT_URL}
+							href={CRA_LOGIN_URL}
 							target="_blank"
 							rel="noopener noreferrer"
 							className="type-caption text-muted-foreground underline underline-offset-2 hover:text-primary"
 						>
-							Check your official room in CRA My Account
+							Check your official room in CRA
 						</Link>
 					)}
 				</>

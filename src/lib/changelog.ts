@@ -13,7 +13,7 @@ export interface ChangelogEntry {
 export const CHANGELOG: ChangelogEntry[] = [
 	{
 		id: "2026-11-room-tracking-counts-balance",
-		date: "2026-11-01",
+		date: "2026-10-31",
 		title: "Turning on room tracking counts your balance",
 		items: [
 			"When you turn on contribution room tracking for an account that already holds money, any part of the balance not already in Activity now counts as a deposit made today. If the money went in earlier, change the date on the \"Balance update\" deposit in Activity.",

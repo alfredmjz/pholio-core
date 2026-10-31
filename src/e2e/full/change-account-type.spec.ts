@@ -1,7 +1,7 @@
 import { test, expect, expectNoHorizontalScroll, openDialog, uniqueName } from "@/e2e/fixtures";
 
 // Edit lets an account change type within its class, and clears what the new type doesn't use.
-test("change a savings account to chequing in Edit", async ({ page }, testInfo) => {
+test("change a savings account to investment in Edit", async ({ page }, testInfo) => {
 	test.slow();
 	const accountName = uniqueName("E2E Type Savings", testInfo.project.name);
 
@@ -26,9 +26,9 @@ test("change a savings account to chequing in Edit", async ({ page }, testInfo) 
 
 	// Only types of the same class are offered: an asset can't become a credit card.
 	await editAccount.getByLabel("Account Type").click();
-	await expect(page.getByRole("option", { name: "Investment" })).toBeVisible();
+	await expect(page.getByRole("option", { name: "Chequing" })).toBeVisible();
 	await expect(page.getByRole("option", { name: "Credit Card" })).toHaveCount(0);
-	await page.getByRole("option", { name: "Chequing" }).click();
+	await page.getByRole("option", { name: "Investment" }).click();
 
 	await expect(editAccount.getByText("Clears the saved interest rate.")).toBeVisible();
 	await expect(editAccount.getByLabel(/APY/)).toHaveCount(0);
@@ -36,14 +36,14 @@ test("change a savings account to chequing in Edit", async ({ page }, testInfo) 
 	await editAccount.getByRole("button", { name: /Save Changes/ }).click();
 
 	await expect(page.getByText("Account updated")).toBeVisible();
-	await expect(page.getByText("Chequing", { exact: true }).first()).toBeVisible();
+	await expect(page.getByText("Investment", { exact: true }).first()).toBeVisible();
 	await expect(page.getByText("$1,000.00").first()).toBeVisible();
 
-	// After a reload the server copy is the chequing account, with the rate gone.
+	// After a reload the server copy is the investment account, with the rate gone.
 	await page.reload();
-	await expect(page.getByText("Chequing", { exact: true }).first()).toBeVisible();
+	await expect(page.getByText("Investment", { exact: true }).first()).toBeVisible();
 	await page.getByRole("button", { name: `More actions for ${accountName}` }).click();
 	await openDialog(page.getByRole("menuitem", { name: "Edit details" }), editAccount);
-	await expect(editAccount.getByLabel("Account Type")).toHaveText("Chequing");
+	await expect(editAccount.getByLabel("Account Type")).toHaveText("Investment");
 	await expect(editAccount.getByText("Clears the saved")).toHaveCount(0);
 });

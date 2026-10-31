@@ -67,12 +67,11 @@ describe("canChangeAccountType", () => {
 });
 
 describe("clearHiddenFields", () => {
-	test("a chequing account keeps only its overdraft terms", () => {
+	test("a chequing account keeps its interest rate and overdraft terms", () => {
 		expect(clearHiddenFields(getFieldVisibility(chequing))).toEqual({
 			target_balance: null,
 			credit_limit: null,
 			original_amount: null,
-			interest_rate: null,
 			loan_term_months: null,
 			payment_due_date: null,
 			statement_day: null,
@@ -114,10 +113,10 @@ describe("applyTypeChange", () => {
 		expect(applyTypeChange(input, savings, { ...chequing, is_active: false })).toBeNull();
 	});
 
-	test("savings to chequing clears the APY and target and sets the new type", () => {
+	test("savings to chequing keeps the rate, clears the target and sets the new type", () => {
 		const result = applyTypeChange({ ...input, target_balance: 5000 }, savings, chequing)!;
 		expect(result.account_type_id).toBe(chequing.id);
-		expect(result.interest_rate).toBeNull();
+		expect(result.interest_rate).toBe(0.02);
 		expect(result.target_balance).toBeNull();
 		expect(result.field_visibility).toBeNull();
 		expect(result.name).toBe("Everyday");

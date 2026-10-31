@@ -54,6 +54,10 @@ LANGUAGE sql AS $$ SELECT count(*)::INT FROM public.account_transactions WHERE a
 CREATE OR REPLACE FUNCTION pg_temp.next_date(p_charge UUID) RETURNS TEXT
 LANGUAGE sql AS $$ SELECT next_charge_date::TEXT FROM public.account_charges WHERE id = p_charge; $$;
 
+-- post_due_account_charges() posts for every user, and E2E runs leave charges in the shared local
+-- database; retire them for this transaction so the counts below are only this file's.
+UPDATE public.account_charges SET is_active = false WHERE is_active;
+
 INSERT INTO auth.users (id, email, instance_id, aud, role)
 VALUES ('16000000-0000-0000-0000-000000000001', 'owner@account-charges-test.test', '00000000-0000-0000-0000-000000000000', 'authenticated', 'authenticated');
 

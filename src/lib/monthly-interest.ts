@@ -1,6 +1,8 @@
 import { createAdminClient } from "@/lib/supabase/server";
 import { Logger } from "@/lib/logger";
 import { isCardInterestWaived, lastEndedCycle } from "@/lib/credit-card-statement";
+import { getTodayDateString } from "@/lib/date-utils";
+import { overdraftInterest } from "@/lib/overdraft";
 
 /**
  * Process monthly interest for all accounts (Called by Cron Job).
@@ -64,6 +66,8 @@ export async function processGlobalMonthlyInterest(): Promise<{ success: boolean
 			}
 		}
 
+		processedCount += await chargeOverdraftInterest(supabase);
+
 		return { success: true, processed: processedCount };
 	} catch (error) {
 		Logger.error("Failed global interest processing", { error });
@@ -97,4 +101,48 @@ async function isStatementPaidInFull(
 	if (error) throw error;
 
 	return isCardInterestWaived(settings, Number(account.current_balance), rows ?? [], runDate);
+}
+
+/** One month of overdraft interest on every protected account below zero. Returns how many were charged. */
+async function chargeOverdraftInterest(supabase: ReturnType<typeof createAdminClient>): Promise<number> {
+	const { data: accounts, error } = await supabase
+		.from("accounts")
+		.select("id, user_id, current_balance, overdraft_interest_rate")
+		.eq("is_active", true)
+		.eq("overdraft_protection", true)
+		.gt("overdraft_interest_rate", 0)
+		.lt("current_balance", 0);
+
+	if (error) {
+		Logger.error("Error fetching overdrawn accounts for interest", { error });
+		return 0;
+	}
+
+	let charged = 0;
+	for (const account of accounts ?? []) {
+		const amount = overdraftInterest(Number(account.current_balance), Number(account.overdraft_interest_rate));
+		if (amount === 0) continue;
+		try {
+			const { error: txError } = await supabase.from("account_transactions").insert({
+				account_id: account.id,
+				user_id: account.user_id,
+				amount,
+				transaction_type: "interest",
+				description: "Overdraft interest",
+				transaction_date: getTodayDateString(),
+			});
+			if (txError) throw txError;
+
+			const { error: updateError } = await supabase
+				.from("accounts")
+				.update({ current_balance: Math.round((Number(account.current_balance) + amount) * 100) / 100 })
+				.eq("id", account.id);
+			if (updateError) throw updateError;
+
+			charged++;
+		} catch (err) {
+			Logger.error(`Failed to charge overdraft interest for account ${account.id}`, { error: err });
+		}
+	}
+	return charged;
 }

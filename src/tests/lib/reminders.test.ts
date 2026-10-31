@@ -97,6 +97,66 @@ describe("findDueReminders", () => {
 		});
 		expect(reminders.map((r) => [r.dueDate, r.daysUntil])).toEqual([["2026-11-02", 3]]);
 	});
+
+	test("warns about fees the account's bills would charge, one reminder per account and day", () => {
+		const bill = (id: string, amount: number, next: string) => ({
+			id,
+			name: id,
+			amount,
+			next_due_date: next,
+			billing_period: "1:months",
+		});
+		const reminders = findDueReminders({
+			today,
+			leadDays: 7,
+			cards: [],
+			recurring: [],
+			feeAccounts: [
+				{
+					id: "chq",
+					name: "Chequing",
+					terms: { current_balance: 100, credit_limit: null, nsf_fee: 45, account_type: { class: "asset" } },
+					// Overdue rent (Oct 20) still uses up the balance: 100 - 90 = 10. Phone and Gym on
+					// Oct 26: 10 - 30 = -20 (NSF), -65 - 25 = -90 (NSF). Insurance on Nov 5 is past 7 days.
+					items: [
+						bill("Rent", 90, "2026-10-20"),
+						bill("Phone", 30, "2026-10-26"),
+						bill("Gym", 25, "2026-10-26"),
+						bill("Insurance", 500, "2026-11-05"),
+					],
+				},
+			],
+		});
+		expect(reminders).toEqual([
+			{
+				kind: "fee_due",
+				refId: "chq",
+				name: "Chequing",
+				dueDate: "2026-10-26",
+				daysUntil: 2,
+				amount: 90,
+				detail: "2 fees if Gym and Phone post",
+			},
+		]);
+	});
+
+	test("a single fee names the fee and the payment", () => {
+		const [reminder] = findDueReminders({
+			today,
+			leadDays: 3,
+			cards: [],
+			recurring: [],
+			feeAccounts: [
+				{
+					id: "visa",
+					name: "Visa",
+					terms: { current_balance: 990, credit_limit: 1000, over_limit_fee: 29, account_type: { class: "liability" } },
+					items: [{ id: "s", name: "Streaming", amount: 20, next_due_date: "2026-10-25", billing_period: "1:months" }],
+				},
+			],
+		});
+		expect(reminder).toMatchObject({ amount: 29, detail: "Over-limit fee if Streaming posts", dueDate: "2026-10-25" });
+	});
 });
 
 describe("buildReminderEmail", () => {

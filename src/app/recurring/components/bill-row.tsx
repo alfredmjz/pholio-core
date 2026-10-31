@@ -22,6 +22,7 @@ import { deleteRecurringExpense, markAsPaid, type RecurringExpense } from "../ac
 import { EditRecurringDialog } from "./edit-recurring-dialog";
 import { PayFutureBillDialog } from "./pay-future-bill-dialog";
 import type { AccountWithType } from "@/app/accounts/types";
+import type { ProjectedFee } from "@/lib/overdraft";
 import { RECURRING_GRID, RecurringAccountWarning, RecurringIdentity, RowMenu } from "./recurring-row-parts";
 
 interface BillRowProps {
@@ -31,6 +32,8 @@ interface BillRowProps {
 	timezone?: string | null;
 	categoryOptions?: string[];
 	accounts?: AccountWithType[];
+	/** The fee this bill's next payment would charge its account. */
+	feeWarning?: ProjectedFee | null;
 }
 
 function dueLabel(days: number): { text: string; tone: string } {
@@ -42,7 +45,15 @@ function dueLabel(days: number): { text: string; tone: string } {
 }
 
 /** One bill: when it's due, how much of this month is paid, and a Pay button. */
-export function BillRow({ bill, onDelete, onUpdate, timezone, categoryOptions = [], accounts = [] }: BillRowProps) {
+export function BillRow({
+	bill,
+	onDelete,
+	onUpdate,
+	timezone,
+	categoryOptions = [],
+	accounts = [],
+	feeWarning = null,
+}: BillRowProps) {
 	const router = useRouter();
 	const [isDeleting, setIsDeleting] = useState(false);
 	const [deleteOpen, setDeleteOpen] = useState(false);
@@ -95,7 +106,10 @@ export function BillRow({ bill, onDelete, onUpdate, timezone, categoryOptions = 
 	};
 
 	const notes = Boolean(
-		bill.next_amount_change || bill.next_due_change || bill.deleted_auto_payments || (account && accountWarning(account))
+		bill.next_amount_change ||
+			bill.next_due_change ||
+			bill.deleted_auto_payments ||
+			(account && (accountWarning(account) || feeWarning))
 	) && (
 		<div className="type-body-xs mt-2 flex flex-wrap gap-x-4 gap-y-1 text-muted-foreground row-wide:col-span-5 row-wide:mt-0 row-wide:pl-12">
 			{bill.next_amount_change && (
@@ -118,7 +132,7 @@ export function BillRow({ bill, onDelete, onUpdate, timezone, categoryOptions = 
 					<AlertTriangle className="h-3 w-3" aria-hidden />A deleted automatic payment won&apos;t be recorded again
 				</span>
 			) : null}
-			<RecurringAccountWarning account={account} />
+			<RecurringAccountWarning account={account} fee={feeWarning} />
 		</div>
 	);
 

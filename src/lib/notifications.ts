@@ -21,7 +21,7 @@ export const NO_UNREAD: UnreadNotifications = { account: false, changelog: false
 
 /** Where selecting a reminder takes you. */
 export function notificationHref(notification: Pick<AccountNotification, "kind" | "refId">): string {
-	return notification.kind === "card_due" ? `/accounts/${notification.refId}` : "/recurring";
+	return notification.kind === "recurring_due" ? "/recurring" : `/accounts/${notification.refId}`;
 }
 
 export function toAccountNotification(row: Record<string, unknown>): AccountNotification {

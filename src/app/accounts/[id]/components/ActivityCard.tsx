@@ -20,12 +20,12 @@ interface ActivityCardProps {
 
 const PREVIEW_COUNT = 8;
 
-// A transfer lowers the balance or debt when its amount is negative: money out of an asset, or a
+// A transfer or fee lowers the balance or debt when its amount is negative: money out of an asset, or a
 // payment into a liability.
 const isOutflow = (txn: AccountTransaction) =>
 	txn.transaction_type === "withdrawal" ||
 	txn.transaction_type === "payment" ||
-	(txn.transaction_type === "transfer" && txn.amount < 0);
+	((txn.transaction_type === "transfer" || txn.transaction_type === "fee") && txn.amount < 0);
 
 function TransactionIcon({ type }: { type: string }) {
 	switch (type) {
@@ -35,6 +35,7 @@ function TransactionIcon({ type }: { type: string }) {
 			return <ArrowUpRight className="h-4 w-4 text-success" />;
 		case "withdrawal":
 		case "payment":
+		case "fee":
 			return <ArrowDownLeft className="h-4 w-4 text-error" />;
 		case "adjustment":
 		case "transfer":
@@ -64,6 +65,8 @@ const getTransactionTitle = (txn: AccountTransaction, isLiability: boolean) => {
 			return "Interest";
 		case "refund":
 			return "Refund";
+		case "fee":
+			return txn.description || "Fee";
 		case "adjustment":
 			return "Balance adjustment";
 		case "transfer":

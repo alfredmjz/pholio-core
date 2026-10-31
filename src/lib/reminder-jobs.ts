@@ -9,6 +9,7 @@ import {
 	findDueReminders,
 	type DueReminder,
 	type ReminderCard,
+	type ReminderFeeAccount,
 	type ReminderRecurring,
 } from "@/lib/reminders";
 import { createAdminClient } from "@/lib/supabase/server";
@@ -32,17 +33,31 @@ export interface ReminderUser {
 export interface ReminderItems {
 	cards: ReminderCard[];
 	recurring: ReminderRecurring[];
+	feeAccounts?: ReminderFeeAccount[];
 }
 
-/** Active credit cards with a due day and active recurring items, grouped by user. */
+/** "Institution - Name", or just the name when the institution is blank or the same. */
+function accountLabel(row: { name: string; institution?: unknown }): string {
+	const institution = typeof row.institution === "string" ? row.institution.trim() : "";
+	return institution && institution.toLowerCase() !== row.name.toLowerCase()
+		? `${institution} - ${row.name}`
+		: row.name;
+}
+
+/**
+ * Active credit cards with a due day, active recurring items, and accounts with fee terms with the
+ * items paid from them, grouped by user.
+ */
 export async function loadReminderItems(
 	supabase: SupabaseClient,
 	userIds: string[]
 ): Promise<Map<string, ReminderItems>> {
-	const byUser = new Map<string, ReminderItems>(userIds.map((id) => [id, { cards: [], recurring: [] }]));
+	const byUser = new Map<string, ReminderItems>(
+		userIds.map((id) => [id, { cards: [], recurring: [], feeAccounts: [] }])
+	);
 	if (userIds.length === 0) return byUser;
 
-	const [cardsResult, recurringResult] = await Promise.all([
+	const [cardsResult, recurringResult, feeAccountsResult] = await Promise.all([
 		supabase
 			.from("accounts")
 			.select(
@@ -54,13 +69,22 @@ export async function loadReminderItems(
 			.not("payment_due_date", "is", null),
 		supabase
 			.from("recurring_expenses")
-			.select("id, user_id, name, amount, next_due_date, category")
+			.select("id, user_id, name, amount, next_due_date, category, billing_period, account_id")
 			.in("user_id", userIds)
 			.eq("is_active", true),
+		supabase
+			.from("accounts")
+			.select(
+				"id, user_id, name, institution, current_balance, credit_limit, overdraft_protection, overdraft_limit, overdraft_fee, nsf_fee, over_limit_fee, account_types!inner(class)"
+			)
+			.in("user_id", userIds)
+			.eq("is_active", true)
+			.or("overdraft_fee.gt.0,nsf_fee.gt.0,over_limit_fee.gt.0"),
 	]);
 
 	if (cardsResult.error) throw cardsResult.error;
 	if (recurringResult.error) throw recurringResult.error;
+	if (feeAccountsResult.error) throw feeAccountsResult.error;
 
 	const cards = cardsResult.data ?? [];
 	const ledgers = await loadStatementLedgers(
@@ -68,11 +92,9 @@ export async function loadReminderItems(
 		cards.map((row) => row.id)
 	);
 	for (const row of cards) {
-		const institution = typeof row.institution === "string" ? row.institution.trim() : "";
 		byUser.get(row.user_id)?.cards.push({
 			id: row.id,
-			name:
-				institution && institution.toLowerCase() !== row.name.toLowerCase() ? `${institution} - ${row.name}` : row.name,
+			name: accountLabel(row),
 			balance: Number(row.current_balance),
 			dueDay: Number(row.payment_due_date),
 			statementDay: row.statement_day,
@@ -86,6 +108,34 @@ export async function loadReminderItems(
 			amount: Number(row.amount),
 			nextDueDate: row.next_due_date,
 			category: row.category,
+		});
+	}
+	for (const row of feeAccountsResult.data ?? []) {
+		const items = (recurringResult.data ?? [])
+			.filter((item) => item.account_id === row.id)
+			.map((item) => ({
+				id: item.id,
+				name: item.name,
+				amount: Number(item.amount),
+				next_due_date: item.next_due_date,
+				billing_period: item.billing_period,
+			}));
+		if (items.length === 0) continue;
+		const type = Array.isArray(row.account_types) ? row.account_types[0] : row.account_types;
+		byUser.get(row.user_id)?.feeAccounts?.push({
+			id: row.id,
+			name: accountLabel(row),
+			terms: {
+				current_balance: Number(row.current_balance),
+				credit_limit: row.credit_limit == null ? null : Number(row.credit_limit),
+				overdraft_protection: row.overdraft_protection,
+				overdraft_limit: row.overdraft_limit,
+				overdraft_fee: row.overdraft_fee,
+				nsf_fee: row.nsf_fee,
+				over_limit_fee: row.over_limit_fee,
+				account_type: type ?? null,
+			},
+			items,
 		});
 	}
 

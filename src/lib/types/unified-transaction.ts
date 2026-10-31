@@ -32,6 +32,9 @@ export interface UnifiedTransactionInput {
 	 */
 	allowOverpayment?: boolean;
 
+	/** Marks a card or line-of-credit expense as a cash advance, which posts its cash advance fee. */
+	isCashAdvance?: boolean;
+
 	// Optional source override
 	source?: string;
 }

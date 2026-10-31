@@ -84,14 +84,15 @@ export function calculateAccountStanding(
 			: 0;
 
 	if (accountClass === "asset") {
+		const available = account.current_balance + overdraftRoom(account);
 		return {
 			accountClass: "asset",
 			totalAccumulatedDebt: 0,
 			totalPayments: 0,
 			remainingDebt: 0,
-			availableBalance: account.current_balance,
+			availableBalance: available,
 			availableCredit: 0,
-			maxAllowedTransaction: Math.max(0, account.current_balance),
+			maxAllowedTransaction: Math.max(0, available),
 		};
 	}
 
@@ -184,9 +185,14 @@ interface AccountCapResult {
 	overridable?: boolean;
 }
 
+/** How far below zero the bank lets an asset go: its overdraft limit when it has protection. */
+export function overdraftRoom(account: Pick<AccountWithType, "overdraft_protection" | "overdraft_limit">): number {
+	return account.overdraft_protection ? Math.max(0, Number(account.overdraft_limit ?? 0)) : 0;
+}
+
 /**
  * Enforce a single account's cap given the signed effect on its balance.
- *  - asset outflow        → capped at the available balance
+ *  - asset outflow        → capped at the available balance, plus its overdraft when protected
  *  - liability decrease   → capped at the remaining debt (bypassable via overpayment)
  *  - liability increase   → capped at the available credit, when a limit is recorded
  * Investment accounts are assets and are capped like any other asset.
@@ -199,11 +205,12 @@ function evaluateAccountCap(account: AccountWithType, delta: number, allowOverpa
 	const balance = Math.max(0, account.current_balance);
 
 	if (isAsset) {
-		if (delta < 0 && abs > balance) {
+		const available = Math.max(0, account.current_balance + overdraftRoom(account));
+		if (delta < 0 && abs > available) {
 			return {
 				ok: false,
-				message: `Amount (${money(abs)}) exceeds available account balance (${money(balance)}).`,
-				maxAllowed: balance,
+				message: `Amount (${money(abs)}) exceeds available account balance (${money(available)}).`,
+				maxAllowed: available,
 				overridable: false,
 			};
 		}

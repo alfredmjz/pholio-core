@@ -270,6 +270,7 @@ export async function createUnifiedTransaction(input: UnifiedTransactionInput): 
 					description: normalizedInput.description,
 					transaction_date: normalizedInput.date,
 					linked_allocation_transaction_id: allocationTxId || null,
+					is_cash_advance: normalizedInput.type === "expense" && !!normalizedInput.isCashAdvance,
 				})
 				.select("id")
 				.single();

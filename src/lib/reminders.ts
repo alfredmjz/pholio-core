@@ -1,6 +1,7 @@
 import { formatDateParts, formatMoney, type FormatSettings } from "@/lib/format";
+import { FEE_LABELS, projectAccountFees, scheduledPayments, type FeeTerms, type ProjectedFee } from "@/lib/overdraft";
 
-export type ReminderKind = "card_due" | "recurring_due";
+export type ReminderKind = "card_due" | "recurring_due" | "fee_due";
 
 export interface ReminderCard {
 	id: string;
@@ -17,6 +18,14 @@ export interface ReminderRecurring {
 	amount: number;
 	nextDueDate: string;
 	category: "bill" | "subscription";
+}
+
+/** An account with fee terms and the recurring items paid from it. */
+export interface ReminderFeeAccount {
+	id: string;
+	name: string;
+	terms: FeeTerms;
+	items: { id: string; name: string; amount: number; next_due_date: string; billing_period: string }[];
 }
 
 export interface DueReminder {
@@ -61,11 +70,13 @@ export function findDueReminders({
 	leadDays,
 	cards,
 	recurring,
+	feeAccounts = [],
 }: {
 	today: string;
 	leadDays: number;
 	cards: ReminderCard[];
 	recurring: ReminderRecurring[];
+	feeAccounts?: ReminderFeeAccount[];
 }): DueReminder[] {
 	const reminders: DueReminder[] = [];
 
@@ -101,7 +112,35 @@ export function findDueReminders({
 		});
 	}
 
+	// Overdue payments still count toward the balance; only fees from today on are reminded.
+	const until = toDateString(toUtcDay(today) + leadDays * MS_PER_DAY);
+	for (const account of feeAccounts) {
+		const byDate = new Map<string, ProjectedFee[]>();
+		for (const fee of projectAccountFees(account.terms, scheduledPayments(account.items, until))) {
+			if (fee.date < today) continue;
+			byDate.set(fee.date, [...(byDate.get(fee.date) ?? []), fee]);
+		}
+		byDate.forEach((fees, dueDate) => {
+			reminders.push({
+				kind: "fee_due",
+				refId: account.id,
+				name: account.name,
+				dueDate,
+				daysUntil: daysBetween(today, dueDate),
+				amount: Math.round(fees.reduce((sum, fee) => sum + fee.amount * 100, 0)) / 100,
+				detail: feeDetail(fees),
+			});
+		});
+	}
+
 	return reminders.sort((a, b) => a.dueDate.localeCompare(b.dueDate) || a.name.localeCompare(b.name));
+}
+
+/** "NSF fee if Phone posts", or "2 fees if Phone and Gym post". */
+function feeDetail(fees: ProjectedFee[]): string {
+	if (fees.length === 1) return `${FEE_LABELS[fees[0].kind]} if ${fees[0].paymentName} posts`;
+	const names = fees.map((fee) => fee.paymentName);
+	return `${fees.length} fees if ${names.slice(0, -1).join(", ")} and ${names[names.length - 1]} post`;
 }
 
 function whenLabel(reminder: DueReminder, settings: FormatSettings): string {
@@ -137,7 +176,11 @@ export function buildReminderEmail(
 
 	const count = reminders.length;
 	const subject =
-		count === 1 ? `${reminders[0].name} is due ${lines[0].when}` : `${count} payments coming up in Pholio`;
+		count > 1
+			? `${count} payments coming up in Pholio`
+			: reminders[0].kind === "fee_due"
+				? `${reminders[0].name} may be charged a fee ${lines[0].when}`
+				: `${reminders[0].name} is due ${lines[0].when}`;
 
 	const text = [
 		"Coming up in Pholio:",

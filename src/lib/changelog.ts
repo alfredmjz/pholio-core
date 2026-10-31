@@ -12,6 +12,19 @@ export interface ChangelogEntry {
 /** What's new in Pholio, newest first. Every user-facing release adds an entry at the top. */
 export const CHANGELOG: ChangelogEntry[] = [
 	{
+		id: "2026-10-overdraft-fees",
+		date: "2026-10-31",
+		title: "Overdraft and over-limit fees",
+		items: [
+			"Bank accounts can now record their overdraft protection, overdraft fee, NSF fee and overdraft interest, and credit cards their over-limit fee.",
+			"When a payment takes an account below zero or past its limit, Pholio adds the fee to the account for you. Delete the payment and its fee goes too.",
+			"The Recurring page, the account page and your reminders warn you before a bill would cause a fee.",
+			"Add the other fees an account charges, like a monthly account fee, a card's annual fee or its cash advance fee, and Pholio adds them when they are due.",
+			"A monthly fee can be waived when the balance stays above a minimum, as many banks do.",
+			'The Fees figure on an account now counts only fees Pholio has added, not any payment with "fee" in its name.',
+		],
+	},
+	{
 		id: "2026-10-rrsp-balance-counts",
 		date: "2026-10-31",
 		title: "Balance updates now count toward contribution room",

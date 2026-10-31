@@ -16,19 +16,18 @@ export function BankPerformance({ account, transactions, formatCurrency }: BankP
 			.filter((t) => t.transaction_type === "deposit")
 			.reduce((sum, t) => sum + t.amount, 0);
 
-		const withdrawalTransactions = transactions.filter((t) => t.transaction_type === "withdrawal");
-		const totalWithdrawals = withdrawalTransactions.reduce((sum, t) => sum + Math.abs(t.amount), 0);
-
-		const monthlyFees = withdrawalTransactions
-			.filter((t) => t.description?.toLowerCase().includes("fee"))
+		const totalWithdrawals = transactions
+			.filter((t) => t.transaction_type === "withdrawal")
 			.reduce((sum, t) => sum + Math.abs(t.amount), 0);
 
-		const netCashFlow = totalDeposits - totalWithdrawals;
+		const fees = -transactions.filter((t) => t.transaction_type === "fee").reduce((sum, t) => sum + t.amount, 0);
+
+		const netCashFlow = totalDeposits - totalWithdrawals - fees;
 
 		return {
 			totalDeposits,
 			totalWithdrawals,
-			monthlyFees,
+			fees,
 			netCashFlow,
 		};
 	}, [transactions]);
@@ -38,7 +37,7 @@ export function BankPerformance({ account, transactions, formatCurrency }: BankP
 			rows={[
 				{ label: "Money in", value: formatCurrency(stats.totalDeposits), tone: "success" },
 				{ label: "Money out", value: formatCurrency(stats.totalWithdrawals) },
-				{ label: "Fees", value: formatCurrency(stats.monthlyFees), tone: stats.monthlyFees > 0 ? "error" : "muted" },
+				{ label: "Fees", value: formatCurrency(stats.fees), tone: stats.fees > 0 ? "error" : "muted" },
 				{
 					label: "Net flow",
 					value: `${stats.netCashFlow >= 0 ? "+" : "-"}${formatCurrency(Math.abs(stats.netCashFlow))}`,

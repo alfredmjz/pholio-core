@@ -95,6 +95,22 @@ describe("checkTransactionCaps", () => {
 		expect(result.violations[0]).toMatchObject({ field: "accountId", maxAllowed: 1000, overridable: false });
 	});
 
+	test("overdraft protection lets an asset go down to its overdraft limit", () => {
+		const protectedChequing = { ...makeAccount({ balance: 100 }), overdraft_protection: true, overdraft_limit: 500 };
+		expect(checkTransactionCaps({ intent: "expense", amount: 600, account: protectedChequing }).isValid).toBe(true);
+		expect(
+			checkTransactionCaps({ intent: "expense", amount: 600.01, account: protectedChequing }).violations[0]
+		).toMatchObject({
+			maxAllowed: 600,
+		});
+		// Already 200 overdrawn: 300 of the 500 overdraft is left.
+		const overdrawn = { ...protectedChequing, current_balance: -200 };
+		expect(calculateAccountStanding(overdrawn)).toMatchObject({ availableBalance: 300, maxAllowedTransaction: 300 });
+		// A limit without protection does not count.
+		const unprotected = { ...protectedChequing, overdraft_protection: false };
+		expect(checkTransactionCaps({ intent: "expense", amount: 101, account: unprotected }).isValid).toBe(false);
+	});
+
 	test("asset deposits are never capped", () => {
 		expect(checkTransactionCaps({ intent: "income", amount: 1e9, account: chequing }).isValid).toBe(true);
 	});

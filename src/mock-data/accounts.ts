@@ -4,6 +4,7 @@ import type {
 	AccountTransaction,
 	HistoricalDataPoint,
 	AccountHistory,
+	AccountCharge,
 } from "@/app/accounts/types";
 import type { RecentActivityItem } from "@/app/accounts/actions";
 import { getDemoNow, daysBefore, toDateOnly } from "./demo-date";
@@ -148,6 +149,8 @@ export const sampleAccounts: AccountWithType[] = [
 		loan_term_months: null,
 		payment_due_date: null,
 		target_balance: 10000,
+		overdraft_protection: false,
+		nsf_fee: 48,
 		track_contribution_room: false,
 		contribution_plan: null,
 		contribution_room: null,
@@ -239,6 +242,7 @@ export const sampleAccounts: AccountWithType[] = [
 		current_balance: 2450,
 		currency: "CAD",
 		credit_limit: 15000,
+		over_limit_fee: 29,
 		original_amount: null,
 		interest_rate: 0.2499,
 		interest_type: "compound",
@@ -474,4 +478,57 @@ export function getSampleRecentActivity(now: Date = getDemoNow()): RecentActivit
 			timestamp: getRecentTimestamp(now, 60 * 48), // 2 days ago
 		},
 	];
+}
+
+/** Fees listed on the sample accounts: a waivable monthly fee on savings and the card's annual and cash advance fees. */
+export function getSampleAccountCharges(now: Date = getDemoNow()): Record<string, AccountCharge[]> {
+	const nextMonthStart = new Date(now.getFullYear(), now.getMonth() + 1, 1);
+	const cardAnniversary = daysBefore(now, -45);
+	const base = {
+		user_id: "sample-user",
+		rate: null,
+		is_active: true,
+		created_at: now.toISOString(),
+		updated_at: now.toISOString(),
+	};
+	return {
+		"acc-1": [
+			{
+				...base,
+				id: "charge-sample-1",
+				account_id: "acc-1",
+				name: "Monthly account fee",
+				frequency: "monthly",
+				amount: 4.95,
+				charge_day: 1,
+				next_charge_date: toDateOnly(nextMonthStart),
+				waive_min_balance: 5000,
+			},
+		],
+		"acc-4": [
+			{
+				...base,
+				id: "charge-sample-2",
+				account_id: "acc-4",
+				name: "Annual fee",
+				frequency: "yearly",
+				amount: 795,
+				charge_day: cardAnniversary.getDate(),
+				next_charge_date: toDateOnly(cardAnniversary),
+				waive_min_balance: null,
+			},
+			{
+				...base,
+				id: "charge-sample-3",
+				account_id: "acc-4",
+				name: "Cash advance fee",
+				frequency: "cash_advance",
+				amount: 3.5,
+				rate: 0.05,
+				charge_day: null,
+				next_charge_date: null,
+				waive_min_balance: null,
+			},
+		],
+	};
 }

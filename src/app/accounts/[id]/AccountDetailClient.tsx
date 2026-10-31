@@ -20,6 +20,7 @@ import { UnifiedTransactionDialog } from "@/components/dialogs/UnifiedTransactio
 
 import { BalanceHero } from "./components/balance-hero";
 import { PromotionsTrackerCard } from "./components/PromotionsTrackerCard";
+import { AccountChargesCard } from "./components/AccountChargesCard";
 import { ContributionRoomCard } from "./components/ContributionRoomCard";
 import { InsightsCard } from "./components/InsightsCard";
 import { PerformanceCard } from "./components/PerformanceCard";
@@ -305,13 +306,16 @@ export function AccountDetailClient({
 						formatCurrency={formatCurrency}
 						onTransactionClick={handleTransactionClick}
 					/>
+					{!isInvestmentAccount(account) && (
+						<AccountChargesCard account={account} today={today} formatCurrency={formatCurrency} />
+					)}
 					<PromotionsTrackerCard accountId={account.id} formatCurrency={formatCurrency} />
 					<NotesCard account={account} onAccountUpdated={handleAccountUpdated} />
 				</div>
 
 				<div className="flex min-w-0 flex-col gap-5 lg:gap-6">
 					<PerformanceCard account={account} transactions={transactions} formatCurrency={formatCurrency} />
-					<RecurringChargesCard account={account} items={recurring} />
+					<RecurringChargesCard account={account} items={recurring} today={today} />
 					<OtherAccountsCard accounts={otherAccounts} />
 				</div>
 			</div>

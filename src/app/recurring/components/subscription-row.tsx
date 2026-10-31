@@ -12,6 +12,7 @@ import { differenceInDays, formatShortDate, getTodayDateString, parseLocalDate }
 import { deleteRecurringExpense, toggleSubscription, type RecurringExpense } from "../actions";
 import { EditRecurringDialog } from "./edit-recurring-dialog";
 import type { AccountWithType } from "@/app/accounts/types";
+import type { ProjectedFee } from "@/lib/overdraft";
 import { RECURRING_GRID, RecurringAccountWarning, RecurringIdentity, RowMenu } from "./recurring-row-parts";
 
 interface SubscriptionRowProps {
@@ -21,6 +22,8 @@ interface SubscriptionRowProps {
 	onUpdate?: (id: string, updates: Partial<RecurringExpense>) => void;
 	categoryOptions?: string[];
 	accounts?: AccountWithType[];
+	/** The fee this subscription's next payment would charge its account. */
+	feeWarning?: ProjectedFee | null;
 }
 
 /** One subscription: when it renews, what it costs, and an on/off switch. */
@@ -31,6 +34,7 @@ export function SubscriptionRow({
 	onUpdate,
 	categoryOptions = [],
 	accounts = [],
+	feeWarning = null,
 }: SubscriptionRowProps) {
 	const [isActive, setIsActive] = useState(subscription.is_active ?? true);
 	const [isSaving, setIsSaving] = useState(false);
@@ -169,9 +173,9 @@ export function SubscriptionRow({
 						<AlertTriangle className="h-3 w-3" aria-hidden />A deleted automatic payment won&apos;t be recorded again
 					</p>
 				) : null}
-				{isActive && account && accountWarning(account) && (
-					<p className="type-body-xs mt-2 pl-12 row-wide:col-span-5 row-wide:mt-0 row-wide:pl-12">
-						<RecurringAccountWarning account={account} />
+				{isActive && account && (accountWarning(account) || feeWarning) && (
+					<p className="type-body-xs mt-2 flex flex-wrap gap-x-4 gap-y-1 pl-12 row-wide:col-span-5 row-wide:mt-0 row-wide:pl-12">
+						<RecurringAccountWarning account={account} fee={feeWarning} />
 					</p>
 				)}
 			</div>

@@ -10,8 +10,10 @@ import type { ContributionRoomSetting } from "@/lib/types/contribution";
 import type { AccountClass, AccountFieldConfig, AccountType, AccountTypeCode } from "../../types";
 import type { FieldVisibility } from "../../field-visibility";
 import type { ContributionRoomFormValues } from "../../contribution-room-form";
+import type { FeeTermsFormValues } from "../../fee-terms-form";
 import { AccountFieldConfigurator } from "../AccountFieldConfigurator";
 import { ContributionRoomFields } from "../ContributionRoomFields";
+import { FeeTermsFields } from "../FeeTermsFields";
 import { TYPE_ICON } from "../account-row";
 
 export interface AccountFormState {
@@ -54,6 +56,8 @@ interface DetailsStepProps {
 	contribution: ContributionRoomFormValues;
 	planRooms: ContributionRoomSetting[];
 	onContributionChange: (changes: Partial<ContributionRoomFormValues>) => void;
+	feeTerms: FeeTermsFormValues;
+	onFeeTermsChange: (changes: Partial<FeeTermsFormValues>) => void;
 	onChangeType: () => void;
 }
 
@@ -104,6 +108,8 @@ export function DetailsStep({
 	contribution,
 	planRooms,
 	onContributionChange,
+	feeTerms,
+	onFeeTermsChange,
 	onChangeType,
 }: DetailsStepProps) {
 	const Icon = TYPE_ICON[(selectedType.code as AccountTypeCode) ?? "other"] ?? Wallet;
@@ -176,7 +182,7 @@ export function DetailsStep({
 			{isOther && (
 				<div className="space-y-2">
 					<Label>Fields to track</Label>
-					<AccountFieldConfigurator value={fieldConfig} onChange={onFieldConfigChange} />
+					<AccountFieldConfigurator value={fieldConfig} onChange={onFieldConfigChange} accountClass={accountClass} />
 				</div>
 			)}
 
@@ -258,6 +264,8 @@ export function DetailsStep({
 					error={errors.contribution_room}
 				/>
 			)}
+
+			<FeeTermsFields values={feeTerms} onChange={onFeeTermsChange} visibility={visibility} />
 		</div>
 	);
 }

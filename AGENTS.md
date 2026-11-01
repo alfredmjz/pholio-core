@@ -213,7 +213,7 @@ Example shape:
   `.from("…")` compiles even for tables missing from `src/lib/database.types.ts`. Presence in
   that file is not proof a table exists — check `supabase/migrations/`.
 - `database.types.ts` is hand-maintained and incomplete (it has `users`, `transactions`,
-  `recurring_expenses`, `recurring_transfers`; it does **not** have `accounts`, `account_types`
+  `recurring_expenses`; it does **not** have `accounts`, `account_types`
   or `account_promotions`). Import it as `import { Database } from "@/lib/database.types"`
   (it exports `Database`, not `Tables`).
 
@@ -332,8 +332,18 @@ credit_card | line_of_credit | mortgage | loan | other`.
   assets and are capped like any other asset — withdrawals/expenses cannot exceed the available
   balance. `isInvestmentAccount()` only distinguishes them so they can track contribution room
   instead of debt.
-- Asset withdrawals/expenses/transfers-out are capped by available balance; liability
-  payments/transfer-out are capped by remaining debt.
+- Asset withdrawals/expenses/transfers-out are capped by available balance (plus the overdraft
+  limit when the account has overdraft protection); liability payments/transfer-out are capped
+  by remaining debt.
+- Overdraft, NSF and over-limit fees are posted in PostgreSQL by `post_account_fee()`
+  (`012_overdraft_fees.sql`) when a new ledger row moves the balance past the line, linked by
+  `fee_for_transaction_id`; deleting the row reverses its fee. `src/lib/overdraft.ts` mirrors the
+  rule only to warn ahead of time. Keep the two in step.
+- Other fees are user-listed `account_charges` (monthly, yearly, per cash advance). Monthly and
+  yearly ones post through `post_due_account_charges()`, run by the daily
+  `/api/cron/post-account-charges` job, which also applies the minimum-balance waiver; cash
+  advance fees post through `post_cash_advance_fee()` from rows marked `is_cash_advance`. Fee
+  rows have `transaction_type = 'fee'`; count fees by that type, never by description text.
 - A transaction affects an account only when it is tagged to that account.
 - "Pay Remaining" settles full or partial debt and is recorded as **a transfer from a source
   account into the liability account** (not as a `payment` row).
@@ -417,9 +427,10 @@ credit_card | line_of_credit | mortgage | loan | other`.
 - **PowerShell file corruption.** `Get-Content`/`Set-Content` mis-decoded UTF-8 emoji and
   mangled `AddAccountDialog.tsx`; a separate line-surgery command emptied the file. Use the
   editor tool / .NET UTF-8 APIs and length-check after bulk file surgery.
-- **`noUnusedLocals` noise.** The repo has ~57 pre-existing unused locals/imports under
-  `--noUnusedLocals --noUnusedParameters`. Do not use those flags as a gate; if you use them,
-  diff against the baseline so pre-existing hits are not mistaken for regressions.
+- **`noUnusedLocals` noise.** The repo has 6 pre-existing hits under
+  `--noUnusedLocals --noUnusedParameters`, all parameters a callback, route or shared props
+  type requires. Do not use those flags as a gate; if you use them, diff against the baseline
+  so pre-existing hits are not mistaken for regressions.
 - **Mock mode must be maintained.** `src/mock-data/*` mirrors the real schema. When the model
   changes (new columns, new types), update `src/mock-data/accounts.ts` and any
   `NEXT_PUBLIC_USE_SAMPLE_DATA` branch in the corresponding `actions.ts`, otherwise
@@ -494,9 +505,14 @@ still follow the same routing logic.
 - Title must start with `feat:` or `fix:` — the release pipeline reads it.
 - Description must contain a **Summary** and a **Key changes** section.
 - Base branch: `main` or `development`.
+- Every PR that releases something users will notice adds one entry to the top of
+  `CHANGELOG` in `src/lib/changelog.ts` (shown in "What's new"): a new `id`, today's `date`,
+  a short title, and one plain sentence per feature or important bug fix. Write for users:
+  short, no jargon, no code or internals, no rambling. Leave `version` unset; the release
+  sets it. Skip it only for changes users can't see.
 
 Expected workflow for a feature: spec in `docs/<feature>-spec.md`, implementation,
-type-check + build, manual UI verification at 375px/1440px, review, PR.
+type-check + build, manual UI verification at 375px/1440px, changelog entry, review, PR.
 
 **Scope changes (new feature out of scope for the current branch):**
 

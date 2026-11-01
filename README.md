@@ -102,7 +102,7 @@ pholio/
 
 | Type       | Version Impact        | Example                       |
 | ---------- | --------------------- | ----------------------------- |
-| `feat`     | Minor (0.1.0 → 0.2.0) | `feat(auth): add guest login` |
+| `feat`     | Minor (0.1.0 → 0.2.0) | `feat(auth): add magic link sign-in` |
 | `fix`      | Patch (0.1.0 → 0.1.1) | `fix(ui): sidebar alignment`  |
 | `perf`     | Patch (0.1.0 → 0.1.1) | `perf: optimize queries`      |
 | `chore`    | None                  | `chore: update dependencies`  |

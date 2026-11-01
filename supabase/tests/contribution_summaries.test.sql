@@ -214,6 +214,20 @@ SELECT is((SELECT annual_limit_source FROM s WHERE pool_key = 'rrsp'), 'account'
 SELECT is((SELECT annual_remaining FROM s WHERE pool_key = 'rrsp'), 10000.00, 'RRSP: 12000 - 2000');
 SELECT is((SELECT room_needs_update FROM s WHERE pool_key = 'rrsp'), false, 'RRSP: not stale within its own year');
 
+-- This year's deduction limit from the Notice of Assessment is the annual limit, not CRA's
+-- 33,810 dollar maximum. 2026 contributions: the 4000 deposit (the FHSA transfer is excluded).
+UPDATE public.contribution_rooms SET room = 10000, room_as_of = '2026-01-01', annual_limit = NULL
+WHERE user_id = '22222222-0000-0000-0000-000000000002' AND plan = 'rrsp';
+SELECT pg_temp.snapshot(2026, 10);
+SELECT is((SELECT annual_limit FROM s WHERE pool_key = 'rrsp'), 10000.00, 'RRSP: this year''s deduction limit is the annual limit');
+SELECT is((SELECT annual_limit_source FROM s WHERE pool_key = 'rrsp'), 'deduction_limit', 'RRSP: labelled as the deduction limit');
+SELECT is((SELECT annual_remaining FROM s WHERE pool_key = 'rrsp'), 6000.00, 'RRSP: 10000 - 4000');
+SELECT is((SELECT room_remaining FROM s WHERE pool_key = 'rrsp'), 6000.00, 'RRSP: room left agrees with the annual line');
+
+-- A deduction limit from last year is stale, so the CRA maximum shows instead.
+SELECT pg_temp.snapshot(2027, 1);
+SELECT is((SELECT annual_limit_source FROM s WHERE pool_key = 'rrsp'), 'cra', 'RRSP: last year''s deduction limit is not this year''s limit');
+
 -- ---------------------------------------------------------------------------
 -- Isolation: a user only ever sees their own pools and rooms.
 -- ---------------------------------------------------------------------------

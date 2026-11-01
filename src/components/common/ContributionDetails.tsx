@@ -12,6 +12,12 @@ import {
 } from "@/lib/contribution-plans";
 import type { ContributionAccountShare, ContributionSummary } from "@/lib/types/contribution";
 
+const ANNUAL_LIMIT_CAPTIONS: Record<NonNullable<ContributionSummary["annual_limit_source"]>, string> = {
+	account: "Your limit for this year",
+	deduction_limit: "Your deduction limit for this year",
+	cra: "CRA limit for this year",
+};
+
 const NOTICE_STYLES: Record<ContributionNotice["level"], { className: string; Icon: typeof AlertCircle }> = {
 	exceeded: { className: "text-error", Icon: AlertCircle },
 	warning: { className: "text-warning", Icon: AlertTriangle },
@@ -123,7 +129,7 @@ export function ContributionDetails({
 									label={`${planLabel} annual contribution`}
 								/>
 								<span className="type-caption text-muted-foreground">
-									{summary.annual_limit_source === "cra" ? "CRA limit for this year" : "Your limit for this year"}
+									{ANNUAL_LIMIT_CAPTIONS[summary.annual_limit_source ?? "account"]}
 									{summary.annual_remaining !== null && summary.annual_remaining >= 0
 										? ` · ${formatCurrency(summary.annual_remaining)} left`
 										: ""}

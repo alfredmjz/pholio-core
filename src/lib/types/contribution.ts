@@ -30,8 +30,11 @@ export interface ContributionSummary {
 	lifetime_contributions: number;
 	/** Null when the pool does not track room or no annual limit applies (e.g. RESP). */
 	annual_limit: number | null;
-	/** "account" = the user's own figure for that year, "cra" = the published CRA limit. */
-	annual_limit_source: "account" | "cra" | null;
+	/**
+	 * "account" = the user's own figure for that year, "deduction_limit" = this year's RRSP
+	 * deduction limit the user entered, "cra" = the published CRA limit.
+	 */
+	annual_limit_source: "account" | "deduction_limit" | "cra" | null;
 	annual_remaining: number | null;
 	room_as_of: string | null;
 	/** Room the user copied from CRA for `room_as_of`. */

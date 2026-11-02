@@ -248,6 +248,8 @@ export const sampleAccounts: AccountWithType[] = [
 		loan_term_months: null,
 		payment_due_date: 21,
 		statement_day: null,
+		statement_balance: null,
+		statement_balance_date: null,
 		target_balance: null,
 		track_contribution_room: false,
 		contribution_plan: null,

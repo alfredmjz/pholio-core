@@ -72,6 +72,15 @@ describe("toFeeTermsInput", () => {
 	test("blank fields save as null", () => {
 		expect(toFeeTermsInput(EMPTY_FEE_TERMS_VALUES, chequing).nsf_fee).toBeNull();
 	});
+
+	test("the rate keeps 3 decimals and rounds past them", () => {
+		expect(toFeeTermsInput({ ...filled, overdraft_interest_rate: "19.875" }, chequing).overdraft_interest_rate).toBe(
+			0.19875
+		);
+		expect(toFeeTermsInput({ ...filled, overdraft_interest_rate: "19.8756" }, chequing).overdraft_interest_rate).toBe(
+			0.19876
+		);
+	});
 });
 
 describe("toFeeTermsValues", () => {
@@ -86,6 +95,10 @@ describe("toFeeTermsValues", () => {
 				over_limit_fee: null,
 			})
 		).toEqual({ ...EMPTY_FEE_TERMS_VALUES, ...filledStrings() });
+	});
+
+	test("a 3-decimal rate reads back without float noise", () => {
+		expect(toFeeTermsValues({ overdraft_interest_rate: 0.19875 }).overdraft_interest_rate).toBe("19.875");
 	});
 
 	test("an account with nothing set is the empty form", () => {

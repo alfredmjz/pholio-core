@@ -5,6 +5,7 @@ import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
 import { ProminentAmountInput } from "@/components/ProminentAmountInput";
 import { cn } from "@/lib/utils";
+import { getTodayDateString } from "@/lib/date-utils";
 import { sanitizeDecimalInput, sanitizeIntegerInput } from "@/lib/input-utils";
 import type { ContributionRoomSetting } from "@/lib/types/contribution";
 import { isInvestmentAccount } from "@/lib/account-validation-utils";
@@ -13,6 +14,7 @@ import type { AccountClass, AccountFieldConfig, AccountType, AccountTypeCode } f
 import type { FieldVisibility } from "../../field-visibility";
 import type { ContributionRoomFormValues } from "../../contribution-room-form";
 import type { FeeTermsFormValues } from "../../fee-terms-form";
+import { statementBalanceHint, statementForEntry } from "../../statement-balance-form";
 import { AccountFieldConfigurator } from "../AccountFieldConfigurator";
 import { ContributionRoomFields } from "../ContributionRoomFields";
 import { FeeTermsFields } from "../FeeTermsFields";
@@ -29,6 +31,7 @@ export interface AccountFormState {
 	notes: string;
 	payment_due_date: string;
 	statement_day: string;
+	statement_balance: string;
 	credit_limit: string;
 	loan_term_months: string;
 }
@@ -44,6 +47,7 @@ export const EMPTY_ACCOUNT_FORM: AccountFormState = {
 	notes: "",
 	payment_due_date: "",
 	statement_day: "",
+	statement_balance: "",
 	credit_limit: "",
 	loan_term_months: "",
 };
@@ -121,6 +125,9 @@ export function DetailsStep({
 	const isInvestment = isInvestmentAccount({ account_type: selectedType });
 	const isLiability = accountClass === "liability";
 	const rateLabel = visibility.interestRateLabel.replace(" (%)", "");
+	const statementCycle = visibility.showStatementDay
+		? statementForEntry(form.payment_due_date, form.statement_day, getTodayDateString())
+		: null;
 
 	return (
 		<div className="flex flex-col gap-6">
@@ -182,7 +189,9 @@ export function DetailsStep({
 					onChange={(value) => setField("current_balance", value)}
 				/>
 				<p className="type-body-xs text-muted-foreground">
-					{isInvestment ? `${INVESTMENT_BALANCE_HINT} ` : ""}Leave it blank to start at $0.00.
+					{isInvestment ? `${INVESTMENT_BALANCE_HINT} ` : ""}
+					{visibility.showStatementDay ? "What you owe today, with purchases since your last statement. " : ""}
+					Leave it blank to start at $0.00.
 				</p>
 			</div>
 
@@ -259,6 +268,21 @@ export function DetailsStep({
 							onChange={(value) => setField("statement_day", sanitizeIntegerInput(value))}
 							placeholder="21 days before due"
 						/>
+					)}
+					{visibility.showStatementDay && (
+						<div className="space-y-2">
+							<Label htmlFor="statement_balance">Statement balance</Label>
+							<ProminentAmountInput
+								id="statement_balance"
+								value={form.statement_balance}
+								onChange={(value) => setField("statement_balance", value)}
+								disabled={!statementCycle}
+							/>
+							<p className="type-body-xs text-muted-foreground">
+								{statementBalanceHint(statementCycle)}
+								{statementCycle && " Leave it blank if it matches the current balance."}
+							</p>
+						</div>
 					)}
 					{visibility.showLoanTerm && (
 						<TextField

@@ -14,6 +14,7 @@ interface ProminentAmountInputProps {
 	className?: string;
 	id?: string;
 	hasError?: boolean;
+	disabled?: boolean;
 }
 
 /** The dialog's hero field: a large amount on a single rule that lights up on focus; the symbol turns green once the amount is valid. */
@@ -25,10 +26,11 @@ export function ProminentAmountInput({
 	className,
 	id,
 	hasError,
+	disabled,
 }: ProminentAmountInputProps) {
 	const isFilled = !hasError && parseFloat(value) > 0;
 	return (
-		<div className={cn("space-y-2", className)}>
+		<div className={cn("space-y-2", disabled && "opacity-50", className)}>
 			{label && (
 				<Label htmlFor={id} className="type-label text-muted-foreground">
 					{label}
@@ -50,6 +52,7 @@ export function ProminentAmountInput({
 					placeholder="0.00"
 					value={value}
 					aria-invalid={hasError || undefined}
+					disabled={disabled}
 					onChange={(e) => onChange(sanitizeDecimalInput(e.target.value, 2))}
 					className="field-amount-input"
 				/>

@@ -14,6 +14,7 @@ import { Button } from "@/components/ui/button";
 import { CancelShortcut, SubmitShortcut } from "@/components/common/dialog-shortcuts";
 import { ScratchPad } from "@/components/common/scratch-pad";
 import { StepIndicator } from "@/components/common/step-indicator";
+import { getTodayDateString } from "@/lib/date-utils";
 import { isNotesEmpty } from "@/lib/notes";
 import { isSampleDataActive } from "@/lib/demo-mode";
 import { useDemoStore } from "@/lib/demo-store";
@@ -22,6 +23,7 @@ import type { ContributionRoomSetting } from "@/lib/types/contribution";
 import { createAccount, getAccountTypes } from "../actions";
 import type { CreateAccountInput, AccountType, AccountClass, AccountWithType, AccountFieldConfig } from "../types";
 import { getFieldVisibility } from "../field-visibility";
+import { statementForEntry, toStatementBalanceInput } from "../statement-balance-form";
 import {
 	EMPTY_CONTRIBUTION_ROOM_VALUES,
 	toContributionRoomInput,
@@ -109,6 +111,7 @@ export function AddAccountDialog({ open, onOpenChange, onSuccess }: AddAccountDi
 			loan_term_months: vis.showLoanTerm ? prev.loan_term_months : "",
 			payment_due_date: vis.showDueDate ? prev.payment_due_date : "",
 			statement_day: vis.showStatementDay ? prev.statement_day : "",
+			statement_balance: vis.showStatementDay ? prev.statement_balance : "",
 		}));
 		if (!vis.showContributionRoom) setContribution(EMPTY_CONTRIBUTION_ROOM_VALUES);
 		setErrors({});
@@ -150,6 +153,12 @@ export function AddAccountDialog({ open, onOpenChange, onSuccess }: AddAccountDi
 				notes: isNotesEmpty(form.notes) ? null : form.notes,
 				payment_due_date: form.payment_due_date ? parseInt(form.payment_due_date) : null,
 				...(form.statement_day ? { statement_day: parseInt(form.statement_day) } : {}),
+				...(visibility.showStatementDay
+					? toStatementBalanceInput(
+							form.statement_balance,
+							statementForEntry(form.payment_due_date, form.statement_day, getTodayDateString())
+						)
+					: {}),
 				credit_limit: form.credit_limit ? parseFloat(form.credit_limit) : null,
 				loan_term_months: form.loan_term_months ? parseInt(form.loan_term_months) : null,
 				field_visibility: isOtherType ? fieldConfig : null,

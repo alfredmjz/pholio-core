@@ -45,6 +45,7 @@ interface ValidationErrors {
 	account_type_id?: string;
 	name?: string;
 	contribution_room?: string;
+	statement_balance?: string;
 }
 
 const STEPS = ["Type", "Details", "Notes"] as const;
@@ -70,6 +71,8 @@ export function AddAccountDialog({ open, onOpenChange, onSuccess }: AddAccountDi
 	const setField = <K extends keyof AccountFormState>(key: K, value: AccountFormState[K]) => {
 		setForm((prev) => ({ ...prev, [key]: value }));
 		if (key === "name" && errors.name) setErrors((prev) => ({ ...prev, name: undefined }));
+		if ((key === "statement_balance" || key === "payment_due_date") && errors.statement_balance)
+			setErrors((prev) => ({ ...prev, statement_balance: undefined }));
 	};
 
 	useEffect(() => {
@@ -125,6 +128,11 @@ export function AddAccountDialog({ open, onOpenChange, onSuccess }: AddAccountDi
 			if (!form.name.trim()) next.name = "Give the account a name";
 			const roomError = validateContributionRoom(contribution);
 			if (roomError) next.contribution_room = roomError;
+			const needsDueDay =
+				visibility.showStatementDay &&
+				form.statement_balance.trim() &&
+				!statementForEntry(form.payment_due_date, form.statement_day, getTodayDateString());
+			if (needsDueDay) next.statement_balance = "Add a payment due day (1–31) first";
 		}
 		setErrors(next);
 		return Object.keys(next).length === 0;

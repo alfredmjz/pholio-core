@@ -136,7 +136,7 @@ export function EditAccountDialog({
 		}
 
 		if (visibility.showStatementDay && formData.statement_balance.trim() && !statementCycle) {
-			newErrors.statement_balance = "Add the payment due day first";
+			newErrors.statement_balance = "Add a payment due day (1–31) first";
 		}
 
 		// Validate Target Goal (optional, but must be a valid number if provided)
@@ -320,7 +320,6 @@ export function EditAccountDialog({
 									inputMode="decimal"
 									placeholder="0.00"
 									value={formData.statement_balance}
-									disabled={!statementCycle && !formData.statement_balance}
 									onChange={(e) => {
 										setFormData({ ...formData, statement_balance: sanitizeDecimalInput(e.target.value, 2) });
 										if (errors.statement_balance) setErrors({ ...errors, statement_balance: undefined });
@@ -365,9 +364,39 @@ export function EditAccountDialog({
 						)}
 					</div>
 
-					{/* Credit-specific fields */}
+					{/* Credit-specific fields: a card's statement days first, then its limit and rate. */}
 					{visibility.showCreditLimit && (
 						<>
+							{visibility.showStatementDay && (
+								<div className="grid grid-cols-1 gap-4 sm:grid-cols-2">
+									<div className="space-y-2">
+										<Label htmlFor="payment_due_date">Payment Due Date (1-31)</Label>
+										<Input
+											id="payment_due_date"
+											type="text"
+											inputMode="numeric"
+											placeholder="e.g., 21"
+											value={formData.payment_due_date}
+											onChange={(e) =>
+												setFormData({ ...formData, payment_due_date: sanitizeIntegerInput(e.target.value) })
+											}
+										/>
+									</div>
+									<div className="space-y-2">
+										<Label htmlFor="statement_day">Statement Closes (1-31)</Label>
+										<Input
+											id="statement_day"
+											type="text"
+											inputMode="numeric"
+											placeholder="21 days before due"
+											value={formData.statement_day}
+											onChange={(e) =>
+												setFormData({ ...formData, statement_day: sanitizeIntegerInput(e.target.value) })
+											}
+										/>
+									</div>
+								</div>
+							)}
 							<div className="grid grid-cols-1 gap-4 sm:grid-cols-2">
 								<div className="space-y-2">
 									<Label htmlFor="credit_limit">Credit Limit (Optional)</Label>
@@ -382,7 +411,7 @@ export function EditAccountDialog({
 										}}
 									/>
 								</div>
-								{visibility.showDueDate && (
+								{!visibility.showStatementDay && visibility.showDueDate && (
 									<div className="space-y-2">
 										<Label htmlFor="payment_due_date">Payment Due Date (1-31)</Label>
 										<Input
@@ -393,23 +422,6 @@ export function EditAccountDialog({
 											value={formData.payment_due_date}
 											onChange={(e) =>
 												setFormData({ ...formData, payment_due_date: sanitizeIntegerInput(e.target.value) })
-											}
-										/>
-									</div>
-								)}
-							</div>
-							<div className={cn("grid grid-cols-1 gap-4", visibility.showStatementDay && "sm:grid-cols-2")}>
-								{visibility.showStatementDay && (
-									<div className="space-y-2">
-										<Label htmlFor="statement_day">Statement Closes (1-31)</Label>
-										<Input
-											id="statement_day"
-											type="text"
-											inputMode="numeric"
-											placeholder="21 days before due"
-											value={formData.statement_day}
-											onChange={(e) =>
-												setFormData({ ...formData, statement_day: sanitizeIntegerInput(e.target.value) })
 											}
 										/>
 									</div>

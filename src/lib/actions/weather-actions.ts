@@ -7,6 +7,7 @@ import { getTodayDateString, parseLocalDate } from "@/lib/date-utils";
 import { getTimezone } from "@/app/settings/actions";
 import { getAllocationSummary, getHistoricalPace } from "@/app/allocations/actions";
 import { getRecurringExpenses, type RecurringExpense } from "@/app/recurring/actions";
+import { isRecurringTransfer } from "@/app/recurring/recurring-occurrence";
 import type { AccountWithType } from "@/app/accounts/types";
 import type { BillInput } from "@/app/dashboard/heads-up";
 import { buildNetWorthSeries, rangeStartDate, type BalanceRecord } from "@/app/dashboard/net-worth-series";
@@ -32,7 +33,7 @@ function toBillInput(expense: RecurringExpense): BillInput {
 export async function getFinancialWeather(): Promise<Weather | null> {
 	try {
 		if (await isSampleDataMode()) {
-			const bills = (await getRecurringExpenses()).map(toBillInput);
+			const bills = (await getRecurringExpenses()).filter((r) => !isRecurringTransfer(r)).map(toBillInput);
 			return computeWeather(getSampleWeatherInput(undefined, bills)).weather;
 		}
 
@@ -129,7 +130,7 @@ export async function getFinancialWeather(): Promise<Weather | null> {
 			transactions,
 			monthPace,
 			netWorth,
-			...billsForWeather(recurring.map(toBillInput), today),
+			...billsForWeather(recurring.filter((r) => !isRecurringTransfer(r)).map(toBillInput), today),
 			...accountsForWeather(accounts),
 		}).weather;
 	} catch (error) {

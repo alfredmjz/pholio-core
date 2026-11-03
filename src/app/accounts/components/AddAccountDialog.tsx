@@ -15,6 +15,7 @@ import { CancelShortcut, SubmitShortcut } from "@/components/common/dialog-short
 import { ScratchPad } from "@/components/common/scratch-pad";
 import { StepIndicator } from "@/components/common/step-indicator";
 import { getTodayDateString } from "@/lib/date-utils";
+import { percentInputToRate } from "@/lib/input-utils";
 import { isNotesEmpty } from "@/lib/notes";
 import { isSampleDataActive } from "@/lib/demo-mode";
 import { useDemoStore } from "@/lib/demo-store";
@@ -153,7 +154,7 @@ export function AddAccountDialog({ open, onOpenChange, onSuccess }: AddAccountDi
 				account_type_id: form.account_type_id,
 				// A blank balance means the account starts at zero.
 				current_balance: form.current_balance.trim() ? parseFloat(form.current_balance) : 0,
-				interest_rate: form.interest_rate ? parseFloat(form.interest_rate) / 100 : null,
+				interest_rate: percentInputToRate(form.interest_rate),
 				interest_type: form.interest_rate ? "compound" : null,
 				target_balance: form.target_balance ? parseFloat(form.target_balance) : null,
 				original_amount: form.original_amount ? parseFloat(form.original_amount) : null,

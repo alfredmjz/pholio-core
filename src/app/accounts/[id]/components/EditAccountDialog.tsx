@@ -22,7 +22,7 @@ import { cn } from "@/lib/utils";
 import { updateAccount } from "../../actions";
 import { isSampleDataActive } from "@/lib/demo-mode";
 import type { AccountWithType, AccountFieldConfig, UpdateAccountInput } from "../../types";
-import { sanitizeDecimalInput, sanitizeIntegerInput } from "@/lib/input-utils";
+import { percentInputToRate, rateToPercentInput, sanitizeDecimalInput, sanitizeIntegerInput } from "@/lib/input-utils";
 import { getFieldVisibility } from "../../field-visibility";
 import { AccountFieldConfigurator } from "../../components/AccountFieldConfigurator";
 import { ContributionRoomFields } from "../../components/ContributionRoomFields";
@@ -78,7 +78,7 @@ export function EditAccountDialog({
 		current_balance: account.current_balance.toString(),
 		target_balance: account.target_balance?.toString() || "",
 		original_amount: account.original_amount?.toString() || "",
-		interest_rate: account.interest_rate ? (account.interest_rate * 100).toString() : "",
+		interest_rate: rateToPercentInput(account.interest_rate),
 		notes: notesToHtml(account.notes),
 		payment_due_date: account.payment_due_date?.toString() || "",
 		statement_day: account.statement_day?.toString() || "",
@@ -189,7 +189,7 @@ export function EditAccountDialog({
 				current_balance: parseFloat(formData.current_balance) || 0,
 				target_balance: visibility.showTargetGoal ? parseFloat(formData.target_balance) || null : null,
 				original_amount: visibility.showOriginalAmount ? parseFloat(formData.original_amount) || null : null,
-				interest_rate: formData.interest_rate ? parseFloat(formData.interest_rate) / 100 : null,
+				interest_rate: percentInputToRate(formData.interest_rate),
 				notes: isNotesEmpty(formData.notes) ? null : formData.notes,
 				payment_due_date: formData.payment_due_date ? parseInt(formData.payment_due_date) : null,
 				...(visibility.showStatementDay && formData.statement_day !== (account.statement_day?.toString() || "")

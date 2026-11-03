@@ -1,18 +1,21 @@
 "use server";
 
-import { createClient } from "@/lib/supabase/server";
+import { getAuthUser } from "@/lib/supabase/server";
 import { Logger } from "@/lib/logger";
 import { isSampleDataMode } from "@/lib/demo-mode.server";
 import { getTodayDateString, parseLocalDate } from "@/lib/date-utils";
 import { getTimezone } from "@/app/settings/actions";
-import { getAllocationSummary, getHistoricalPace } from "@/app/allocations/actions";
 import { getRecurringExpenses, type RecurringExpense } from "@/app/recurring/actions";
 import { isRecurringTransfer } from "@/app/recurring/recurring-occurrence";
-import type { AccountWithType } from "@/app/accounts/types";
 import type { BillInput } from "@/app/dashboard/heads-up";
-import { buildNetWorthSeries, rangeStartDate, type BalanceRecord } from "@/app/dashboard/net-worth-series";
+import { buildNetWorthSeries, rangeStartDate, recordsSince } from "@/app/dashboard/net-worth-series";
+import {
+	getAllocationSummaryOnce,
+	getDashboardReads,
+	getHistoricalPaceOnce,
+	getRecurringExpensesOnce,
+} from "@/app/dashboard/dashboard-reads";
 import { computeMonthPace } from "@/app/dashboard/month-pace";
-import { cashflowWindowStart } from "@/app/dashboard/cashflow";
 import { computeWeather, toWeatherTransactions, type Weather } from "@/lib/financial-weather";
 import { accountsForWeather, billsForWeather } from "@/lib/weather-input";
 import { getSampleWeatherInput } from "@/mock-data/dashboard";
@@ -37,10 +40,7 @@ export async function getFinancialWeather(): Promise<Weather | null> {
 			return computeWeather(getSampleWeatherInput(undefined, bills)).weather;
 		}
 
-		const supabase = await createClient();
-		const {
-			data: { user },
-		} = await supabase.auth.getUser();
+		const user = await getAuthUser();
 		if (!user) return null;
 
 		const today = getTodayDateString((await getTimezone()) ?? undefined);
@@ -48,50 +48,13 @@ export async function getFinancialWeather(): Promise<Weather | null> {
 		const year = todayDate.getFullYear();
 		const month = todayDate.getMonth() + 1;
 
-		const [accountsResult, historyResult, transactionsResult, allocationResult] = await Promise.all([
-			supabase
-				.from("accounts")
-				.select("id, current_balance, credit_limit, account_type:account_types(class, code)")
-				.eq("user_id", user.id)
-				.eq("is_active", true),
-			supabase
-				.from("account_history")
-				.select("account_id, balance, recorded_at")
-				.eq("user_id", user.id)
-				.gte("recorded_at", rangeStartDate("6M", today))
-				.order("recorded_at", { ascending: true }),
-			supabase
-				.from("transactions")
-				.select("amount, transaction_date, source")
-				.eq("user_id", user.id)
-				.gte("transaction_date", cashflowWindowStart(today, 6))
-				.lte("transaction_date", today),
-			supabase
-				.from("allocations")
-				.select("id")
-				.eq("user_id", user.id)
-				.eq("year", year)
-				.eq("month", month)
-				.maybeSingle(),
-		]);
-
-		for (const [label, result] of Object.entries({
-			accounts: accountsResult,
-			history: historyResult,
-			transactions: transactionsResult,
-			allocation: allocationResult,
-		})) {
-			if (result.error) Logger.error(`Weather: error fetching ${label}`, { error: result.error });
-		}
-
-		const accounts = (accountsResult.data ?? []) as unknown as AccountWithType[];
-		const allocationId = (allocationResult.data as { id: string } | null)?.id;
-		const transactions = toWeatherTransactions(transactionsResult.data ?? []);
+		const { accounts, records, ledger, allocationId } = await getDashboardReads(user.id, today);
+		const transactions = toWeatherTransactions(ledger);
 
 		const [summary, typicalPace, recurring] = await Promise.all([
-			allocationId ? getAllocationSummary(allocationId) : Promise.resolve(null),
-			getHistoricalPace(year, month),
-			getRecurringExpenses(),
+			allocationId ? getAllocationSummaryOnce(allocationId) : Promise.resolve(null),
+			getHistoricalPaceOnce(year, month),
+			getRecurringExpensesOnce(),
 		]);
 
 		const budget = Number(summary?.summary.total_budget_caps ?? 0);
@@ -110,18 +73,13 @@ export async function getFinancialWeather(): Promise<Weather | null> {
 					})
 				: null;
 
-		const records: BalanceRecord[] = (historyResult.data ?? []).map((h) => ({
-			accountId: h.account_id,
-			balance: Number(h.balance),
-			date: String(h.recorded_at).slice(0, 10),
-		}));
 		const netWorth = buildNetWorthSeries(
 			accounts.map((a) => ({
 				id: a.id,
 				class: a.account_type?.class === "liability" ? ("liability" as const) : ("asset" as const),
 				balance: Number(a.current_balance),
 			})),
-			records,
+			recordsSince(records, rangeStartDate("6M", today)),
 			today
 		);
 

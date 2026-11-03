@@ -2,6 +2,7 @@ import { describe, expect, test } from "bun:test";
 import {
 	buildNetWorthSeries,
 	rangeStartDate,
+	recordsSince,
 	seriesChange,
 	sliceSeries,
 	type BalanceAccount,
@@ -96,5 +97,32 @@ describe("ranges", () => {
 				{ date: "2026-10-20", value: 100, assets: 100, liabilities: 0 },
 			])
 		).toEqual({ amount: 300, percent: null });
+	});
+});
+
+describe("recordsSince", () => {
+	const year: BalanceRecord[] = [
+		{ accountId: "chq", date: "2025-12-01", balance: 400 },
+		{ accountId: "chq", date: "2026-04-19", balance: 600 },
+		{ accountId: "chq", date: "2026-04-20", balance: 700 },
+		{ accountId: "card", date: "2026-08-02", balance: 250 },
+	];
+
+	test("keeps records on or after the start date, in order", () => {
+		expect(recordsSince(year, "2026-04-20")).toEqual([
+			{ accountId: "chq", date: "2026-04-20", balance: 700 },
+			{ accountId: "card", date: "2026-08-02", balance: 250 },
+		]);
+	});
+
+	test("a 6-month slice of a year of history builds the same series as reading 6 months", () => {
+		const today = "2026-10-20";
+		const start = rangeStartDate("6M", today);
+		expect(start).toBe("2026-04-20");
+
+		const sixMonthRead = year.slice(2);
+		expect(buildNetWorthSeries(accounts, recordsSince(year, start), today)).toEqual(
+			buildNetWorthSeries(accounts, sixMonthRead, today)
+		);
 	});
 });

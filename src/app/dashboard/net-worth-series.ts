@@ -109,6 +109,11 @@ export function rangeStartDate(range: NetWorthRange, today: string): string {
 	return `${y}-${m}-${d}`;
 }
 
+/** Records dated on or after `start` (YYYY-MM-DD). */
+export function recordsSince(records: BalanceRecord[], start: string): BalanceRecord[] {
+	return records.filter((record) => record.date >= start);
+}
+
 /**
  * The part of the series inside a range. When the range starts between two points, the value
  * in effect at the start is carried in as the first point so the line and the change both

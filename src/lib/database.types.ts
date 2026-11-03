@@ -17,6 +17,7 @@ export interface Database {
 					notify_lead_days: number;
 					notify_in_app: boolean;
 					changelog_seen_at: string | null;
+					allocation_new_month_default: string | null;
 					created_at: string;
 					updated_at: string;
 				};
@@ -33,6 +34,7 @@ export interface Database {
 					notify_lead_days?: number;
 					notify_in_app?: boolean;
 					changelog_seen_at?: string | null;
+					allocation_new_month_default?: string | null;
 					created_at?: string;
 					updated_at?: string;
 				};
@@ -49,6 +51,7 @@ export interface Database {
 					notify_lead_days?: number;
 					notify_in_app?: boolean;
 					changelog_seen_at?: string | null;
+					allocation_new_month_default?: string | null;
 					created_at?: string;
 					updated_at?: string;
 				};

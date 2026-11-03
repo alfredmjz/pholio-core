@@ -1,12 +1,11 @@
 "use server";
 
-import { createClient } from "@/lib/supabase/server";
+import { createClient, getAuthUser } from "@/lib/supabase/server";
 import { Logger } from "@/lib/logger";
 import { isSampleDataMode } from "@/lib/demo-mode.server";
 import { getTodayDateString, parseLocalDate } from "@/lib/date-utils";
 import { getSampleDashboardData } from "@/mock-data/dashboard";
 import { getTimezone } from "@/app/settings/actions";
-import { getAllocationSummary, getHistoricalPace } from "@/app/allocations/actions";
 import { getRecurringExpenses, type RecurringExpense } from "@/app/recurring/actions";
 import { isRecurringTransfer } from "@/app/recurring/recurring-occurrence";
 import { getOpenPromotions } from "@/lib/actions/promotion-actions";
@@ -14,12 +13,18 @@ import { isInvestmentAccount } from "@/lib/account-validation-utils";
 import type { AccountWithType } from "@/app/accounts/types";
 import type { AllocationSummary } from "@/app/allocations/types";
 import type { DashboardAccount, DashboardData, Transaction } from "./types";
-import { buildNetWorthSeries, rangeStartDate, type BalanceRecord } from "./net-worth-series";
+import { buildNetWorthSeries } from "./net-worth-series";
+import {
+	CASHFLOW_MONTHS,
+	getAllocationSummaryOnce,
+	getDashboardReads,
+	getHistoricalPaceOnce,
+	getRecurringExpensesOnce,
+} from "./dashboard-reads";
 import { computeMonthPace } from "./month-pace";
-import { buildMonthlyCashflow, cashflowWindowStart, isTransfer } from "./cashflow";
+import { buildMonthlyCashflow, isTransfer } from "./cashflow";
 import { buildHeadsUp, selectUpcomingBills, type BillInput } from "./heads-up";
 
-const CASHFLOW_MONTHS = 6;
 const RECENT_LIMIT = 8;
 
 /**
@@ -31,10 +36,7 @@ export async function getDashboardData(): Promise<DashboardData> {
 		return getSampleDashboardData(undefined, (await getRecurringExpenses()).filter(isBill).map(toBillInput));
 	}
 
-	const supabase = await createClient();
-	const {
-		data: { user },
-	} = await supabase.auth.getUser();
+	const user = await getAuthUser();
 
 	const timezone = user ? await getTimezone() : null;
 	const today = getTodayDateString(timezone ?? undefined);
@@ -47,39 +49,12 @@ export async function getDashboardData(): Promise<DashboardData> {
 	const year = todayDate.getFullYear();
 	const month = todayDate.getMonth() + 1;
 
-	const [accountsResult, historyResult, transactionsResult, allocationResult] = await Promise.all([
-		supabase.from("accounts").select(`*, account_type:account_types(*)`).eq("user_id", user.id).eq("is_active", true),
-		supabase
-			.from("account_history")
-			.select("account_id, balance, recorded_at")
-			.eq("user_id", user.id)
-			.gte("recorded_at", rangeStartDate("1Y", today))
-			.order("recorded_at", { ascending: true }),
-		supabase
-			.from("transactions")
-			.select("amount, transaction_date, source")
-			.eq("user_id", user.id)
-			.gte("transaction_date", cashflowWindowStart(today, CASHFLOW_MONTHS))
-			.lte("transaction_date", today),
-		supabase.from("allocations").select("id").eq("user_id", user.id).eq("year", year).eq("month", month).maybeSingle(),
-	]);
-
-	for (const [label, result] of Object.entries({
-		accounts: accountsResult,
-		history: historyResult,
-		transactions: transactionsResult,
-		allocation: allocationResult,
-	})) {
-		if (result.error) Logger.error(`Dashboard: error fetching ${label}`, { error: result.error });
-	}
-
-	const accounts = (accountsResult.data ?? []) as AccountWithType[];
-	const allocationId = (allocationResult.data as { id: string } | null)?.id;
+	const { accounts, records, ledger, allocationId } = await getDashboardReads(user.id, today);
 
 	const [summary, typicalPace, recurring, recentTransactions, promotions] = await Promise.all([
-		allocationId ? getAllocationSummary(allocationId) : Promise.resolve<AllocationSummary | null>(null),
-		getHistoricalPace(year, month),
-		getRecurringExpenses(),
+		allocationId ? getAllocationSummaryOnce(allocationId) : Promise.resolve<AllocationSummary | null>(null),
+		getHistoricalPaceOnce(year, month),
+		getRecurringExpensesOnce(),
 		getRecentTransactions(RECENT_LIMIT),
 		getOpenPromotions(today),
 	]);
@@ -89,18 +64,13 @@ export async function getDashboardData(): Promise<DashboardData> {
 		class: a.account_type?.class === "liability" ? ("liability" as const) : ("asset" as const),
 		balance: Number(a.current_balance),
 	}));
-	const records: BalanceRecord[] = (historyResult.data ?? []).map((h) => ({
-		accountId: h.account_id,
-		balance: Number(h.balance),
-		date: String(h.recorded_at).slice(0, 10),
-	}));
 	const history = buildNetWorthSeries(balanceAccounts, records, today);
 	const latest = history[history.length - 1];
 
-	const transactions = (transactionsResult.data ?? []).map((t) => ({
+	const transactions = ledger.map((t) => ({
 		date: String(t.transaction_date).slice(0, 10),
 		amount: Number(t.amount),
-		source: t.source as string | null,
+		source: t.source ?? null,
 	}));
 
 	const monthPrefix = today.slice(0, 7);

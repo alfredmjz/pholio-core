@@ -1,8 +1,8 @@
 import { redirect } from "next/navigation";
 import { Logger } from "@/lib/logger";
-import { createClient } from "@/lib/supabase/server";
+import { createClient, getAuthUser } from "@/lib/supabase/server";
 import type { User } from "@supabase/supabase-js";
-import type { UserProfile } from "@/lib/getUserProfile";
+import { getProfileRow, type UserProfile } from "@/lib/getUserProfile";
 import { sampleProfile } from "@/mock-data/profile";
 import { isSampleDataMode } from "@/lib/demo-mode.server";
 
@@ -50,31 +50,23 @@ export async function requireAuth(): Promise<AuthResult> {
 		};
 	}
 
-	const supabase = await createClient();
+	const user = await getAuthUser();
 
-	// Check if user is authenticated
-
-	const {
-		data: { user },
-		error: authError,
-	} = await supabase.auth.getUser();
-
-	if (authError || !user) {
+	if (!user) {
 		redirect("/login");
 	}
 
-	// Fetch user profile
+	const profile = await getProfileRow(user.id);
 
-	const { data: profile, error: profileError } = await supabase.from("users").select("*").eq("id", user.id).single();
-
-	if (profileError || !profile) {
-		Logger.error("[requireAuth] Profile not found for authenticated user", { profileError, userId: user.id });
+	if (!profile) {
+		Logger.error("[requireAuth] Profile not found for authenticated user", { userId: user.id });
 		// User is authenticated but has no profile - should never happen due to DB trigger
 		// Sign them out and redirect to login
+		const supabase = await createClient();
 		await supabase.auth.signOut();
 
 		redirect("/login");
 	}
 
-	return { user, profile: profile as UserProfile };
+	return { user, profile };
 }

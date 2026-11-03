@@ -1,10 +1,24 @@
+import { cache } from "react";
 import { Logger } from "@/lib/logger";
-import { createClient } from "@/lib/supabase/server";
+import { createClient, getAuthUser } from "@/lib/supabase/server";
 import { Database } from "@/lib/database.types";
 import { sampleProfile } from "@/mock-data/profile";
 import { isSampleDataMode } from "@/lib/demo-mode.server";
 
 export type UserProfile = Database["public"]["Tables"]["users"]["Row"];
+
+/** The user's profile row, read once per server render. */
+export const getProfileRow = cache(async (userId: string): Promise<UserProfile | null> => {
+	const supabase = await createClient();
+	const { data: profile, error } = await supabase.from("users").select("*").eq("id", userId).single();
+
+	if (error || !profile) {
+		Logger.error("[getProfileRow] Could not read profile", { error, userId });
+		return null;
+	}
+
+	return profile;
+});
 
 /**
  * Fetches the authenticated user's profile from the database.
@@ -26,24 +40,13 @@ export async function getUserProfile(): Promise<UserProfile | null> {
 	}
 
 	try {
-		const supabase = await createClient();
+		const user = await getAuthUser();
 
-		const {
-			data: { user },
-			error: userError,
-		} = await supabase.auth.getUser();
-
-		if (userError || !user) {
+		if (!user) {
 			return null;
 		}
 
-		const { data: profile, error: profileError } = await supabase.from("users").select("*").eq("id", user.id).single();
-
-		if (profileError || !profile) {
-			return null;
-		}
-
-		return profile;
+		return await getProfileRow(user.id);
 	} catch (error) {
 		Logger.error("Error fetching user profile", { error });
 		return null;

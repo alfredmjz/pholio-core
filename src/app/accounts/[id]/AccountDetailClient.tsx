@@ -42,6 +42,7 @@ import { cn } from "@/lib/utils";
 import { isInvestmentAccount } from "@/lib/account-validation-utils";
 import {
 	cardStatement,
+	enteredStatement,
 	latestClosedCycle,
 	statementLedgerSince,
 	type StatementLedgerRow,
@@ -143,7 +144,8 @@ export function AccountDetailClient({
 		if (!account || !getFieldVisibility(account.account_type, account.field_visibility).showStatementDay) return null;
 		const cycle = latestClosedCycle({ dueDay: account.payment_due_date, statementDay: account.statement_day }, today);
 		const rows = isDemo ? transactions : serverStatementLedger;
-		return cycle && rows ? cardStatement(Number(account.current_balance), rows, cycle) : null;
+		const entered = enteredStatement(account.statement_balance, account.statement_balance_date);
+		return cycle && rows ? cardStatement(Number(account.current_balance), rows, cycle, entered) : null;
 	}, [account, isDemo, transactions, serverStatementLedger, today]);
 
 	const setAccount = (updated: AccountWithType) => {
@@ -361,6 +363,8 @@ export function AccountDetailClient({
 				open={editDialogOpen}
 				onOpenChange={setEditDialogOpen}
 				account={account}
+				statement={statement}
+				today={today}
 				onSuccess={handleAccountUpdated}
 			/>
 

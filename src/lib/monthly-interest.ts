@@ -1,7 +1,7 @@
 import { createAdminClient } from "@/lib/supabase/server";
 import { Logger } from "@/lib/logger";
 import { isInvestmentAccount } from "@/lib/account-validation-utils";
-import { isCardInterestWaived, lastEndedCycle } from "@/lib/credit-card-statement";
+import { enteredStatement, isCardInterestWaived, lastEndedCycle } from "@/lib/credit-card-statement";
 import { getTodayDateString } from "@/lib/date-utils";
 import { overdraftInterest } from "@/lib/overdraft";
 
@@ -22,7 +22,7 @@ export async function processGlobalMonthlyInterest(): Promise<{ success: boolean
 		const { data: accounts, error } = await supabase
 			.from("accounts")
 			.select(
-				"id, current_balance, interest_rate, interest_type, user_id, payment_due_date, statement_day, account_types(code, category)"
+				"id, current_balance, interest_rate, interest_type, user_id, payment_due_date, statement_day, statement_balance, statement_balance_date, account_types(code, category)"
 			)
 			.eq("is_active", true)
 			.not("interest_rate", "is", null)
@@ -94,6 +94,8 @@ async function isStatementPaidInFull(
 		current_balance: number;
 		payment_due_date: number | null;
 		statement_day: number | null;
+		statement_balance: number | null;
+		statement_balance_date: string | null;
 		account_types: { code: string | null } | { code: string | null }[] | null;
 	}
 ): Promise<boolean> {
@@ -111,7 +113,8 @@ async function isStatementPaidInFull(
 		.gt("transaction_date", cycle.closeDate);
 	if (error) throw error;
 
-	return isCardInterestWaived(settings, Number(account.current_balance), rows ?? [], runDate);
+	const entered = enteredStatement(account.statement_balance, account.statement_balance_date);
+	return isCardInterestWaived(settings, Number(account.current_balance), rows ?? [], runDate, entered);
 }
 
 /** One month of overdraft interest on every protected account below zero. Returns how many were charged. */

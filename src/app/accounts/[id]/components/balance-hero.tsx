@@ -81,33 +81,42 @@ export function BalanceHero({
 	const rate = visibility.showInterestRate && account.interest_rate ? account.interest_rate : null;
 	const yearlyInterest = rate && balance > 0 ? balance * rate : null;
 	const { whole, cents } = splitMoney(active ? active.value : balance);
+	const { whole: statementWhole, cents: statementCents } = splitMoney(statement?.statementBalance ?? 0);
 
 	return (
 		<section aria-labelledby="balance-heading" className="surface-sheet surface-sheet-pad">
 			<div className="flex flex-wrap items-end justify-between gap-x-6 gap-y-2">
-				<div className="min-w-0">
-					<h2 id="balance-heading" className="type-body-sm text-muted-foreground">
-						{active
-							? formatFullDate(active.date)
-							: isCard
-								? "Current balance"
-								: isLiability
-									? "Owing"
-									: isInvestment
-										? INVESTMENT_BALANCE_LABEL
-										: "Balance"}
-					</h2>
-					<p className="type-display mt-1 flex items-start tabular-nums text-primary">
-						<span>{whole}</span>
-						<span className="dash-figure-cents">{cents}</span>
-					</p>
-					{isInvestment && <p className="type-body-xs mt-1 text-muted-foreground">{INVESTMENT_BALANCE_HINT}</p>}
-					{statement && (
-						<p className="type-body-sm mt-1 text-muted-foreground">
-							Statement balance{" "}
-							<span className="tabular-nums text-primary">{formatCurrency(statement.statementBalance)}</span>, closed{" "}
-							{formatShortDate(statement.closeDate)}
+				<div className="flex min-w-0 flex-wrap items-end gap-x-4 gap-y-4 sm:gap-x-8">
+					<div className="min-w-0">
+						<h2 id="balance-heading" className="type-body-sm text-muted-foreground">
+							{active
+								? formatFullDate(active.date)
+								: isCard
+									? "Current balance"
+									: isLiability
+										? "Owing"
+										: isInvestment
+											? INVESTMENT_BALANCE_LABEL
+											: "Balance"}
+						</h2>
+						<p className="type-display mt-1 flex items-start tabular-nums text-primary">
+							<span>{whole}</span>
+							<span className="dash-figure-cents">{cents}</span>
 						</p>
+						{isInvestment && <p className="type-body-xs mt-1 text-muted-foreground">{INVESTMENT_BALANCE_HINT}</p>}
+						{isCard && <p className="type-body-xs mt-1 text-muted-foreground">What you owe today</p>}
+					</div>
+					{statement && (
+						<div className="min-w-0 border-l border-border/70 pl-4 sm:pl-8">
+							<p className="type-body-sm text-muted-foreground">Statement balance</p>
+							<p className="type-h1 mt-1 flex items-start tabular-nums text-primary">
+								<span>{statementWhole}</span>
+								<span className="dash-figure-cents">{statementCents}</span>
+							</p>
+							<p className="type-body-xs mt-1 text-muted-foreground">
+								Closed {formatShortDate(statement.closeDate)}, due {formatShortDate(statement.dueDate)}
+							</p>
+						</div>
 					)}
 				</div>
 				{rate !== null && (

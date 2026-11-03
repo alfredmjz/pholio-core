@@ -1,6 +1,7 @@
 import { describe, expect, test } from "bun:test";
 import {
 	cardStatement,
+	enteredStatement,
 	isCardInterestWaived,
 	lastEndedCycle,
 	latestClosedCycle,
@@ -132,6 +133,45 @@ describe("cardStatement", () => {
 		expect(statement.statementBalance).toBe(0);
 		expect(statement.paidInFull).toBe(true);
 	});
+
+	test("uses the statement balance entered for this close over the worked-back one", () => {
+		// Added mid-statement on 10 October owing 650, after 150 of purchases the ledger never saw.
+		// Working back gives 650; the statement said 500. 200 paid since leaves 300.
+		const statement = cardStatement(450, [row("2026-10-12", -200)], cycle, {
+			closeDate: "2026-09-30",
+			balance: 500,
+		});
+		expect(statement).toMatchObject({
+			statementBalance: 500,
+			paidSinceClose: 200,
+			remainingDue: 300,
+			paidInFull: false,
+		});
+	});
+
+	test("works back from the ledger once a later statement closes", () => {
+		// The entered 500 belongs to the 30 September close; the 31 October statement is 450 + 80 - 80.
+		const statement = cardStatement(
+			530,
+			[row("2026-11-02", 80)],
+			{ closeDate: "2026-10-31", dueDate: "2026-11-21" },
+			{ closeDate: "2026-09-30", balance: 500 }
+		);
+		expect(statement.statementBalance).toBe(450);
+	});
+});
+
+describe("enteredStatement", () => {
+	test("reads a saved balance and close date", () => {
+		expect(enteredStatement("500.25", "2026-09-30")).toEqual({ closeDate: "2026-09-30", balance: 500.25 });
+		expect(enteredStatement(0, "2026-09-30")).toEqual({ closeDate: "2026-09-30", balance: 0 });
+	});
+
+	test("is null when either half is missing", () => {
+		expect(enteredStatement(null, "2026-09-30")).toBeNull();
+		expect(enteredStatement(500, null)).toBeNull();
+		expect(enteredStatement(undefined, undefined)).toBeNull();
+	});
 });
 
 describe("isCardInterestWaived", () => {
@@ -169,5 +209,14 @@ describe("isCardInterestWaived", () => {
 		// The same payment a day late leaves the statement unpaid.
 		const late = [row("2026-09-26", 350), row("2026-10-21", -350), row("2026-10-28", 250)];
 		expect(isCardInterestWaived({ dueDay: 20, statementDay: 25 }, 600, late, runDate)).toBe(false);
+	});
+
+	test("checks payments against the statement balance the owner entered", () => {
+		// Worked back, 300 owing with 300 paid looks like a 600 statement. The owner entered 300, so it was paid.
+		const rows = [row("2026-10-15", -300)];
+		expect(isCardInterestWaived({ dueDay: 21 }, 300, rows, runDate)).toBe(false);
+		expect(isCardInterestWaived({ dueDay: 21 }, 300, rows, runDate, { closeDate: "2026-09-30", balance: 300 })).toBe(
+			true
+		);
 	});
 });

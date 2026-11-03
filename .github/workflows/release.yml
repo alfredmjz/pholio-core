@@ -52,9 +52,9 @@ jobs:
       - uses: actions/checkout@v4
 
       - name: Setup Bun
-        uses: oven-sh/setup-bun@v1
+        uses: oven-sh/setup-bun@v2
         with:
-          bun-version: latest
+          bun-version: 1.4.4
 
       - name: Install dependencies
         working-directory: ./src
@@ -86,9 +86,9 @@ jobs:
           token: ${{ steps.app-token.outputs.token }}
 
       - name: Setup Bun
-        uses: oven-sh/setup-bun@v1
+        uses: oven-sh/setup-bun@v2
         with:
-          bun-version: latest
+          bun-version: 1.4.4
 
       - name: Setup Node.js
         uses: actions/setup-node@v4
@@ -127,9 +127,9 @@ jobs:
       - uses: actions/checkout@v4
 
       - name: Setup Bun
-        uses: oven-sh/setup-bun@v1
+        uses: oven-sh/setup-bun@v2
         with:
-          bun-version: latest
+          bun-version: 1.4.4
 
       - name: Install Vercel CLI
         run: bun add -g vercel

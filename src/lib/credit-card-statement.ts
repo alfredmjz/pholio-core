@@ -22,6 +22,12 @@ export interface CardStatement extends StatementCycle {
 	paidInFull: boolean;
 }
 
+/** A statement balance the owner typed in, for the statement that closed on `closeDate`. */
+export interface EnteredStatement {
+	closeDate: string;
+	balance: number;
+}
+
 export interface CardCycleSettings {
 	/** Day of the month the payment is due, 1–31. */
 	dueDay: number | null | undefined;
@@ -106,14 +112,26 @@ export function lastEndedCycle({ dueDay, statementDay }: CardCycleSettings, date
 	return { closeDate: statementCloseDate(dueDate, statementDay), dueDate };
 }
 
+/** The statement balance saved on an account row, or null when the owner never entered one. */
+export function enteredStatement(
+	balance: number | string | null | undefined,
+	closeDate: string | null | undefined
+): EnteredStatement | null {
+	if (balance === null || balance === undefined || !closeDate) return null;
+	return { closeDate, balance: Number(balance) };
+}
+
 /**
  * A statement worked back from today's balance: what was owed at the close is the current
  * balance less every ledger row dated after it. `rows` must hold every row dated after the close.
+ * A statement balance the owner entered for this close wins, since the ledger can't reach back
+ * past when the account was added or its balance was typed over.
  */
 export function cardStatement(
 	currentBalance: number,
 	rows: StatementLedgerRow[],
-	cycle: StatementCycle
+	cycle: StatementCycle,
+	entered?: EnteredStatement | null
 ): CardStatement {
 	let sinceClose = 0;
 	let paid = 0;
@@ -123,7 +141,8 @@ export function cardStatement(
 		sinceClose += cents;
 		if (cents < 0 && row.transaction_date <= cycle.dueDate) paid -= cents;
 	}
-	const statementCents = toCents(currentBalance) - sinceClose;
+	const statementCents =
+		entered?.closeDate === cycle.closeDate ? toCents(entered.balance) : toCents(currentBalance) - sinceClose;
 	const remainingCents = Math.max(0, statementCents - paid);
 
 	return {
@@ -143,8 +162,9 @@ export function isCardInterestWaived(
 	settings: CardCycleSettings,
 	currentBalance: number,
 	rows: StatementLedgerRow[],
-	runDate: string
+	runDate: string,
+	entered?: EnteredStatement | null
 ): boolean {
 	const cycle = lastEndedCycle(settings, runDate);
-	return cycle !== null && cardStatement(currentBalance, rows, cycle).paidInFull;
+	return cycle !== null && cardStatement(currentBalance, rows, cycle, entered).paidInFull;
 }

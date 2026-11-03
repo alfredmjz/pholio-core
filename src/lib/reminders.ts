@@ -1,4 +1,9 @@
-import { cardStatement, statementCloseDate, type StatementLedgerRow } from "@/lib/credit-card-statement";
+import {
+	cardStatement,
+	statementCloseDate,
+	type EnteredStatement,
+	type StatementLedgerRow,
+} from "@/lib/credit-card-statement";
 import { formatDateParts, formatMoney, type FormatSettings } from "@/lib/format";
 import { FEE_LABELS, projectAccountFees, scheduledPayments, type FeeTerms, type ProjectedFee } from "@/lib/overdraft";
 
@@ -18,6 +23,8 @@ export interface ReminderCard {
 	 * balance still due; without them, or before the statement closes, for the whole balance.
 	 */
 	ledger?: StatementLedgerRow[];
+	/** A statement balance the owner entered; used when it is for the statement being paid. */
+	enteredStatement?: EnteredStatement | null;
 }
 
 export interface ReminderRecurring {
@@ -96,7 +103,7 @@ export function findDueReminders({
 		const closeDate = statementCloseDate(dueDate, card.statementDay);
 		const amount =
 			card.ledger && closeDate <= today
-				? cardStatement(card.balance, card.ledger, { closeDate, dueDate }).remainingDue
+				? cardStatement(card.balance, card.ledger, { closeDate, dueDate }, card.enteredStatement).remainingDue
 				: card.balance;
 		// Nothing owed, nothing to pay.
 		if (amount <= 0) continue;

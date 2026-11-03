@@ -1,5 +1,7 @@
 import { describe, expect, test } from "bun:test";
 import {
+	percentInputToRate,
+	rateToPercentInput,
 	sanitizeDecimalInput,
 	sanitizeIntegerInput,
 	sanitizePositiveIntegerInput,
@@ -70,5 +72,37 @@ describe("validateDecimalInput", () => {
 	test("rejects too many decimals and stray characters", () => {
 		expect(validateDecimalInput("1.234")).toBe(false);
 		expect(validateDecimalInput("1a")).toBe(false);
+	});
+});
+
+describe("rateToPercentInput", () => {
+	test("shows a stored rate as a percent without float noise", () => {
+		// 0.2499 * 100 is 24.990000000000002 in floating point.
+		expect(rateToPercentInput(0.2499)).toBe("24.99");
+		expect(rateToPercentInput(0.0725)).toBe("7.25");
+		expect(rateToPercentInput(0.199875)).toBe("19.9875");
+	});
+
+	test("is blank when there is no rate", () => {
+		expect(rateToPercentInput(null)).toBe("");
+		expect(rateToPercentInput(0)).toBe("");
+	});
+});
+
+describe("percentInputToRate", () => {
+	test("turns a typed percent into the stored rate", () => {
+		// 24.99 / 100 is 0.24989999999999998 in floating point.
+		expect(percentInputToRate("24.99")).toBe(0.2499);
+		expect(percentInputToRate("7.25")).toBe(0.0725);
+		expect(percentInputToRate("0")).toBe(0);
+	});
+
+	test("is null when blank or not a number", () => {
+		expect(percentInputToRate("")).toBeNull();
+		expect(percentInputToRate(".")).toBeNull();
+	});
+
+	test("round-trips with rateToPercentInput", () => {
+		expect(rateToPercentInput(percentInputToRate("24.99"))).toBe("24.99");
 	});
 });

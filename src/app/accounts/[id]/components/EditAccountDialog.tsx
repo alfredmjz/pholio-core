@@ -22,12 +22,13 @@ import { cn } from "@/lib/utils";
 import { updateAccount } from "../../actions";
 import { isSampleDataActive } from "@/lib/demo-mode";
 import type { AccountWithType, AccountFieldConfig, UpdateAccountInput } from "../../types";
-import { sanitizeDecimalInput, sanitizeIntegerInput } from "@/lib/input-utils";
+import { percentInputToRate, rateToPercentInput, sanitizeDecimalInput, sanitizeIntegerInput } from "@/lib/input-utils";
 import { getFieldVisibility } from "../../field-visibility";
 import { AccountFieldConfigurator } from "../../components/AccountFieldConfigurator";
 import { ContributionRoomFields } from "../../components/ContributionRoomFields";
 import { FeeTermsFields } from "../../components/FeeTermsFields";
 import { toFeeTermsInput, toFeeTermsValues, type FeeTermsFormValues } from "../../fee-terms-form";
+import { statementBalanceHint, statementBalanceUpdate, statementForEntry } from "../../statement-balance-form";
 import {
 	toContributionRoomInput,
 	toPlanRoomSetting,
@@ -37,24 +38,37 @@ import {
 } from "../../contribution-room-form";
 import { getContributionRooms, saveContributionRoom } from "@/lib/actions/contribution-actions";
 import { isRegisteredPlan } from "@/lib/contribution-plans";
+import type { CardStatement } from "@/lib/credit-card-statement";
 import type { ContributionRoomSetting } from "@/lib/types/contribution";
 
 interface EditAccountDialogProps {
 	open: boolean;
 	onOpenChange: (open: boolean) => void;
 	account: AccountWithType;
+	/** A credit card's latest closed statement, shown in the statement balance field. */
+	statement?: CardStatement | null;
+	/** YYYY-MM-DD in the user's timezone. */
+	today: string;
 	onSuccess: (account: AccountWithType) => void;
 }
 
 interface ValidationErrors {
 	name?: string;
 	current_balance?: string;
+	statement_balance?: string;
 	target_balance?: string;
 	interest_rate?: string;
 	contribution_room?: string;
 }
 
-export function EditAccountDialog({ open, onOpenChange, account, onSuccess }: EditAccountDialogProps) {
+export function EditAccountDialog({
+	open,
+	onOpenChange,
+	account,
+	statement,
+	today,
+	onSuccess,
+}: EditAccountDialogProps) {
 	const [isSubmitting, setIsSubmitting] = useState(false);
 	const [errors, setErrors] = useState<ValidationErrors>({});
 	const [fieldConfig, setFieldConfig] = useState<AccountFieldConfig>(account.field_visibility ?? {});
@@ -64,10 +78,11 @@ export function EditAccountDialog({ open, onOpenChange, account, onSuccess }: Ed
 		current_balance: account.current_balance.toString(),
 		target_balance: account.target_balance?.toString() || "",
 		original_amount: account.original_amount?.toString() || "",
-		interest_rate: account.interest_rate ? (account.interest_rate * 100).toString() : "",
+		interest_rate: rateToPercentInput(account.interest_rate),
 		notes: notesToHtml(account.notes),
 		payment_due_date: account.payment_due_date?.toString() || "",
 		statement_day: account.statement_day?.toString() || "",
+		statement_balance: "",
 		credit_limit: account.credit_limit?.toString() || "",
 		loan_term_months: account.loan_term_months?.toString() || "",
 	});
@@ -93,10 +108,19 @@ export function EditAccountDialog({ open, onOpenChange, account, onSuccess }: Ed
 			.catch(() => setPlanRooms([]));
 	}, [open]);
 
+	// The statement can move while the dialog is closed (a payment, a new close), so refill it on open.
+	const shownStatement = statement ? statement.statementBalance.toFixed(2) : "";
+	useEffect(() => {
+		if (open) setFormData((prev) => ({ ...prev, statement_balance: shownStatement }));
+	}, [open]);
+
 	// "Other" accounts allow the owner to choose which fields are tracked.
 	const isOtherType = account.account_type?.code === "other";
 	const isInvestment = isInvestmentAccount(account);
 	const visibility = getFieldVisibility(account.account_type, isOtherType ? fieldConfig : null);
+	const statementCycle = visibility.showStatementDay
+		? statementForEntry(formData.payment_due_date, formData.statement_day, today)
+		: null;
 
 	const validateForm = (): boolean => {
 		const newErrors: ValidationErrors = {};
@@ -109,6 +133,10 @@ export function EditAccountDialog({ open, onOpenChange, account, onSuccess }: Ed
 		// Validate Current Balance (blank is saved as 0)
 		if (formData.current_balance.trim() && isNaN(parseFloat(formData.current_balance))) {
 			newErrors.current_balance = "Please enter a valid number";
+		}
+
+		if (visibility.showStatementDay && formData.statement_balance.trim() && !statementCycle) {
+			newErrors.statement_balance = "Add a payment due day (1–31) first";
 		}
 
 		// Validate Target Goal (optional, but must be a valid number if provided)
@@ -161,11 +189,20 @@ export function EditAccountDialog({ open, onOpenChange, account, onSuccess }: Ed
 				current_balance: parseFloat(formData.current_balance) || 0,
 				target_balance: visibility.showTargetGoal ? parseFloat(formData.target_balance) || null : null,
 				original_amount: visibility.showOriginalAmount ? parseFloat(formData.original_amount) || null : null,
-				interest_rate: formData.interest_rate ? parseFloat(formData.interest_rate) / 100 : null,
+				interest_rate: percentInputToRate(formData.interest_rate),
 				notes: isNotesEmpty(formData.notes) ? null : formData.notes,
 				payment_due_date: formData.payment_due_date ? parseInt(formData.payment_due_date) : null,
 				...(visibility.showStatementDay && formData.statement_day !== (account.statement_day?.toString() || "")
 					? { statement_day: formData.statement_day ? parseInt(formData.statement_day) : null }
+					: {}),
+				...(visibility.showStatementDay
+					? statementBalanceUpdate({
+							value: formData.statement_balance,
+							initial: shownStatement,
+							initialCloseDate: statement?.closeDate ?? null,
+							cycle: statementCycle,
+							balanceChanged: (parseFloat(formData.current_balance) || 0) !== Number(account.current_balance),
+						})
 					: {}),
 				credit_limit: formData.credit_limit ? parseFloat(formData.credit_limit) : null,
 				loan_term_months: formData.loan_term_months ? parseInt(formData.loan_term_months) : null,
@@ -263,10 +300,37 @@ export function EditAccountDialog({ open, onOpenChange, account, onSuccess }: Ed
 							/>
 							{errors.current_balance ? (
 								<p className="text-sm text-error">{errors.current_balance}</p>
+							) : isInvestment ? (
+								<p className="type-body-xs text-muted-foreground">{INVESTMENT_BALANCE_HINT}</p>
 							) : (
-								isInvestment && <p className="type-body-xs text-muted-foreground">{INVESTMENT_BALANCE_HINT}</p>
+								visibility.showStatementDay && (
+									<p className="type-body-xs text-muted-foreground">
+										What you owe today, with purchases since your last statement.
+									</p>
+								)
 							)}
 						</div>
+
+						{visibility.showStatementDay && (
+							<div className="space-y-2">
+								<Label htmlFor="statement_balance">Statement Balance</Label>
+								<Input
+									id="statement_balance"
+									type="text"
+									inputMode="decimal"
+									placeholder="0.00"
+									value={formData.statement_balance}
+									onChange={(e) => {
+										setFormData({ ...formData, statement_balance: sanitizeDecimalInput(e.target.value, 2) });
+										if (errors.statement_balance) setErrors({ ...errors, statement_balance: undefined });
+									}}
+									className={errors.statement_balance ? "border-error" : ""}
+								/>
+								<p className={cn("type-body-xs", errors.statement_balance ? "text-error" : "text-muted-foreground")}>
+									{errors.statement_balance ?? statementBalanceHint(statementCycle)}
+								</p>
+							</div>
+						)}
 
 						{isOtherType && (
 							<div className="space-y-2">
@@ -300,9 +364,39 @@ export function EditAccountDialog({ open, onOpenChange, account, onSuccess }: Ed
 						)}
 					</div>
 
-					{/* Credit-specific fields */}
+					{/* Credit-specific fields: a card's statement days first, then its limit and rate. */}
 					{visibility.showCreditLimit && (
 						<>
+							{visibility.showStatementDay && (
+								<div className="grid grid-cols-1 gap-4 sm:grid-cols-2">
+									<div className="space-y-2">
+										<Label htmlFor="payment_due_date">Payment Due Date (1-31)</Label>
+										<Input
+											id="payment_due_date"
+											type="text"
+											inputMode="numeric"
+											placeholder="e.g., 21"
+											value={formData.payment_due_date}
+											onChange={(e) =>
+												setFormData({ ...formData, payment_due_date: sanitizeIntegerInput(e.target.value) })
+											}
+										/>
+									</div>
+									<div className="space-y-2">
+										<Label htmlFor="statement_day">Statement Closes (1-31)</Label>
+										<Input
+											id="statement_day"
+											type="text"
+											inputMode="numeric"
+											placeholder="21 days before due"
+											value={formData.statement_day}
+											onChange={(e) =>
+												setFormData({ ...formData, statement_day: sanitizeIntegerInput(e.target.value) })
+											}
+										/>
+									</div>
+								</div>
+							)}
 							<div className="grid grid-cols-1 gap-4 sm:grid-cols-2">
 								<div className="space-y-2">
 									<Label htmlFor="credit_limit">Credit Limit (Optional)</Label>
@@ -317,7 +411,7 @@ export function EditAccountDialog({ open, onOpenChange, account, onSuccess }: Ed
 										}}
 									/>
 								</div>
-								{visibility.showDueDate && (
+								{!visibility.showStatementDay && visibility.showDueDate && (
 									<div className="space-y-2">
 										<Label htmlFor="payment_due_date">Payment Due Date (1-31)</Label>
 										<Input
@@ -328,23 +422,6 @@ export function EditAccountDialog({ open, onOpenChange, account, onSuccess }: Ed
 											value={formData.payment_due_date}
 											onChange={(e) =>
 												setFormData({ ...formData, payment_due_date: sanitizeIntegerInput(e.target.value) })
-											}
-										/>
-									</div>
-								)}
-							</div>
-							<div className={cn("grid grid-cols-1 gap-4", visibility.showStatementDay && "sm:grid-cols-2")}>
-								{visibility.showStatementDay && (
-									<div className="space-y-2">
-										<Label htmlFor="statement_day">Statement Closes (1-31)</Label>
-										<Input
-											id="statement_day"
-											type="text"
-											inputMode="numeric"
-											placeholder="21 days before due"
-											value={formData.statement_day}
-											onChange={(e) =>
-												setFormData({ ...formData, statement_day: sanitizeIntegerInput(e.target.value) })
 											}
 										/>
 									</div>

@@ -14,6 +14,8 @@ import { Button } from "@/components/ui/button";
 import { CancelShortcut, SubmitShortcut } from "@/components/common/dialog-shortcuts";
 import { ScratchPad } from "@/components/common/scratch-pad";
 import { StepIndicator } from "@/components/common/step-indicator";
+import { getTodayDateString } from "@/lib/date-utils";
+import { percentInputToRate } from "@/lib/input-utils";
 import { isNotesEmpty } from "@/lib/notes";
 import { isSampleDataActive } from "@/lib/demo-mode";
 import { useDemoStore } from "@/lib/demo-store";
@@ -22,6 +24,7 @@ import type { ContributionRoomSetting } from "@/lib/types/contribution";
 import { createAccount, getAccountTypes } from "../actions";
 import type { CreateAccountInput, AccountType, AccountClass, AccountWithType, AccountFieldConfig } from "../types";
 import { getFieldVisibility } from "../field-visibility";
+import { statementForEntry, toStatementBalanceInput } from "../statement-balance-form";
 import {
 	EMPTY_CONTRIBUTION_ROOM_VALUES,
 	toContributionRoomInput,
@@ -43,6 +46,7 @@ interface ValidationErrors {
 	account_type_id?: string;
 	name?: string;
 	contribution_room?: string;
+	statement_balance?: string;
 }
 
 const STEPS = ["Type", "Details", "Notes"] as const;
@@ -68,6 +72,8 @@ export function AddAccountDialog({ open, onOpenChange, onSuccess }: AddAccountDi
 	const setField = <K extends keyof AccountFormState>(key: K, value: AccountFormState[K]) => {
 		setForm((prev) => ({ ...prev, [key]: value }));
 		if (key === "name" && errors.name) setErrors((prev) => ({ ...prev, name: undefined }));
+		if ((key === "statement_balance" || key === "payment_due_date") && errors.statement_balance)
+			setErrors((prev) => ({ ...prev, statement_balance: undefined }));
 	};
 
 	useEffect(() => {
@@ -109,6 +115,7 @@ export function AddAccountDialog({ open, onOpenChange, onSuccess }: AddAccountDi
 			loan_term_months: vis.showLoanTerm ? prev.loan_term_months : "",
 			payment_due_date: vis.showDueDate ? prev.payment_due_date : "",
 			statement_day: vis.showStatementDay ? prev.statement_day : "",
+			statement_balance: vis.showStatementDay ? prev.statement_balance : "",
 		}));
 		if (!vis.showContributionRoom) setContribution(EMPTY_CONTRIBUTION_ROOM_VALUES);
 		setErrors({});
@@ -122,6 +129,11 @@ export function AddAccountDialog({ open, onOpenChange, onSuccess }: AddAccountDi
 			if (!form.name.trim()) next.name = "Give the account a name";
 			const roomError = validateContributionRoom(contribution);
 			if (roomError) next.contribution_room = roomError;
+			const needsDueDay =
+				visibility.showStatementDay &&
+				form.statement_balance.trim() &&
+				!statementForEntry(form.payment_due_date, form.statement_day, getTodayDateString());
+			if (needsDueDay) next.statement_balance = "Add a payment due day (1–31) first";
 		}
 		setErrors(next);
 		return Object.keys(next).length === 0;
@@ -142,7 +154,7 @@ export function AddAccountDialog({ open, onOpenChange, onSuccess }: AddAccountDi
 				account_type_id: form.account_type_id,
 				// A blank balance means the account starts at zero.
 				current_balance: form.current_balance.trim() ? parseFloat(form.current_balance) : 0,
-				interest_rate: form.interest_rate ? parseFloat(form.interest_rate) / 100 : null,
+				interest_rate: percentInputToRate(form.interest_rate),
 				interest_type: form.interest_rate ? "compound" : null,
 				target_balance: form.target_balance ? parseFloat(form.target_balance) : null,
 				original_amount: form.original_amount ? parseFloat(form.original_amount) : null,
@@ -150,6 +162,12 @@ export function AddAccountDialog({ open, onOpenChange, onSuccess }: AddAccountDi
 				notes: isNotesEmpty(form.notes) ? null : form.notes,
 				payment_due_date: form.payment_due_date ? parseInt(form.payment_due_date) : null,
 				...(form.statement_day ? { statement_day: parseInt(form.statement_day) } : {}),
+				...(visibility.showStatementDay
+					? toStatementBalanceInput(
+							form.statement_balance,
+							statementForEntry(form.payment_due_date, form.statement_day, getTodayDateString())
+						)
+					: {}),
 				credit_limit: form.credit_limit ? parseFloat(form.credit_limit) : null,
 				loan_term_months: form.loan_term_months ? parseInt(form.loan_term_months) : null,
 				field_visibility: isOtherType ? fieldConfig : null,

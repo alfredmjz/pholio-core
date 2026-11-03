@@ -1,5 +1,5 @@
 import type { SupabaseClient } from "@supabase/supabase-js";
-import { statementLedgerSince, type StatementLedgerRow } from "@/lib/credit-card-statement";
+import { enteredStatement, statementLedgerSince, type StatementLedgerRow } from "@/lib/credit-card-statement";
 import { getTodayDateString } from "@/lib/date-utils";
 import { sendEmail } from "@/lib/email";
 import { toFormatSettings, type FormatSettings } from "@/lib/format";
@@ -61,7 +61,7 @@ export async function loadReminderItems(
 		supabase
 			.from("accounts")
 			.select(
-				"id, user_id, name, institution, current_balance, payment_due_date, statement_day, account_types!inner(code)"
+				"id, user_id, name, institution, current_balance, payment_due_date, statement_day, statement_balance, statement_balance_date, account_types!inner(code)"
 			)
 			.in("user_id", userIds)
 			.eq("is_active", true)
@@ -98,6 +98,7 @@ export async function loadReminderItems(
 			balance: Number(row.current_balance),
 			dueDay: Number(row.payment_due_date),
 			statementDay: row.statement_day,
+			enteredStatement: enteredStatement(row.statement_balance, row.statement_balance_date),
 			ledger: ledgers.get(row.id),
 		});
 	}

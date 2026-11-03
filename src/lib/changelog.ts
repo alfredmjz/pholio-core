@@ -22,6 +22,15 @@ export const CHANGELOG: ChangelogEntry[] = [
 		],
 	},
 	{
+		id: "2026-11-card-statement-balance-entry",
+		date: "2026-11-02",
+		title: "Enter your card's statement balance",
+		items: [
+			"When you add or edit a credit card partway through a statement, you can now enter the statement balance as well as the current balance.",
+			"A card's page shows the current balance and the statement balance side by side, with when the statement closed and when it's due.",
+		],
+	},
+	{
 		id: "2026-10-investments-amount-deposited",
 		date: "2026-10-31",
 		title: "Investments show the amount you deposited",

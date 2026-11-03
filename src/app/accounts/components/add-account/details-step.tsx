@@ -5,6 +5,7 @@ import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
 import { ProminentAmountInput } from "@/components/ProminentAmountInput";
 import { cn } from "@/lib/utils";
+import { getTodayDateString } from "@/lib/date-utils";
 import { sanitizeDecimalInput, sanitizeIntegerInput } from "@/lib/input-utils";
 import type { ContributionRoomSetting } from "@/lib/types/contribution";
 import { isInvestmentAccount } from "@/lib/account-validation-utils";
@@ -13,6 +14,7 @@ import type { AccountClass, AccountFieldConfig, AccountType, AccountTypeCode } f
 import type { FieldVisibility } from "../../field-visibility";
 import type { ContributionRoomFormValues } from "../../contribution-room-form";
 import type { FeeTermsFormValues } from "../../fee-terms-form";
+import { statementBalanceHint, statementForEntry } from "../../statement-balance-form";
 import { AccountFieldConfigurator } from "../AccountFieldConfigurator";
 import { ContributionRoomFields } from "../ContributionRoomFields";
 import { FeeTermsFields } from "../FeeTermsFields";
@@ -29,6 +31,7 @@ export interface AccountFormState {
 	notes: string;
 	payment_due_date: string;
 	statement_day: string;
+	statement_balance: string;
 	credit_limit: string;
 	loan_term_months: string;
 }
@@ -44,6 +47,7 @@ export const EMPTY_ACCOUNT_FORM: AccountFormState = {
 	notes: "",
 	payment_due_date: "",
 	statement_day: "",
+	statement_balance: "",
 	credit_limit: "",
 	loan_term_months: "",
 };
@@ -51,7 +55,7 @@ export const EMPTY_ACCOUNT_FORM: AccountFormState = {
 interface DetailsStepProps {
 	form: AccountFormState;
 	setField: <K extends keyof AccountFormState>(key: K, value: AccountFormState[K]) => void;
-	errors: { name?: string; contribution_room?: string };
+	errors: { name?: string; contribution_room?: string; statement_balance?: string };
 	accountClass: AccountClass;
 	selectedType: AccountType;
 	visibility: FieldVisibility;
@@ -121,6 +125,21 @@ export function DetailsStep({
 	const isInvestment = isInvestmentAccount({ account_type: selectedType });
 	const isLiability = accountClass === "liability";
 	const rateLabel = visibility.interestRateLabel.replace(" (%)", "");
+	const isCard = visibility.showStatementDay;
+	const statementCycle = isCard
+		? statementForEntry(form.payment_due_date, form.statement_day, getTodayDateString())
+		: null;
+
+	const dueDayField = (
+		<TextField
+			id="payment_due_date"
+			label="Payment due (day of month)"
+			inputMode="numeric"
+			value={form.payment_due_date}
+			onChange={(value) => setField("payment_due_date", sanitizeIntegerInput(value))}
+			placeholder="e.g. 21"
+		/>
+	);
 
 	return (
 		<div className="flex flex-col gap-6">
@@ -172,18 +191,39 @@ export function DetailsStep({
 				/>
 			</div>
 
-			<div className="space-y-2">
-				<Label htmlFor="balance" className="type-label text-muted-foreground">
-					{isLiability ? "Current balance owing" : isInvestment ? "Amount deposited so far" : "Current balance"}
-				</Label>
-				<ProminentAmountInput
-					id="balance"
-					value={form.current_balance}
-					onChange={(value) => setField("current_balance", value)}
-				/>
-				<p className="type-body-xs text-muted-foreground">
-					{isInvestment ? `${INVESTMENT_BALANCE_HINT} ` : ""}Leave it blank to start at $0.00.
-				</p>
+			<div className={cn("grid grid-cols-1 gap-x-4 gap-y-5", isCard && "sm:grid-cols-2")}>
+				<div className="space-y-2">
+					<Label htmlFor="balance" className="type-label text-muted-foreground">
+						{isLiability ? "Current balance owing" : isInvestment ? "Amount deposited so far" : "Current balance"}
+					</Label>
+					<ProminentAmountInput
+						id="balance"
+						value={form.current_balance}
+						onChange={(value) => setField("current_balance", value)}
+					/>
+					<p className="type-body-xs text-muted-foreground">
+						{isInvestment ? `${INVESTMENT_BALANCE_HINT} ` : ""}
+						{isCard ? "What you owe today, with purchases since your last statement. " : ""}
+						Leave it blank to start at $0.00.
+					</p>
+				</div>
+				{isCard && (
+					<div className="space-y-2">
+						<Label htmlFor="statement_balance" className="type-label text-muted-foreground">
+							Statement balance
+						</Label>
+						<ProminentAmountInput
+							id="statement_balance"
+							value={form.statement_balance}
+							onChange={(value) => setField("statement_balance", value)}
+							hasError={Boolean(errors.statement_balance)}
+						/>
+						<p className={cn("type-body-xs", errors.statement_balance ? "text-error" : "text-muted-foreground")}>
+							{errors.statement_balance ??
+								`${statementBalanceHint(statementCycle)}${statementCycle ? " Leave it blank if it matches the current balance." : ""}`}
+						</p>
+					</div>
+				)}
 			</div>
 
 			{isOther && (
@@ -200,6 +240,18 @@ export function DetailsStep({
 				visibility.showDueDate ||
 				visibility.showLoanTerm) && (
 				<div className="grid grid-cols-1 gap-x-4 gap-y-5 sm:grid-cols-2">
+					{/* A card's statement days sit together, ahead of its limit and rate. */}
+					{isCard && dueDayField}
+					{isCard && (
+						<TextField
+							id="statement_day"
+							label="Statement closes (day of month)"
+							inputMode="numeric"
+							value={form.statement_day}
+							onChange={(value) => setField("statement_day", sanitizeIntegerInput(value))}
+							placeholder="21 days before due"
+						/>
+					)}
 					{visibility.showTargetGoal && (
 						<div className="space-y-2">
 							<Label htmlFor="target">Goal</Label>
@@ -240,26 +292,7 @@ export function DetailsStep({
 							placeholder={isLiability ? "19.99" : "4.00"}
 						/>
 					)}
-					{visibility.showDueDate && (
-						<TextField
-							id="payment_due_date"
-							label="Payment due (day of month)"
-							inputMode="numeric"
-							value={form.payment_due_date}
-							onChange={(value) => setField("payment_due_date", sanitizeIntegerInput(value))}
-							placeholder="e.g. 21"
-						/>
-					)}
-					{visibility.showStatementDay && (
-						<TextField
-							id="statement_day"
-							label="Statement closes (day of month)"
-							inputMode="numeric"
-							value={form.statement_day}
-							onChange={(value) => setField("statement_day", sanitizeIntegerInput(value))}
-							placeholder="21 days before due"
-						/>
-					)}
+					{!isCard && visibility.showDueDate && dueDayField}
 					{visibility.showLoanTerm && (
 						<TextField
 							id="loan_term"

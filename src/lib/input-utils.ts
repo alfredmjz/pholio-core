@@ -64,6 +64,21 @@ export function sanitizeIntegerInput(value: string): string {
 	return stripLeadingZeros(value.replace(/[^0-9]/g, ""));
 }
 
+/**
+ * A stored rate (0.2499) as the percent typed in a field ("24.99"). Rates are stored to 6 decimals,
+ * so the percent is rounded to 4; multiplying by 100 alone shows float noise like 24.990000000000002.
+ */
+export function rateToPercentInput(rate: number | null | undefined): string {
+	if (!rate) return "";
+	return String(Math.round(Number(rate) * 1_000_000) / 10_000);
+}
+
+/** A typed percent ("24.99") as the stored rate (0.2499); blank or not a number is null. */
+export function percentInputToRate(value: string): number | null {
+	const percent = parseFloat(value);
+	return Number.isFinite(percent) ? Math.round(percent * 10_000) / 1_000_000 : null;
+}
+
 /** Like sanitizeIntegerInput, for counts that start at 1: a lone 0 is dropped as well. */
 export function sanitizePositiveIntegerInput(value: string): string {
 	const digits = sanitizeIntegerInput(value);

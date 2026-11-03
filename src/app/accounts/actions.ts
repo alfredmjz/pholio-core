@@ -309,6 +309,8 @@ function buildSampleAccount(input: CreateAccountInput, id = `account-sample-${Da
 		loan_term_months: input.loan_term_months ?? null,
 		payment_due_date: input.payment_due_date ?? null,
 		statement_day: input.statement_day ?? null,
+		statement_balance: input.statement_balance ?? null,
+		statement_balance_date: input.statement_balance_date ?? null,
 		target_balance: input.target_balance ?? null,
 		field_visibility: input.field_visibility ?? null,
 		track_contribution_room: input.track_contribution_room ?? false,

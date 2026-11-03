@@ -102,6 +102,10 @@ export interface Account {
 	payment_due_date: number | null;
 	/** Day of the month a card's statement closes; null = 21 days before the due date. */
 	statement_day?: number | null;
+	/** Statement balance the owner entered; null = worked back from the current balance and ledger. */
+	statement_balance?: number | null;
+	/** Close date (YYYY-MM-DD) of the statement `statement_balance` belongs to. */
+	statement_balance_date?: string | null;
 	target_balance: number | null;
 	// Field visibility chosen by the owner (only meaningful for the "Other" type)
 	field_visibility?: AccountFieldConfig | null;
@@ -315,6 +319,8 @@ export interface CreateAccountInput {
 	loan_term_months?: number | null;
 	payment_due_date?: number | null;
 	statement_day?: number | null;
+	statement_balance?: number | null;
+	statement_balance_date?: string | null;
 	target_balance?: number | null;
 	track_contribution_room?: boolean;
 	contribution_plan?: ContributionPlan | null;
@@ -343,6 +349,8 @@ export interface UpdateAccountInput {
 	loan_term_months?: number | null;
 	payment_due_date?: number | null;
 	statement_day?: number | null;
+	statement_balance?: number | null;
+	statement_balance_date?: string | null;
 	target_balance?: number | null;
 	track_contribution_room?: boolean;
 	contribution_plan?: ContributionPlan | null;

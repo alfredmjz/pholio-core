@@ -1,5 +1,7 @@
+import { cache } from "react";
 import { createServerClient } from "@supabase/ssr";
 import { cookies } from "next/headers";
+import type { User } from "@supabase/supabase-js";
 
 /**
  * Creates a Supabase client for server-side operations.
@@ -43,6 +45,16 @@ export async function getReadUserId(supabase: Awaited<ReturnType<typeof createCl
 	const { data } = await supabase.auth.getClaims();
 	return data?.claims.sub ?? null;
 }
+
+/**
+ * Signed-in user, checked with Supabase Auth once per server render and shared by every loader in
+ * it. React's cache() only memoizes during a render, so server actions still check on each call.
+ */
+export const getAuthUser = cache(async (): Promise<User | null> => {
+	const supabase = await createClient();
+	const { data } = await supabase.auth.getUser();
+	return data.user;
+});
 
 import { createClient as createSupabaseClient } from "@supabase/supabase-js";
 

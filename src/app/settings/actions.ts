@@ -1,7 +1,8 @@
 "use server";
 
 import { headers } from "next/headers";
-import { createAdminClient, createClient } from "@/lib/supabase/server";
+import { createAdminClient, createClient, getAuthUser } from "@/lib/supabase/server";
+import { getProfileRow } from "@/lib/getUserProfile";
 import { revalidatePath } from "next/cache";
 import { sampleProfile } from "@/mock-data/profile";
 import { Logger } from "@/lib/logger";
@@ -235,20 +236,13 @@ export async function getAllocationSettings(): Promise<{
 
 	try {
 		const supabase = await createClient();
-
-		const {
-			data: { user },
-		} = await supabase.auth.getUser();
+		const user = await getAuthUser();
 
 		if (!user) {
 			return { newMonthDefault: "dialog", defaultTemplateId: null };
 		}
 
-		const { data: profile } = await supabase
-			.from("users")
-			.select("allocation_new_month_default")
-			.eq("id", user.id)
-			.single();
+		const profile = await getProfileRow(user.id);
 
 		// Get default template
 		let defaultTemplateId = null;
@@ -367,16 +361,10 @@ export async function getTimezone(): Promise<string | null> {
 	}
 
 	try {
-		const supabase = await createClient();
-
-		const {
-			data: { user },
-		} = await supabase.auth.getUser();
-
+		const user = await getAuthUser();
 		if (!user) return null;
 
-		const { data: profile } = await supabase.from("users").select("timezone").eq("id", user.id).single();
-
+		const profile = await getProfileRow(user.id);
 		return profile?.timezone ?? null;
 	} catch (error) {
 		Logger.error("Error getting timezone", { error });

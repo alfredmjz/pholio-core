@@ -4,6 +4,9 @@ import { verifySupabaseJWT, getAccessTokenFromRequest, decodeJWTPayload } from "
 import { isPublicRoute } from "@/lib/routes";
 import { Logger } from "@/lib/logger";
 
+// A token this close to expiry takes the awaited check, which refreshes it and sets the new cookies.
+const REFRESH_MARGIN_SECONDS = 60;
+
 /**
  * Fast path auth check using local JWT verification
  * Much faster than API calls (1-2ms vs 200-300ms)
@@ -21,16 +24,17 @@ async function fastAuthCheck(request: NextRequest): Promise<{
 		return { userId: null, verified: false, isExpired: true, isTimeout: false, staleCookieNames };
 	}
 
+	const now = Math.floor(Date.now() / 1000);
+
 	// Try full verification (signature check)
 	const { payload, isTimeout } = await verifySupabaseJWT(token);
-	if (payload) {
+	if (payload && payload.exp && payload.exp - now > REFRESH_MARGIN_SECONDS) {
 		return { userId: payload.sub || null, verified: true, isExpired: false, isTimeout: false, staleCookieNames };
 	}
 
-	// Signature verification failed or skipped (HS256) or timed out
+	// Signature verification failed, skipped (HS256), timed out, or the token is about to expire
 	// Check expiration via decode-only for "best-effort" local check
 	const decoded = decodeJWTPayload(token);
-	const now = Math.floor(Date.now() / 1000);
 	const isExpired = decoded?.exp ? decoded.exp < now : true;
 
 	return {
@@ -99,8 +103,6 @@ export async function updateSession(request: NextRequest) {
 
 	if (verified && userId) {
 		// JWT verified via JWKS - user is authenticated securely
-		// Refresh session in background (non-blocking)
-		supabase.auth.getUser().catch(() => {});
 		return supabaseResponse;
 	}
 
@@ -110,8 +112,6 @@ export async function updateSession(request: NextRequest) {
 		Logger.warn(
 			"[updateSession] Dev Emergency Bypass: Signature timed out but token is locally valid. Letting user through."
 		);
-		// Start authoritative check in background
-		supabase.auth.getUser().catch(() => {});
 		return supabaseResponse;
 	}
 

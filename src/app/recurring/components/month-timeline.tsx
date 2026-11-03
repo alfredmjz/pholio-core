@@ -12,7 +12,7 @@ interface TimelineItem {
 	id: string;
 	name: string;
 	amount: number;
-	kind: "bill" | "subscription";
+	kind: "bill" | "subscription" | "transfer";
 	state: OccurrenceState;
 }
 
@@ -45,7 +45,7 @@ function Marker({
 		<span
 			className={cn(
 				"block h-2.5 w-2.5 border-[1.5px]",
-				kind === "bill" ? "rounded-[3px]" : "rounded-full",
+				kind === "bill" ? "rounded-[3px]" : kind === "transfer" ? "rotate-45 rounded-[1px]" : "rounded-full",
 				MARKER_TONE[state],
 				className
 			)}
@@ -60,7 +60,7 @@ interface MonthTimelineProps {
 	today: string;
 }
 
-/** This month's days, with every active bill and subscription placed on its due date. */
+/** This month's days, with every active bill, subscription and transfer placed on its due date. */
 export function MonthTimeline({ expenses, today }: MonthTimelineProps) {
 	const now = parseLocalDate(today);
 	const year = now.getFullYear();
@@ -73,7 +73,8 @@ export function MonthTimeline({ expenses, today }: MonthTimelineProps) {
 		const days = new Map<number, TimelineItem[]>();
 		for (const expense of expenses) {
 			if (expense.is_active === false) continue;
-			const kind = expense.category === "bill" ? "bill" : "subscription";
+			const kind: TimelineItem["kind"] =
+				expense.category === "bill" ? "bill" : expense.category === "transfer" ? "transfer" : "subscription";
 			for (const occurrence of occurrencesInMonth(expense.next_due_date, expense.billing_period, year, month, today)) {
 				const day = Number(occurrence.date.slice(8, 10));
 				const list = days.get(day) ?? [];
@@ -90,11 +91,13 @@ export function MonthTimeline({ expenses, today }: MonthTimelineProps) {
 		return days;
 	}, [expenses, year, month, today]);
 
+	// Transfers stay on the timeline but are not payments, so they are left out of the totals.
 	const totals = useMemo(() => {
 		let paid = 0;
 		let due = 0;
 		byDay.forEach((items) =>
 			items.forEach((item) => {
+				if (item.kind === "transfer") return;
 				if (item.state === "paid") paid += item.amount;
 				else due += item.amount;
 			})
@@ -130,6 +133,9 @@ export function MonthTimeline({ expenses, today }: MonthTimelineProps) {
 					</li>
 					<li className="flex items-center gap-1.5">
 						<Marker kind="subscription" state="upcoming" /> Subscription
+					</li>
+					<li className="flex items-center gap-1.5">
+						<Marker kind="transfer" state="upcoming" /> Transfer
 					</li>
 					<li className="flex items-center gap-1.5">
 						<Marker kind="subscription" state="paid" /> Paid

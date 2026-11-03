@@ -4,6 +4,7 @@ import Link from "next/link";
 import { AlertTriangle } from "lucide-react";
 import { SurfaceSection } from "@/components/layout/surface-section";
 import { formatCurrency } from "@/app/dashboard/utils";
+import { cn } from "@/lib/utils";
 import { formatFrequency, formatShortDate, parseLocalDate } from "@/lib/date-utils";
 import { accountWarning, accountWarningText } from "@/lib/account-links";
 import { feeWarningUntil, projectAccountFees, projectedFeeText, scheduledPayments } from "@/lib/overdraft";
@@ -17,12 +18,23 @@ interface RecurringChargesCardProps {
 	today: string;
 }
 
-/** Bills and subscriptions paid from this account, and the fees they would charge. Hidden when there are none. */
+/**
+ * Bills, subscriptions and transfers paid from this account, transfers into it, and the fees the
+ * outgoing ones would charge. Hidden when there are none.
+ */
 export function RecurringChargesCard({ account, items, today }: RecurringChargesCardProps) {
 	if (items.length === 0) return null;
 	const warning = accountWarning(account);
-	const fees = projectAccountFees(account, scheduledPayments(items, feeWarningUntil(today)));
-	const monthlyNote = `${items.length} ${items.length === 1 ? "item is" : "items are"} paid from this account`;
+	const outgoing = items.filter((item) => item.direction === "out");
+	const incoming = items.length - outgoing.length;
+	const fees = projectAccountFees(account, scheduledPayments(outgoing, feeWarningUntil(today)));
+	const monthlyNote = [
+		outgoing.length > 0 &&
+			`${outgoing.length} ${outgoing.length === 1 ? "item is" : "items are"} paid from this account`,
+		incoming > 0 && `${incoming} ${incoming === 1 ? "transfer comes" : "transfers come"} in`,
+	]
+		.filter(Boolean)
+		.join(", ");
 
 	return (
 		<SurfaceSection
@@ -60,8 +72,9 @@ export function RecurringChargesCard({ account, items, today }: RecurringCharges
 									{formatFrequency(item.billing_period)}, next {formatShortDate(parseLocalDate(item.next_due_date))}
 								</span>
 							</span>
-							<span className="type-value shrink-0 text-primary">
-								-{formatCurrency(item.amount, { showCents: true })}
+							<span className={cn("type-value shrink-0", item.direction === "in" ? "text-success" : "text-primary")}>
+								{item.direction === "in" ? "+" : "-"}
+								{formatCurrency(item.amount, { showCents: true })}
 							</span>
 						</Link>
 					</li>

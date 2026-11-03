@@ -1,7 +1,7 @@
 "use client";
 
 import Link from "next/link";
-import { AlertTriangle, MoreHorizontal, Zap } from "lucide-react";
+import { AlertTriangle, ArrowLeftRight, ArrowRight, MoreHorizontal, Zap } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import {
 	DropdownMenu,
@@ -23,30 +23,57 @@ import type { RecurringExpense } from "../actions";
 export const RECURRING_GRID =
 	"row-wide:grid row-wide:grid-cols-[minmax(9rem,1.5fr)_minmax(6rem,1fr)_minmax(6rem,1fr)_5.5rem_7.5rem] row-wide:items-center row-wide:gap-3";
 
-/** Logo, name, how often it repeats, "Auto" when it's recorded automatically, and the account it's paid from. */
+function AccountLink({ account, title }: { account: AccountWithType; title: string }) {
+	return (
+		<Link
+			href={accountHref(account.id)}
+			onClick={(event) => event.stopPropagation()}
+			className="truncate underline-offset-2 hover:text-primary hover:underline"
+			title={title}
+		>
+			{formatAccountDisplayName(account)}
+		</Link>
+	);
+}
+
+/**
+ * Logo, name, how often it repeats, "Auto" when it's recorded automatically, and the account it's
+ * paid from (a transfer shows both of its accounts).
+ */
 export function RecurringIdentity({
 	expense,
 	muted = false,
 	automated = false,
 	account = null,
+	toAccount = null,
 }: {
 	expense: RecurringExpense;
 	muted?: boolean;
 	automated?: boolean;
 	account?: AccountWithType | null;
+	toAccount?: AccountWithType | null;
 }) {
 	const meta = expense.meta_data as { domain?: string; no_logo_lookup?: boolean } | null;
 	return (
 		<div className="flex min-w-0 items-center gap-3">
-			<ServiceLogo
-				name={expense.name}
-				serviceProvider={expense.service_provider}
-				domain={meta?.domain}
-				disableLookup={meta?.no_logo_lookup}
-				className={muted ? "h-9 w-9 shrink-0 opacity-50 grayscale" : "h-9 w-9 shrink-0"}
-				width={36}
-				height={36}
-			/>
+			{expense.category === "transfer" ? (
+				<span
+					className="flex h-9 w-9 shrink-0 items-center justify-center rounded-full bg-success-muted text-success"
+					aria-hidden
+				>
+					<ArrowLeftRight className="h-4 w-4" />
+				</span>
+			) : (
+				<ServiceLogo
+					name={expense.name}
+					serviceProvider={expense.service_provider}
+					domain={meta?.domain}
+					disableLookup={meta?.no_logo_lookup}
+					className={muted ? "h-9 w-9 shrink-0 opacity-50 grayscale" : "h-9 w-9 shrink-0"}
+					width={36}
+					height={36}
+				/>
+			)}
 			<div className="min-w-0">
 				<p
 					className={
@@ -66,20 +93,21 @@ export function RecurringIdentity({
 							Auto
 						</span>
 					)}
-					{account && (
+					{account && !toAccount && (
 						<>
 							<span aria-hidden>·</span>
-							<Link
-								href={accountHref(account.id)}
-								onClick={(event) => event.stopPropagation()}
-								className="truncate underline-offset-2 hover:text-primary hover:underline"
-								title={`Paid from ${formatAccountDisplayName(account)}`}
-							>
-								{formatAccountDisplayName(account)}
-							</Link>
+							<AccountLink account={account} title={`Paid from ${formatAccountDisplayName(account)}`} />
 						</>
 					)}
 				</p>
+				{account && toAccount && (
+					<p className="type-body-xs flex min-w-0 items-center gap-1 text-muted-foreground">
+						<AccountLink account={account} title={`From ${formatAccountDisplayName(account)}`} />
+						<ArrowRight className="h-3 w-3 shrink-0" aria-hidden />
+						<span className="sr-only">to</span>
+						<AccountLink account={toAccount} title={`To ${formatAccountDisplayName(toAccount)}`} />
+					</p>
+				)}
 			</div>
 		</div>
 	);

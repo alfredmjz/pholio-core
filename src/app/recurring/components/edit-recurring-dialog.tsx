@@ -16,7 +16,9 @@ import { toast } from "sonner";
 import { ProminentAmountInput } from "@/components/ProminentAmountInput";
 import { sanitizePositiveIntegerInput } from "@/lib/input-utils";
 import type { AccountWithType } from "@/app/accounts/types";
+import { cn } from "@/lib/utils";
 import { NO_ACCOUNT, RecurringAccountField } from "./recurring-account-field";
+import { RecurringTransferFields, transferAccountsError } from "./recurring-transfer-fields";
 
 interface EditRecurringDialogProps {
 	open: boolean;
@@ -47,9 +49,11 @@ export function EditRecurringDialog({
 		category: "subscription",
 		budget_category: "__default__",
 		account_id: NO_ACCOUNT,
+		to_account_id: "",
 		is_automated: true,
 	});
 	const [isSubmitting, setIsSubmitting] = useState(false);
+	const isTransfer = formData.category === "transfer";
 
 	useEffect(() => {
 		if (expense) {
@@ -81,7 +85,8 @@ export function EditRecurringDialog({
 						),
 				category: expense.category,
 				budget_category: expense.budget_category ?? "__default__",
-				account_id: expense.account_id ?? NO_ACCOUNT,
+				account_id: expense.account_id ?? (expense.category === "transfer" ? "" : NO_ACCOUNT),
+				to_account_id: expense.to_account_id ?? "",
 				is_automated: (expense.meta_data as any)?.is_automated !== false,
 			});
 		}
@@ -129,6 +134,12 @@ export function EditRecurringDialog({
 			return;
 		}
 
+		const accountsError = isTransfer ? transferAccountsError(formData.account_id, formData.to_account_id) : null;
+		if (accountsError) {
+			toast.error("Choose two accounts", { description: accountsError });
+			return;
+		}
+
 		setIsSubmitting(true);
 		try {
 			const payload: Partial<RecurringExpense> = {
@@ -137,8 +148,9 @@ export function EditRecurringDialog({
 				billing_period: `${frequencyValue}:${formData.frequency_unit}`,
 				next_due_date: formatDateString(formData.next_due_date),
 				category: formData.category,
-				budget_category: formData.budget_category === "__default__" ? null : formData.budget_category,
+				budget_category: isTransfer || formData.budget_category === "__default__" ? null : formData.budget_category,
 				account_id: formData.account_id === NO_ACCOUNT ? null : formData.account_id,
+				to_account_id: isTransfer ? formData.to_account_id : null,
 				meta_data: {
 					...(expense.meta_data as any),
 					is_automated: formData.is_automated,
@@ -152,7 +164,13 @@ export function EditRecurringDialog({
 			const success = await updateRecurringExpense(expense.id, payload);
 
 			if (success) {
-				toast.success(forceActiveOnSave ? "Subscription reactivated" : "Recurring expense updated");
+				toast.success(
+					forceActiveOnSave
+						? "Subscription reactivated"
+						: isTransfer
+							? "Recurring transfer updated"
+							: "Recurring expense updated"
+				);
 				onSuccess?.({
 					...expense,
 					...payload,
@@ -181,8 +199,12 @@ export function EditRecurringDialog({
 		<ControlBasedDialog
 			open={open}
 			onOpenChange={onOpenChange}
-			title="Edit Recurring Expense"
-			description="Update the details for this recurring expense."
+			title={isTransfer ? "Edit Recurring Transfer" : "Edit Recurring Expense"}
+			description={
+				isTransfer
+					? "Update how much moves between your accounts, and when."
+					: "Update the details for this recurring expense."
+			}
 			className="sm:max-w-[500px]"
 			onEnterSubmit={handleSubmit}
 		>
@@ -240,21 +262,23 @@ export function EditRecurringDialog({
 						</div>
 					</div>
 				</div>
-				<div className="grid grid-cols-1 gap-4 sm:grid-cols-2">
+				<div className={cn("grid grid-cols-1 gap-4", !isTransfer && "sm:grid-cols-2")}>
+					{!isTransfer && (
+						<div className="space-y-2">
+							<Label>Category</Label>
+							<Select value={formData.category} onValueChange={(v) => setFormData({ ...formData, category: v })}>
+								<SelectTrigger className="h-10">
+									<SelectValue />
+								</SelectTrigger>
+								<SelectContent>
+									<SelectItem value="bill">Bill</SelectItem>
+									<SelectItem value="subscription">Subscription</SelectItem>
+								</SelectContent>
+							</Select>
+						</div>
+					)}
 					<div className="space-y-2">
-						<Label>Category</Label>
-						<Select value={formData.category} onValueChange={(v) => setFormData({ ...formData, category: v })}>
-							<SelectTrigger className="h-10">
-								<SelectValue />
-							</SelectTrigger>
-							<SelectContent>
-								<SelectItem value="bill">Bill</SelectItem>
-								<SelectItem value="subscription">Subscription</SelectItem>
-							</SelectContent>
-						</Select>
-					</div>
-					<div className="space-y-2">
-						<Label htmlFor="next-due-date">Next Due Date</Label>
+						<Label htmlFor="next-due-date">{isTransfer ? "Next Transfer Date" : "Next Due Date"}</Label>
 						<DatePicker
 							id="next-due-date"
 							value={formatDateString(formData.next_due_date)}
@@ -263,7 +287,18 @@ export function EditRecurringDialog({
 						/>
 					</div>
 				</div>
-				<div className="space-y-2">
+				{isTransfer && (
+					<RecurringTransferFields
+						idPrefix="edit-recurring-transfer"
+						fromAccountId={formData.account_id}
+						toAccountId={formData.to_account_id}
+						onChange={({ fromAccountId, toAccountId }) =>
+							setFormData({ ...formData, account_id: fromAccountId, to_account_id: toAccountId })
+						}
+						accounts={accounts}
+					/>
+				)}
+				<div className={cn("space-y-2", isTransfer && "hidden")}>
 					<Label>Budget category</Label>
 					<Select
 						value={formData.budget_category}
@@ -285,19 +320,23 @@ export function EditRecurringDialog({
 					</Select>
 					<p className="text-xs text-muted-foreground">Which budget category this recurring expense is added to.</p>
 				</div>
-				<RecurringAccountField
-					id="edit-recurring-account"
-					value={formData.account_id}
-					onChange={(v) => setFormData({ ...formData, account_id: v })}
-					accounts={accounts}
-				/>
-				{formData.category === "bill" && (
+				{!isTransfer && (
+					<RecurringAccountField
+						id="edit-recurring-account"
+						value={formData.account_id}
+						onChange={(v) => setFormData({ ...formData, account_id: v })}
+						accounts={accounts}
+					/>
+				)}
+				{(formData.category === "bill" || isTransfer) && (
 					<div className="flex items-center justify-between space-x-2 pt-2">
 						<div className="flex flex-col gap-1">
 							<Label htmlFor="edit-auto-pay" className="leading-none">
-								Auto-pay
+								{isTransfer ? "Automatic transfer" : "Auto-pay"}
 							</Label>
-							<span className="text-xs text-muted-foreground">Automatically create transactions</span>
+							<span className="text-xs text-muted-foreground">
+								{isTransfer ? "Record each transfer on its date" : "Automatically create transactions"}
+							</span>
 						</div>
 						<Switch
 							id="edit-auto-pay"

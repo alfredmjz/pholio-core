@@ -12,6 +12,16 @@ export interface ChangelogEntry {
 /** What's new in Pholio, newest first. Every user-facing release adds an entry at the top. */
 export const CHANGELOG: ChangelogEntry[] = [
 	{
+		id: "2026-11-recurring-transfers",
+		date: "2026-11-02",
+		title: "Recurring transfers between your accounts",
+		items: [
+			"Set up a transfer that repeats, like moving money from chequing to your TFSA every month. Choose Transfer when you add a recurring item.",
+			"Each transfer is recorded on both accounts on its date, or when you press Transfer if you turn off automatic transfers.",
+			"Transfers have their own section on the Recurring page and aren't counted as spending in your budget.",
+		],
+	},
+	{
 		id: "2026-11-card-statement-balance-entry",
 		date: "2026-11-02",
 		title: "Enter your card's statement balance",

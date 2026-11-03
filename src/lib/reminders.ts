@@ -27,12 +27,18 @@ export interface ReminderCard {
 	enteredStatement?: EnteredStatement | null;
 }
 
+const RECURRING_DETAIL: Record<ReminderRecurring["category"], string> = {
+	bill: "Bill",
+	subscription: "Subscription renewal",
+	transfer: "Transfer",
+};
+
 export interface ReminderRecurring {
 	id: string;
 	name: string;
 	amount: number;
 	nextDueDate: string;
-	category: "bill" | "subscription";
+	category: "bill" | "subscription" | "transfer";
 }
 
 /** An account with fee terms and the recurring items paid from it. */
@@ -128,7 +134,7 @@ export function findDueReminders({
 			dueDate: item.nextDueDate,
 			daysUntil,
 			amount: item.amount,
-			detail: item.category === "bill" ? "Bill" : "Subscription renewal",
+			detail: RECURRING_DETAIL[item.category],
 		});
 	}
 

@@ -43,16 +43,18 @@ describe("findDueReminders", () => {
 				{ id: "r2", name: "Netflix", amount: 18.99, nextDueDate: "2026-10-26", category: "subscription" },
 				{ id: "r3", name: "Gym", amount: 40, nextDueDate: "2026-10-28", category: "subscription" },
 				{ id: "r4", name: "Phone", amount: 65, nextDueDate: "2026-10-20", category: "bill" },
+				{ id: "r5", name: "TFSA", amount: 500, nextDueDate: "2026-10-25", category: "transfer" },
 			],
 		});
 
 		// Gym is 4 days out (past 3) and Phone is overdue, so neither is a reminder.
 		expect(reminders.map((r) => [r.name, r.dueDate, r.daysUntil, r.detail])).toEqual([
 			["Rent", "2026-10-24", 0, "Bill"],
+			["TFSA", "2026-10-25", 1, "Transfer"],
 			["Netflix", "2026-10-26", 2, "Subscription renewal"],
 			["Visa", "2026-10-27", 3, "Credit card payment"],
 		]);
-		expect(reminders[2]).toMatchObject({ kind: "card_due", refId: "card-1", amount: 450 });
+		expect(reminders[3]).toMatchObject({ kind: "card_due", refId: "card-1", amount: 450 });
 	});
 
 	test("skips cards with nothing owed or an invalid due day", () => {

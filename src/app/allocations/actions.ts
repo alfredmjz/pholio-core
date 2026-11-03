@@ -20,6 +20,12 @@ import { parseLocalDate, calculateNextDueDate, getTodayDateString, formatDateStr
 import { getAllocationSettings, getTimezone } from "@/app/settings/actions";
 import { getAccountsForSelector } from "@/lib/actions/unified-transaction-actions";
 import { getAllocationContributions } from "@/lib/actions/contribution-actions";
+import {
+	canPostTransfer,
+	isRecurringTransfer,
+	recurringOccurrenceRow,
+	type RecurringOccurrenceRow,
+} from "@/app/recurring/recurring-occurrence";
 
 // ============================================================================
 // Sample-data mode: in-memory allocations so month navigation and "create budget"
@@ -218,6 +224,19 @@ async function syncRecurringExpenses(
 
 	if (!allRecurring) return;
 
+	// Transfers post only while both of their accounts are active; until then they stay due.
+	let activeAccountIds = new Set<string>();
+	if (allRecurring.some((r) => r.is_active && isRecurringTransfer(r))) {
+		const { data: activeAccounts } = await supabase
+			.from("accounts")
+			.select("id")
+			.eq("user_id", userId)
+			.eq("is_active", true);
+		activeAccountIds = new Set((activeAccounts || []).map((a: { id: string }) => a.id));
+	}
+	const isPostable = (expense: (typeof allRecurring)[0]) =>
+		!isRecurringTransfer(expense) || canPostTransfer(expense, activeAccountIds);
+
 	const startDate = `${targetYear}-${String(targetMonth).padStart(2, "0")}-01`;
 	const endDate = formatDateString(new Date(targetYear, targetMonth, 0));
 
@@ -303,6 +322,9 @@ async function syncRecurringExpenses(
 				return sum + (recordedAmount !== undefined ? Math.abs(recordedAmount) : Math.abs(Number(expense.amount)));
 			}, 0);
 			applicableExpenses.push({ expense, dates: occurrences });
+
+			// Transfers move money between the user's accounts; they are not budgeted spending.
+			if (isRecurringTransfer(expense)) continue;
 
 			const customName = customRecurringCategoryName(expense);
 			if (customName) {
@@ -494,6 +516,7 @@ async function syncRecurringExpenses(
 	for (const transaction of existingTransactions || []) {
 		if (transaction.category_id) continue;
 		const expense = allRecurring.find((r) => r.id === transaction.recurring_expense_id);
+		if (expense && isRecurringTransfer(expense)) continue;
 		const categoryId = expense ? categoryIdByName.get(resolveRecurringCategoryName(expense).toLowerCase()) : undefined;
 		if (categoryId) idsByCategory.set(categoryId, [...(idsByCategory.get(categoryId) ?? []), transaction.id]);
 	}
@@ -502,17 +525,7 @@ async function syncRecurringExpenses(
 		if (error) Logger.error("Error categorizing early recurring payments", { error });
 	}
 
-	const transactionsToCreate: Array<{
-		user_id: string;
-		name: string;
-		amount: number;
-		transaction_date: string;
-		covers_due_date: string;
-		category_id: string | null;
-		source: string;
-		recurring_expense_id: string;
-		notes: string;
-	}> = [];
+	const transactionsToCreate: RecurringOccurrenceRow[] = [];
 
 	const existingTransactionMap = new Map(
 		(existingTransactions || []).map((t) => {
@@ -534,7 +547,7 @@ async function syncRecurringExpenses(
 			// recurring expense only apply from the next unrecorded occurrence.
 			if (existingTransactionMap.has(key) || recordedAmountByKey.has(key)) continue;
 
-			if (!expense.is_active) continue;
+			if (!expense.is_active || !isPostable(expense)) continue;
 
 			const meta = (expense.meta_data as any) || {};
 			if (meta.is_automated === false) continue;
@@ -545,17 +558,15 @@ async function syncRecurringExpenses(
 
 			if (targetDate > todayLocal) continue;
 
-			transactionsToCreate.push({
-				user_id: userId,
-				name: expense.name,
-				amount: -Math.abs(Number(expense.amount)),
-				transaction_date: dateStr,
-				covers_due_date: dateStr,
-				category_id: categoryIdByName.get(resolveRecurringCategoryName(expense).toLowerCase()) ?? null,
-				source: "recurring",
-				recurring_expense_id: expense.id,
-				notes: `Auto-created from recurring ${expense.category}`,
-			});
+			transactionsToCreate.push(
+				recurringOccurrenceRow(expense, {
+					userId,
+					transactionDate: dateStr,
+					coversDueDate: dateStr,
+					categoryId: categoryIdByName.get(resolveRecurringCategoryName(expense).toLowerCase()) ?? null,
+					notes: `Auto-created from recurring ${expense.category}`,
+				})
+			);
 		}
 	}
 
@@ -574,7 +585,7 @@ async function syncRecurringExpenses(
 	const missedByMonth: Record<string, MissedOccurrence[]> = {};
 
 	for (const expense of allRecurring) {
-		if (!expense.is_active) continue;
+		if (!expense.is_active || !isPostable(expense)) continue;
 		const meta = (expense.meta_data as any) || {};
 		if (meta.is_automated === false) continue;
 
@@ -673,6 +684,7 @@ async function syncRecurringExpenses(
 			{ name: string; total: number; isDefault: boolean; defaultType: "bill" | "subscription" | null }
 		>();
 		for (const item of items) {
+			if (isRecurringTransfer(item.expense)) continue;
 			const custom = customRecurringCategoryName(item.expense);
 			const name = custom ?? (item.expense.category === "bill" ? "Bills" : "Subscriptions");
 			const key = name.toLowerCase();
@@ -726,17 +738,15 @@ async function syncRecurringExpenses(
 
 		const missedTransactions = items
 			.filter((item: MissedOccurrence) => !missedExistingKeys.has(`${item.expense.id}:${item.dateStr}`))
-			.map((item: MissedOccurrence) => ({
-				user_id: userId,
-				name: item.expense.name,
-				amount: -Math.abs(Number(item.expense.amount)),
-				transaction_date: item.dateStr,
-				covers_due_date: item.dateStr,
-				category_id: missedCategoryIdByName.get(resolveRecurringCategoryName(item.expense).toLowerCase()) ?? null,
-				source: "recurring",
-				recurring_expense_id: item.expense.id,
-				notes: `Auto-created from recurring ${item.expense.category}`,
-			}));
+			.map((item: MissedOccurrence) =>
+				recurringOccurrenceRow(item.expense, {
+					userId,
+					transactionDate: item.dateStr,
+					coversDueDate: item.dateStr,
+					categoryId: missedCategoryIdByName.get(resolveRecurringCategoryName(item.expense).toLowerCase()) ?? null,
+					notes: `Auto-created from recurring ${item.expense.category}`,
+				})
+			);
 
 		if (missedTransactions.length > 0) {
 			const { error } = await supabase.from("transactions").insert(missedTransactions);

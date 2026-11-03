@@ -109,6 +109,7 @@ export interface Database {
 					category: string;
 					budget_category: string | null;
 					account_id: string | null;
+					to_account_id: string | null;
 					is_active: boolean | null;
 					service_provider: string | null;
 					meta_data: Json | null;
@@ -126,6 +127,7 @@ export interface Database {
 					category: string;
 					budget_category?: string | null;
 					account_id?: string | null;
+					to_account_id?: string | null;
 					is_active?: boolean | null;
 					service_provider?: string | null;
 					meta_data?: Json | null;
@@ -143,6 +145,7 @@ export interface Database {
 					category?: string;
 					budget_category?: string | null;
 					account_id?: string | null;
+					to_account_id?: string | null;
 					is_active?: boolean | null;
 					service_provider?: string | null;
 					meta_data?: Json | null;

@@ -8,6 +8,7 @@ import { getSampleDashboardData } from "@/mock-data/dashboard";
 import { getTimezone } from "@/app/settings/actions";
 import { getAllocationSummary, getHistoricalPace } from "@/app/allocations/actions";
 import { getRecurringExpenses, type RecurringExpense } from "@/app/recurring/actions";
+import { isRecurringTransfer } from "@/app/recurring/recurring-occurrence";
 import { getOpenPromotions } from "@/lib/actions/promotion-actions";
 import { isInvestmentAccount } from "@/lib/account-validation-utils";
 import type { AccountWithType } from "@/app/accounts/types";
@@ -27,7 +28,7 @@ const RECENT_LIMIT = 8;
  */
 export async function getDashboardData(): Promise<DashboardData> {
 	if (await isSampleDataMode()) {
-		return getSampleDashboardData(undefined, (await getRecurringExpenses()).map(toBillInput));
+		return getSampleDashboardData(undefined, (await getRecurringExpenses()).filter(isBill).map(toBillInput));
 	}
 
 	const supabase = await createClient();
@@ -117,7 +118,7 @@ export async function getDashboardData(): Promise<DashboardData> {
 				})
 			: null;
 
-	const bills = recurring.map(toBillInput);
+	const bills = recurring.filter(isBill).map(toBillInput);
 
 	const categories = summary?.categories ?? [];
 
@@ -196,6 +197,9 @@ export async function getRecentTransactions(limit: number = 10): Promise<Transac
 		type: isTransfer(t) ? ("transfer" as const) : t.amount > 0 ? ("income" as const) : ("expense" as const),
 	}));
 }
+
+/** Bills and subscriptions; recurring transfers move money between the user's own accounts. */
+const isBill = (expense: RecurringExpense) => !isRecurringTransfer(expense);
 
 function toBillInput(expense: RecurringExpense): BillInput {
 	return {

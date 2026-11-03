@@ -595,24 +595,35 @@ export interface AccountRecurringItem {
 	billing_period: string;
 	next_due_date: string;
 	category: string;
+	/** "in" for a recurring transfer into this account; everything else takes money out. */
+	direction: "in" | "out";
 }
 
-/** Active bills and subscriptions paid from this account, soonest first. */
+type RecurringForAccountRow = Omit<AccountRecurringItem, "direction"> & { to_account_id?: string | null };
+
+/** Active bills, subscriptions and transfers paid from this account, and transfers into it, soonest first. */
 export async function getRecurringForAccount(accountId: string): Promise<AccountRecurringItem[]> {
-	const pick = (rows: AccountRecurringItem[]) =>
-		rows.map(({ id, name, amount, billing_period, next_due_date, category }) => ({
-			id,
-			name,
-			amount: Number(amount),
-			billing_period,
-			next_due_date: next_due_date.slice(0, 10),
-			category,
-		}));
+	const pick = (rows: RecurringForAccountRow[]): AccountRecurringItem[] =>
+		rows
+			.map(({ id, name, amount, billing_period, next_due_date, category, to_account_id }) => ({
+				id,
+				name,
+				amount: Number(amount),
+				billing_period,
+				next_due_date: next_due_date.slice(0, 10),
+				category,
+				direction: (to_account_id === accountId ? "in" : "out") as AccountRecurringItem["direction"],
+			}))
+			.sort((a, b) => a.next_due_date.localeCompare(b.next_due_date));
 
 	if (await isSampleDataMode()) {
 		return pick(
-			getMockRecurringExpenses().filter((item) => item.account_id === accountId && item.is_active !== false)
-		).sort((a, b) => a.next_due_date.localeCompare(b.next_due_date));
+			getMockRecurringExpenses().filter(
+				(item) =>
+					(item.account_id === accountId || (item.category === "transfer" && item.to_account_id === accountId)) &&
+					item.is_active !== false
+			)
+		);
 	}
 
 	const supabase = await createClient();
@@ -621,19 +632,29 @@ export async function getRecurringForAccount(accountId: string): Promise<Account
 	} = await supabase.auth.getUser();
 	if (!user) return [];
 
-	const { data, error } = await supabase
-		.from("recurring_expenses")
-		.select("id, name, amount, billing_period, next_due_date, category")
-		.eq("user_id", user.id)
-		.eq("account_id", accountId)
-		.eq("is_active", true)
-		.order("next_due_date", { ascending: true });
+	const columns = "id, name, amount, billing_period, next_due_date, category, to_account_id";
+	const [outgoing, incoming] = await Promise.all([
+		supabase
+			.from("recurring_expenses")
+			.select(columns)
+			.eq("user_id", user.id)
+			.eq("account_id", accountId)
+			.eq("is_active", true),
+		supabase
+			.from("recurring_expenses")
+			.select(columns)
+			.eq("user_id", user.id)
+			.eq("category", "transfer")
+			.eq("to_account_id", accountId)
+			.eq("is_active", true),
+	]);
 
+	const error = outgoing.error ?? incoming.error;
 	if (error) {
 		Logger.error("Error fetching recurring items for account", { error });
 		return [];
 	}
-	return pick(data || []);
+	return pick([...(outgoing.data || []), ...(incoming.data || [])]);
 }
 
 /**

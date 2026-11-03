@@ -12,7 +12,10 @@ export function getSampleNotifications(now: Date = getDemoNow()): AccountNotific
 			name: item.name,
 			amount: Number(item.amount),
 			nextDueDate: item.next_due_date.slice(0, 10),
-			category: item.category === "bill" ? ("bill" as const) : ("subscription" as const),
+			category:
+				item.category === "bill" || item.category === "transfer"
+					? (item.category as "bill" | "transfer")
+					: ("subscription" as const),
 		}));
 
 	return findDueReminders({ today: toDateOnly(now), leadDays: 14, cards: [], recurring }).map((reminder) => ({

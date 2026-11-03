@@ -82,7 +82,7 @@ const BUILDERS: Record<ExportKind, (rows: Row[]) => string> = {
 		toCsv(
 			rows.map((row) => ({
 				Name: text(row.name),
-				Kind: row.category === "subscription" ? "Subscription" : "Bill",
+				Kind: row.category === "subscription" ? "Subscription" : row.category === "transfer" ? "Transfer" : "Bill",
 				Amount: amount(row.amount),
 				"Repeats every": text(row.billing_period),
 				"Next due": text(row.next_due_date),

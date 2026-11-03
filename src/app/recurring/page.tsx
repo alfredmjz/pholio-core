@@ -8,7 +8,7 @@ import { RecurringLoadingSkeleton } from "./components/recurring-loading-skeleto
 
 export const metadata = {
 	title: "Recurring | Pholio",
-	description: "Your bills and subscriptions",
+	description: "Your bills, subscriptions and transfers",
 };
 
 export default async function RecurringPage() {

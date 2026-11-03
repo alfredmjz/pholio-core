@@ -19,6 +19,7 @@ import { getAllocation, autoCreateAllocationWithDefaults } from "../allocations/
 import { isSampleDataMode } from "@/lib/demo-mode.server";
 import { getTimezone } from "@/app/settings/actions";
 import { coveredDueDate, earlyPaymentPlan, PAY_AHEAD_MAX, paymentsForMonth } from "./recurring-schedule";
+import { canPostTransfer, isRecurringTransfer, recurringOccurrenceRow } from "./recurring-occurrence";
 
 /**
  * The allocation category NAME a recurring expense is bundled into. A user-chosen
@@ -250,10 +251,13 @@ export async function addRecurringExpense(
 	} = await supabase.auth.getUser();
 	if (!user) return null;
 
+	const row = normalizeRecurringKind(expense);
+	if (isRecurringTransfer(row) && !(await transferAccountsAreUsable(supabase, row))) return null;
+
 	const { data, error } = await supabase
 		.from("recurring_expenses")
 		.insert({
-			...expense,
+			...row,
 			user_id: user.id,
 		})
 		.select()
@@ -291,10 +295,45 @@ export async function toggleSubscription(id: string, isActive: boolean): Promise
 	return true;
 }
 
+/**
+ * A transfer moves money between two of the user's accounts: it has no budget category or service.
+ * Bills and subscriptions have no destination account.
+ */
+function normalizeRecurringKind<T extends Partial<RecurringExpense>>(row: T): T {
+	if (row.category === undefined) return row;
+	return isRecurringTransfer({ category: row.category })
+		? { ...row, budget_category: null, service_provider: null }
+		: { ...row, to_account_id: null };
+}
+
+async function transferAccountsAreUsable(
+	supabase: Awaited<ReturnType<typeof createClient>>,
+	row: { account_id?: string | null; to_account_id?: string | null }
+): Promise<boolean> {
+	const ids = [row.account_id, row.to_account_id].filter((id): id is string => Boolean(id));
+	if (ids.length !== 2) return false;
+	const { data } = await supabase.from("accounts").select("id").in("id", ids).eq("is_active", true);
+	return canPostTransfer(row, new Set((data ?? []).map((account: { id: string }) => account.id)));
+}
+
 export async function updateRecurringExpense(id: string, updates: Partial<RecurringExpense>): Promise<boolean> {
 	const supabase = await createClient();
 
-	const { error } = await supabase.from("recurring_expenses").update(updates).eq("id", id);
+	let row = updates;
+	if (row.category !== undefined || row.account_id !== undefined || row.to_account_id !== undefined) {
+		const { data: current } = await supabase
+			.from("recurring_expenses")
+			.select("category, account_id, to_account_id")
+			.eq("id", id)
+			.single();
+		if (!current) return false;
+		const merged = { ...current, ...row };
+		row = normalizeRecurringKind({ ...row, category: merged.category });
+		if (isRecurringTransfer(merged) && !(await transferAccountsAreUsable(supabase, { ...merged, ...row })))
+			return false;
+	}
+
+	const { error } = await supabase.from("recurring_expenses").update(row).eq("id", id);
 
 	if (error) {
 		Logger.error("Error updating recurring expense", { error });
@@ -435,6 +474,8 @@ export async function payRecurringExpense(
 		return false;
 	}
 
+	if (isRecurringTransfer(expense) && !(await transferAccountsAreUsable(supabase, expense))) return false;
+
 	const { covered, nextDue } = earlyPaymentPlan(expense.next_due_date, expense.billing_period, count);
 	const today = options.early ? getTodayDateString((await getTimezone()) ?? undefined) : null;
 
@@ -492,25 +533,13 @@ async function createRecurringTransaction(
 	coversDueDate: string,
 	notes: string
 ): Promise<boolean> {
-	// Attempt to link category
-	const categoryId = await getCategoryIdForExpense(
-		supabase,
-		userId,
-		transactionDate,
-		resolveRecurringCategoryName(expense)
-	);
+	const categoryId = isRecurringTransfer(expense)
+		? null
+		: await getCategoryIdForExpense(supabase, userId, transactionDate, resolveRecurringCategoryName(expense));
 
-	const { error: txError } = await supabase.from("transactions").insert({
-		user_id: userId,
-		name: expense.name,
-		amount: -Math.abs(Number(expense.amount)),
-		transaction_date: transactionDate,
-		covers_due_date: coversDueDate,
-		category_id: categoryId,
-		source: "recurring",
-		recurring_expense_id: expense.id,
-		notes,
-	});
+	const { error: txError } = await supabase
+		.from("transactions")
+		.insert(recurringOccurrenceRow(expense, { userId, transactionDate, coversDueDate, categoryId, notes }));
 
 	if (txError) {
 		Logger.error(`Error creating transaction for ${expense.name}`, { error: txError });

@@ -13,7 +13,7 @@ import { DatePicker } from "@/components/ui/date-picker";
 import { Switch } from "@/components/ui/switch";
 import { cn } from "@/lib/utils";
 import { formatDateString, parseLocalDate } from "@/lib/date-utils";
-import { CircleDollarSign, CreditCard, House } from "lucide-react";
+import { ArrowLeftRight, CircleDollarSign, CreditCard, House } from "lucide-react";
 import { toast } from "sonner";
 import { ServiceLogo } from "@/components/service-logo";
 import { ServiceAutocomplete } from "@/components/service-autocomplete";
@@ -21,6 +21,7 @@ import { ProminentAmountInput } from "@/components/ProminentAmountInput";
 import { sanitizePositiveIntegerInput } from "@/lib/input-utils";
 import type { AccountWithType } from "@/app/accounts/types";
 import { NO_ACCOUNT, RecurringAccountField } from "./recurring-account-field";
+import { RecurringTransferFields, transferAccountsError } from "./recurring-transfer-fields";
 
 interface AddRecurringDialogProps {
 	open: boolean;
@@ -64,7 +65,33 @@ const PRESET_PROVIDERS = [
 		icon: CreditCard,
 		color: "bg-accent-muted text-accent",
 	},
+	{
+		id: "transfer",
+		name: "Transfer",
+		domain: null,
+		category: "transfer",
+		isGeneric: true,
+		icon: ArrowLeftRight,
+		color: "bg-success-muted text-success",
+	},
 ];
+
+const INITIAL_FORM = {
+	name: "",
+	amount: "",
+	frequency_value: "1",
+	frequency_unit: "months",
+	next_due_date: new Date(),
+	category: "subscription",
+	budget_category: "__default__",
+	account_id: NO_ACCOUNT,
+	from_account_id: "",
+	to_account_id: "",
+	service_provider: "",
+	isCustom: false,
+	is_automated: true,
+	meta_data: {} as Record<string, any>,
+};
 
 export function AddRecurringDialog({
 	open,
@@ -74,22 +101,10 @@ export function AddRecurringDialog({
 	accounts = [],
 }: AddRecurringDialogProps) {
 	const [step, setStep] = useState(1);
-	const [formData, setFormData] = useState({
-		name: "",
-		amount: "",
-		frequency_value: "1",
-		frequency_unit: "months",
-		next_due_date: new Date(),
-		category: "subscription",
-		budget_category: "__default__",
-		account_id: NO_ACCOUNT,
-		service_provider: "",
-		isCustom: false,
-		is_automated: true,
-		meta_data: {} as Record<string, any>,
-	});
+	const [formData, setFormData] = useState({ ...INITIAL_FORM, next_due_date: new Date() });
 	const [isSubmitting, setIsSubmitting] = useState(false);
 	const [selectedDomain, setSelectedDomain] = useState<string | null>(null);
+	const isTransfer = formData.category === "transfer";
 
 	const handleProviderSelect = (provider: (typeof PRESET_PROVIDERS)[number]) => {
 		const isCustom = provider.isCustom === true;
@@ -97,7 +112,7 @@ export function AddRecurringDialog({
 
 		setFormData({
 			...formData,
-			name: isCustom ? "" : provider.name,
+			name: isCustom || provider.category === "transfer" ? "" : provider.name,
 			category: provider.category,
 			service_provider: isCustom || isGeneric ? "" : provider.id,
 			isCustom: isCustom,
@@ -146,9 +161,15 @@ export function AddRecurringDialog({
 			return;
 		}
 
+		const accountsError = isTransfer ? transferAccountsError(formData.from_account_id, formData.to_account_id) : null;
+		if (accountsError) {
+			toast.error("Choose two accounts", { description: accountsError });
+			return;
+		}
+
 		setIsSubmitting(true);
 		try {
-			let serviceProvider = formData.service_provider;
+			let serviceProvider: string | null = formData.service_provider;
 			let metaData = { ...formData.meta_data };
 
 			if (formData.isCustom) {
@@ -169,9 +190,14 @@ export function AddRecurringDialog({
 				billing_period: `${frequencyValue}:${formData.frequency_unit}`,
 				next_due_date: formatDateString(formData.next_due_date),
 				category: formData.category,
-				budget_category: formData.budget_category === "__default__" ? null : formData.budget_category,
-				account_id: formData.account_id === NO_ACCOUNT ? null : formData.account_id,
-				service_provider: serviceProvider,
+				budget_category: isTransfer || formData.budget_category === "__default__" ? null : formData.budget_category,
+				account_id: isTransfer
+					? formData.from_account_id
+					: formData.account_id === NO_ACCOUNT
+						? null
+						: formData.account_id,
+				to_account_id: isTransfer ? formData.to_account_id : null,
+				service_provider: isTransfer ? null : serviceProvider,
 				is_active: true,
 				currency: "USD",
 				meta_data: {
@@ -181,29 +207,18 @@ export function AddRecurringDialog({
 			});
 
 			if (result) {
-				toast.success("Recurring expense added");
+				toast.success(isTransfer ? "Recurring transfer added" : "Recurring expense added");
 				onSuccess?.(result);
 				onOpenChange(false);
 
 				setStep(1);
 				setSelectedDomain(null);
-				setFormData({
-					name: "",
-					amount: "",
-					frequency_value: "1",
-					frequency_unit: "months",
-					next_due_date: new Date(),
-					category: "subscription",
-					budget_category: "__default__",
-					account_id: NO_ACCOUNT,
-					service_provider: "",
-					isCustom: false,
-					is_automated: true,
-					meta_data: {},
-				});
+				setFormData({ ...INITIAL_FORM, next_due_date: new Date(), meta_data: {} });
 			} else {
 				toast.error("Couldn't save the recurring item", {
-					description: "Failed to add expense. Please check your data and try again.",
+					description: isTransfer
+						? "Check that both accounts are still open and try again."
+						: "Failed to add expense. Please check your data and try again.",
 				});
 			}
 		} catch (err) {
@@ -221,7 +236,13 @@ export function AddRecurringDialog({
 			open={open}
 			onOpenChange={onOpenChange}
 			title="Add Recurring Expense"
-			description={step === 1 ? "Select a service provider or create custom." : "Enter expense details."}
+			description={
+				step === 1
+					? "Select a service provider, create custom, or set up a transfer between your accounts."
+					: isTransfer
+						? "Move money between two of your accounts on a schedule."
+						: "Enter expense details."
+			}
 			className="sm:max-w-[500px]"
 			onEnterSubmit={step === 2 ? handleSubmit : undefined}
 			onEscapeKeyDown={(event) => {
@@ -286,7 +307,7 @@ export function AddRecurringDialog({
 							<Input
 								value={formData.name}
 								onChange={(e) => setFormData({ ...formData, name: e.target.value })}
-								placeholder="Netflix, Rent, etc."
+								placeholder={isTransfer ? "TFSA contribution, savings, etc." : "Netflix, Rent, etc."}
 								className="h-10"
 							/>
 						)}
@@ -334,7 +355,7 @@ export function AddRecurringDialog({
 						</div>
 					</div>
 					<div className="space-y-2">
-						<Label htmlFor="next-due-date">First Due Date</Label>
+						<Label htmlFor="next-due-date">{isTransfer ? "First Transfer Date" : "First Due Date"}</Label>
 						<DatePicker
 							id="next-due-date"
 							value={formatDateString(formData.next_due_date)}
@@ -342,7 +363,18 @@ export function AddRecurringDialog({
 							yearPicker
 						/>
 					</div>
-					<div className="space-y-2">
+					{isTransfer && (
+						<RecurringTransferFields
+							idPrefix="recurring-transfer"
+							fromAccountId={formData.from_account_id}
+							toAccountId={formData.to_account_id}
+							onChange={({ fromAccountId, toAccountId }) =>
+								setFormData({ ...formData, from_account_id: fromAccountId, to_account_id: toAccountId })
+							}
+							accounts={accounts}
+						/>
+					)}
+					<div className={cn("space-y-2", isTransfer && "hidden")}>
 						<Label>Budget category</Label>
 						<Select
 							value={formData.budget_category}
@@ -364,19 +396,23 @@ export function AddRecurringDialog({
 						</Select>
 						<p className="text-xs text-muted-foreground">Which budget category this recurring expense is added to.</p>
 					</div>
-					<RecurringAccountField
-						id="recurring-account"
-						value={formData.account_id}
-						onChange={(v) => setFormData({ ...formData, account_id: v })}
-						accounts={accounts}
-					/>
-					{formData.category === "bill" && (
+					{!isTransfer && (
+						<RecurringAccountField
+							id="recurring-account"
+							value={formData.account_id}
+							onChange={(v) => setFormData({ ...formData, account_id: v })}
+							accounts={accounts}
+						/>
+					)}
+					{(formData.category === "bill" || isTransfer) && (
 						<div className="flex items-center justify-between space-x-2 pt-2">
 							<div className="flex flex-col gap-1">
 								<Label htmlFor="auto-pay" className="leading-none">
-									Auto-pay
+									{isTransfer ? "Automatic transfer" : "Auto-pay"}
 								</Label>
-								<span className="text-xs text-muted-foreground">Automatically create transactions</span>
+								<span className="text-xs text-muted-foreground">
+									{isTransfer ? "Record each transfer on its date" : "Automatically create transactions"}
+								</span>
 							</div>
 							<Switch
 								id="auto-pay"
@@ -397,7 +433,7 @@ export function AddRecurringDialog({
 				)}
 				{step === 2 && (
 					<Button onClick={handleSubmit} disabled={isSubmitting}>
-						{isSubmitting ? "Adding..." : "Add Expense"}
+						{isSubmitting ? "Adding..." : isTransfer ? "Add Transfer" : "Add Expense"}
 						<SubmitShortcut />
 					</Button>
 				)}

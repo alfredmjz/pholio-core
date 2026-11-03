@@ -15,12 +15,13 @@ import { feeWarningUntil, projectedFeesByRecurring } from "@/lib/overdraft";
 import { cn } from "@/lib/utils";
 import type { AccountWithType } from "@/app/accounts/types";
 import type { RecurringExpense } from "../actions";
-import { monthlyEquivalent } from "../recurring-schedule";
+import { monthlyTotalsByKind } from "../recurring-occurrence";
 import { AddRecurringDialog } from "./add-recurring-dialog";
 import { BillRow } from "./bill-row";
 import { MonthTimeline } from "./month-timeline";
 import { RECURRING_GRID } from "./recurring-row-parts";
 import { SubscriptionRow } from "./subscription-row";
+import { TransferRow } from "./transfer-row";
 import { useFormatSettings } from "@/components/providers/format-provider";
 
 interface RecurringClientProps {
@@ -73,13 +74,11 @@ export function RecurringClient({
 	const subscriptions = expenses
 		.filter((e) => e.category === "subscription")
 		.sort((a, b) => Number(b.is_active !== false) - Number(a.is_active !== false) || byDueDate(a, b));
+	const transfers = expenses.filter((e) => e.category === "transfer").sort(byDueDate);
 
-	const active = expenses.filter((e) => e.is_active !== false);
-	const monthlyTotal = active.reduce((sum, e) => sum + monthlyEquivalent(Number(e.amount), e.billing_period), 0);
-	const billsMonthly = active
-		.filter((e) => e.category === "bill")
-		.reduce((sum, e) => sum + monthlyEquivalent(Number(e.amount), e.billing_period), 0);
-	const subscriptionsMonthly = monthlyTotal - billsMonthly;
+	// Transfers move money between the user's own accounts, so the headline counts only spending.
+	const activeSpending = expenses.filter((e) => e.is_active !== false && e.category !== "transfer");
+	const monthly = monthlyTotalsByKind(expenses);
 	const activeSubscriptions = subscriptions.filter((s) => s.is_active !== false).length;
 
 	return (
@@ -88,8 +87,9 @@ export function RecurringClient({
 				<div className="min-w-0">
 					<h1 className="type-h2 text-primary">Recurring</h1>
 					<p className="type-body mt-1 text-muted-foreground">
-						<span className="text-primary">{formatCurrency(monthlyTotal, { showCents: true })}</span> a month across{" "}
-						{active.length} active {active.length === 1 ? "item" : "items"}
+						<span className="text-primary">{formatCurrency(monthly.spending, { showCents: true })}</span> a month across{" "}
+						{activeSpending.length} active{" "}
+						{activeSpending.length === 1 ? "bill or subscription" : "bills and subscriptions"}
 					</p>
 				</div>
 				<Button onClick={() => setIsAddOpen(true)} className="h-10 gap-2 rounded-full pl-3.5 pr-4">
@@ -110,7 +110,7 @@ export function RecurringClient({
 				title="Bills"
 				note={
 					bills.length > 0
-						? `About ${formatCurrency(billsMonthly, { showCents: true })} a month. Pay each one when it's due.`
+						? `About ${formatCurrency(monthly.bill, { showCents: true })} a month. Pay each one when it's due.`
 						: undefined
 				}
 			>
@@ -145,7 +145,7 @@ export function RecurringClient({
 				title="Subscriptions"
 				note={
 					subscriptions.length > 0
-						? `${activeSubscriptions} active, about ${formatCurrency(subscriptionsMonthly, { showCents: true })} a month. Paid automatically.`
+						? `${activeSubscriptions} active, about ${formatCurrency(monthly.subscription, { showCents: true })} a month. Paid automatically.`
 						: undefined
 				}
 			>
@@ -167,6 +167,41 @@ export function RecurringClient({
 									categoryOptions={categoryOptions}
 									accounts={accounts}
 									feeWarning={feeWarnings.get(sub.id) ?? null}
+								/>
+							))}
+						</ul>
+					</>
+				)}
+			</SurfaceSection>
+
+			<SurfaceSection
+				id="transfers-heading"
+				className="rows-container"
+				title="Transfers"
+				note={
+					transfers.length > 0
+						? `About ${formatCurrency(monthly.transfer, { showCents: true })} a month moved between your accounts. Not counted as spending.`
+						: undefined
+				}
+			>
+				{transfers.length === 0 ? (
+					<p className="type-body-sm py-4 text-muted-foreground">
+						No transfers yet. Add one to move money between your accounts on a schedule, like a monthly TFSA
+						contribution.
+					</p>
+				) : (
+					<>
+						<ColumnHeader labels={["Transfer", "Next transfer", "This month", "Amount"]} />
+						<ul className="mt-1 divide-y divide-border/50" aria-label="Transfers">
+							{transfers.map((transfer) => (
+								<TransferRow
+									key={transfer.id}
+									transfer={transfer}
+									onDelete={optimisticallyDelete}
+									onUpdate={optimisticallyUpdate}
+									timezone={timezone}
+									accounts={accounts}
+									feeWarning={feeWarnings.get(transfer.id) ?? null}
 								/>
 							))}
 						</ul>

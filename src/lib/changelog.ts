@@ -12,6 +12,17 @@ export interface ChangelogEntry {
 /** What's new in Pholio, newest first. Every user-facing release adds an entry at the top. */
 export const CHANGELOG: ChangelogEntry[] = [
 	{
+		id: "2026-11-clearer-save-errors",
+		date: "2026-11-13",
+		title: "Clearer messages when a change can't be saved",
+		items: [
+			"When something can't be saved, the message now says why, like an amount that's more than the account has.",
+			"Editing a transaction on an account page now checks it against the account's balance or remaining debt, the same as adding one.",
+			"Editing an incoming transfer or a refund on an account page no longer turns it into money going out.",
+			"In the demo, budget changes on Allocations now stay while you look around.",
+		],
+	},
+	{
 		id: "2026-11-centred-app-icon",
 		date: "2026-11-13",
 		title: "A centred app icon",

@@ -206,9 +206,9 @@ export function AddRecurringDialog({
 				},
 			});
 
-			if (result) {
+			if (result.ok) {
 				toast.success(isTransfer ? "Recurring transfer added" : "Recurring expense added");
-				onSuccess?.(result);
+				onSuccess?.(result.data);
 				onOpenChange(false);
 
 				setStep(1);
@@ -216,9 +216,7 @@ export function AddRecurringDialog({
 				setFormData({ ...INITIAL_FORM, next_due_date: new Date(), meta_data: {} });
 			} else {
 				toast.error("Couldn't save the recurring item", {
-					description: isTransfer
-						? "Check that both accounts are still open and try again."
-						: "Failed to add expense. Please check your data and try again.",
+					description: result.error.message,
 				});
 			}
 		} catch (err) {

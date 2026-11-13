@@ -31,8 +31,11 @@ test("coming back to Allocations picks up changes made elsewhere with one refetc
 	await expect(page.getByText("Groceries").first()).toBeVisible();
 	await page.waitForLoadState("networkidle");
 
+	const refetches: string[] = [];
 	const actionPosts: string[] = [];
 	page.on("request", (request) => {
+		if (request.method() === "GET" && request.url().includes("/api/allocations/page-data"))
+			refetches.push(request.url());
 		if (request.method() === "POST" && request.headers()["next-action"]) actionPosts.push(request.url());
 	});
 	const comeBack = () =>
@@ -57,11 +60,12 @@ test("coming back to Allocations picks up changes made elsewhere with one refetc
 	// Within a minute of loading, coming back does not refetch.
 	await comeBack();
 	await page.clock.runFor(1_000);
-	expect(actionPosts).toHaveLength(0);
+	expect(refetches).toHaveLength(0);
 	await expect(newRow).toHaveCount(0);
 
 	await page.clock.fastForward("01:00");
 	await comeBack();
 	await expect(newRow).toBeVisible();
-	expect(actionPosts).toHaveLength(1);
+	expect(refetches).toHaveLength(1);
+	expect(actionPosts).toHaveLength(0);
 });

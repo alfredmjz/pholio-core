@@ -31,24 +31,33 @@ export async function createDemoSession(): Promise<string | null> {
 	return new SignJWT({ demo: true })
 		.setProtectedHeader({ alg: "HS256" })
 		.setAudience(DEMO_AUDIENCE)
+		.setJti(crypto.randomUUID())
 		.setIssuedAt()
 		.setExpirationTime(`${DEMO_COOKIE_MAX_AGE}s`)
 		.sign(secret);
 }
 
 /**
+ * Verifies a signed demo session token and returns its id, which keys that visitor's demo
+ * state. Tokens issued before ids existed share one "legacy" id until they expire.
+ */
+export async function getDemoSessionId(token: string | undefined): Promise<string | null> {
+	if (!token) return null;
+
+	const secret = getSecret();
+	if (!secret) return null;
+
+	try {
+		const { payload } = await jwtVerify(token, secret, { audience: DEMO_AUDIENCE });
+		return payload.jti ?? "legacy";
+	} catch {
+		return null;
+	}
+}
+
+/**
  * Verifies a signed demo session token.
  */
 export async function isValidDemoSession(token: string | undefined): Promise<boolean> {
-	if (!token) return false;
-
-	const secret = getSecret();
-	if (!secret) return false;
-
-	try {
-		await jwtVerify(token, secret, { audience: DEMO_AUDIENCE });
-		return true;
-	} catch {
-		return false;
-	}
+	return (await getDemoSessionId(token)) !== null;
 }

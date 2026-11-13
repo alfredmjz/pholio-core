@@ -265,9 +265,11 @@ function withSpendFromTransactions(summary: AllocationSummary, transactions: Tra
 
 // Helper to deep copy and modify dates
 function getMockData(year: number, month: number, type: "base" | "default" = "base") {
-	const summary = JSON.parse(JSON.stringify(sampleAllocationSummary));
+	const summary: AllocationSummary = JSON.parse(JSON.stringify(sampleAllocationSummary));
+	summary.allocation.id = `sample-allocation-${year}-${month}`;
 	summary.allocation.year = year;
 	summary.allocation.month = month;
+	for (const category of summary.categories) category.allocation_id = summary.allocation.id;
 
 	// Adjust dates for all items
 	const dateStr = new Date(year, month - 1, 1).toISOString();
@@ -301,7 +303,7 @@ function getMockData(year: number, month: number, type: "base" | "default" = "ba
 				transaction_count: 0,
 				id: "cat-def-3",
 			},
-		];
+		].map((category) => ({ ...category, allocation_id: summary.allocation.id }));
 		summary.summary = {
 			total_budget_caps: 5500,
 			total_actual_spend: 0,

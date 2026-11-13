@@ -1,6 +1,16 @@
 import { cookies, headers } from "next/headers";
 import { DEMO_HEADER } from "@/lib/demo-mode";
-import { DEMO_SESSION_COOKIE, isValidDemoSession } from "@/lib/demo-session";
+import { DEMO_SESSION_COOKIE, getDemoSessionId, isValidDemoSession } from "@/lib/demo-session";
+
+/**
+ * Key for this request's in-memory demo state, or null when the request should use live data.
+ * The build-time sample-data flag has no session, so everyone on it shares "local".
+ */
+export async function getSampleDataSessionKey(): Promise<string | null> {
+	if (process.env.NEXT_PUBLIC_USE_SAMPLE_DATA === "true") return "local";
+	const cookieStore = await cookies();
+	return getDemoSessionId(cookieStore.get(DEMO_SESSION_COOKIE)?.value);
+}
 
 /**
  * Whether the current request is running in demo mode.

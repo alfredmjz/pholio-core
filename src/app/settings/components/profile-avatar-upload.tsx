@@ -121,9 +121,9 @@ export default function ProfileAvatarUpload({ currentAvatarUrl, currentInitials 
 
 			const result = await uploadProfileAvatar(formData);
 
-			if (result.error) {
+			if (!result.ok) {
 				toast.error("Upload Failed", {
-					description: result.error,
+					description: result.error.message,
 				});
 			} else {
 				toast.success("Profile picture updated");

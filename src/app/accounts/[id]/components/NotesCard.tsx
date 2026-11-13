@@ -42,13 +42,13 @@ export function NotesCard({ account, onAccountUpdated }: NotesCardProps) {
 		setIsSaving(true);
 		try {
 			// Sample data: the account page keeps the change in the demo store (via onAccountUpdated).
-			const result = isSampleDataActive() || (await updateAccount(account.id, { notes: next }));
-			if (result) {
+			const result = isSampleDataActive() ? { ok: true as const } : await updateAccount(account.id, { notes: next });
+			if (result.ok) {
 				toast.success("Notes saved");
 				setBaseline(null);
 				onAccountUpdated({ ...account, notes: next });
 			} else {
-				toast.error("Couldn't save your notes", { description: "Try again in a moment." });
+				toast.error("Couldn't save your notes", { description: result.error.message });
 			}
 		} catch (err) {
 			const errorMessage = err instanceof Error ? err.message : "An unexpected error occurred.";

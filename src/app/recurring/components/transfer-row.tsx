@@ -69,11 +69,12 @@ export function TransferRow({
 	const handleDelete = async () => {
 		setIsDeleting(true);
 		try {
-			if (await deleteRecurringExpense(transfer.id)) {
+			const result = await deleteRecurringExpense(transfer.id);
+			if (result.ok) {
 				toast.success("Transfer deleted", { description: "Transfers already recorded are kept." });
 				onDelete?.(transfer.id);
 			} else {
-				toast.error("Couldn't delete the transfer", { description: "Try again in a moment." });
+				toast.error("Couldn't delete the transfer", { description: result.error.message });
 			}
 		} catch (err) {
 			toast.error("Couldn't delete the transfer", { description: err instanceof Error ? err.message : undefined });
@@ -91,8 +92,9 @@ export function TransferRow({
 			status: done + 1 >= total ? "paid" : "partial",
 		});
 		try {
-			if (await markAsPaid(transfer.id)) toast.success(`${transfer.name} recorded`);
-			else toast.error("Couldn't record the transfer", { description: "Check that both accounts are still open." });
+			const result = await markAsPaid(transfer.id);
+			if (result.ok) toast.success(`${transfer.name} recorded`);
+			else toast.error("Couldn't record the transfer", { description: result.error.message });
 		} catch {
 			toast.error("Couldn't record the transfer", { description: "Try again in a moment." });
 		} finally {

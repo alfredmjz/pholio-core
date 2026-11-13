@@ -24,8 +24,8 @@ export function OnboardingForm({ next }: { next: string }) {
 		}
 		startSaving(async () => {
 			const result = await completeOnboarding(cleaned.name, Intl.DateTimeFormat().resolvedOptions().timeZone);
-			if (!result.success) {
-				setError(result.error ?? "Couldn't save that. Try again.");
+			if (!result.ok) {
+				setError(result.error.message);
 				return;
 			}
 			router.replace(next);

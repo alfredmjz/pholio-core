@@ -38,13 +38,3 @@ export interface UnifiedTransactionInput {
 	// Optional source override
 	source?: string;
 }
-
-/**
- * Response from creating a unified transaction
- */
-export interface UnifiedTransactionResult {
-	success: boolean;
-	allocationTransactionId?: string;
-	accountTransactionId?: string;
-	error?: string;
-}

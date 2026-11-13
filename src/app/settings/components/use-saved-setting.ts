@@ -1,7 +1,8 @@
 import { useState } from "react";
 import { toast } from "sonner";
+import type { ActionResult } from "@/lib/action-result";
 
-type SaveResult = { success: boolean; error?: string };
+type SaveResult = ActionResult<unknown>;
 
 /** A setting that saves as soon as it changes, and goes back to its last value if saving fails. */
 export function useSavedSetting<T>(initial: T, save: (value: T) => Promise<SaveResult>) {
@@ -15,7 +16,7 @@ export function useSavedSetting<T>(initial: T, save: (value: T) => Promise<SaveR
 		setSaving(true);
 		try {
 			const result = await save(next);
-			if (!result.success) throw new Error(result.error);
+			if (!result.ok) throw new Error(result.error.message);
 			toast.success("Saved");
 		} catch (error) {
 			setValue(previous);

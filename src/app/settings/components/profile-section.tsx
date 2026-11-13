@@ -44,8 +44,8 @@ export function ProfileSection({ profile, email }: ProfileSectionProps) {
 		formData.append("fullName", name);
 		startTransition(async () => {
 			const result = await updateProfile(formData);
-			if (result.error) {
-				toast.error("Couldn't save your name", { description: result.error });
+			if (!result.ok) {
+				toast.error("Couldn't save your name", { description: result.error.message });
 			} else {
 				toast.success("Saved");
 			}

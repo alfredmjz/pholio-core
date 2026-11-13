@@ -2,7 +2,7 @@
 
 import { useEffect, useRef, useState } from "react";
 import type { AllocationPageData, AllocationSummary, Transaction, AllocationCategory } from "@/app/allocations/types";
-import { getAllocationPageData, reorderCategories } from "@/app/allocations/actions";
+import { reorderCategories } from "@/app/allocations/actions";
 import { toast } from "sonner";
 import { useOptimisticAllocation } from "./useOptimisticAllocation";
 
@@ -18,6 +18,30 @@ interface UseAllocationSyncReturn {
 
 /** Coming back to the tab refetches only when the data is older than this. */
 const FOCUS_REFRESH_MS = 60_000;
+
+/**
+ * Reads the page data through a GET route, not a server action: Next runs server actions one at a
+ * time, so a refetch would hold up a save the user makes meanwhile.
+ */
+async function fetchPageData(allocationId: string, year: number, month: number): Promise<AllocationPageData> {
+	const params = new URLSearchParams({ year: String(year), month: String(month) });
+	if (allocationId) params.set("allocationId", allocationId);
+
+	const response = await fetch(`/api/allocations/page-data?${params}`, {
+		cache: "no-store",
+		headers: { accept: "application/json" },
+	});
+	// A signed-out request is redirected to the login page, which is HTML.
+	const isJson = response.headers.get("content-type")?.includes("application/json") ?? false;
+	if (response.status === 401 || response.redirected || !isJson) {
+		throw new Error("Your session may have expired. Reload the page to sign in again.");
+	}
+	if (!response.ok) throw new Error(`The server answered ${response.status}.`);
+
+	const data = (await response.json()) as AllocationPageData;
+	if (!data || !Array.isArray(data.transactions)) throw new Error("The server sent an unexpected response.");
+	return data;
+}
 
 export const sameData = (a: unknown, b: unknown) => JSON.stringify(a) === JSON.stringify(b);
 
@@ -73,7 +97,8 @@ export function useAllocationSync(
 		optimisticallyReorderCategories(ordered);
 		savesInFlight.current += 1;
 		try {
-			return await reorderCategories(ordered.map(({ id, display_order }) => ({ id, display_order })));
+			const result = await reorderCategories(ordered.map(({ id, display_order }) => ({ id, display_order })));
+			return result.ok;
 		} finally {
 			savesInFlight.current -= 1;
 		}
@@ -92,10 +117,7 @@ export function useAllocationSync(
 				isFetching.current = true;
 				setIsRefetching(true);
 				try {
-					const fresh = await getAllocationPageData(allocationId || null, year, month);
-					// A server action from an older deployment (or a dev rebuild) resolves to undefined.
-					if (!fresh) return;
-
+					const fresh = await fetchPageData(allocationId, year, month);
 					lastFetchedAt.current = Date.now();
 					// Unchanged data is not applied, so nothing on the page re-renders or re-animates.
 					if (fresh.summary && !sameData(fresh.summary, summaryRef.current)) syncWithServer(fresh.summary);

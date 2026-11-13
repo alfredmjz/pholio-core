@@ -209,13 +209,36 @@ function cellHash(a: number, b: number) {
 
 const glyphCache = new Map<number, LogoGlyph[]>();
 
+// The model is centred before it turns, so a turned p projects off-centre; shift the drawn shapes back.
+function centreGlyphs(glyphs: LogoGlyph[], cells: number): LogoGlyph[] {
+	if (!glyphs.length) return glyphs;
+	let left = Infinity;
+	let top = Infinity;
+	let right = -Infinity;
+	let bottom = -Infinity;
+	for (const glyph of glyphs) {
+		const [x0, y0, x1, y1] =
+			glyph.shape === "circle"
+				? [glyph.x - glyph.r, glyph.y - glyph.r, glyph.x + glyph.r, glyph.y + glyph.r]
+				: [glyph.x, glyph.y, glyph.x + glyph.width, glyph.y + glyph.height];
+		left = Math.min(left, x0);
+		top = Math.min(top, y0);
+		right = Math.max(right, x1);
+		bottom = Math.max(bottom, y1);
+	}
+
+	const dx = cells / 2 - (left + right) / 2;
+	const dy = cells / 2 - (top + bottom) / 2;
+	return glyphs.map((glyph) => ({ ...glyph, x: glyph.x + dx, y: glyph.y + dy }));
+}
+
 export function logoGlyphs(cells: number, pose: LogoPose = STATIC_POSE, style: GlyphStyle = ICON_STYLE): LogoGlyph[] {
 	const cacheable = pose === STATIC_POSE && style === ICON_STYLE;
 	const cached = cacheable ? glyphCache.get(cells) : undefined;
 	if (cached) return cached;
 
 	const { filled, light, accent } = renderLogoGrid(cells, pose);
-	const glyphs: LogoGlyph[] = [];
+	let glyphs: LogoGlyph[] = [];
 	for (let cell = 0; cell < filled.length; cell++) {
 		if (!filled[cell]) continue;
 		const col = cell % cells;
@@ -224,6 +247,8 @@ export function logoGlyphs(cells: number, pose: LogoPose = STATIC_POSE, style: G
 		glyphs.push(...glyphShapes(logoChar(light[cell]), col + 0.5, row + 0.5, green, style.weight));
 	}
 
+	// Only the still mark is centred: re-centring each frame of a turning mark would make it wobble.
+	if (cacheable) glyphs = centreGlyphs(glyphs, cells);
 	if (cacheable) glyphCache.set(cells, glyphs);
 	return glyphs;
 }

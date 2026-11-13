@@ -12,6 +12,14 @@ export interface ChangelogEntry {
 /** What's new in Pholio, newest first. Every user-facing release adds an entry at the top. */
 export const CHANGELOG: ChangelogEntry[] = [
 	{
+		id: "2026-11-centred-app-icon",
+		date: "2026-11-13",
+		title: "A centred app icon",
+		items: [
+			"The Pholio logo now sits in the middle of its home-screen icon. Remove and re-add the shortcut to see the new icon.",
+		],
+	},
+	{
 		id: "2026-11-reminders-delivered",
 		date: "2026-11-12",
 		title: "Reminders now arrive",

@@ -1,1656 +1,222 @@
 "use server";
 
-import { createClient, getReadUserId } from "@/lib/supabase/server";
 import { revalidatePath } from "next/cache";
-import { VIRTUAL_UNCATEGORIZED_ID } from "./types";
-import type {
-	Allocation,
-	AllocationCategory,
-	AllocationPageData,
-	AllocationSummary,
-	AllocationTemplate,
-	Transaction,
-	IncomeVerificationResult,
-} from "./types";
-import type { RegisteredPlan } from "@/app/accounts/types";
-import { sampleAllocationSummary, sampleTransactions } from "@/mock-data/allocations";
-import { Logger } from "@/lib/logger";
-import { isSampleDataMode } from "@/lib/demo-mode.server";
-import { parseLocalDate, calculateNextDueDate, getTodayDateString, formatDateString, stepDate } from "@/lib/date-utils";
-import { getAllocationSettings, getTimezone } from "@/app/settings/actions";
-import { getAccountsForSelector } from "@/lib/actions/unified-transaction-actions";
-import { getAllocationContributions } from "@/lib/actions/contribution-actions";
-import {
-	canPostTransfer,
-	isRecurringTransfer,
-	recurringOccurrenceRow,
-	type RecurringOccurrenceRow,
-} from "@/app/recurring/recurring-occurrence";
+import { z } from "zod";
+import { getReadContext } from "@/lib/data-context.server";
+import { defineAction } from "@/lib/define-action.server";
+import { displayOrderSchema, idSchema, nonNegativeMoneySchema } from "@/lib/action-schemas";
+import type { Allocation, AllocationPageData, AllocationSummary, IncomeVerificationResult, Transaction } from "./types";
+import { allocationStore, type HistoricalPace, type TemplateListItem } from "./allocation-store";
+import { loadAllocationPageData } from "./page-data.server";
 
-// ============================================================================
-// Sample-data mode: in-memory allocations so month navigation and "create budget"
-// behave like the real database (keyed by "YYYY-M").
-// ============================================================================
-const sampleAllocationStore = new Map<string, Allocation>();
-
-const sampleAllocationKey = (year: number, month: number) => `${year}-${month}`;
-
-function getSampleAllocation(year: number, month: number): Allocation | null {
-	const seeded = sampleAllocationSummary.allocation;
-	if (year === seeded.year && month === seeded.month) return seeded;
-	return sampleAllocationStore.get(sampleAllocationKey(year, month)) ?? null;
-}
-
-function createSampleAllocation(year: number, month: number, expectedIncome: number): Allocation {
-	const now = new Date().toISOString();
-	const allocation: Allocation = {
-		...sampleAllocationSummary.allocation,
-		id: `sample-allocation-${year}-${month}`,
-		year,
-		month,
-		expected_income: expectedIncome,
-		created_at: now,
-		updated_at: now,
-	};
-	sampleAllocationStore.set(sampleAllocationKey(year, month), allocation);
-	return allocation;
-}
-
-function findSampleAllocationById(allocationId: string): Allocation | null {
-	if (allocationId === sampleAllocationSummary.allocation.id) return sampleAllocationSummary.allocation;
-	const stored = Array.from(sampleAllocationStore.values()).find((allocation) => allocation.id === allocationId);
-	return stored ?? null;
-}
-
-function buildSampleSummary(allocation: Allocation): AllocationSummary {
-	const now = new Date().toISOString();
-	return {
-		allocation,
-		categories: [
-			{
-				id: VIRTUAL_UNCATEGORIZED_ID,
-				allocation_id: allocation.id,
-				user_id: allocation.user_id,
-				name: "Uncategorized",
-				budget_cap: 0,
-				is_recurring: false,
-				display_order: 999,
-				color: "gray",
-				icon: "help-circle",
-				notes: "Transactions without a category",
-				created_at: now,
-				updated_at: now,
-				actual_spend: 0,
-				remaining: 0,
-				utilization_percentage: 0,
-				transaction_count: 0,
-			},
-		],
-		summary: {
-			total_budget_caps: 0,
-			total_actual_spend: 0,
-			unallocated_funds: allocation.expected_income,
-			overall_utilization: 0,
-		},
-	};
-}
+const yearSchema = z.number().int().min(1970, "Pick a valid year.").max(9999, "Pick a valid year.");
+const monthSchema = z.number().int().min(1, "Pick a valid month.").max(12, "Pick a valid month.");
+const categoryNameSchema = z.string().trim().min(1, "Give the category a name.").max(100, "Use a shorter name.");
+const colorSchema = z.string().min(1);
+const contributionPlanSchema = z.enum(["fhsa", "resp", "rrsp", "tfsa"]).nullable();
+const templateNameSchema = z.string().trim().min(1, "Give the template a name.");
 
 export async function getAllocation(year: number, month: number): Promise<Allocation | null> {
-	// Handle sample data mode
-	if (await isSampleDataMode()) {
-		return getSampleAllocation(year, month);
-	}
-
-	const supabase = await createClient();
-
-	const {
-		data: { user },
-	} = await supabase.auth.getUser();
-	if (!user) return null;
-
-	const { data: existing } = await supabase
-		.from("allocations")
-		.select("*")
-		.eq("user_id", user.id)
-		.eq("year", year)
-		.eq("month", month)
-		.single();
-
-	if (existing) {
-		const timezone = await getTimezone();
-		await syncRecurringExpenses(existing.id, user.id, month, year, timezone);
-	}
-
-	return existing as Allocation | null;
-}
-
-export async function getOrCreateAllocation(
-	year: number,
-	month: number,
-	expectedIncome: number = 0
-): Promise<Allocation | null> {
-	// Handle sample data mode
-	if (await isSampleDataMode()) {
-		return getSampleAllocation(year, month) ?? createSampleAllocation(year, month, expectedIncome);
-	}
-
-	const supabase = await createClient();
-
-	const {
-		data: { user },
-	} = await supabase.auth.getUser();
-	if (!user) return null;
-
-	// Try to get existing allocation
-	const { data: existing } = await supabase
-		.from("allocations")
-		.select("*")
-		.eq("user_id", user.id)
-		.eq("year", year)
-		.eq("month", month)
-		.single();
-
-	if (existing) {
-		const timezone = await getTimezone();
-		await syncRecurringExpenses(existing.id, user.id, month, year, timezone);
-		return existing as Allocation;
-	}
-
-	// Create new allocation if it doesn't exist
-	const { data: newAllocation, error: createError } = await supabase
-		.from("allocations")
-		.insert({
-			user_id: user.id,
-			year,
-			month,
-			expected_income: expectedIncome,
-		})
-		.select()
-		.single();
-
-	if (createError) {
-		Logger.error("Error creating allocation", { error: createError });
-		return null;
-	}
-
-	const timezone = await getTimezone();
-	await syncRecurringExpenses(newAllocation.id, user.id, month, year, timezone);
-
-	return newAllocation as Allocation;
-}
-
-export async function autoCreateAllocationWithDefaults(year: number, month: number): Promise<Allocation | null> {
-	const settings = await getAllocationSettings();
-	const income = 0;
-
-	const allocation = await getOrCreateAllocation(year, month, income);
-	if (!allocation) return null;
-
-	// Apply default template if available
-	if (settings.defaultTemplateId) {
-		await applyTemplateToAllocation(settings.defaultTemplateId, allocation.id);
-	}
-
-	return allocation;
-}
-
-/**
- * The allocation category NAME a recurring expense should be bundled into.
- * An explicit `budget_category` wins; otherwise subscriptions fall back to the
- * auto-managed "Subscriptions" category and bills to "Bills".
- */
-function resolveRecurringCategoryName(expense: { category: string; budget_category?: string | null }): string {
-	const custom = expense.budget_category?.trim();
-	if (custom) return custom;
-	return expense.category === "bill" ? "Bills" : "Subscriptions";
-}
-
-/** Explicit user-chosen category name, or null when the expense uses the default bucket. */
-function customRecurringCategoryName(expense: { budget_category?: string | null }): string | null {
-	const custom = expense.budget_category?.trim();
-	return custom ? custom : null;
-}
-
-async function syncRecurringExpenses(
-	allocationId: string,
-	userId: string,
-	targetMonth: number,
-	targetYear: number,
-	timezone?: string | null
-) {
-	const supabase = await createClient();
-
-	const { data: allRecurring } = await supabase.from("recurring_expenses").select("*").eq("user_id", userId);
-
-	if (!allRecurring) return;
-
-	// Transfers post only while both of their accounts are active; until then they stay due.
-	let activeAccountIds = new Set<string>();
-	if (allRecurring.some((r) => r.is_active && isRecurringTransfer(r))) {
-		const { data: activeAccounts } = await supabase
-			.from("accounts")
-			.select("id")
-			.eq("user_id", userId)
-			.eq("is_active", true);
-		activeAccountIds = new Set((activeAccounts || []).map((a: { id: string }) => a.id));
-	}
-	const isPostable = (expense: (typeof allRecurring)[0]) =>
-		!isRecurringTransfer(expense) || canPostTransfer(expense, activeAccountIds);
-
-	const startDate = `${targetYear}-${String(targetMonth).padStart(2, "0")}-01`;
-	const endDate = formatDateString(new Date(targetYear, targetMonth, 0));
-
-	const { data: existingTransactions } = await supabase
-		.from("transactions")
-		.select("id, recurring_expense_id, transaction_date, covers_due_date, amount, name, category_id")
-		.eq("user_id", userId)
-		.gte("transaction_date", startDate)
-		.lte("transaction_date", endDate)
-		.not("recurring_expense_id", "is", null);
-
-	// Occurrences that have already been recorded (with the amount at record time).
-	// Auto-pay must never rewrite or re-create these, even after the transaction is
-	// edited or deleted.
-	const { data: recordedOccurrences } = await supabase
-		.from("recurring_recorded_occurrences")
-		.select("recurring_expense_id, occurrence_date, amount")
-		.eq("user_id", userId);
-
-	const recordedAmountByKey = new Map<string, number>();
-	for (const marker of recordedOccurrences || []) {
-		const markerDateStr = marker.occurrence_date ? marker.occurrence_date.split("T")[0] : "";
-		recordedAmountByKey.set(`${marker.recurring_expense_id}:${markerDateStr}`, Number(marker.amount));
-	}
-
-	const hasBills = allRecurring.some((r) => r.category === "bill" && r.is_active && !customRecurringCategoryName(r));
-	const hasSubscriptions = allRecurring.some(
-		(r) => r.category === "subscription" && r.is_active && !customRecurringCategoryName(r)
-	);
-
-	let totalBills = 0;
-	let totalSubscriptions = 0;
-
-	// Active expenses with an explicit budget category, grouped by lowercase name.
-	const customTotals = new Map<string, { name: string; total: number }>();
-
-	const applicableExpenses: Array<{ expense: (typeof allRecurring)[0]; dates: Date[] }> = [];
-
-	for (const expense of allRecurring) {
-		if (!expense.is_active) continue;
-
-		const occurrences: Date[] = [];
-		const nextDue = parseLocalDate(expense.next_due_date);
-		const billingPeriod = expense.billing_period;
-
-		let normalizedFreq = billingPeriod;
-		if (billingPeriod === "monthly") normalizedFreq = "1:months";
-		else if (billingPeriod === "yearly") normalizedFreq = "1:years";
-		else if (billingPeriod === "weekly") normalizedFreq = "1:weeks";
-		else if (billingPeriod === "biweekly") normalizedFreq = "2:weeks";
-
-		const [valueStr, unit] = normalizedFreq.includes(":") ? normalizedFreq.split(":") : ["1", normalizedFreq];
-		const value = parseInt(valueStr) || 1;
-
-		let current = new Date(nextDue);
-		current.setHours(0, 0, 0, 0);
-
-		const monthStart = new Date(targetYear, targetMonth - 1, 1);
-		const monthEnd = new Date(targetYear, targetMonth, 0);
-
-		// Step backward until current is before the target month
-		while (current >= monthStart) {
-			const prev = stepDate(current, value, unit, -1);
-			if (prev.getTime() === current.getTime()) break;
-			current = prev;
-		}
-
-		// Step forward and collect all occurrences within the target month
-		while (current <= monthEnd) {
-			if (current >= monthStart) {
-				occurrences.push(new Date(current));
-			}
-			const next = stepDate(current, value, unit, 1);
-			if (next.getTime() === current.getTime()) break;
-			current = next;
-		}
-
-		if (occurrences.length > 0) {
-			// Use the amount captured when the occurrence was recorded, so editing a
-			// bill never retroactively changes the budget cap of a past month.
-			const totalAmount = occurrences.reduce((sum, occurrenceDate) => {
-				const recordedAmount = recordedAmountByKey.get(`${expense.id}:${formatDateString(occurrenceDate)}`);
-				return sum + (recordedAmount !== undefined ? Math.abs(recordedAmount) : Math.abs(Number(expense.amount)));
-			}, 0);
-			applicableExpenses.push({ expense, dates: occurrences });
-
-			// Transfers move money between the user's accounts; they are not budgeted spending.
-			if (isRecurringTransfer(expense)) continue;
-
-			const customName = customRecurringCategoryName(expense);
-			if (customName) {
-				const key = customName.toLowerCase();
-				const existing = customTotals.get(key) ?? { name: customName, total: 0 };
-				existing.total += totalAmount;
-				customTotals.set(key, existing);
-			} else if (expense.category === "bill") {
-				totalBills += totalAmount;
-			} else {
-				totalSubscriptions += totalAmount;
-			}
-		}
-	}
-
-	// Recurring contributions are recomputed on every sync, so clear any stale
-	// values before loading categories (only rows that actually had one are touched).
-	await supabase
-		.from("allocation_categories")
-		.update({ recurring_budget_cap: 0 })
-		.eq("allocation_id", allocationId)
-		.gt("recurring_budget_cap", 0);
-
-	const { data: allCategories } = await supabase
-		.from("allocation_categories")
-		.select("*")
-		.eq("allocation_id", allocationId);
-
-	const categoryMap = new Map((allCategories || []).map((c) => [c.name.toLowerCase(), c]));
-	const categoryIdMap: Record<string, string> = {};
-	// Resolved by allocation category NAME (lowercase) for both the default
-	// Bills/Subscriptions buckets and any user-chosen budget categories.
-	const categoryIdByName = new Map<string, string>();
-
-	const billsCategory = categoryMap.get("bills");
-
-	if (totalBills > 0) {
-		if (!billsCategory) {
-			const { data: newCat } = await supabase
-				.from("allocation_categories")
-				.insert({
-					allocation_id: allocationId,
-					user_id: userId,
-					name: "Bills",
-					budget_cap: totalBills,
-					is_recurring: true,
-					display_order: 0,
-					color: "orange",
-				})
-				.select()
-				.single();
-			if (newCat) {
-				categoryMap.set("Bills", newCat);
-				categoryIdMap["bill"] = newCat.id;
-			}
-		} else {
-			if (Number(billsCategory.budget_cap) !== totalBills) {
-				await supabase.from("allocation_categories").update({ budget_cap: totalBills }).eq("id", billsCategory.id);
-			}
-			categoryIdMap["bill"] = billsCategory.id;
-		}
-	} else if (billsCategory && billsCategory.is_recurring) {
-		// Check if there are existing transactions in this allocation linked to billsCategory
-		const { count: txCount } = await supabase
-			.from("transactions")
-			.select("id", { count: "exact", head: true })
-			.eq("category_id", billsCategory.id);
-
-		if (!hasBills && !customTotals.has("bills") && (!txCount || txCount === 0)) {
-			const { error } = await supabase.from("allocation_categories").delete().eq("id", billsCategory.id);
-			if (error) {
-				Logger.warn("Failed to delete empty Bills category", { error, categoryId: billsCategory.id });
-
-				// Ensure budget cap is 0 at least
-				if (Number(billsCategory.budget_cap) !== 0) {
-					await supabase.from("allocation_categories").update({ budget_cap: 0 }).eq("id", billsCategory.id);
-				}
-			}
-		} else {
-			categoryIdMap["bill"] = billsCategory.id;
-			if (Number(billsCategory.budget_cap) !== 0) {
-				await supabase.from("allocation_categories").update({ budget_cap: 0 }).eq("id", billsCategory.id);
-			}
-		}
-	}
-
-	const subsCategory = categoryMap.get("subscriptions");
-	if (totalSubscriptions > 0) {
-		if (!subsCategory) {
-			const { data: newCat } = await supabase
-				.from("allocation_categories")
-				.insert({
-					allocation_id: allocationId,
-					user_id: userId,
-					name: "Subscriptions",
-					budget_cap: totalSubscriptions,
-					is_recurring: true,
-					display_order: 1,
-					color: "purple",
-				})
-				.select()
-				.single();
-			if (newCat) {
-				categoryMap.set("Subscriptions", newCat);
-				categoryIdMap["subscription"] = newCat.id;
-			}
-		} else {
-			if (Number(subsCategory.budget_cap) !== totalSubscriptions) {
-				await supabase
-					.from("allocation_categories")
-					.update({ budget_cap: totalSubscriptions })
-					.eq("id", subsCategory.id);
-			}
-			categoryIdMap["subscription"] = subsCategory.id;
-		}
-	} else if (subsCategory && subsCategory.is_recurring) {
-		// Check if there are existing transactions in this allocation linked to subsCategory
-		const { count: txCount } = await supabase
-			.from("transactions")
-			.select("id", { count: "exact", head: true })
-			.eq("category_id", subsCategory.id);
-
-		if (!hasSubscriptions && !customTotals.has("subscriptions") && (!txCount || txCount === 0)) {
-			const { error } = await supabase.from("allocation_categories").delete().eq("id", subsCategory.id);
-			if (error) {
-				Logger.warn("Failed to delete empty Subscriptions category", { error, categoryId: subsCategory.id });
-
-				// Ensure budget cap is 0 at least
-				if (Number(subsCategory.budget_cap) !== 0) {
-					await supabase.from("allocation_categories").update({ budget_cap: 0 }).eq("id", subsCategory.id);
-				}
-			}
-		} else {
-			// If there are existing transactions for this subscription category, preserve the existing budget
-			// so that historical transactions don't show as "over budget" after a subscription is paused.
-			categoryIdMap["subscription"] = subsCategory.id;
-			if (hasSubscriptions) {
-				// If there are active subscriptions, ensure the budget cap reflects the expected total (handled above when totalSubscriptions > 0).
-			} else {
-				// No active subscriptions: only zero the budget cap if there are no transactions present.
-				if (!txCount || txCount === 0) {
-					if (Number(subsCategory.budget_cap) !== 0) {
-						await supabase.from("allocation_categories").update({ budget_cap: 0 }).eq("id", subsCategory.id);
-					}
-				}
-			}
-		}
-	}
-
-	// Map the default buckets to their resolved category ids.
-	if (categoryIdMap["bill"]) categoryIdByName.set("bills", categoryIdMap["bill"]);
-	if (categoryIdMap["subscription"]) categoryIdByName.set("subscriptions", categoryIdMap["subscription"]);
-
-	// User-chosen categories: fold the recurring total into recurring_budget_cap.
-	// The user-editable budget_cap (manual budget) is left untouched.
-	for (const [key, entry] of Array.from(customTotals.entries())) {
-		let customCategory = categoryMap.get(key);
-		if (!customCategory) {
-			const { data: newCat } = await supabase
-				.from("allocation_categories")
-				.insert({
-					allocation_id: allocationId,
-					user_id: userId,
-					name: entry.name,
-					budget_cap: 0,
-					recurring_budget_cap: entry.total,
-					is_recurring: false,
-					display_order: 2,
-					color: "blue",
-				})
-				.select()
-				.single();
-			if (newCat) {
-				categoryMap.set(key, newCat);
-				customCategory = newCat;
-			}
-		} else if (Number(customCategory.recurring_budget_cap) !== entry.total) {
-			await supabase
-				.from("allocation_categories")
-				.update({ recurring_budget_cap: entry.total })
-				.eq("id", customCategory.id);
-			customCategory = { ...customCategory, recurring_budget_cap: entry.total };
-		}
-		if (customCategory) categoryIdByName.set(key, customCategory.id);
-	}
-
-	// A bill paid early, before this month's budget existed, was recorded without a category.
-	const idsByCategory = new Map<string, string[]>();
-	for (const transaction of existingTransactions || []) {
-		if (transaction.category_id) continue;
-		const expense = allRecurring.find((r) => r.id === transaction.recurring_expense_id);
-		if (expense && isRecurringTransfer(expense)) continue;
-		const categoryId = expense ? categoryIdByName.get(resolveRecurringCategoryName(expense).toLowerCase()) : undefined;
-		if (categoryId) idsByCategory.set(categoryId, [...(idsByCategory.get(categoryId) ?? []), transaction.id]);
-	}
-	for (const [categoryId, ids] of Array.from(idsByCategory.entries())) {
-		const { error } = await supabase.from("transactions").update({ category_id: categoryId }).in("id", ids);
-		if (error) Logger.error("Error categorizing early recurring payments", { error });
-	}
-
-	const transactionsToCreate: RecurringOccurrenceRow[] = [];
-
-	const existingTransactionMap = new Map(
-		(existingTransactions || []).map((t) => {
-			const covered = t.covers_due_date ?? t.transaction_date;
-			const dateStr = covered ? covered.split("T")[0] : "";
-			return [`${t.recurring_expense_id}:${dateStr}`, t];
-		})
-	);
-
-	// --- Target month transactions (existing logic) ---
-	for (const item of applicableExpenses) {
-		const { expense, dates } = item;
-
-		for (const dateObj of dates) {
-			const dateStr = formatDateString(dateObj);
-			const key = `${expense.id}:${dateStr}`;
-
-			// A recorded occurrence is never rewritten or re-created. Edits to a
-			// recurring expense only apply from the next unrecorded occurrence.
-			if (existingTransactionMap.has(key) || recordedAmountByKey.has(key)) continue;
-
-			if (!expense.is_active || !isPostable(expense)) continue;
-
-			const meta = (expense.meta_data as any) || {};
-			if (meta.is_automated === false) continue;
-
-			const todayLocal = parseLocalDate(getTodayDateString(timezone || undefined));
-			const targetDate = new Date(dateObj);
-			targetDate.setHours(0, 0, 0, 0);
-
-			if (targetDate > todayLocal) continue;
-
-			transactionsToCreate.push(
-				recurringOccurrenceRow(expense, {
-					userId,
-					transactionDate: dateStr,
-					coversDueDate: dateStr,
-					categoryId: categoryIdByName.get(resolveRecurringCategoryName(expense).toLowerCase()) ?? null,
-					notes: `Auto-created from recurring ${expense.category}`,
-				})
-			);
-		}
-	}
-
-	if (transactionsToCreate.length > 0) {
-		const { error } = await supabase.from("transactions").insert(transactionsToCreate);
-		if (error) {
-			Logger.error("Error creating recurring transactions", { error });
-		}
-	}
-
-	// --- Catch-up: backfill missed months for AUTO expenses ---
-	const today = parseLocalDate(getTodayDateString(timezone || undefined));
-
-	// Collect all missed occurrences across all expenses, grouped by month
-	type MissedOccurrence = { expense: (typeof allRecurring)[0]; dateStr: string };
-	const missedByMonth: Record<string, MissedOccurrence[]> = {};
-
-	for (const expense of allRecurring) {
-		if (!expense.is_active || !isPostable(expense)) continue;
-		const meta = (expense.meta_data as any) || {};
-		if (meta.is_automated === false) continue;
-
-		let currentDue = parseLocalDate(expense.next_due_date);
-		currentDue.setHours(0, 0, 0, 0);
-
-		// Skip if already in the future
-		if (currentDue > today) continue;
-
-		// Walk through each occurrence from next_due_date up to today
-		while (currentDue <= today) {
-			const occMonth = currentDue.getMonth() + 1;
-			const occYear = currentDue.getFullYear();
-			const monthKey = `${occYear}-${occMonth}`;
-			const dateStr = formatDateString(currentDue);
-
-			// Skip occurrences that belong to the target month (already handled above)
-			// and any occurrence that was already recorded (even if its transaction
-			// was later deleted).
-			if (occYear !== targetYear || occMonth !== targetMonth) {
-				if (!recordedAmountByKey.has(`${expense.id}:${dateStr}`)) {
-					if (!missedByMonth[monthKey]) {
-						missedByMonth[monthKey] = [];
-					}
-					missedByMonth[monthKey].push({ expense, dateStr });
-				}
-			}
-
-			currentDue = calculateNextDueDate(currentDue, expense.billing_period);
-		}
-
-		// Advance next_due_date to the next future occurrence
-		const newDueDateStr = formatDateString(currentDue);
-		const oldDueDateStr = expense.next_due_date.split("T")[0];
-
-		if (newDueDateStr !== oldDueDateStr) {
-			const { error: updateError } = await supabase
-				.from("recurring_expenses")
-				.update({ next_due_date: newDueDateStr })
-				.eq("id", expense.id);
-
-			if (updateError) {
-				Logger.error(`Error advancing next_due_date for ${expense.name}`, { error: updateError });
-			}
-		}
-	}
-
-	// Process each missed month: find/create allocation, resolve categories, insert transactions
-	for (const monthKey of Object.keys(missedByMonth)) {
-		const items = missedByMonth[monthKey];
-		const [yearStr, monthStr] = monthKey.split("-");
-		const missedYear = parseInt(yearStr);
-		const missedMonth = parseInt(monthStr);
-
-		// Find or create allocation for this month (direct DB, no re-entrant sync)
-		let missedAllocationId: string;
-		const { data: existingAlloc } = await supabase
-			.from("allocations")
-			.select("id")
-			.eq("user_id", userId)
-			.eq("year", missedYear)
-			.eq("month", missedMonth)
-			.single();
-
-		if (existingAlloc) {
-			missedAllocationId = existingAlloc.id;
-		} else {
-			const { data: newAlloc, error: createErr } = await supabase
-				.from("allocations")
-				.insert({ user_id: userId, year: missedYear, month: missedMonth, expected_income: 0 })
-				.select("id")
-				.single();
-
-			if (createErr || !newAlloc) {
-				Logger.error(`Error creating allocation for ${missedYear}-${missedMonth}`, { error: createErr });
-				continue;
-			}
-			missedAllocationId = newAlloc.id;
-		}
-
-		// Resolve category IDs for this month's allocation by name.
-		const { data: missedCategories } = await supabase
-			.from("allocation_categories")
-			.select("id, name")
-			.eq("allocation_id", missedAllocationId);
-
-		const missedCategoryIdByName = new Map<string, string>();
-		for (const cat of missedCategories || []) {
-			missedCategoryIdByName.set(String(cat.name).toLowerCase(), cat.id);
-		}
-
-		// Group the missed items by the category name they resolve to and create
-		// any category that doesn't exist yet.
-		const missedNeeded = new Map<
-			string,
-			{ name: string; total: number; isDefault: boolean; defaultType: "bill" | "subscription" | null }
-		>();
-		for (const item of items) {
-			if (isRecurringTransfer(item.expense)) continue;
-			const custom = customRecurringCategoryName(item.expense);
-			const name = custom ?? (item.expense.category === "bill" ? "Bills" : "Subscriptions");
-			const key = name.toLowerCase();
-			const entry = missedNeeded.get(key) ?? {
-				name,
-				total: 0,
-				isDefault: !custom,
-				defaultType: custom ? null : (item.expense.category as "bill" | "subscription"),
-			};
-			entry.total += Math.abs(Number(item.expense.amount));
-			missedNeeded.set(key, entry);
-		}
-
-		for (const [key, entry] of Array.from(missedNeeded.entries())) {
-			if (missedCategoryIdByName.has(key)) continue;
-			const { data: newCat } = await supabase
-				.from("allocation_categories")
-				.insert({
-					allocation_id: missedAllocationId,
-					user_id: userId,
-					name: entry.name,
-					budget_cap: entry.isDefault ? entry.total : 0,
-					recurring_budget_cap: entry.isDefault ? 0 : entry.total,
-					is_recurring: entry.isDefault,
-					display_order: entry.isDefault ? (entry.defaultType === "bill" ? 0 : 1) : 2,
-					color: entry.isDefault ? (entry.defaultType === "bill" ? "orange" : "purple") : "blue",
-				})
-				.select("id")
-				.single();
-
-			if (newCat) missedCategoryIdByName.set(key, newCat.id);
-		}
-
-		// Check existing transactions for this month to dedup
-		const missedMonthStart = `${missedYear}-${String(missedMonth).padStart(2, "0")}-01`;
-		const missedMonthEnd = `${missedYear}-${String(missedMonth).padStart(2, "0")}-${new Date(missedYear, missedMonth, 0).getDate()}`;
-
-		const { data: missedExisting } = await supabase
-			.from("transactions")
-			.select("recurring_expense_id, transaction_date, covers_due_date")
-			.eq("user_id", userId)
-			.gte("transaction_date", missedMonthStart)
-			.lte("transaction_date", missedMonthEnd)
-			.not("recurring_expense_id", "is", null);
-
-		const missedExistingKeys = new Set(
-			(missedExisting || []).map(
-				(t) => `${t.recurring_expense_id}:${(t.covers_due_date ?? t.transaction_date).split("T")[0]}`
-			)
-		);
-
-		const missedTransactions = items
-			.filter((item: MissedOccurrence) => !missedExistingKeys.has(`${item.expense.id}:${item.dateStr}`))
-			.map((item: MissedOccurrence) =>
-				recurringOccurrenceRow(item.expense, {
-					userId,
-					transactionDate: item.dateStr,
-					coversDueDate: item.dateStr,
-					categoryId: missedCategoryIdByName.get(resolveRecurringCategoryName(item.expense).toLowerCase()) ?? null,
-					notes: `Auto-created from recurring ${item.expense.category}`,
-				})
-			);
-
-		if (missedTransactions.length > 0) {
-			const { error } = await supabase.from("transactions").insert(missedTransactions);
-			if (error) {
-				Logger.error(`Error backfilling transactions for ${missedYear}-${missedMonth}`, { error });
-			}
-		}
-	}
+	const ctx = await getReadContext();
+	return ctx ? allocationStore(ctx).find(year, month) : null;
 }
 
 export async function getAllocationSummary(allocationId: string): Promise<AllocationSummary | null> {
-	// Handle sample data mode
-	if (await isSampleDataMode()) {
-		const allocation = findSampleAllocationById(allocationId);
-		if (!allocation) return null;
-		return allocation.id === sampleAllocationSummary.allocation.id
-			? sampleAllocationSummary
-			: buildSampleSummary(allocation);
-	}
-
-	const supabase = await createClient();
-
-	const { data, error } = await supabase.rpc("get_allocation_summary", {
-		p_allocation_id: allocationId,
-	});
-
-	if (error) {
-		Logger.error("Error getting allocation summary", { error });
-		return null;
-	}
-
-	const summary = data as AllocationSummary;
-
-	// Ensure "Uncategorized" is always present in the categories list
-	if (summary.categories) {
-		const hasUncategorized = summary.categories.some(
-			(c) => c.id === VIRTUAL_UNCATEGORIZED_ID || c.name.toLowerCase() === "uncategorized"
-		);
-
-		if (!hasUncategorized) {
-			summary.categories.push({
-				id: VIRTUAL_UNCATEGORIZED_ID,
-				allocation_id: allocationId,
-				user_id: summary.allocation.user_id,
-				name: "Uncategorized",
-				budget_cap: 0,
-				is_recurring: false,
-				display_order: 999, // Always last
-				color: "gray",
-				icon: "help-circle",
-				notes: "Transactions without a category",
-				created_at: new Date().toISOString(),
-				updated_at: new Date().toISOString(),
-				actual_spend: 0,
-				remaining: 0,
-				utilization_percentage: 0,
-				transaction_count: 0,
-			});
-		} else {
-			// Standardize ID if it's already there (e.g. from RPC)
-			const uncategorized = summary.categories.find((c) => c.name.toLowerCase() === "uncategorized");
-			if (uncategorized && uncategorized.id !== VIRTUAL_UNCATEGORIZED_ID) {
-				uncategorized.id = VIRTUAL_UNCATEGORIZED_ID;
-			}
-		}
-
-		// Sort by display order to ensure Uncategorized is at the bottom (as per RPC logic)
-		summary.categories.sort((a, b) => (a.display_order || 0) - (b.display_order || 0));
-	}
-
-	return summary;
+	const ctx = await getReadContext();
+	return ctx ? allocationStore(ctx).getSummary(allocationId) : null;
 }
 
 export async function getPreviousMonthSummary(
 	year: number,
 	month: number
 ): Promise<{ summary: AllocationSummary | null; prevYear: number; prevMonth: number }> {
-	// Calculate previous month (handle year boundary)
 	const prevMonth = month === 1 ? 12 : month - 1;
 	const prevYear = month === 1 ? year - 1 : year;
 
-	// Get the previous month's allocation
-	const prevAllocation = await getAllocation(prevYear, prevMonth);
+	const ctx = await getReadContext();
+	if (!ctx) return { summary: null, prevYear, prevMonth };
 
-	if (!prevAllocation) {
-		return { summary: null, prevYear, prevMonth };
-	}
-
-	const summary = await getAllocationSummary(prevAllocation.id);
+	const store = allocationStore(ctx);
+	const prevAllocation = await store.find(prevYear, prevMonth);
+	const summary = prevAllocation ? await store.getSummary(prevAllocation.id) : null;
 	return { summary, prevYear, prevMonth };
 }
 
-export async function importPreviousMonthCategories(
-	targetYear: number,
-	targetMonth: number,
-	expectedIncome: number
-): Promise<Allocation | null> {
-	const supabase = await createClient();
-
-	const {
-		data: { user },
-	} = await supabase.auth.getUser();
-	if (!user) return null;
-
-	// Calculate previous month (handle year boundary)
-	const prevMonth = targetMonth === 1 ? 12 : targetMonth - 1;
-	const prevYear = targetMonth === 1 ? targetYear - 1 : targetYear;
-
-	// Get previous month's allocation
-	const prevAllocation = await getAllocation(prevYear, prevMonth);
-
-	// Create new allocation for target month
-	const newAllocation = await getOrCreateAllocation(targetYear, targetMonth, expectedIncome);
-	if (!newAllocation) return null;
-
-	// If no previous allocation, just return the empty new allocation
-	if (!prevAllocation) {
-		return newAllocation;
-	}
-
-	// Fetch categories from previous month
-	const { data: prevCategories, error: fetchError } = await supabase
-		.from("allocation_categories")
-		.select("*")
-		.eq("allocation_id", prevAllocation.id)
-		.order("display_order");
-
-	if (fetchError || !prevCategories || prevCategories.length === 0) {
-		return newAllocation;
-	}
-
-	// Copy categories to new allocation
-	const newCategories = prevCategories.map((cat) => ({
-		allocation_id: newAllocation.id,
-		user_id: user.id,
-		name: cat.name,
-		budget_cap: cat.budget_cap,
-		is_recurring: cat.is_recurring,
-		display_order: cat.display_order,
-		color: cat.color,
-		icon: cat.icon,
-		notes: cat.notes,
-		contribution_plan: cat.contribution_plan ?? null,
-	}));
-
-	const { error: insertError } = await supabase
-		.from("allocation_categories")
-		.upsert(newCategories, { onConflict: "allocation_id, name", ignoreDuplicates: true });
-
-	if (insertError) {
-		Logger.error("Error copying categories", { error: insertError });
-	}
-
-	revalidatePath("/allocations");
-	return newAllocation;
-}
-
-export async function updateExpectedIncome(allocationId: string, expectedIncome: number): Promise<boolean> {
-	const supabase = await createClient();
-
-	const { error } = await supabase
-		.from("allocations")
-		.update({ expected_income: expectedIncome })
-		.eq("id", allocationId);
-
-	if (error) {
-		Logger.error("Error updating expected income", { error });
-		return false;
-	}
-
-	revalidatePath("/allocations");
-	return true;
-}
-
-export async function createCategory(
-	allocationId: string,
-	name: string,
-	budgetCap: number,
-	isRecurring: boolean = false,
-	displayOrder?: number,
-	color?: string,
-	contributionPlan: RegisteredPlan | null = null
-): Promise<AllocationCategory | null> {
-	const supabase = await createClient();
-
-	const {
-		data: { user },
-	} = await supabase.auth.getUser();
-	if (!user) return null;
-
-	// Get the next display order if not provided
-	if (displayOrder === undefined) {
-		const { data: categories } = await supabase
-			.from("allocation_categories")
-			.select("display_order")
-			.eq("allocation_id", allocationId)
-			.order("display_order", { ascending: false })
-			.limit(1);
-
-		displayOrder = categories && categories.length > 0 ? categories[0].display_order + 1 : 0;
-	}
-
-	const { data, error } = await supabase
-		.from("allocation_categories")
-		.insert({
-			allocation_id: allocationId,
-			user_id: user.id,
-			name,
-			budget_cap: budgetCap,
-			is_recurring: isRecurring,
-			display_order: displayOrder,
-			color,
-			contribution_plan: contributionPlan,
-		})
-		.select()
-		.single();
-
-	if (error) {
-		Logger.error("Error creating category", { error });
-		return null;
-	}
-
-	revalidatePath("/allocations");
-	return data as AllocationCategory;
-}
-
-export async function updateCategoryBudget(categoryId: string, budgetCap: number): Promise<boolean> {
-	const supabase = await createClient();
-
-	const { error } = await supabase.from("allocation_categories").update({ budget_cap: budgetCap }).eq("id", categoryId);
-
-	if (error) {
-		Logger.error("Error updating category budget", { error });
-		return false;
-	}
-
-	revalidatePath("/allocations");
-	return true;
-}
-
-export async function updateCategoryName(categoryId: string, name: string): Promise<boolean> {
-	const supabase = await createClient();
-
-	const { error } = await supabase.from("allocation_categories").update({ name }).eq("id", categoryId);
-
-	if (error) {
-		Logger.error("Error updating category name", { error });
-		return false;
-	}
-
-	revalidatePath("/allocations");
-	return true;
-}
-
-export async function updateCategoryColor(categoryId: string, color: string): Promise<boolean> {
-	const supabase = await createClient();
-
-	const { error } = await supabase.from("allocation_categories").update({ color }).eq("id", categoryId);
-
-	if (error) {
-		Logger.error("Error updating category color", { error });
-		return false;
-	}
-
-	revalidatePath("/allocations");
-	return true;
-}
-
-/**
- * Links a budget category to a registered plan (or unlinks it with null). The budget is then
- * shown against that plan's contribution room; only real deposits use the room.
- */
-export async function updateCategoryContributionPlan(
-	categoryId: string,
-	contributionPlan: RegisteredPlan | null
-): Promise<boolean> {
-	const supabase = await createClient();
-
-	const { error } = await supabase
-		.from("allocation_categories")
-		.update({ contribution_plan: contributionPlan })
-		.eq("id", categoryId);
-
-	if (error) {
-		Logger.error("Error updating category contribution plan", { error });
-		return false;
-	}
-
-	revalidatePath("/allocations");
-	return true;
-}
-
-export async function deleteCategory(categoryId: string): Promise<boolean> {
-	const supabase = await createClient();
-
-	const { error } = await supabase.from("allocation_categories").delete().eq("id", categoryId);
-
-	if (error) {
-		Logger.error("Error deleting category", { error });
-		return false;
-	}
-
-	revalidatePath("/allocations");
-	return true;
-}
-
-export async function reorderCategories(categoryOrders: { id: string; display_order: number }[]): Promise<boolean> {
-	// Handle sample data mode
-	if (await isSampleDataMode()) {
-		return true;
-	}
-
-	const supabase = await createClient();
-
-	// Update each category's display order
-	const promises = categoryOrders.map(({ id, display_order }) =>
-		supabase.from("allocation_categories").update({ display_order }).eq("id", id)
-	);
-
-	const results = await Promise.all(promises);
-
-	if (results.some((result) => result.error)) {
-		Logger.error("Error reordering categories");
-		return false;
-	}
-
-	revalidatePath("/allocations");
-	return true;
-}
-
 export async function getTransactionsForMonth(year: number, month: number): Promise<Transaction[]> {
-	// Handle sample data mode
-	if (await isSampleDataMode()) {
-		return sampleTransactions;
-	}
-
-	const supabase = await createClient();
-
-	const userId = await getReadUserId(supabase);
-	if (!userId) return [];
-
-	// Calculate date range for the month
-	const startDate = `${year}-${String(month).padStart(2, "0")}-01`;
-	const endDate = new Date(year, month, 0); // Last day of month
-	const endDateStr = `${year}-${String(month).padStart(2, "0")}-${endDate.getDate()}`;
-
-	const { data, error } = await supabase
-		.from("transactions")
-		.select(
-			`
-			*,
-			category:allocation_categories(name),
-			recurring_expense:recurring_expenses(id, is_active),
-			linked_account_transaction:account_transactions!fk_linked_account_tx(
-				id,
-				account_id,
-				amount
-			)
-		`
-		)
-		.eq("user_id", userId)
-		.gte("transaction_date", startDate)
-		.lte("transaction_date", endDateStr)
-		.order("transaction_date", { ascending: false });
-
-	if (error) {
-		Logger.error("Error fetching transactions", { error });
-		return [];
-	}
-
-	const rows = data as any[];
-
-	// Fetch every account transaction linked to these allocation transactions so
-	// transfers can resolve both the source and destination accounts. The
-	// linked_account_transaction FK only points at one side (the source).
-	const linkedAccountTxMap = new Map<string, Array<{ id: string; account_id: string | null }>>();
-
-	if (rows.length > 0) {
-		const txIds = rows.map((t) => t.id);
-
-		const { data: linkedAccountTxs, error: linkedError } = await supabase
-			.from("account_transactions")
-			.select("id, account_id, linked_allocation_transaction_id")
-			.in("linked_allocation_transaction_id", txIds);
-
-		if (linkedError) {
-			Logger.error("Error fetching linked account transactions", { error: linkedError });
-		} else {
-			for (const accountTx of linkedAccountTxs || []) {
-				const key = accountTx.linked_allocation_transaction_id as string;
-				const list = linkedAccountTxMap.get(key) ?? [];
-				list.push({ id: accountTx.id, account_id: accountTx.account_id });
-				linkedAccountTxMap.set(key, list);
-			}
-		}
-	}
-
-	// Flatten the category name and calculate recurring stopped status
-	return rows.map((t) => {
-		const isRecurringStopped =
-			(t.recurring_expense && t.recurring_expense.is_active === false) ||
-			(t.source === "recurring" && !t.recurring_expense_id);
-
-		return {
-			...t,
-			category_name: t.category?.name,
-			category: undefined,
-			recurring_expense: undefined,
-			is_recurring_stopped: isRecurringStopped,
-			account_id: t.linked_account_transaction?.account_id,
-			linked_account_transactions: linkedAccountTxMap.get(t.id) ?? [],
-		};
-	}) as Transaction[];
+	const ctx = await getReadContext();
+	return ctx ? allocationStore(ctx).listTransactionsForMonth(year, month) : [];
 }
 
-/** The page's catch-up refetch: summary, transactions, accounts and contributions in one request. */
+/** The page's catch-up refetch; the focus refetch reads the same data from /api/allocations/page-data. */
 export async function getAllocationPageData(
 	allocationId: string | null,
 	year: number,
 	month: number
 ): Promise<AllocationPageData> {
-	const [summary, transactions, accounts, contributions] = await Promise.all([
-		allocationId ? getAllocationSummary(allocationId) : null,
-		getTransactionsForMonth(year, month),
-		getAccountsForSelector(),
-		getAllocationContributions(year, month),
-	]);
-	return { summary, transactions, accounts, contributions };
+	const ctx = await getReadContext();
+	if (!ctx) {
+		return { summary: null, transactions: [], accounts: [], contributions: { pools: [], categoryPlans: {} } };
+	}
+	return loadAllocationPageData(ctx, allocationId, year, month);
 }
 
-export async function getUserTemplates(): Promise<
-	Array<{
-		id: string;
-		name: string;
-		categoryCount: number;
-		totalBudget: number;
-	}>
-> {
-	const supabase = await createClient();
-
-	const {
-		data: { user },
-	} = await supabase.auth.getUser();
-	if (!user) return [];
-
-	const { data, error } = await supabase
-		.from("allocation_templates")
-		.select(
-			`
-			*,
-			template_categories(budget_cap)
-		`
-		)
-		.eq("user_id", user.id)
-		.order("name");
-
-	if (error) {
-		Logger.error("Error fetching templates", { error });
-		return [];
-	}
-
-	return (data as any[]).map((t) => ({
-		id: t.id,
-		name: t.name,
-		description: t.description,
-		categoryCount: t.template_categories?.length || 0,
-		totalBudget: t.template_categories?.reduce((sum: number, c: any) => sum + Number(c.budget_cap), 0) || 0,
-	}));
+export async function getUserTemplates(): Promise<TemplateListItem[]> {
+	const ctx = await getReadContext();
+	return ctx ? allocationStore(ctx).listTemplates() : [];
 }
 
-export async function applyTemplateToAllocation(templateId: string, allocationId: string): Promise<boolean> {
-	const supabase = await createClient();
-
-	const { error } = await supabase.rpc("apply_template_to_allocation", {
-		p_template_id: templateId,
-		p_allocation_id: allocationId,
-	});
-
-	if (error) {
-		Logger.error("Error applying template", { error });
-		return false;
-	}
-
-	await copyTemplateContributionPlans(supabase, templateId, allocationId);
-
-	revalidatePath("/allocations");
-	return true;
+export async function getHistoricalPace(currentYear: number, currentMonth: number): Promise<HistoricalPace> {
+	const ctx = await getReadContext();
+	return ctx
+		? allocationStore(ctx).getHistoricalPace(currentYear, currentMonth)
+		: { hasEnoughData: false, dailyAmounts: [] };
 }
-
-/**
- * apply_template_to_allocation() predates contribution plans, so carry each template
- * category's plan over to the matching (same name) allocation category afterwards.
- */
-async function copyTemplateContributionPlans(
-	supabase: Awaited<ReturnType<typeof createClient>>,
-	templateId: string,
-	allocationId: string
-) {
-	const { data: linked } = await supabase
-		.from("template_categories")
-		.select("name, contribution_plan")
-		.eq("template_id", templateId)
-		.not("contribution_plan", "is", null);
-
-	if (!linked || linked.length === 0) return;
-
-	const { data: categories } = await supabase
-		.from("allocation_categories")
-		.select("id, name")
-		.eq("allocation_id", allocationId);
-
-	const updates = (categories ?? []).flatMap((category) => {
-		const match = linked.find((t) => t.name.toLowerCase() === category.name.toLowerCase());
-		return match
-			? [
-					supabase
-						.from("allocation_categories")
-						.update({ contribution_plan: match.contribution_plan })
-						.eq("id", category.id),
-				]
-			: [];
-	});
-
-	const results = await Promise.all(updates);
-	if (results.some((result) => result.error)) {
-		Logger.error("Error copying template contribution plans");
-	}
-}
-
-export async function createTemplateFromAllocation(
-	allocationId: string,
-	templateName: string,
-	description?: string
-): Promise<AllocationTemplate | null> {
-	const supabase = await createClient();
-
-	const {
-		data: { user },
-	} = await supabase.auth.getUser();
-	if (!user) return null;
-
-	// Create or update template
-	const { data: template, error: templateError } = await supabase
-		.from("allocation_templates")
-		.upsert(
-			{
-				user_id: user.id,
-				name: templateName,
-				description,
-			},
-			{ onConflict: "user_id, name" }
-		)
-		.select()
-		.single();
-
-	if (templateError) {
-		Logger.error("Error creating template", { error: templateError });
-		return null;
-	}
-
-	// Remove old categories if updating an existing template
-	if (template) {
-		await supabase.from("template_categories").delete().eq("template_id", template.id);
-	}
-
-	// Copy categories from allocation to template
-	const { data: categories } = await supabase
-		.from("allocation_categories")
-		.select("*")
-		.eq("allocation_id", allocationId)
-		.order("display_order");
-
-	if (categories && categories.length > 0) {
-		const templateCategories = categories.map((cat) => ({
-			template_id: template.id,
-			name: cat.name,
-			budget_cap: cat.budget_cap,
-			is_recurring: cat.is_recurring,
-			display_order: cat.display_order,
-			color: cat.color,
-			icon: cat.icon,
-			notes: cat.notes,
-			contribution_plan: cat.contribution_plan ?? null,
-		}));
-
-		const { error: categoriesError } = await supabase.from("template_categories").insert(templateCategories);
-
-		if (categoriesError) {
-			Logger.error("Error creating template categories", { error: categoriesError });
-			// Clean up template
-			await supabase.from("allocation_templates").delete().eq("id", template.id);
-			return null;
-		}
-	}
-
-	revalidatePath("/allocations");
-	return template as AllocationTemplate;
-}
-
-export async function getHistoricalPace(
-	currentYear: number,
-	currentMonth: number
-): Promise<{ hasEnoughData: boolean; dailyAmounts: number[] }> {
-	if (await isSampleDataMode()) {
-		// Create a realistic-looking fake curve for mock data mode
-		const fakeCurve = Array.from({ length: 31 }, (_, i) => {
-			const dayNum = i + 1;
-			// A logarithmic-ish curve that spends faster early then slows down (e.g. up to $5000)
-			return Math.round(5000 * Math.pow(dayNum / 31, 0.7));
-		});
-		return { hasEnoughData: true, dailyAmounts: fakeCurve };
-	}
-
-	const supabase = await createClient();
-
-	const {
-		data: { user },
-	} = await supabase.auth.getUser();
-
-	if (!user) return { hasEnoughData: false, dailyAmounts: [] };
-
-	// 1. Fetch up to 6 most recent past allocations
-	const { data: pastAllocations, error: allocError } = await supabase
-		.from("allocations")
-		.select("id, year, month")
-		.eq("user_id", user.id)
-		.or(`year.lt.${currentYear},and(year.eq.${currentYear},month.lt.${currentMonth})`)
-		.order("year", { ascending: false })
-		.order("month", { ascending: false })
-		.limit(6);
-
-	if (allocError || !pastAllocations || pastAllocations.length === 0) {
-		return { hasEnoughData: false, dailyAmounts: [] };
-	}
-
-	const allocIds = pastAllocations.map((a) => a.id);
-
-	// 2. Fetch categories to compute total budget for these past months
-	const { data: categories } = await supabase
-		.from("allocation_categories")
-		.select("allocation_id, budget_cap")
-		.in("allocation_id", allocIds);
-
-	const budgetMap = new Map<string, number>();
-	categories?.forEach((c) => {
-		budgetMap.set(c.allocation_id, (budgetMap.get(c.allocation_id) || 0) + Number(c.budget_cap));
-	});
-
-	// Filter allocations to only those with > 0 budget
-	const validAllocations = pastAllocations.filter((a) => (budgetMap.get(a.id) || 0) > 0);
-
-	if (validAllocations.length === 0) {
-		return { hasEnoughData: false, dailyAmounts: [] };
-	}
-
-	// 3. Fetch expenses for these past months
-	const monthConditions = validAllocations
-		.map((a) => {
-			const start = `${a.year}-${String(a.month).padStart(2, "0")}-01`;
-			const end = new Date(a.year, a.month, 0);
-			const endStr = `${a.year}-${String(a.month).padStart(2, "0")}-${end.getDate()}`;
-			return `and(transaction_date.gte.${start},transaction_date.lte.${endStr})`;
-		})
-		.join(",");
-
-	const { data: transactions } = await supabase
-		.from("transactions")
-		.select("amount, transaction_date")
-		.eq("user_id", user.id)
-		.lt("amount", 0) // Only expenses
-		.or(monthConditions);
-
-	// 4. Calculate daily spend percentages per month
-	interface PastMonthStats {
-		totalBudget: number;
-		daysInMonth: number;
-		dailySpend: number[];
-		transactionCount: number;
-	}
-
-	const monthStats = new Map<string, PastMonthStats>();
-	validAllocations.forEach((a) => {
-		const days = new Date(a.year, a.month, 0).getDate();
-		monthStats.set(`${a.year}-${a.month}`, {
-			totalBudget: budgetMap.get(a.id) || 0,
-			daysInMonth: days,
-			dailySpend: new Array(days).fill(0),
-			transactionCount: 0,
-		});
-	});
-
-	transactions?.forEach((t) => {
-		// Use parseLocalDate to avoid timezone shifts throwing dates off
-		const date = parseLocalDate(t.transaction_date);
-		const y = date.getFullYear();
-		const m = date.getMonth() + 1;
-		const d = date.getDate();
-		const key = `${y}-${m}`;
-		const stats = monthStats.get(key);
-		if (stats && d >= 1 && d <= stats.daysInMonth) {
-			stats.dailySpend[d - 1] += Math.abs(t.amount);
-			stats.transactionCount += 1;
-		}
-	});
-
-	// Check if the IMMEDIATE PREVIOUS MONTH has > 10 transactions
-	let hasEnoughTransactions = false;
-	const prevMonthNum = currentMonth === 1 ? 12 : currentMonth - 1;
-	const prevMonthYear = currentMonth === 1 ? currentYear - 1 : currentYear;
-	const prevMonthKey = `${prevMonthYear}-${prevMonthNum}`;
-
-	if (monthStats.has(prevMonthKey)) {
-		const prevMonthStats = monthStats.get(prevMonthKey);
-		if (prevMonthStats && prevMonthStats.transactionCount > 10) {
-			hasEnoughTransactions = true;
-		}
-	}
-
-	if (!hasEnoughTransactions) {
-		return { hasEnoughData: false, dailyAmounts: [] };
-	}
-
-	const dailyAmountSums = new Array(31).fill(0);
-	const dailyAmountCounts = new Array(31).fill(0);
-
-	monthStats.forEach((stats) => {
-		let cumulativeSpend = 0;
-
-		for (let i = 0; i < stats.daysInMonth; i++) {
-			cumulativeSpend += stats.dailySpend[i];
-			dailyAmountSums[i] += cumulativeSpend;
-			dailyAmountCounts[i] += 1;
-		}
-	});
-
-	const averageDailyAmounts = dailyAmountSums.map((sum, i) => {
-		if (dailyAmountCounts[i] === 0) return 0;
-		return sum / dailyAmountCounts[i];
-	});
-
-	// Make sure days 29-31 don't drop to 0 if no months have those lengths by carrying over last known amount
-	let lastValidAmount = 0;
-	for (let i = 0; i < averageDailyAmounts.length; i++) {
-		if (dailyAmountCounts[i] > 0) {
-			lastValidAmount = averageDailyAmounts[i];
-		} else {
-			averageDailyAmounts[i] = lastValidAmount;
-		}
-	}
-
-	return { hasEnoughData: true, dailyAmounts: averageDailyAmounts };
-}
-
-// =============================================================================
-// Income Verification & Drift Detection
-// =============================================================================
-
-const INCOME_MATCH_TOLERANCE = 0.05; // ±5%
-const MONTHS_TO_VERIFY = 3;
-const MONTHS_TO_DETECT_DRIFT = 2;
-const MONTHS_TO_LOOK_BACK = 6;
 
 export async function getIncomeVerification(
 	currentYear: number,
 	currentMonth: number
 ): Promise<IncomeVerificationResult> {
-	const defaultResult: IncomeVerificationResult = {
-		status: "not_set",
-		consecutiveMatches: 0,
-		drift: null,
-	};
-
-	if (await isSampleDataMode()) {
-		return { status: "verified", consecutiveMatches: 4, drift: null };
-	}
-
-	const supabase = await createClient();
-
-	const {
-		data: { user },
-	} = await supabase.auth.getUser();
-	if (!user) return defaultResult;
-
-	// Build the list of past months to analyze (most recent first, excluding current)
-	const monthsToCheck: { year: number; month: number }[] = [];
-	let y = currentYear;
-	let m = currentMonth;
-	for (let i = 0; i < MONTHS_TO_LOOK_BACK; i++) {
-		m--;
-		if (m === 0) {
-			m = 12;
-			y--;
-		}
-		monthsToCheck.push({ year: y, month: m });
-	}
-
-	// Fetch allocations for the look-back period
-	const { data: allocations } = await supabase
-		.from("allocations")
-		.select("year, month, expected_income")
-		.eq("user_id", user.id)
-		.order("year", { ascending: false })
-		.order("month", { ascending: false })
-		.limit(MONTHS_TO_LOOK_BACK + 1);
-
-	if (!allocations || allocations.length === 0) return defaultResult;
-
-	// Build a map of allocations by year-month
-	const allocationMap = new Map<string, number>();
-	for (const alloc of allocations) {
-		allocationMap.set(`${alloc.year}-${alloc.month}`, Number(alloc.expected_income));
-	}
-
-	// Get the current expected income (from current or most recent allocation)
-	const currentExpected =
-		allocationMap.get(`${currentYear}-${currentMonth}`) ??
-		(allocations.length > 0 ? Number(allocations[0].expected_income) : 0);
-
-	if (currentExpected === 0) return defaultResult;
-
-	// For each past month, get total income (positive transactions)
-	const monthlyActuals: { year: number; month: number; actual: number; expected: number }[] = [];
-
-	for (const { year, month } of monthsToCheck) {
-		const expected = allocationMap.get(`${year}-${month}`);
-		if (expected === undefined) continue; // No allocation for this month
-
-		const startDate = `${year}-${String(month).padStart(2, "0")}-01`;
-		const lastDay = new Date(year, month, 0).getDate();
-		const endDate = `${year}-${String(month).padStart(2, "0")}-${lastDay}`;
-
-		const { data: incomeTransactions } = await supabase
-			.from("transactions")
-			.select("amount, source, name, notes")
-			.eq("user_id", user.id)
-			.gte("transaction_date", startDate)
-			.lte("transaction_date", endDate)
-			.gt("amount", 0) // Positive amounts = income
-			.neq("source", "external") // Exclude one-time / external income
-			.neq("source", "transfer"); // Exclude transfers
-
-		const totalIncome = (incomeTransactions || [])
-			.filter((t) => {
-				const name = (t.name || "").toLowerCase();
-				const notes = (t.notes || "").toLowerCase();
-				return !name.includes("transfer") && !notes.includes("transfer");
-			})
-			.reduce((sum, t) => sum + Number(t.amount), 0);
-
-		monthlyActuals.push({ year, month, actual: totalIncome, expected: Number(expected) });
-	}
-
-	if (monthlyActuals.length === 0) return { ...defaultResult, status: "tracking" };
-
-	// --- Verification: count consecutive months where actual ≈ expected (within tolerance) ---
-	let consecutiveMatches = 0;
-	for (const entry of monthlyActuals) {
-		if (entry.expected === 0) break;
-		const ratio = entry.actual / entry.expected;
-		if (ratio >= 1 - INCOME_MATCH_TOLERANCE && ratio <= 1 + INCOME_MATCH_TOLERANCE) {
-			consecutiveMatches++;
-		} else {
-			break; // Streak broken
-		}
-	}
-
-	const status = consecutiveMatches >= MONTHS_TO_VERIFY ? "verified" : "tracking";
-
-	// --- Drift detection: check if recent actual income consistently differs from expected ---
-	let drift: IncomeVerificationResult["drift"] = null;
-
-	if (monthlyActuals.length >= MONTHS_TO_DETECT_DRIFT) {
-		let driftMonths = 0;
-		let driftDirection: "increase" | "decrease" | null = null;
-		let driftSum = 0;
-
-		for (const entry of monthlyActuals) {
-			if (entry.expected === 0 || entry.actual === 0) break;
-			const ratio = entry.actual / entry.expected;
-
-			if (ratio > 1 + INCOME_MATCH_TOLERANCE) {
-				if (driftDirection === "decrease") break; // Direction changed
-				driftDirection = "increase";
-				driftMonths++;
-				driftSum += entry.actual;
-			} else if (ratio < 1 - INCOME_MATCH_TOLERANCE) {
-				if (driftDirection === "increase") break; // Direction changed
-				driftDirection = "decrease";
-				driftMonths++;
-				driftSum += entry.actual;
-			} else {
-				break; // Back within tolerance
-			}
-		}
-
-		if (driftMonths >= MONTHS_TO_DETECT_DRIFT && driftDirection) {
-			drift = {
-				detected: true,
-				direction: driftDirection,
-				suggestedAmount: Math.round(driftSum / driftMonths),
-				monthsObserved: driftMonths,
-			};
-		}
-	}
-
-	return { status, consecutiveMatches, drift };
+	const ctx = await getReadContext();
+	return ctx
+		? allocationStore(ctx).getIncomeVerification(currentYear, currentMonth)
+		: { status: "not_set", consecutiveMatches: 0, drift: null };
 }
+
+export const getOrCreateAllocation = defineAction(
+	"getOrCreateAllocation",
+	[yearSchema, monthSchema, nonNegativeMoneySchema.default(0)],
+	async (ctx, year, month, expectedIncome) => {
+		const allocation = await allocationStore(ctx).findOrCreate(year, month, expectedIncome);
+		revalidatePath("/allocations");
+		return allocation;
+	}
+);
+
+/** Creates the month's budget and applies the default template from Settings, if one is set. */
+export const autoCreateAllocationWithDefaults = defineAction(
+	"autoCreateAllocationWithDefaults",
+	[yearSchema, monthSchema],
+	async (ctx, year, month) => {
+		const allocation = await allocationStore(ctx).findOrCreateWithDefaults(year, month);
+		revalidatePath("/allocations");
+		return allocation;
+	}
+);
+
+export const importPreviousMonthCategories = defineAction(
+	"importPreviousMonthCategories",
+	[yearSchema, monthSchema, nonNegativeMoneySchema],
+	async (ctx, targetYear, targetMonth, expectedIncome) => {
+		const allocation = await allocationStore(ctx).importPreviousMonth(targetYear, targetMonth, expectedIncome);
+		revalidatePath("/allocations");
+		return allocation;
+	}
+);
+
+export const updateExpectedIncome = defineAction(
+	"updateExpectedIncome",
+	[idSchema, nonNegativeMoneySchema],
+	async (ctx, allocationId, expectedIncome) => {
+		await allocationStore(ctx).updateExpectedIncome(allocationId, expectedIncome);
+		revalidatePath("/allocations");
+	}
+);
+
+export const createCategory = defineAction(
+	"createCategory",
+	[
+		idSchema,
+		categoryNameSchema,
+		nonNegativeMoneySchema,
+		z.boolean().default(false),
+		z.number().int().optional(),
+		colorSchema.optional(),
+		contributionPlanSchema.default(null),
+	],
+	async (ctx, allocationId, name, budgetCap, isRecurring, displayOrder, color, contributionPlan) => {
+		const category = await allocationStore(ctx).createCategory({
+			allocationId,
+			name,
+			budgetCap,
+			isRecurring,
+			displayOrder,
+			color,
+			contributionPlan,
+		});
+		revalidatePath("/allocations");
+		return category;
+	}
+);
+
+export const updateCategoryBudget = defineAction(
+	"updateCategoryBudget",
+	[idSchema, nonNegativeMoneySchema],
+	async (ctx, categoryId, budgetCap) => {
+		await allocationStore(ctx).updateCategory(categoryId, { budget_cap: budgetCap });
+		revalidatePath("/allocations");
+	}
+);
+
+export const updateCategoryName = defineAction(
+	"updateCategoryName",
+	[idSchema, categoryNameSchema],
+	async (ctx, categoryId, name) => {
+		await allocationStore(ctx).updateCategory(categoryId, { name });
+		revalidatePath("/allocations");
+	}
+);
+
+export const updateCategoryColor = defineAction(
+	"updateCategoryColor",
+	[idSchema, colorSchema],
+	async (ctx, categoryId, color) => {
+		await allocationStore(ctx).updateCategory(categoryId, { color });
+		revalidatePath("/allocations");
+	}
+);
+
+/**
+ * Links a budget category to a registered plan (or unlinks it with null). The budget is then
+ * shown against that plan's contribution room; only real deposits use the room.
+ */
+export const updateCategoryContributionPlan = defineAction(
+	"updateCategoryContributionPlan",
+	[idSchema, contributionPlanSchema],
+	async (ctx, categoryId, contributionPlan) => {
+		await allocationStore(ctx).updateCategory(categoryId, { contribution_plan: contributionPlan });
+		revalidatePath("/allocations");
+	}
+);
+
+export const deleteCategory = defineAction("deleteCategory", [idSchema], async (ctx, categoryId) => {
+	await allocationStore(ctx).deleteCategory(categoryId);
+	revalidatePath("/allocations");
+});
+
+export const reorderCategories = defineAction(
+	"reorderCategories",
+	[displayOrderSchema],
+	async (ctx, categoryOrders) => {
+		await allocationStore(ctx).reorderCategories(categoryOrders);
+		revalidatePath("/allocations");
+	}
+);
+
+export const applyTemplateToAllocation = defineAction(
+	"applyTemplateToAllocation",
+	[idSchema, idSchema],
+	async (ctx, templateId, allocationId) => {
+		await allocationStore(ctx).applyTemplate(templateId, allocationId);
+		revalidatePath("/allocations");
+	}
+);
+
+export const createTemplateFromAllocation = defineAction(
+	"createTemplateFromAllocation",
+	[idSchema, templateNameSchema, z.string().optional()],
+	async (ctx, allocationId, templateName, description) => {
+		const template = await allocationStore(ctx).createTemplate(allocationId, templateName, description);
+		revalidatePath("/allocations");
+		return template;
+	}
+);

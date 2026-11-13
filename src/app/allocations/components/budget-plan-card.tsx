@@ -112,11 +112,12 @@ export function BudgetPlanCard({
 		if (!allocationId) return;
 		setIsSaving(true);
 		try {
-			if (await updateExpectedIncome(allocationId, value)) {
+			const result = await updateExpectedIncome(allocationId, value);
+			if (result.ok) {
 				toast.success("Expected income updated");
 				router.refresh();
 			} else {
-				toast.error("Couldn't update expected income", { description: "Try again in a moment." });
+				toast.error("Couldn't update expected income", { description: result.error.message });
 			}
 		} finally {
 			setIsSaving(false);

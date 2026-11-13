@@ -9,6 +9,7 @@ import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
 import { sanitizeDecimalInput } from "@/lib/input-utils";
+import type { ActionResult } from "@/lib/action-result";
 import type { RegisteredPlan } from "@/app/accounts/types";
 import {
 	deleteCategory,
@@ -84,37 +85,44 @@ export function CategoryEditDialog({
 
 		setIsSaving(true);
 		const planChanged = plan !== contributionPlan;
-		const [budgetOk, nameOk, colorOk, planOk] = await Promise.all([
-			newBudget !== category.budget_cap ? updateCategoryBudget(category.id, newBudget) : Promise.resolve(true),
-			newName !== category.name ? updateCategoryName(category.id, newName) : Promise.resolve(true),
-			color && color !== category.color ? updateCategoryColor(category.id, color) : Promise.resolve(true),
-			planChanged ? updateCategoryContributionPlan(category.id, plan) : Promise.resolve(true),
+		const unchanged = Promise.resolve<ActionResult<void>>({ ok: true, data: undefined });
+		const [budgetResult, nameResult, colorResult, planResult] = await Promise.all([
+			newBudget !== category.budget_cap ? updateCategoryBudget(category.id, newBudget) : unchanged,
+			newName !== category.name ? updateCategoryName(category.id, newName) : unchanged,
+			color && color !== category.color ? updateCategoryColor(category.id, color) : unchanged,
+			planChanged ? updateCategoryContributionPlan(category.id, plan) : unchanged,
 		]);
 		setIsSaving(false);
 
-		if (planChanged && planOk) onContributionPlanChanged?.();
+		if (planChanged && planResult.ok) onContributionPlanChanged?.();
 
-		if (budgetOk && nameOk && colorOk && planOk) {
+		const failures = (
+			[
+				["name", nameResult],
+				["budget", budgetResult],
+				["colour", colorResult],
+				["contribution plan", planResult],
+			] as const
+		).flatMap(([field, result]) => (result.ok ? [] : [{ field, message: result.error.message }]));
+
+		if (failures.length === 0) {
 			toast.success("Category saved");
 			onOpenChange(false);
 			return;
 		}
-		const failed = [
-			!nameOk && "name",
-			!budgetOk && "budget",
-			!colorOk && "colour",
-			!planOk && "contribution plan",
-		].filter(Boolean);
-		toast.error("Some changes weren't saved", { description: `Couldn't update the ${failed.join(", ")}. Try again.` });
+		toast.error("Some changes weren't saved", {
+			description: `Couldn't update the ${failures.map((f) => f.field).join(", ")}. ${failures[0].message}`,
+		});
 	};
 
 	const handleDelete = async () => {
 		setDeleteOpen(false);
-		if (await deleteCategory(category.id)) {
+		const result = await deleteCategory(category.id);
+		if (result.ok) {
 			toast.success("Category deleted");
 			onOpenChange(false);
 		} else {
-			toast.error("Couldn't delete the category", { description: "Try again in a moment." });
+			toast.error("Couldn't delete the category", { description: result.error.message });
 		}
 	};
 

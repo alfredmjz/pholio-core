@@ -1,13 +1,13 @@
-import { beforeAll, describe, expect, mock, test } from "bun:test";
+import { beforeAll, describe, expect, test } from "bun:test";
+import { mockModule } from "@/tests/support/mock-module";
 
 type DataContextModule = typeof import("@/lib/data-context.server");
-
-mock.module("@/lib/supabase/server", () => ({ createClient: async () => ({}), getReadUserId: async () => null }));
-mock.module("@/lib/demo-mode.server", () => ({ getSampleDataSessionKey: async () => null }));
 
 let demoSlice: DataContextModule["demoSlice"];
 
 beforeAll(async () => {
+	await mockModule("@/lib/supabase/server", { createClient: async () => ({}), getReadUserId: async () => null });
+	await mockModule("@/lib/demo-mode.server", { getSampleDataSessionKey: async () => null });
 	({ demoSlice } = await import("@/lib/data-context.server"));
 });
 

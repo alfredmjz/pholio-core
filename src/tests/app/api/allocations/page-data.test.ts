@@ -1,4 +1,5 @@
 import { beforeAll, beforeEach, describe, expect, mock, test } from "bun:test";
+import { mockModule } from "@/tests/support/mock-module";
 import type { AllocationPageData } from "@/app/allocations/types";
 
 type PageDataRoute = typeof import("@/app/api/allocations/page-data/route");
@@ -30,12 +31,11 @@ const loadAllocationPageData = mock(
 	async (_ctx: Ctx, _allocationId: string | null, _year: number, _month: number) => pageData
 );
 
-mock.module("@/lib/data-context.server", () => ({ getReadContext }));
-mock.module("@/app/allocations/page-data.server", () => ({ loadAllocationPageData }));
-
 let GET: PageDataRoute["GET"];
 
 beforeAll(async () => {
+	await mockModule("@/lib/data-context.server", { getReadContext });
+	await mockModule("@/app/allocations/page-data.server", { loadAllocationPageData });
 	// Import after mocking so the route picks up the stubs.
 	({ GET } = await import("@/app/api/allocations/page-data/route"));
 });

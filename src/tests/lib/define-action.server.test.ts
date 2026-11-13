@@ -1,24 +1,21 @@
-import { beforeAll, beforeEach, describe, expect, mock, test } from "bun:test";
+import { afterAll, beforeAll, beforeEach, describe, expect, mock, spyOn, test } from "bun:test";
+import { redirect } from "next/navigation";
 import { z } from "zod";
+import { mockModule } from "@/tests/support/mock-module";
 import { ActionError, GENERIC_ACTION_ERROR } from "@/lib/action-result";
+import { Logger } from "@/lib/logger";
 
 type DefineAction = typeof import("@/lib/define-action.server").defineAction;
 
 const ctx = { kind: "demo", userId: "sample-user", session: "s1" } as const;
 const getWriteContext = mock(async (): Promise<typeof ctx | null> => ctx);
-const logError = mock(() => {});
-
-mock.module("@/lib/data-context.server", () => ({ getWriteContext }));
-mock.module("@/lib/logger", () => ({ Logger: { error: logError, warn: () => {}, info: () => {} } }));
-mock.module("next/navigation", () => ({
-	unstable_rethrow: (error: unknown) => {
-		if ((error as { digest?: string })?.digest === "NEXT_REDIRECT") throw error;
-	},
-}));
+const logError = spyOn(Logger, "error").mockImplementation(() => {});
+const logWarn = spyOn(Logger, "warn").mockImplementation(() => {});
 
 let defineAction: DefineAction;
 
 beforeAll(async () => {
+	await mockModule("@/lib/data-context.server", { getWriteContext });
 	({ defineAction } = await import("@/lib/define-action.server"));
 });
 
@@ -26,6 +23,11 @@ beforeEach(() => {
 	getWriteContext.mockClear();
 	getWriteContext.mockImplementation(async () => ctx);
 	logError.mockClear();
+});
+
+afterAll(() => {
+	logError.mockRestore();
+	logWarn.mockRestore();
 });
 
 describe("defineAction", () => {
@@ -90,11 +92,8 @@ describe("defineAction", () => {
 	});
 
 	test("rethrows Next.js redirects instead of turning them into results", async () => {
-		const redirect = Object.assign(new Error("NEXT_REDIRECT"), { digest: "NEXT_REDIRECT" });
-		const action = defineAction("test", [], async () => {
-			throw redirect;
-		});
+		const action = defineAction("test", [], async () => redirect("/login"));
 
-		await expect(action()).rejects.toBe(redirect);
+		await expect(action()).rejects.toMatchObject({ digest: expect.stringMatching(/^NEXT_REDIRECT/) });
 	});
 });

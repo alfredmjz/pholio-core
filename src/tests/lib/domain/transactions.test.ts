@@ -1,4 +1,5 @@
-import { beforeAll, beforeEach, describe, expect, mock, test } from "bun:test";
+import { beforeAll, beforeEach, describe, expect, test } from "bun:test";
+import { mockModule } from "@/tests/support/mock-module";
 import { ActionError } from "@/lib/action-result";
 import type { AccountWithType } from "@/app/accounts/types";
 import type { SavedBudgetRow, TransactionStore } from "@/lib/actions/transaction-store";
@@ -41,13 +42,11 @@ const fakeStore: TransactionStore = {
 	deleteUnified: async () => true,
 };
 
-mock.module("@/lib/actions/transaction-store", () => ({ transactionStore: () => fakeStore }));
-mock.module("@/lib/logger", () => ({ Logger: { error: () => {}, warn: () => {}, info: () => {} } }));
-
 const ctx = { kind: "demo", userId: "sample-user", session: "s1" } as const;
 let domain: Domain;
 
 beforeAll(async () => {
+	await mockModule("@/lib/actions/transaction-store", { transactionStore: () => fakeStore });
 	domain = await import("@/lib/domain/transactions");
 });
 

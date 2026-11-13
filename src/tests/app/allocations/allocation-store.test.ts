@@ -1,17 +1,17 @@
-import { beforeAll, describe, expect, mock, test } from "bun:test";
+import { beforeAll, describe, expect, test } from "bun:test";
+import { mockModule } from "@/tests/support/mock-module";
 
 type StoreModule = typeof import("@/app/allocations/allocation-store");
-
-mock.module("@/lib/supabase/server", () => ({ createClient: async () => ({}), getReadUserId: async () => null }));
-mock.module("@/lib/demo-mode.server", () => ({ getSampleDataSessionKey: async () => null }));
-mock.module("@/app/settings/actions", () => ({
-	getAllocationSettings: async () => ({ newMonthDefault: "template", defaultTemplateId: null }),
-	getTimezone: async () => null,
-}));
 
 let allocationStore: StoreModule["allocationStore"];
 
 beforeAll(async () => {
+	await mockModule("@/lib/supabase/server", { createClient: async () => ({}), getReadUserId: async () => null });
+	await mockModule("@/lib/demo-mode.server", { getSampleDataSessionKey: async () => null });
+	await mockModule("@/app/settings/actions", {
+		getAllocationSettings: async () => ({ newMonthDefault: "template", defaultTemplateId: null }),
+		getTimezone: async () => null,
+	});
 	({ allocationStore } = await import("@/app/allocations/allocation-store"));
 });
 

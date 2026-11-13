@@ -1,4 +1,5 @@
-import { beforeAll, beforeEach, describe, expect, mock, test } from "bun:test";
+import { beforeAll, beforeEach, describe, expect, test } from "bun:test";
+import { mockModule } from "@/tests/support/mock-module";
 import { ActionError } from "@/lib/action-result";
 import type { AccountStore } from "@/app/accounts/account-store";
 import type { AccountWithType, CreateAccountInput } from "@/app/accounts/types";
@@ -27,13 +28,11 @@ const fakeStore = {
 	},
 } as unknown as AccountStore;
 
-mock.module("@/app/accounts/account-store", () => ({ accountStore: () => fakeStore }));
-mock.module("@/lib/logger", () => ({ Logger: { error: () => {}, warn: () => {}, info: () => {} } }));
-
 const ctx = { kind: "demo", userId: "sample-user", session: "s1" } as const;
 let domain: Domain;
 
 beforeAll(async () => {
+	await mockModule("@/app/accounts/account-store", { accountStore: () => fakeStore });
 	domain = await import("@/lib/domain/accounts");
 });
 

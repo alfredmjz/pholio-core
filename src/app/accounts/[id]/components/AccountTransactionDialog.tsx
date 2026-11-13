@@ -76,20 +76,18 @@ export function AccountTransactionDialog({
 		try {
 			const numAmount = parseFloat(amount);
 
-			const success = await updateAccountTransaction(transaction.id, {
+			const result = await updateAccountTransaction(transaction.id, {
 				description: description || undefined,
 				amount: numAmount,
 				transactionDate: date,
 			});
 
-			if (success) {
+			if (result.ok) {
 				toast.success("Transaction updated");
 				onOpenChange(false);
 				onSuccess?.();
 			} else {
-				toast.error("Couldn't save the transaction", {
-					description: "Failed to update the transaction. Please try again.",
-				});
+				toast.error("Couldn't save the transaction", { description: result.error.message });
 			}
 		} catch (err) {
 			const errorMessage = err instanceof Error ? err.message : "An unexpected error occurred.";
@@ -104,15 +102,13 @@ export function AccountTransactionDialog({
 		setIsDeleting(true);
 
 		try {
-			const success = await deleteAccountTransaction(transaction.id);
-			if (success) {
+			const result = await deleteAccountTransaction(transaction.id);
+			if (result.ok) {
 				toast.success("Transaction deleted");
 				onOpenChange(false);
 				onSuccess?.();
 			} else {
-				toast.error("Couldn't delete the transaction", {
-					description: "Failed to delete the transaction. Please try again.",
-				});
+				toast.error("Couldn't delete the transaction", { description: result.error.message });
 			}
 		} catch (err) {
 			toast.error("Couldn't delete the transaction");
@@ -191,10 +187,7 @@ export function AccountTransactionDialog({
 								)}
 								{transaction.transfer_account && (
 									<Button asChild variant="outline" size="sm" className="h-11 rounded-full sm:h-9">
-										<Link
-											href={accountHref(transaction.transfer_account.id)}
-											onClick={() => onOpenChange(false)}
-										>
+										<Link href={accountHref(transaction.transfer_account.id)} onClick={() => onOpenChange(false)}>
 											Open {transaction.transfer_account.label}
 											<ArrowUpRight className="h-3.5 w-3.5" aria-hidden />
 										</Link>

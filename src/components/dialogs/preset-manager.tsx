@@ -164,12 +164,12 @@ export function PresetManager({
 	const handleDelete = async () => {
 		if (!deleting) return;
 		const res = await deleteTransactionPreset(deleting.id);
-		if (res.success) {
+		if (res.ok) {
 			toast.success("Preset deleted");
 			loadPresets();
 			onPresetsChanged?.();
 		} else {
-			toast.error("Couldn't delete the preset", { description: res.error });
+			toast.error("Couldn't delete the preset", { description: res.error.message });
 		}
 	};
 
@@ -206,13 +206,13 @@ export function PresetManager({
 				? await updateTransactionPreset(editingPreset.id, input)
 				: undefined;
 
-		if (res?.success) {
+		if (res?.ok) {
 			toast.success(isCreating ? "Preset created" : "Preset updated");
 			loadPresets();
 			onPresetsChanged?.();
 			backToList();
 		} else {
-			toast.error("Couldn't save the preset", { description: res?.error });
+			toast.error("Couldn't save the preset", { description: res?.error.message });
 		}
 		setIsSaving(false);
 	};

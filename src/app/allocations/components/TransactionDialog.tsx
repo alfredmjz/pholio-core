@@ -112,7 +112,11 @@ export function TransactionDialog({
 
 	// An edit is capped against the balance without the row's own amount. A recurring payment is
 	// never capped: it posts whatever the balance, like the bill it records.
-	const findAccount = (id: string) => accountBeforeSavedRow(accounts.find((a) => a.id === id), transaction);
+	const findAccount = (id: string) =>
+		accountBeforeSavedRow(
+			accounts.find((a) => a.id === id),
+			transaction
+		);
 	const capCheck =
 		amount && parseFloat(amount) > 0 && !transaction?.recurring_expense_id
 			? checkTransactionCaps({
@@ -167,7 +171,7 @@ export function TransactionDialog({
 			const finalDescription = name.trim() || (type === "transfer" ? "Transfer" : "");
 
 			if (transaction) {
-				const success = await updateUnifiedTransaction(transaction.id, {
+				const result = await updateUnifiedTransaction(transaction.id, {
 					description: finalDescription,
 					amount: numAmount,
 					date,
@@ -180,13 +184,11 @@ export function TransactionDialog({
 					allowOverpayment,
 				});
 
-				if (success) {
+				if (result.ok) {
 					toast.success("Transaction updated");
 					onOpenChange(false);
 				} else {
-					toast.error("Update Failed", {
-						description: "Failed to update the transaction. Please check your connection.",
-					});
+					toast.error("Update Failed", { description: result.error.message });
 				}
 			} else {
 				const result = await createUnifiedTransaction({
@@ -202,13 +204,11 @@ export function TransactionDialog({
 					allowOverpayment,
 				});
 
-				if (result.success) {
+				if (result.ok) {
 					toast.success(type === "transfer" ? "Transfer created" : "Transaction created");
 					onOpenChange(false);
 				} else {
-					toast.error("Creation Failed", {
-						description: result.error || "Failed to create the transaction.",
-					});
+					toast.error("Creation Failed", { description: result.error.message });
 				}
 			}
 		} catch (err) {
@@ -225,12 +225,12 @@ export function TransactionDialog({
 		if (!transaction) return;
 		setIsDeleting(true);
 		try {
-			const success = await deleteUnifiedTransaction(transaction.id);
-			if (success) {
+			const result = await deleteUnifiedTransaction(transaction.id);
+			if (result.ok) {
 				toast.success("Transaction deleted");
 				onOpenChange(false);
 			} else {
-				toast.error("Delete Failed", { description: "Values couldn't be cleaned up properly." });
+				toast.error("Delete Failed", { description: result.error.message });
 			}
 		} catch (err) {
 			toast.error("Error deleting transaction");

@@ -10,9 +10,9 @@ export default function manifest(): MetadataRoute.Manifest {
 		background_color: "#f3efe7",
 		theme_color: "#f3efe7",
 		icons: [
-			{ src: "/icon-maskable-192.png?v=3", sizes: "192x192", type: "image/png", purpose: "maskable" },
-			{ src: "/icon-maskable-512.png?v=3", sizes: "512x512", type: "image/png", purpose: "maskable" },
-			{ src: "/pholio-icon.png?v=3", sizes: "256x256", type: "image/png", purpose: "any" },
+			{ src: "/icon-maskable-192.png?v=4", sizes: "192x192", type: "image/png", purpose: "maskable" },
+			{ src: "/icon-maskable-512.png?v=4", sizes: "512x512", type: "image/png", purpose: "maskable" },
+			{ src: "/pholio-icon.png?v=4", sizes: "256x256", type: "image/png", purpose: "any" },
 		],
 	};
 }

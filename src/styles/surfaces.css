@@ -436,6 +436,75 @@
 	}
 }
 
+/* ---------------------------------------------------------------- day bar */
+
+/* A month's budget with one segment per day (<DayBudgetBar>, src/app/allocations/components/
+   day-budget-bar.tsx). Spending fills the segments from the left; days already gone sit on a
+   darker track, and a mark stands before today. Gaps scale with the bar's width (cqi) so a
+   31-day month still fits a narrow column, and a week starts after a double gap. */
+.day-bar {
+	--day-gap: clamp(1px, 0.7cqi, 2px);
+	--day-height: var(--progress-height);
+	container-type: inline-size;
+	display: flex;
+	align-items: center;
+	height: calc(var(--day-height) + 6px);
+}
+
+.day-bar-cell {
+	--gap-before: var(--day-gap);
+	position: relative;
+	display: block;
+	flex: 1 1 0;
+	min-width: 0;
+	margin-left: var(--gap-before);
+}
+
+.day-bar-cell:first-child {
+	--gap-before: 0px;
+}
+
+.day-bar-cell[data-week-start] {
+	--gap-before: calc(var(--day-gap) * 2);
+}
+
+.day-bar-track {
+	position: relative;
+	display: block;
+	height: var(--day-height);
+	overflow: hidden;
+	border-radius: 2px;
+	background: hsl(var(--foreground) / 0.08);
+}
+
+.day-bar-cell[data-gone] .day-bar-track {
+	background: hsl(var(--foreground) / 0.18);
+}
+
+.day-bar-fill {
+	position: absolute;
+	inset-block: 0;
+	left: 0;
+	transition: width 0.45s var(--progress-ease);
+	transition-delay: calc(var(--day-index, 0) * 14ms);
+}
+
+/* Spent past an even share of the budget through today. */
+.day-bar-fill[data-ahead] {
+	opacity: 0.5;
+}
+
+/* Centred in the gap before today's segment, standing a little proud of the bar. */
+.day-bar-today {
+	position: absolute;
+	top: -3px;
+	bottom: -3px;
+	left: calc(var(--gap-before) / -2 - 1px);
+	width: 2px;
+	border-radius: 1px;
+	background: hsl(var(--foreground));
+}
+
 /* A short, settling shake in place, e.g. on the bar of a category row just dropped. */
 .progress-wiggle {
 	animation: progress-wiggle 0.6s var(--progress-ease) 1;
@@ -463,7 +532,8 @@
 @media (prefers-reduced-motion: reduce) {
 	.progress-line-fill,
 	.progress-line-track,
-	.progress-line-dot {
+	.progress-line-dot,
+	.day-bar-fill {
 		transition: none;
 	}
 	.progress-line-wave,

@@ -1,3 +1,4 @@
+import type { ReactNode } from "react";
 import Link from "next/link";
 import { cn } from "@/lib/utils";
 import { ProgressLine } from "@/components/ui/progress-line";
@@ -58,6 +59,8 @@ interface ContributionRoomMeterProps {
 	color: CategoryColor;
 	year: number;
 	formatCurrency: (amount: number) => string;
+	/** Shown in place of the plain budget bar, e.g. the category row's day-by-day bar and its line. */
+	budgetSlot?: ReactNode;
 	/** One caption line for tight spaces (mobile rows). */
 	compact?: boolean;
 	className?: string;
@@ -78,13 +81,14 @@ export function ContributionRoomMeter({
 	color,
 	year,
 	formatCurrency,
+	budgetSlot,
 	compact = false,
 	className,
 }: ContributionRoomMeterProps) {
 	const planLabel = getContributionPlanLabel(plan);
 	const contributed = pool?.month_contributions ?? 0;
 	const meter = pool ? buildRoomMeter(pool, plan, budget, year) : null;
-	const budgetBar = (
+	const budgetBar = budgetSlot ?? (
 		<BudgetBar contributed={contributed} budget={budget} color={color} formatCurrency={formatCurrency} />
 	);
 

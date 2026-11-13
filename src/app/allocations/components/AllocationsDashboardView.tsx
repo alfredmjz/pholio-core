@@ -31,6 +31,8 @@ interface AllocationsDashboardViewProps {
 
 	// Data
 	currentMonth: MonthYear;
+	/** YYYY-MM-DD in the user's timezone. */
+	today: string;
 	summary: AllocationSummary;
 	categories: AllocationCategory[];
 	transactions: Transaction[];
@@ -83,6 +85,7 @@ export function AllocationsDashboardView({
 	isRefetching,
 	isChangingMonth = false,
 	currentMonth,
+	today,
 	summary,
 	categories,
 	transactions,
@@ -154,6 +157,9 @@ export function AllocationsDashboardView({
 						usedNames={usedNames}
 						contributions={contributions}
 						year={currentMonth.year}
+						month={currentMonth.month}
+						monthName={monthName}
+						today={today}
 						onContributionPlanChanged={onContributionsChanged}
 					/>
 

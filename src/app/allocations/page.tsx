@@ -11,7 +11,9 @@ import {
 } from "./actions";
 import { getAccountsForSelector } from "@/lib/actions/unified-transaction-actions";
 import { getAllocationContributions } from "@/lib/actions/contribution-actions";
-import { getAllocationSettings } from "@/app/settings/actions";
+import { getAllocationSettings, getTimezone } from "@/app/settings/actions";
+import { formatDateString, getTodayDateString } from "@/lib/date-utils";
+import { getDemoNow } from "@/mock-data/demo-date";
 import { AllocationsLoadingSkeleton } from "./components/allocations-loading-skeleton";
 import { isSampleDataMode } from "@/lib/demo-mode.server";
 
@@ -52,6 +54,8 @@ async function AllocationsLoader({ year, month }: { year: number; month: number 
 	let transactions: any[] = [];
 	let accounts: any[] = [];
 	let previousMonthData: { categoryCount: number; totalBudget: number; hasData: boolean } | null = null;
+
+	const today = sampleMode ? formatDateString(getDemoNow()) : getTodayDateString((await getTimezone()) ?? undefined);
 
 	const [userSettings, userTemplates, incomeVerification, contributions] = await Promise.all([
 		getAllocationSettings(),
@@ -115,6 +119,7 @@ async function AllocationsLoader({ year, month }: { year: number; month: number 
 			incomeVerification={incomeVerification}
 			userSettings={userSettings}
 			templates={userTemplates}
+			today={today}
 		/>
 	);
 }

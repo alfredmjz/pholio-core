@@ -29,6 +29,7 @@ import type { AllocationCategory } from "../types";
 import { VIRTUAL_UNCATEGORIZED_ID } from "../types";
 import { getCategoryColor } from "../utils/colors";
 import { getCategoryFigures } from "../utils/category-figures";
+import { getMonthDays } from "../utils/month-pace";
 import { CATEGORY_GRID, CategoryRow } from "./category-row";
 
 interface CategoryListProps {
@@ -38,6 +39,11 @@ interface CategoryListProps {
 	usedNames: string[];
 	contributions: AllocationContributions;
 	year: number;
+	/** 1-indexed. */
+	month: number;
+	monthName: string;
+	/** YYYY-MM-DD in the user's timezone. */
+	today: string;
 	onContributionPlanChanged: () => void;
 }
 
@@ -49,9 +55,13 @@ export function CategoryList({
 	usedNames,
 	contributions,
 	year,
+	month,
+	monthName,
+	today,
 	onContributionPlanChanged,
 }: CategoryListProps) {
 	const { saveCategoryOrder } = useAllocationContext();
+	const monthDays = getMonthDays(year, month, today);
 
 	const isUncategorized = (cat: AllocationCategory) =>
 		cat.id === VIRTUAL_UNCATEGORIZED_ID || cat.name.toLowerCase() === "uncategorized";
@@ -96,6 +106,8 @@ export function CategoryList({
 		usedNames,
 		takenPlans: takenPlansFor(category.id),
 		year,
+		monthDays,
+		monthName,
 		onContributionPlanChanged,
 		dropCount: dropCounts[category.id] ?? 0,
 	});
@@ -120,9 +132,8 @@ export function CategoryList({
 				aria-hidden
 			>
 				<span className="pl-7">Category</span>
-				<span>Progress</span>
+				<span>{monthName}</span>
 				<span className="text-right">Spent</span>
-				<span className="text-right">Left</span>
 				<span />
 			</div>
 

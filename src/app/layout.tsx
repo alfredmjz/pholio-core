@@ -22,8 +22,8 @@ export const metadata: Metadata = {
 	title: "Pholio",
 	// Bump `v` whenever the icons are regenerated; browsers cache favicons by URL.
 	icons: {
-		icon: "/pholio-icon.svg?v=2",
-		apple: "/apple-touch-icon.png?v=3",
+		icon: "/pholio-icon.svg?v=3",
+		apple: "/apple-touch-icon.png?v=4",
 	},
 };
 

@@ -131,6 +131,25 @@ describe("logoGlyphs", () => {
 		}
 	});
 
+	test("centres the still mark's drawn shapes in the grid", () => {
+		for (const cells of [10, 12, 16, 24]) {
+			const glyphs = logoGlyphs(cells);
+			const extents = glyphs.map((glyph) =>
+				glyph.shape === "circle"
+					? [glyph.x - glyph.r, glyph.y - glyph.r, glyph.x + glyph.r, glyph.y + glyph.r]
+					: [glyph.x, glyph.y, glyph.x + glyph.width, glyph.y + glyph.height]
+			);
+			const left = Math.min(...extents.map((box) => box[0]));
+			const top = Math.min(...extents.map((box) => box[1]));
+			const right = Math.max(...extents.map((box) => box[2]));
+			const bottom = Math.max(...extents.map((box) => box[3]));
+			expect((left + right) / 2).toBeCloseTo(cells / 2, 6);
+			expect((top + bottom) / 2).toBeCloseTo(cells / 2, 6);
+			expect(left).toBeGreaterThanOrEqual(0);
+			expect(right).toBeLessThanOrEqual(cells);
+		}
+	});
+
 	test("reuses the computed mark for the same grid", () => {
 		expect(logoGlyphs(10)).toBe(logoGlyphs(10));
 	});

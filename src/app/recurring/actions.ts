@@ -1,404 +1,144 @@
 "use server";
 
-import { createClient } from "@/lib/supabase/server";
 import { revalidatePath } from "next/cache";
-import { Database } from "@/lib/database.types";
-import { getMockRecurringExpenses } from "@/mock-data/recurring";
-import { getMockTransactions } from "@/mock-data/transactions";
+import { z } from "zod";
+import { allocationStore } from "@/app/allocations/allocation-store";
+import { settingsStore } from "@/app/settings/settings-store";
+import { ActionError } from "@/lib/action-result";
+import { idSchema, moneySchema } from "@/lib/action-schemas";
+import { getReadContext, type DataContext } from "@/lib/data-context.server";
+import { defineAction } from "@/lib/define-action.server";
+import type { Json } from "@/lib/database.types";
 import { Logger } from "@/lib/logger";
-import {
-	calculateNextDueDate,
-	formatDateString,
-	formatFullDate,
-	getTodayDateString,
-	parseLocalDate,
-} from "@/lib/date-utils";
+import { formatFullDate, getTodayDateString } from "@/lib/date-utils";
 import { compareAlphabetically } from "@/lib/sort-utils";
-import { sampleAllocationSummary } from "@/mock-data/allocations";
-import { getAllocation, autoCreateAllocationWithDefaults } from "../allocations/actions";
-import { isSampleDataMode } from "@/lib/demo-mode.server";
-import { getTimezone } from "@/app/settings/actions";
-import { coveredDueDate, earlyPaymentPlan, PAY_AHEAD_MAX, paymentsForMonth } from "./recurring-schedule";
-import { canPostTransfer, isRecurringTransfer, recurringOccurrenceRow } from "./recurring-occurrence";
+import { earlyPaymentPlan, PAY_AHEAD_MAX } from "./recurring-schedule";
+import { isRecurringTransfer } from "./recurring-occurrence";
+import { listRecurringExpenses, recurringStore } from "./recurring-store";
+import type { RecurringExpense } from "./recurring-types";
 
-/**
- * The allocation category NAME a recurring expense is bundled into. A user-chosen
- * `budget_category` wins; otherwise subscriptions fall back to "Subscriptions" and
- * bills to "Bills" (the legacy behavior).
- */
-function resolveRecurringCategoryName(expense: { category: string; budget_category?: string | null }): string {
-	const custom = expense.budget_category?.trim();
-	if (custom) return custom;
-	return expense.category === "bill" ? "Bills" : "Subscriptions";
-}
+export type { NewRecurringExpense, RecurringExpense, RecurringExpenseStatus } from "./recurring-types";
 
-export type RecurringExpenseStatus = "paid" | "partial" | "unpaid" | "overpaid" | "upcoming" | "overdue" | "due_today";
+const TRANSFER_ACCOUNTS_MESSAGE = "Check that both accounts are still open and try again.";
 
-export type RecurringExpense = Database["public"]["Tables"]["recurring_expenses"]["Row"] & {
-	status?: RecurringExpenseStatus;
-	paid_amount?: number;
-	paid_count?: number;
-	occurrences_count?: number;
-	deleted_auto_payments?: number;
-	next_amount_change?: { from: number; to: number };
-	next_due_change?: { from: string; to: string };
-};
-export type NewRecurringExpense = Database["public"]["Tables"]["recurring_expenses"]["Insert"];
+const recurringFieldsSchema = z.object({
+	name: z.string().trim().min(1, "Give it a name."),
+	amount: moneySchema.positive("Amount must be greater than zero."),
+	currency: z.string().nullish(),
+	billing_period: z.string().min(1, "Choose how often it repeats."),
+	next_due_date: z.string().min(1, "Choose the next due date."),
+	category: z.string().min(1, "Choose a type."),
+	budget_category: z.string().nullish(),
+	account_id: z.string().nullish(),
+	to_account_id: z.string().nullish(),
+	is_active: z.boolean().nullish(),
+	service_provider: z.string().nullish(),
+	meta_data: z.custom<Json>().nullish(),
+});
+
+const newRecurringSchema = recurringFieldsSchema;
+const recurringUpdateSchema = recurringFieldsSchema.partial();
+const payCountSchema = z
+	.number()
+	.int("Choose a whole number of bills.")
+	.min(1, "Choose at least one bill.")
+	.max(PAY_AHEAD_MAX, `You can pay at most ${PAY_AHEAD_MAX} bills at once.`);
+const payOptionsSchema = z.object({ early: z.boolean().optional() }).default({});
 
 export async function getRecurringExpenses(): Promise<RecurringExpense[]> {
-	const supabase = await createClient();
+	const ctx = await getReadContext();
+	if (!ctx) return [];
 
-	const now = new Date();
-	const startOfMonth = new Date(now.getFullYear(), now.getMonth(), 1).toISOString();
-	const endOfMonth = new Date(now.getFullYear(), now.getMonth() + 1, 0).toISOString();
-	const monthStart = formatDateString(new Date(now.getFullYear(), now.getMonth(), 1));
-	const monthEnd = formatDateString(new Date(now.getFullYear(), now.getMonth() + 1, 0));
-
-	let expenses: RecurringExpense[] = [];
-	let transactions: any[] = [];
-	let recordedOccurrences: any[] = [];
-
-	if (await isSampleDataMode()) {
-		expenses = getMockRecurringExpenses();
-		transactions = getMockTransactions();
-	} else {
-		const {
-			data: { user },
-		} = await supabase.auth.getUser();
-		if (!user) return [];
-
-		const { data: dbExpenses, error: expensesError } = await supabase
-			.from("recurring_expenses")
-			.select("*")
-			.eq("user_id", user.id)
-			.order("next_due_date", { ascending: true });
-
-		if (expensesError) {
-			Logger.error("Error fetching recurring expenses", { error: expensesError });
-			return [];
-		}
-		expenses = dbExpenses || [];
-
-		// Payments made this month, and bills due this month that were paid early.
-		const { data: dbTransactions } = await supabase
-			.from("transactions")
-			.select("id, name, amount, transaction_date, recurring_expense_id, covers_due_date")
-			.eq("user_id", user.id)
-			.or(
-				`and(transaction_date.gte.${monthStart},transaction_date.lte.${monthEnd}),and(covers_due_date.gte.${monthStart},covers_due_date.lte.${monthEnd})`
-			);
-
-		transactions = dbTransactions || [];
-
-		// Recorded occurrences let us show an occurrence as "not paid" after its
-		// auto-created transaction is deleted, without auto-pay re-recording it.
-		const { data: dbRecorded } = await supabase
-			.from("recurring_recorded_occurrences")
-			.select("recurring_expense_id, occurrence_date, amount")
-			.eq("user_id", user.id)
-			.gte("occurrence_date", startOfMonth)
-			.lte("occurrence_date", endOfMonth);
-
-		recordedOccurrences = dbRecorded || [];
-	}
-
-	if (!expenses.length) return [];
-	transactions = paymentsForMonth(transactions, monthStart, monthEnd);
-
-	const enrichedExpenses = expenses.map((expense) => {
-		let status: RecurringExpenseStatus = "upcoming";
-		let paidAmount = 0;
-
-		const todayStr = new Date().toLocaleDateString("en-CA");
-		const dueStr = expense.next_due_date.split("T")[0];
-		const isPastDue = todayStr > dueStr;
-		const isDueToday = todayStr === dueStr;
-
-		if (transactions.length > 0) {
-			const manualMatches = transactions.filter((t) => t.recurring_expense_id === expense.id);
-
-			if (manualMatches.length > 0) {
-				paidAmount = manualMatches.reduce((sum, t) => sum + Math.abs(t.amount), 0);
-			} else {
-				const autoMatches = transactions.filter(
-					(t) =>
-						// Ensure not linked to another expense
-						!t.recurring_expense_id &&
-						(t.name.toLowerCase().includes(expense.name.toLowerCase()) ||
-							expense.name.toLowerCase().includes(t.name.toLowerCase()))
-				);
-				paidAmount = autoMatches.reduce((sum, t) => sum + Math.abs(t.amount), 0);
-			}
-		}
-
-		// Calculate Counts
-
-		const paidTransactions = transactions.filter(
-			(t) =>
-				t.recurring_expense_id === expense.id ||
-				(!t.recurring_expense_id &&
-					(t.name.toLowerCase().includes(expense.name.toLowerCase()) ||
-						expense.name.toLowerCase().includes(t.name.toLowerCase())))
-		);
-		const paidCount = paidTransactions.length;
-
-		const toDateStr = (d: Date | string) => {
-			if (typeof d === "string") return d.split("T")[0];
-			return d.toISOString().split("T")[0];
-		};
-
-		// Set of dates already paid for this expense
-		const paidDates = new Set(paidTransactions.map((t) => coveredDueDate(t)));
-
-		// Recorded occurrences for this expense in the current month. An occurrence
-		// whose transaction was deleted still counts as an occurrence (0 of 1 paid).
-		const monthMarkers = recordedOccurrences.filter((m) => m.recurring_expense_id === expense.id);
-		const markerDates = new Set(monthMarkers.map((m) => toDateStr(m.occurrence_date)));
-		const deletedAutoPaymentCount = monthMarkers.filter((m) => !paidDates.has(toDateStr(m.occurrence_date))).length;
-
-		let futureCount = 0;
-		let tempDate = new Date(expense.next_due_date);
-
-		const endOfMonthDate = new Date(endOfMonth);
-
-		// If next due date is already past end of month, futureCount is 0
-		// Otherwise, count how many fall within this month
-		while (tempDate <= endOfMonthDate) {
-			const tempDateStr = toDateStr(tempDate);
-
-			// Only count if this specific date hasn't been paid or recorded yet
-			if (!paidDates.has(tempDateStr) && !markerDates.has(tempDateStr)) {
-				futureCount++;
-			}
-
-			tempDate = calculateNextDueDate(tempDate, expense.billing_period);
-		}
-
-		const totalOccurrences = paidCount + futureCount + deletedAutoPaymentCount;
-
-		// Compare against the amount captured when the occurrence was recorded so an
-		// edit to next month's amount doesn't turn a paid month into "partial".
-		const recordedExpectedAmount = monthMarkers.reduce((sum, m) => sum + Math.abs(Number(m.amount)), 0);
-		const expectedAmount = recordedExpectedAmount > 0 ? recordedExpectedAmount : Number(expense.amount);
-
-		if (paidAmount > 0 && paidAmount >= expectedAmount && futureCount === 0) {
-			status = "paid";
-		} else if (paidAmount > 0) {
-			status = "partial";
-		} else if (isPastDue) {
-			status = "overdue";
-		} else if (isDueToday) {
-			status = "due_today";
-		} else {
-			status = "upcoming";
-		}
-
-		let displayDueDate = expense.next_due_date;
-		const nextDueStrictStr = toDateStr(expense.next_due_date);
-		if (paidDates.has(nextDueStrictStr)) {
-			displayDueDate = calculateNextDueDate(new Date(expense.next_due_date), expense.billing_period).toISOString();
-		}
-
-		// Detect changes scheduled for the next cycle so the card can distinguish the
-		// upcoming amount/date from what was actually paid this cycle.
-		let nextAmountChange: RecurringExpense["next_amount_change"];
-		let nextDueChange: RecurringExpense["next_due_change"];
-
-		if (monthMarkers.length > 0) {
-			const latestMarker = [...monthMarkers].sort((a, b) =>
-				toDateStr(b.occurrence_date).localeCompare(toDateStr(a.occurrence_date))
-			)[0];
-			const latestDateStr = toDateStr(latestMarker.occurrence_date);
-			const recordedAmount = Math.abs(Number(latestMarker.amount));
-			const currentAmount = Number(expense.amount);
-
-			if (recordedAmount !== currentAmount) {
-				nextAmountChange = { from: recordedAmount, to: currentAmount };
-			}
-
-			const naturalNextDue = formatDateString(
-				calculateNextDueDate(parseLocalDate(latestDateStr), expense.billing_period)
-			);
-			const actualNextDue = displayDueDate ? displayDueDate.split("T")[0] : toDateStr(expense.next_due_date);
-			if (naturalNextDue !== actualNextDue) {
-				nextDueChange = { from: naturalNextDue, to: actualNextDue };
-			}
-		}
-
-		return {
-			...expense,
-			next_due_date: displayDueDate,
-			status,
-			paid_amount: paidAmount,
-			paid_count: paidCount,
-			occurrences_count: totalOccurrences,
-			deleted_auto_payments: deletedAutoPaymentCount,
-			next_amount_change: nextAmountChange,
-			next_due_change: nextDueChange,
-		};
-	});
-
-	return enrichedExpenses;
-}
-
-export async function addRecurringExpense(
-	expense: Omit<NewRecurringExpense, "user_id" | "id" | "created_at" | "updated_at">
-): Promise<RecurringExpense | null> {
-	const supabase = await createClient();
-
-	const {
-		data: { user },
-	} = await supabase.auth.getUser();
-	if (!user) return null;
-
-	const row = normalizeRecurringKind(expense);
-	if (isRecurringTransfer(row) && !(await transferAccountsAreUsable(supabase, row))) return null;
-
-	const { data, error } = await supabase
-		.from("recurring_expenses")
-		.insert({
-			...row,
-			user_id: user.id,
-		})
-		.select()
-		.single();
-
-	if (error) {
-		Logger.error("Error adding recurring expense", { error });
-		return null;
-	}
-
-	await syncAllocationForCurrentMonth();
-
-	revalidatePath("/recurring");
-	revalidatePath("/allocations");
-	return data;
-}
-
-export async function toggleSubscription(id: string, isActive: boolean): Promise<boolean> {
-	const supabase = await createClient();
-
-	const updates: Record<string, any> = { is_active: isActive };
-
-	const { error } = await supabase.from("recurring_expenses").update(updates).eq("id", id);
-
-	if (error) {
-		Logger.error("Error toggling subscription", { error });
-		return false;
-	}
-
-	// Trigger sync of allocations
-	await syncAllocationForCurrentMonth();
-
-	revalidatePath("/recurring");
-	revalidatePath("/allocations");
-	return true;
+	return listRecurringExpenses(ctx);
 }
 
 /**
  * A transfer moves money between two of the user's accounts: it has no budget category or service.
  * Bills and subscriptions have no destination account.
  */
-function normalizeRecurringKind<T extends Partial<RecurringExpense>>(row: T): T {
+function normalizeRecurringKind<T extends { category?: string }>(row: T): T {
 	if (row.category === undefined) return row;
 	return isRecurringTransfer({ category: row.category })
 		? { ...row, budget_category: null, service_provider: null }
 		: { ...row, to_account_id: null };
 }
 
-async function transferAccountsAreUsable(
-	supabase: Awaited<ReturnType<typeof createClient>>,
-	row: { account_id?: string | null; to_account_id?: string | null }
-): Promise<boolean> {
-	const ids = [row.account_id, row.to_account_id].filter((id): id is string => Boolean(id));
-	if (ids.length !== 2) return false;
-	const { data } = await supabase.from("accounts").select("id").in("id", ids).eq("is_active", true);
-	return canPostTransfer(row, new Set((data ?? []).map((account: { id: string }) => account.id)));
+async function syncAllocationForCurrentMonth(ctx: DataContext, delayMs: number = 0) {
+	if (delayMs > 0) {
+		await new Promise((resolve) => setTimeout(resolve, delayMs));
+	}
+
+	const now = new Date();
+	const year = now.getFullYear();
+	const month = now.getMonth() + 1;
+
+	try {
+		const allocations = allocationStore(ctx);
+		const existing = await allocations.find(year, month);
+		if (!existing) {
+			await allocations.findOrCreateWithDefaults(year, month);
+		}
+	} catch (syncError) {
+		Logger.warn("Failed to auto-sync allocation", { error: syncError });
+	}
 }
 
-export async function updateRecurringExpense(id: string, updates: Partial<RecurringExpense>): Promise<boolean> {
-	const supabase = await createClient();
-
-	let row = updates;
-	if (row.category !== undefined || row.account_id !== undefined || row.to_account_id !== undefined) {
-		const { data: current } = await supabase
-			.from("recurring_expenses")
-			.select("category, account_id, to_account_id")
-			.eq("id", id)
-			.single();
-		if (!current) return false;
-		const merged = { ...current, ...row };
-		row = normalizeRecurringKind({ ...row, category: merged.category });
-		if (isRecurringTransfer(merged) && !(await transferAccountsAreUsable(supabase, { ...merged, ...row })))
-			return false;
-	}
-
-	const { error } = await supabase.from("recurring_expenses").update(row).eq("id", id);
-
-	if (error) {
-		Logger.error("Error updating recurring expense", { error });
-		return false;
-	}
-
-	// Trigger sync of allocations
-	await syncAllocationForCurrentMonth();
-
+function revalidateRecurring() {
 	revalidatePath("/recurring");
 	revalidatePath("/allocations");
-	return true;
 }
 
-export async function deleteRecurringExpense(id: string): Promise<boolean> {
-	const supabase = await createClient();
-
-	// Delete the recurring expense itself.
-	// Previously recorded transactions are preserved because of ON DELETE SET NULL constraint.
-	const { error } = await supabase.from("recurring_expenses").delete().eq("id", id);
-
-	if (error) {
-		Logger.error("Error deleting recurring expense", { error });
-		return false;
+export const addRecurringExpense = defineAction("addRecurringExpense", [newRecurringSchema], async (ctx, expense) => {
+	const store = recurringStore(ctx);
+	const row = normalizeRecurringKind(expense);
+	if (isRecurringTransfer(row) && !(await store.transferAccountsAreUsable(row))) {
+		throw new ActionError("invalid_input", TRANSFER_ACCOUNTS_MESSAGE);
 	}
 
-	await syncAllocationForCurrentMonth(500);
+	const created = await store.insert(row);
+	await syncAllocationForCurrentMonth(ctx);
+	revalidateRecurring();
+	return created;
+});
 
-	revalidatePath("/recurring");
-	revalidatePath("/allocations");
-	return true;
-}
+export const toggleSubscription = defineAction(
+	"toggleSubscription",
+	[idSchema, z.boolean()],
+	async (ctx, id, isActive) => {
+		await recurringStore(ctx).update(id, { is_active: isActive });
+		await syncAllocationForCurrentMonth(ctx);
+		revalidateRecurring();
+	}
+);
 
-async function getCategoryIdForExpense(
-	supabase: any,
-	userId: string,
-	dateStr: string,
-	categoryName: string
-): Promise<string | null> {
-	const date = parseLocalDate(dateStr);
-	const year = date.getFullYear();
-	const month = date.getMonth() + 1;
+export const updateRecurringExpense = defineAction(
+	"updateRecurringExpense",
+	[idSchema, recurringUpdateSchema],
+	async (ctx, id, updates) => {
+		const store = recurringStore(ctx);
 
-	const { data: allocation } = await supabase
-		.from("allocations")
-		.select("id")
-		.eq("user_id", userId)
-		.eq("year", year)
-		.eq("month", month)
-		.single();
+		let row: Partial<RecurringExpense> = updates;
+		if (updates.category !== undefined || updates.account_id !== undefined || updates.to_account_id !== undefined) {
+			const current = await store.findKind(id);
+			if (!current) throw new ActionError("not_found", "That item no longer exists.");
+			const merged = { ...current, ...updates };
+			row = normalizeRecurringKind({ ...updates, category: merged.category });
+			if (isRecurringTransfer(merged) && !(await store.transferAccountsAreUsable({ ...merged, ...row }))) {
+				throw new ActionError("invalid_input", TRANSFER_ACCOUNTS_MESSAGE);
+			}
+		}
 
-	if (!allocation) return null;
+		await store.update(id, row);
+		await syncAllocationForCurrentMonth(ctx);
+		revalidateRecurring();
+	}
+);
 
-	// Match by name, case-insensitively (category names are user-editable).
-	const { data: categories } = await supabase
-		.from("allocation_categories")
-		.select("id, name")
-		.eq("allocation_id", allocation.id);
-
-	const match = (categories || []).find(
-		(c: { name: string }) => c.name.toLowerCase() === categoryName.toLowerCase()
-	);
-
-	return match?.id || null;
-}
+export const deleteRecurringExpense = defineAction("deleteRecurringExpense", [idSchema], async (ctx, id) => {
+	await recurringStore(ctx).remove(id);
+	await syncAllocationForCurrentMonth(ctx, 500);
+	revalidateRecurring();
+});
 
 /**
  * Current month's allocation category names, used to populate the recurring
@@ -407,144 +147,55 @@ async function getCategoryIdForExpense(
  * alphabetically (ADR-003).
  */
 export async function getRecurringCategoryOptions(): Promise<string[]> {
-	// The "Default" picker option already resolves to these buckets.
-	const hidden = new Set(["bills", "subscriptions"]);
-	const clean = (names: string[]) =>
-		Array.from(new Set(names))
-			.filter((name) => !hidden.has(name.toLowerCase()))
-			.sort((a, b) => compareAlphabetically(a, b));
-
-	if (await isSampleDataMode()) {
-		return clean(sampleAllocationSummary.categories.map((c) => c.name));
-	}
-
-	const supabase = await createClient();
-	const {
-		data: { user },
-	} = await supabase.auth.getUser();
-	if (!user) return [];
+	const ctx = await getReadContext();
+	if (!ctx) return [];
 
 	const now = new Date();
-	const { data: allocation } = await supabase
-		.from("allocations")
-		.select("id")
-		.eq("user_id", user.id)
-		.eq("year", now.getFullYear())
-		.eq("month", now.getMonth() + 1)
-		.single();
-
-	if (!allocation) return [];
-
-	const { data: categories } = await supabase
-		.from("allocation_categories")
-		.select("name")
-		.eq("allocation_id", allocation.id);
-
-	return clean((categories || []).map((c: { name: string }) => c.name));
+	const names = await recurringStore(ctx).categoryNames(now.getFullYear(), now.getMonth() + 1);
+	// The "Default" picker option already resolves to these buckets.
+	const hidden = new Set(["bills", "subscriptions"]);
+	return Array.from(new Set(names))
+		.filter((name) => !hidden.has(name.toLowerCase()))
+		.sort((a, b) => compareAlphabetically(a, b));
 }
 
-export async function markAsPaid(expenseId: string): Promise<boolean> {
-	return payRecurringExpense(expenseId, 1);
-}
+export const markAsPaid = defineAction("markAsPaid", [idSchema], async (ctx, expenseId) => {
+	await payOccurrences(ctx, expenseId, 1, {});
+});
 
 /**
  * Records `count` bills from the next due date and moves the due date past them. A bill paid when
  * due is recorded on its due date. Paying early records each bill today, the day the money leaves,
  * so it lands in this month's budget, with the due date it covers in its note.
  */
-export async function payRecurringExpense(
-	expenseId: string,
-	count: number,
-	options: { early?: boolean } = {}
-): Promise<boolean> {
-	const supabase = await createClient();
-	const {
-		data: { user },
-	} = await supabase.auth.getUser();
-	if (!user || count < 1 || count > PAY_AHEAD_MAX) return false;
-
-	const { data: expense, error: fetchError } = await supabase
-		.from("recurring_expenses")
-		.select("*")
-		.eq("id", expenseId)
-		.single();
-
-	if (fetchError || !expense) {
-		Logger.error("Error fetching expense for payRecurringExpense", { error: fetchError });
-		return false;
+export const payRecurringExpense = defineAction(
+	"payRecurringExpense",
+	[idSchema, payCountSchema, payOptionsSchema],
+	async (ctx, expenseId, count, options) => {
+		await payOccurrences(ctx, expenseId, count, options);
 	}
+);
 
-	if (isRecurringTransfer(expense) && !(await transferAccountsAreUsable(supabase, expense))) return false;
+async function payOccurrences(ctx: DataContext, expenseId: string, count: number, options: { early?: boolean }) {
+	const store = recurringStore(ctx);
+	const expense = await store.find(expenseId);
+	if (!expense) throw new ActionError("not_found", "That item no longer exists.");
+
+	if (isRecurringTransfer(expense) && !(await store.transferAccountsAreUsable(expense))) {
+		throw new ActionError("invalid_input", TRANSFER_ACCOUNTS_MESSAGE);
+	}
 
 	const { covered, nextDue } = earlyPaymentPlan(expense.next_due_date, expense.billing_period, count);
-	const today = options.early ? getTodayDateString((await getTimezone()) ?? undefined) : null;
+	const today = options.early ? getTodayDateString((await settingsStore(ctx).getTimezone()) ?? undefined) : null;
 
 	for (const dueDate of covered) {
-		const success = await createRecurringTransaction(
-			supabase,
-			user.id,
-			expense,
-			today ?? dueDate,
-			dueDate,
-			today ? `Paid early for the ${formatFullDate(dueDate)} bill` : `Manual payment for ${expense.name}`
-		);
-		if (!success) return false;
+		await store.recordOccurrence(expense, {
+			transactionDate: today ?? dueDate,
+			coversDueDate: dueDate,
+			notes: today ? `Paid early for the ${formatFullDate(dueDate)} bill` : `Manual payment for ${expense.name}`,
+		});
 	}
 
-	const { error: updateError } = await supabase
-		.from("recurring_expenses")
-		.update({ next_due_date: nextDue })
-		.eq("id", expenseId);
-
-	if (updateError) {
-		Logger.error("Error updating next due date", { error: updateError });
-		return false;
-	}
-
-	revalidatePath("/recurring");
-	revalidatePath("/allocations");
-	return true;
-}
-
-async function syncAllocationForCurrentMonth(delayMs: number = 0) {
-	if (delayMs > 0) {
-		await new Promise((resolve) => setTimeout(resolve, delayMs));
-	}
-
-	const now = new Date();
-	const year = now.getFullYear();
-	const month = now.getMonth() + 1;
-	
-	try {
-		const existing = await getAllocation(year, month);
-		if (!existing) {
-			await autoCreateAllocationWithDefaults(year, month);
-		}
-	} catch (syncError) {
-		Logger.warn("Failed to auto-sync allocation", { error: syncError });
-	}
-}
-
-async function createRecurringTransaction(
-	supabase: any,
-	userId: string,
-	expense: RecurringExpense,
-	transactionDate: string,
-	coversDueDate: string,
-	notes: string
-): Promise<boolean> {
-	const categoryId = isRecurringTransfer(expense)
-		? null
-		: await getCategoryIdForExpense(supabase, userId, transactionDate, resolveRecurringCategoryName(expense));
-
-	const { error: txError } = await supabase
-		.from("transactions")
-		.insert(recurringOccurrenceRow(expense, { userId, transactionDate, coversDueDate, categoryId, notes }));
-
-	if (txError) {
-		Logger.error(`Error creating transaction for ${expense.name}`, { error: txError });
-		return false;
-	}
-
-	return true;
+	await store.setNextDueDate(expenseId, nextDue);
+	revalidateRecurring();
 }

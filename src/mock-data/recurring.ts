@@ -1,4 +1,4 @@
-import { RecurringExpense } from "@/app/recurring/actions";
+import type { RecurringExpense } from "@/app/recurring/recurring-types";
 import { getDemoNow } from "./demo-date";
 
 export function getMockRecurringExpenses(now: Date = getDemoNow()): RecurringExpense[] {

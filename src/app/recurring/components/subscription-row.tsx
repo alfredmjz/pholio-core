@@ -53,13 +53,14 @@ export function SubscriptionRow({
 		setIsActive(false);
 		setIsSaving(true);
 		try {
-			if (await toggleSubscription(subscription.id, false)) {
+			const result = await toggleSubscription(subscription.id, false);
+			if (result.ok) {
 				toast.success(`${subscription.name} paused`, {
 					description: "Future payments stop. Transactions already recorded are kept.",
 				});
 			} else {
 				setIsActive(true);
-				toast.error("Couldn't pause the subscription", { description: "Try again in a moment." });
+				toast.error("Couldn't pause the subscription", { description: result.error.message });
 			}
 		} catch {
 			setIsActive(true);
@@ -72,11 +73,12 @@ export function SubscriptionRow({
 	const handleDelete = async () => {
 		setIsDeleting(true);
 		try {
-			if (await deleteRecurringExpense(subscription.id)) {
+			const result = await deleteRecurringExpense(subscription.id);
+			if (result.ok) {
 				toast.success("Subscription deleted", { description: "Transactions already recorded are kept." });
 				onDelete?.(subscription.id);
 			} else {
-				toast.error("Couldn't delete the subscription", { description: "Try again in a moment." });
+				toast.error("Couldn't delete the subscription", { description: result.error.message });
 			}
 		} catch {
 			toast.error("Couldn't delete the subscription", { description: "Try again in a moment." });

@@ -40,10 +40,10 @@ export function NotificationsSection({ email, notifyInApp, notifyEmail, leadDays
 	const sendTest = () =>
 		startSending(async () => {
 			const result = await sendTestReminder();
-			if (result.success) {
-				toast.success("Test email sent", { description: result.message });
+			if (result.ok) {
+				toast.success("Test email sent", { description: result.data.message });
 			} else {
-				toast.error("Couldn't send the test email", { description: result.error });
+				toast.error("Couldn't send the test email", { description: result.error.message });
 			}
 		});
 
@@ -53,10 +53,7 @@ export function NotificationsSection({ email, notifyInApp, notifyEmail, leadDays
 			title="Notifications"
 			note="Reminders before a credit card payment, bill or subscription is due."
 		>
-			<SettingRow
-				label="In Pholio"
-				htmlFor="notifyInApp"
-			>
+			<SettingRow label="In Pholio" htmlFor="notifyInApp">
 				<Switch id="notifyInApp" checked={inApp} onCheckedChange={setInApp} disabled={savingInApp} />
 			</SettingRow>
 
@@ -72,10 +69,7 @@ export function NotificationsSection({ email, notifyInApp, notifyEmail, leadDays
 				<Switch id="notifyEmail" checked={byEmail} onCheckedChange={setByEmail} disabled={savingEmail} />
 			</SettingRow>
 
-			<SettingRow
-				label="Remind me"
-				description={enabled ? undefined : "Turn on In Pholio or By email to choose."}
-			>
+			<SettingRow label="Remind me" description={enabled ? undefined : "Turn on In Pholio or By email to choose."}>
 				<SegmentedChoice
 					label="Days before the due date"
 					value={days}

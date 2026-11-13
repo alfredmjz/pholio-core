@@ -174,14 +174,14 @@ export function AccountDetailClient({
 	const accountClass = account.account_type?.class;
 
 	const handleDelete = async () => {
-		const success = await deleteAccount(account.id);
-		if (success) {
+		const result = await deleteAccount(account.id);
+		if (result.ok) {
 			if (isDemo) useDemoStore.getState().removeAccount(account.id);
 			toast.success("Account deleted");
 			router.push("/accounts");
 		} else {
 			toast.error("Couldn't delete the account", {
-				description: "Try again in a moment.",
+				description: result.error.message,
 			});
 		}
 	};

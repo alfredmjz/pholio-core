@@ -112,14 +112,14 @@ export function AccountTypeMigrationDialog({ open, onOpenChange, items, onComple
 				fieldVisibility: selectedType(row)?.code === "other" ? row.fieldConfig : null,
 			}));
 
-			const success = await migrateAccountTypes(updates);
-			if (success) {
+			const result = await migrateAccountTypes(updates);
+			if (result.ok) {
 				toast.success("Account types updated");
 				onOpenChange(false);
 				onComplete();
 			} else {
 				toast.error("Couldn't update every account", {
-					description: "Could not update every account. Please try again.",
+					description: result.error.message,
 				});
 			}
 		} finally {

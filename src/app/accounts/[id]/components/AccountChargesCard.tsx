@@ -42,11 +42,12 @@ export function AccountChargesCard({ account, today, formatCurrency }: AccountCh
 
 	const handleRemove = async () => {
 		if (!removing) return;
-		if (await removeAccountCharge(removing.id, account.id)) {
+		const result = await removeAccountCharge(removing.id, account.id);
+		if (result.ok) {
 			toast.success("Charge removed");
 			void refresh();
 		} else {
-			toast.error("Couldn't remove the charge", { description: "Try again in a moment." });
+			toast.error("Couldn't remove the charge", { description: result.error.message });
 		}
 	};
 

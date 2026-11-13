@@ -61,21 +61,23 @@ export function PromotionsTrackerCard({ accountId, formatCurrency }: PromotionsT
 
 	const handleToggleCompleted = async (promo: AccountPromotion) => {
 		const newStatus = !promo.is_completed;
-		const success = await updateAccountPromotion(promo.id, { is_completed: newStatus });
-		if (success) {
+		const result = await updateAccountPromotion(promo.id, { is_completed: newStatus });
+		if (result.ok) {
 			toast.success(newStatus ? "Marked as earned" : "Promotion reopened");
 			void refresh();
+		} else {
+			toast.error("Couldn't update the promotion", { description: result.error.message });
 		}
 	};
 
 	const handleDelete = async () => {
 		if (!deleting) return;
-		const success = await deleteAccountPromotion(deleting.id);
-		if (success) {
+		const result = await deleteAccountPromotion(deleting.id);
+		if (result.ok) {
 			toast.success("Promotion deleted");
 			void refresh();
 		} else {
-			toast.error("Couldn't delete the promotion", { description: "Try again in a moment." });
+			toast.error("Couldn't delete the promotion", { description: result.error.message });
 		}
 	};
 

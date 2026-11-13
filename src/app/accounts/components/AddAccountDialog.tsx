@@ -144,9 +144,12 @@ export function AddAccountDialog({ open, onOpenChange, onSuccess }: AddAccountDi
 		setLoading(true);
 		try {
 			const planRoom = toPlanRoomSetting(contribution, planRooms);
-			if (planRoom && !(await saveContributionRoom(planRoom))) {
-				toast.error("Couldn't create the account", { description: "Couldn't save your contribution room. Try again." });
-				return;
+			if (planRoom) {
+				const roomResult = await saveContributionRoom(planRoom);
+				if (!roomResult.ok) {
+					toast.error("Couldn't create the account", { description: roomResult.error.message });
+					return;
+				}
 			}
 
 			const input: CreateAccountInput = {
@@ -176,15 +179,15 @@ export function AddAccountDialog({ open, onOpenChange, onSuccess }: AddAccountDi
 			};
 
 			const result = await createAccount(input);
-			if (result) {
+			if (result.ok) {
 				// Demo mode: the server returns a mock account without persisting; record it
 				// in-memory so it appears for the duration of the session.
-				if (isSampleDataActive()) useDemoStore.getState().addAccount(result);
+				if (isSampleDataActive()) useDemoStore.getState().addAccount(result.data);
 				toast.success("Account created successfully");
 				onOpenChange(false);
-				onSuccess(result);
+				onSuccess(result.data);
 			} else {
-				toast.error("Couldn't create the account", { description: "Check the details and try again." });
+				toast.error("Couldn't create the account", { description: result.error.message });
 			}
 		} catch (err) {
 			toast.error("Something went wrong", {

@@ -12,11 +12,7 @@ import { Textarea } from "@/components/ui/textarea";
 import { DatePicker } from "@/components/ui/date-picker";
 import { Loader2 } from "lucide-react";
 import { toast } from "sonner";
-import {
-	createAccountPromotion,
-	updateAccountPromotion,
-	refreshAccountPromotions,
-} from "@/lib/actions/promotion-actions";
+import { createAccountPromotion, updateAccountPromotion } from "@/lib/actions/promotion-actions";
 import type { AccountPromotion, PromotionType } from "@/app/accounts/types";
 import { getTodayDateString } from "@/lib/date-utils";
 
@@ -77,7 +73,7 @@ export function PromotionDialog({ open, onOpenChange, accountId, promotion, onSu
 			const numTarget = parseFloat(targetAmount);
 
 			if (promotion) {
-				const success = await updateAccountPromotion(promotion.id, {
+				const result = await updateAccountPromotion(promotion.id, {
 					title: title.trim(),
 					promotion_type: promotionType,
 					target_amount: numTarget,
@@ -87,17 +83,15 @@ export function PromotionDialog({ open, onOpenChange, accountId, promotion, onSu
 					notes: notes || undefined,
 				});
 
-				if (success) {
-					// Dates, target or type may have changed - recompute in the database.
-					await refreshAccountPromotions(accountId);
+				if (result.ok) {
 					toast.success("Promotion updated");
 					onOpenChange(false);
 					onSuccess?.();
 				} else {
-					toast.error("Couldn't save the promotion", { description: "Try again in a moment." });
+					toast.error("Couldn't save the promotion", { description: result.error.message });
 				}
 			} else {
-				const created = await createAccountPromotion({
+				const result = await createAccountPromotion({
 					account_id: accountId,
 					title: title.trim(),
 					promotion_type: promotionType,
@@ -108,12 +102,12 @@ export function PromotionDialog({ open, onOpenChange, accountId, promotion, onSu
 					notes: notes || undefined,
 				});
 
-				if (created) {
+				if (result.ok) {
 					toast.success("Promotion added");
 					onOpenChange(false);
 					onSuccess?.();
 				} else {
-					toast.error("Creation Failed", { description: "Failed to create promotion." });
+					toast.error("Couldn't add the promotion", { description: result.error.message });
 				}
 			}
 		} catch (error) {

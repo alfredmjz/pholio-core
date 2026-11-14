@@ -43,13 +43,21 @@ export function NotificationBell({
 		const ids = (shownAccount.current ?? []).filter((n) => !n.readAt && !savedIds.current.has(n.id)).map((n) => n.id);
 		if (ids.length === 0) return;
 		ids.forEach((id) => savedIds.current.add(id));
-		markNotificationsRead(ids).catch(() => undefined);
+		markNotificationsRead(ids)
+			.then((result) => {
+				if (!result.ok) ids.forEach((id) => savedIds.current.delete(id));
+			})
+			.catch(() => undefined);
 	};
 
 	const saveChangelogSeen = () => {
 		if (changelogSaved.current || !state.unread.changelog) return;
 		changelogSaved.current = true;
-		markChangelogSeen().catch(() => undefined);
+		markChangelogSeen()
+			.then((result) => {
+				if (!result.ok) changelogSaved.current = false;
+			})
+			.catch(() => undefined);
 	};
 
 	const show = (next: NotificationTab) => {

@@ -66,14 +66,15 @@ export function PayFutureBillDialog({
 		onUpdate?.(expense.id, { next_due_date: plan.nextDue, paid_count: (expense.paid_count || 0) + count });
 
 		try {
-			if (await payRecurringExpense(expense.id, count, { early: true })) {
+			const result = await payRecurringExpense(expense.id, count, { early: true });
+			if (result.ok) {
 				toast.success(`Paid ${count} ${count === 1 ? "bill" : "bills"} early`, {
 					description: `Next one is due ${formatFullDate(plan.nextDue)}.`,
 				});
 				onOpenChange(false);
 				onSuccess?.();
 			} else {
-				toast.error("Couldn't record the payment", { description: "Try again in a moment." });
+				toast.error("Couldn't record the payment", { description: result.error.message });
 			}
 		} catch {
 			toast.error("Couldn't record the payment", { description: "Try again in a moment." });

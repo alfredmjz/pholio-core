@@ -65,11 +65,12 @@ function PlanRoomRow({ plan, saved: initial }: { plan: RegisteredPlan; saved: Co
 			annual_limit: saved?.annual_limit ?? null,
 		};
 		startTransition(async () => {
-			if (await saveContributionRoom(setting)) {
+			const result = await saveContributionRoom(setting);
+			if (result.ok) {
 				setSaved(setting);
 				toast.success("Saved", { description: `${getContributionPlanLabel(plan)} room updated for every account.` });
 			} else {
-				toast.error("Couldn't save the room", { description: "Try again." });
+				toast.error("Couldn't save the room", { description: result.error.message });
 			}
 		});
 	};

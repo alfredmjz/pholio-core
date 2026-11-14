@@ -74,11 +74,12 @@ export function BillRow({
 	const handleDelete = async () => {
 		setIsDeleting(true);
 		try {
-			if (await deleteRecurringExpense(bill.id)) {
+			const result = await deleteRecurringExpense(bill.id);
+			if (result.ok) {
 				toast.success("Bill deleted", { description: "Transactions already recorded are kept." });
 				onDelete?.(bill.id);
 			} else {
-				toast.error("Couldn't delete the bill", { description: "Try again in a moment." });
+				toast.error("Couldn't delete the bill", { description: result.error.message });
 			}
 		} catch (err) {
 			toast.error("Couldn't delete the bill", { description: err instanceof Error ? err.message : undefined });
@@ -96,8 +97,9 @@ export function BillRow({
 			status: paid + 1 >= total ? "paid" : "partial",
 		});
 		try {
-			if (await markAsPaid(bill.id)) toast.success(`${bill.name} marked as paid`);
-			else toast.error("Couldn't record the payment", { description: "Try again in a moment." });
+			const result = await markAsPaid(bill.id);
+			if (result.ok) toast.success(`${bill.name} marked as paid`);
+			else toast.error("Couldn't record the payment", { description: result.error.message });
 		} catch {
 			toast.error("Couldn't record the payment", { description: "Try again in a moment." });
 		} finally {
@@ -107,9 +109,9 @@ export function BillRow({
 
 	const notes = Boolean(
 		bill.next_amount_change ||
-			bill.next_due_change ||
-			bill.deleted_auto_payments ||
-			(account && (accountWarning(account) || feeWarning))
+		bill.next_due_change ||
+		bill.deleted_auto_payments ||
+		(account && (accountWarning(account) || feeWarning))
 	) && (
 		<div className="type-body-xs mt-2 flex flex-wrap gap-x-4 gap-y-1 text-muted-foreground row-wide:col-span-5 row-wide:mt-0 row-wide:pl-12">
 			{bill.next_amount_change && (

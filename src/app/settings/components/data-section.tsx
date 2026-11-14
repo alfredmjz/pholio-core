@@ -32,10 +32,10 @@ export function DataSection({ isSampleData }: { isSampleData: boolean }) {
 		setExporting(true);
 		try {
 			const result = await exportMyData();
-			if (result.success) {
-				download(result.filename, result.csv);
+			if (result.ok) {
+				download(result.data.filename, result.data.csv);
 			} else {
-				toast.error("Couldn't export", { description: result.error });
+				toast.error("Couldn't export", { description: result.error.message });
 			}
 		} catch {
 			toast.error("Couldn't export", { description: "Try again." });
@@ -47,8 +47,8 @@ export function DataSection({ isSampleData }: { isSampleData: boolean }) {
 	const resetData = () =>
 		startResetting(async () => {
 			const result = await resetMyData(RESET_DATA_CONFIRMATION);
-			if (!result.success) {
-				toast.error("Couldn't reset your data", { description: result.error });
+			if (!result.ok) {
+				toast.error("Couldn't reset your data", { description: result.error.message });
 				return;
 			}
 			setResetOpen(false);
@@ -60,8 +60,8 @@ export function DataSection({ isSampleData }: { isSampleData: boolean }) {
 	const deleteAccount = () =>
 		startDeleting(async () => {
 			const result = await deleteMyAccount(DELETE_ACCOUNT_CONFIRMATION);
-			if (!result.success) {
-				toast.error("Couldn't delete your account", { description: result.error });
+			if (!result.ok) {
+				toast.error("Couldn't delete your account", { description: result.error.message });
 				return;
 			}
 			localStorage.removeItem("sidebarWidth");
@@ -72,10 +72,7 @@ export function DataSection({ isSampleData }: { isSampleData: boolean }) {
 		});
 
 	return (
-		<SettingsSection
-			id="data"
-			title="Your data"
-		>
+		<SettingsSection id="data" title="Your data">
 			<SettingRow
 				label="Export"
 				description={

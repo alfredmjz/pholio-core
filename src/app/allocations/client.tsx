@@ -154,7 +154,7 @@ export function AllocationClient({
 		if (!summary) return;
 
 		const previousSummary = summary;
-		const newCategory = await createCategory(
+		const result = await createCategory(
 			summary.allocation.id,
 			name,
 			budgetCap,
@@ -164,61 +164,51 @@ export function AllocationClient({
 			contributionPlan
 		);
 
-		if (newCategory) {
+		if (result.ok) {
 			toast.success("Category created");
 			if (contributionPlan) void refreshContributions();
 		} else {
-			toast.error("Creation Failed", {
-				description: `Failed to create category "${name}". Please try again.`,
-			});
+			toast.error("Creation Failed", { description: result.error.message });
 			rollback(previousSummary);
 		}
 	};
 
 	const handleImportPrevious = async (expectedIncome: number) => {
-		const allocation = await importPreviousMonthCategories(currentMonth.year, currentMonth.month, expectedIncome);
-		if (allocation) {
+		const result = await importPreviousMonthCategories(currentMonth.year, currentMonth.month, expectedIncome);
+		if (result.ok) {
 			toast.success("Categories imported from previous month!");
 			router.refresh();
 		} else {
-			toast.error("Import Failed", {
-				description: "Could not import categories from the previous month.",
-			});
+			toast.error("Import Failed", { description: result.error.message });
 		}
 		setTemplateDialogOpen(false);
 	};
 
 	const handleUseTemplate = async (templateId: string, expectedIncome: number) => {
-		const allocation = await getOrCreateAllocation(currentMonth.year, currentMonth.month, expectedIncome);
-		if (!allocation) {
-			toast.error("Setup Failed", {
-				description: "Failed to initialize the budget for this month.",
-			});
+		const created = await getOrCreateAllocation(currentMonth.year, currentMonth.month, expectedIncome);
+		if (!created.ok) {
+			toast.error("Setup Failed", { description: created.error.message });
 			setTemplateDialogOpen(false);
 			return;
 		}
 
-		const success = await applyTemplateToAllocation(templateId, allocation.id);
-		if (success) {
+		const result = await applyTemplateToAllocation(templateId, created.data.id);
+		if (result.ok) {
 			toast.success("Template applied!");
 			router.refresh();
 		} else {
-			toast.error("Template Error", {
-				description: "Failed to apply the selected template categories.",
-			});
+			toast.error("Template Error", { description: result.error.message });
 		}
 		setTemplateDialogOpen(false);
 	};
 
 	const handleStartFresh = async (expectedIncome: number) => {
-		const allocation = await getOrCreateAllocation(currentMonth.year, currentMonth.month, expectedIncome);
-		if (allocation) {
+		const result = await getOrCreateAllocation(currentMonth.year, currentMonth.month, expectedIncome);
+		if (result.ok) {
 			toast.success("Budget created!");
 			router.refresh();
 		} else {
-			toast.error("Setup Failed", {
-				description: "Failed to initialize the budget for this month.",
-			});
+			toast.error("Setup Failed", { description: result.error.message });
 		}
 		setTemplateDialogOpen(false);
 	};
@@ -228,15 +218,13 @@ export function AllocationClient({
 
 		setIsSavingTemplate(true);
 		try {
-			const template = await createTemplateFromAllocation(summary.allocation.id, name, description);
-			if (template) {
+			const result = await createTemplateFromAllocation(summary.allocation.id, name, description);
+			if (result.ok) {
 				toast.success("Template saved!");
 				setSaveTemplateDialogOpen(false);
 				router.refresh();
 			} else {
-				toast.error("Save Failed", {
-					description: "Failed to save the template.",
-				});
+				toast.error("Save Failed", { description: result.error.message });
 			}
 		} finally {
 			setIsSavingTemplate(false);

@@ -107,12 +107,12 @@ export function AccountChargeDialog({
 			: await createAccountCharge(account.id, result.input);
 		setSaving(false);
 
-		if (saved) {
+		if (saved.ok) {
 			toast.success(charge ? "Charge updated" : "Charge added");
 			onOpenChange(false);
 			onSuccess();
 		} else {
-			toast.error("Couldn't save the charge", { description: "Try again in a moment." });
+			toast.error("Couldn't save the charge", { description: saved.error.message });
 		}
 	};
 

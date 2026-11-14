@@ -178,8 +178,8 @@ export function AccountsClient({
 	const handleReorder = (cls: "asset" | "liability", ordered: AccountWithType[]) => {
 		const next = cls === "asset" ? [...ordered, ...owed] : [...owned, ...ordered];
 		setAccounts(next);
-		reorderAccounts(next.map((account, index) => ({ id: account.id, display_order: index }))).then((success) => {
-			if (!success) toast.error("Couldn't save the new order", { description: "Try dragging it again." });
+		reorderAccounts(next.map((account, index) => ({ id: account.id, display_order: index }))).then((result) => {
+			if (!result.ok) toast.error("Couldn't save the new order", { description: result.error.message });
 		});
 	};
 

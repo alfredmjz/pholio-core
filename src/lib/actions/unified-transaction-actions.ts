@@ -1,574 +1,114 @@
 "use server";
 
-/**
- * Unified Transaction Actions
- *
- * Server actions for creating transactions that update BOTH:
- * - Budget allocations (transactions table)
- * - Account balances (account_transactions table + accounts.current_balance)
- *
- * This eliminates duplicate data entry and ensures consistency.
- */
-
-import { createClient, getReadUserId } from "@/lib/supabase/server";
 import { revalidatePath } from "next/cache";
-import type { UnifiedTransactionInput, UnifiedTransactionResult } from "@/lib/types/unified-transaction";
-import type { AccountWithType } from "@/app/accounts/types";
-import { sampleAccounts } from "@/mock-data/accounts";
-import { checkTransactionCaps, calculateSignedDelta } from "@/lib/account-validation-utils";
+import { z } from "zod";
+import { getReadContext } from "@/lib/data-context.server";
+import { defineAction } from "@/lib/define-action.server";
+import { dateStringSchema, idSchema, moneySchema } from "@/lib/action-schemas";
 import { Logger } from "@/lib/logger";
-import { isSampleDataMode } from "@/lib/demo-mode.server";
+import { createTransaction, deleteTransaction, updateTransaction } from "@/lib/domain/transactions";
+import type { AccountWithType } from "@/app/accounts/types";
+import { transactionStore } from "./transaction-store";
 
-/**
- * Create a unified transaction that updates both budget and account balance
- */
-export async function createUnifiedTransaction(input: UnifiedTransactionInput): Promise<UnifiedTransactionResult> {
-	try {
-		const supabase = await createClient();
-		const {
-			data: { user },
-		} = await supabase.auth.getUser();
+const DEFAULT_DESCRIPTIONS = [
+	"Grocery Store",
+	"Rent Payment",
+	"Electric Bill",
+	"Water Bill",
+	"Internet Subscription",
+	"Restaurant Dinner",
+	"Coffee Shop",
+	"Gas Station",
+	"Uber Ride",
+	"Car Insurance",
+	"Netflix Subscription",
+	"Spotify",
+	"Paycheck",
+];
 
-		if (!user) {
-			return { success: false, error: "Unauthorized" };
-		}
+// Next.js can serialise a missing optional argument as "$undefined".
+const optionalIdSchema = z
+	.string()
+	.nullish()
+	.transform((value) => (!value || value === "$undefined" ? null : value));
 
-		// Defensive check for Next.js serialization quirk
-		const categoryId = input.categoryId === "$undefined" ? null : (input.categoryId ?? null);
-		const accountId = input.accountId === "$undefined" ? null : (input.accountId ?? null);
-		const fromAccountId = input.fromAccountId === "$undefined" ? null : (input.fromAccountId ?? null);
-		const toAccountId = input.toAccountId === "$undefined" ? null : (input.toAccountId ?? null);
+const transactionTypeSchema = z.enum([
+	"deposit",
+	"withdrawal",
+	"interest",
+	"payment",
+	"adjustment",
+	"contribution",
+	"transfer",
+	"refund",
+	"fee",
+]);
 
-		const normalizedInput = {
-			...input,
-			categoryId,
-			accountId,
-			fromAccountId,
-			toAccountId,
-		};
+const unifiedTransactionSchema = z.object({
+	description: z.string(),
+	amount: moneySchema,
+	date: dateStringSchema,
+	notes: z
+		.string()
+		.nullish()
+		.transform((value) => value ?? undefined),
+	type: z.enum(["income", "expense", "transfer"]),
+	categoryId: optionalIdSchema,
+	accountId: optionalIdSchema,
+	fromAccountId: optionalIdSchema,
+	toAccountId: optionalIdSchema,
+	transactionType: transactionTypeSchema.optional(),
+	allowOverpayment: z.boolean().optional(),
+	isCashAdvance: z.boolean().optional(),
+	source: z.string().optional(),
+});
 
-		let allocationTxId: string | undefined;
-		let accountTxId: string | undefined;
-
-		// Handle Transfer Transaction Type
-		if (normalizedInput.type === "transfer") {
-			if (!normalizedInput.fromAccountId || !normalizedInput.toAccountId) {
-				return { success: false, error: "Please select both source and destination accounts for the transfer" };
-			}
-			if (normalizedInput.fromAccountId === normalizedInput.toAccountId) {
-				return { success: false, error: "Source and destination accounts must be different" };
-			}
-
-			// Fetch both accounts first so balance/debt caps can be enforced before any write.
-			const [{ data: fromAccount }, { data: toAccount }] = await Promise.all([
-				supabase
-					.from("accounts")
-					.select("*, account_type:account_types(*)")
-					.eq("id", normalizedInput.fromAccountId)
-					.single(),
-				supabase
-					.from("accounts")
-					.select("*, account_type:account_types(*)")
-					.eq("id", normalizedInput.toAccountId)
-					.single(),
-			]);
-
-			if (!fromAccount || !toAccount) {
-				return { success: false, error: "One or both selected accounts were not found" };
-			}
-
-			const capCheck = checkTransactionCaps({
-				intent: "transfer",
-				amount: Math.abs(normalizedInput.amount),
-				fromAccount: fromAccount as AccountWithType,
-				toAccount: toAccount as AccountWithType,
-				allowOverpayment: normalizedInput.allowOverpayment,
-			});
-			if (!capCheck.isValid) {
-				return { success: false, error: capCheck.violations[0].message };
-			}
-
-			// Step 1: Create allocation transaction (source = 'transfer', category = null)
-			const { data: allocTx, error: allocError } = await supabase
-				.from("transactions")
-				.insert({
-					user_id: user.id,
-					category_id: null,
-					name: normalizedInput.description,
-					amount: Math.abs(normalizedInput.amount),
-					transaction_date: normalizedInput.date,
-					notes: normalizedInput.notes || null,
-					source: "transfer",
-				})
-				.select("id")
-				.single();
-
-			if (allocError || !allocTx) {
-				Logger.error("Transfer allocation transaction error", { error: allocError });
-				return { success: false, error: "Failed to create transfer transaction record" };
-			}
-
-			allocationTxId = allocTx.id;
-
-			const fromAccountAmount = calculateSignedDelta(
-				fromAccount as AccountWithType,
-				"transfer",
-				undefined,
-				normalizedInput.amount
-			);
-			const toAccountAmount = -calculateSignedDelta(
-				toAccount as AccountWithType,
-				"transfer",
-				undefined,
-				normalizedInput.amount
-			);
-
-			// Step 2: Create Source Account Transaction (Withdrawal/Charge)
-			const { data: fromAcctTx, error: fromAcctError } = await supabase
-				.from("account_transactions")
-				.insert({
-					user_id: user.id,
-					account_id: normalizedInput.fromAccountId,
-					amount: fromAccountAmount,
-					transaction_type: "transfer",
-					description: normalizedInput.description || `Transfer to ${toAccount.name}`,
-					transaction_date: normalizedInput.date,
-					linked_allocation_transaction_id: allocationTxId,
-				})
-				.select("id")
-				.single();
-
-			if (fromAcctError || !fromAcctTx) {
-				Logger.error("Source account transfer transaction error", { error: fromAcctError });
-				await supabase.from("transactions").delete().eq("id", allocationTxId);
-				return { success: false, error: "Failed to process transfer from source account" };
-			}
-
-			accountTxId = fromAcctTx.id;
-			await adjustAccountBalance(supabase, normalizedInput.fromAccountId, fromAccountAmount);
-
-			// Step 3: Create Destination Account Transaction (Deposit/Payment)
-			const { data: toAcctTx, error: toAcctError } = await supabase
-				.from("account_transactions")
-				.insert({
-					user_id: user.id,
-					account_id: normalizedInput.toAccountId,
-					amount: toAccountAmount,
-					transaction_type: "transfer",
-					description: normalizedInput.description || `Transfer from ${fromAccount.name}`,
-					transaction_date: normalizedInput.date,
-					linked_allocation_transaction_id: allocationTxId,
-				})
-				.select("id")
-				.single();
-
-			if (toAcctError || !toAcctTx) {
-				Logger.error("Destination account transfer transaction error", { error: toAcctError });
-				// Rollback source account transaction & balance
-				await adjustAccountBalance(supabase, normalizedInput.fromAccountId, -fromAccountAmount);
-				await supabase.from("account_transactions").delete().eq("id", fromAcctTx.id);
-				await supabase.from("transactions").delete().eq("id", allocationTxId);
-				return { success: false, error: "Failed to process transfer to destination account" };
-			}
-
-			await adjustAccountBalance(supabase, normalizedInput.toAccountId, toAccountAmount);
-
-			// Step 4: Link source transaction to destination transaction & link allocation transaction
-			try {
-				await supabase
-					.from("account_transactions")
-					.update({ linked_transfer_transaction_id: toAcctTx.id })
-					.eq("id", fromAcctTx.id);
-
-				await supabase
-					.from("account_transactions")
-					.update({ linked_transfer_transaction_id: fromAcctTx.id })
-					.eq("id", toAcctTx.id);
-			} catch (linkErr) {
-				Logger.warn("Optional transfer linking failed", { error: linkErr });
-			}
-
-			await supabase
-				.from("transactions")
-				.update({ linked_account_transaction_id: fromAcctTx.id })
-				.eq("id", allocationTxId);
-
-			revalidatePath("/allocations");
-			revalidatePath("/accounts");
-			revalidatePath("/dashboard");
-
-			return {
-				success: true,
-				allocationTransactionId: allocationTxId,
-				accountTransactionId: fromAcctTx.id,
-			};
-		}
-
-		// Enforce balance/debt caps before writing anything.
-		let targetAccount: AccountWithType | null = null;
-		if (normalizedInput.accountId) {
-			const { data: accountRow, error: accountError } = await supabase
-				.from("accounts")
-				.select("*, account_type:account_types(*)")
-				.eq("id", normalizedInput.accountId)
-				.single();
-
-			if (accountError || !accountRow) {
-				return { success: false, error: "Account not found" };
-			}
-
-			targetAccount = accountRow as AccountWithType;
-
-			const capCheck = checkTransactionCaps({
-				intent: normalizedInput.type,
-				amount: Math.abs(normalizedInput.amount),
-				account: targetAccount,
-				transactionType: normalizedInput.transactionType,
-				allowOverpayment: normalizedInput.allowOverpayment,
-			});
-			if (!capCheck.isValid) {
-				return { success: false, error: capCheck.violations[0].message };
-			}
-		}
-
-		// Step 1: Create allocation transaction (Income / Expense)
-		const allocAmount = normalizedInput.type === "income" ? normalizedInput.amount : -Math.abs(normalizedInput.amount);
-
-		const { data: allocTx, error: allocError } = await supabase
-			.from("transactions")
-			.insert({
-				user_id: user.id,
-				category_id: normalizedInput.categoryId,
-				name: normalizedInput.description,
-				amount: allocAmount,
-				transaction_date: normalizedInput.date,
-				notes: normalizedInput.notes || null,
-				source: normalizedInput.source || "manual",
-			})
-			.select("id")
-			.single();
-
-		if (allocError) {
-			Logger.error("Allocation transaction error", { error: allocError });
-			return { success: false, error: "Failed to create budget transaction" };
-		}
-
-		allocationTxId = allocTx.id;
-
-		// Step 2: Create account transaction (if account selected)
-		if (targetAccount) {
-			const { txType, accountAmount } = calculateTransactionDetails(targetAccount, normalizedInput);
-
-			// Insert account transaction
-			const { data: acctTx, error: acctError } = await supabase
-				.from("account_transactions")
-				.insert({
-					user_id: user.id,
-					account_id: normalizedInput.accountId,
-					amount: accountAmount,
-					transaction_type: txType,
-					description: normalizedInput.description,
-					transaction_date: normalizedInput.date,
-					linked_allocation_transaction_id: allocationTxId || null,
-					is_cash_advance: normalizedInput.type === "expense" && !!normalizedInput.isCashAdvance,
-				})
-				.select("id")
-				.single();
-
-			if (acctError) {
-				Logger.error("Account transaction error", { error: acctError });
-				// Rollback allocation transaction if account transaction fails
-				if (allocationTxId) {
-					await supabase.from("transactions").delete().eq("id", allocationTxId);
-				}
-				return { success: false, error: "Failed to create account transaction" };
-			}
-
-			accountTxId = acctTx.id;
-
-			// Step 3: Update account balance
-			const { error: balanceError } = await adjustAccountBalance(supabase, targetAccount.id, accountAmount);
-
-			if (balanceError) {
-				Logger.error("Balance update error", { error: balanceError });
-				// Rollback both transactions
-				if (allocationTxId) {
-					await supabase.from("transactions").delete().eq("id", allocationTxId);
-				}
-				if (accountTxId) {
-					await supabase.from("account_transactions").delete().eq("id", accountTxId);
-				}
-				return { success: false, error: "Failed to update account balance" };
-			}
-
-			// Step 4: Update bidirectional link (optional)
-			if (allocationTxId && accountTxId) {
-				await supabase
-					.from("transactions")
-					.update({ linked_account_transaction_id: accountTxId })
-					.eq("id", allocationTxId);
-			}
-		}
-
-		// Promotion progress is recalculated in PostgreSQL by the account_transactions
-		// trigger created in migration 006, so no application-side refresh is needed here.
-
-		// Revalidate relevant pages
-		revalidatePath("/allocations");
-		revalidatePath("/accounts");
-		revalidatePath("/dashboard");
-
-		return {
-			success: true,
-			allocationTransactionId: allocationTxId,
-			accountTransactionId: accountTxId,
-		};
-	} catch (error) {
-		Logger.error("Unified transaction error", { error });
-		return { success: false, error: "An unexpected error occurred" };
-	}
+function revalidateTransactionPages() {
+	revalidatePath("/allocations");
+	revalidatePath("/accounts");
+	revalidatePath("/dashboard");
 }
 
-/**
- * Update a unified transaction
- * Handles:
- * - Basic updates (name, date, etc)
- * - Amount changes (updates account balance)
- * - Account moves (reverts old, applies to new)
- * - Account add/remove
- */
-export async function updateUnifiedTransaction(
-	transactionId: string,
-	input: UnifiedTransactionInput
-): Promise<boolean> {
-	try {
-		const supabase = await createClient();
-		const {
-			data: { user },
-		} = await supabase.auth.getUser();
-
-		if (!user) return false;
-
-		// Defensive check for Next.js serialization quirk
-		const categoryId = input.categoryId === "$undefined" ? null : (input.categoryId ?? null);
-		const accountId = input.accountId === "$undefined" ? null : (input.accountId ?? null);
-
-		const normalizedInput = {
-			...input,
-			categoryId,
-			accountId,
-		};
-
-		const { data, error } = await supabase.rpc("update_unified_transaction", {
-			p_transaction_id: transactionId,
-			p_input: normalizedInput,
-		});
-
-		if (error) {
-			Logger.error("Update unified transaction RPC error", { error });
-			return false;
-		}
-
-		revalidatePath("/allocations");
-		revalidatePath("/accounts");
-		revalidatePath("/dashboard");
-		return data as boolean;
-	} catch (error) {
-		Logger.error("Update unified transaction error", { error });
-		return false;
+/** Records a budget row and, when an account is tagged, its balance change. */
+export const createUnifiedTransaction = defineAction(
+	"createUnifiedTransaction",
+	[unifiedTransactionSchema],
+	async (ctx, input) => {
+		const created = await createTransaction(ctx, input);
+		revalidateTransactionPages();
+		return created;
 	}
-}
+);
 
-/**
- * Delete a unified transaction
- * - Deletes allocation transaction
- * - Deletes linked account transaction (if any) and reverts balance
- */
-export async function deleteUnifiedTransaction(transactionId: string): Promise<boolean> {
-	try {
-		const supabase = await createClient();
-
-		const { data, error } = await supabase.rpc("delete_unified_transaction", {
-			p_transaction_id: transactionId,
-		});
-
-		if (error) {
-			Logger.error("Delete unified transaction RPC error", { error });
-			return false;
-		}
-
-		revalidatePath("/allocations");
-		revalidatePath("/accounts");
-		revalidatePath("/dashboard");
-		return data as boolean;
-	} catch (error) {
-		Logger.error("Delete unified transaction error", { error });
-		return false;
+export const updateUnifiedTransaction = defineAction(
+	"updateUnifiedTransaction",
+	[idSchema, unifiedTransactionSchema],
+	async (ctx, id, input) => {
+		await updateTransaction(ctx, id, input);
+		revalidateTransactionPages();
 	}
-}
+);
 
-/**
- * Get all accounts for account selector dropdown
- */
+export const deleteUnifiedTransaction = defineAction("deleteUnifiedTransaction", [idSchema], async (ctx, id) => {
+	await deleteTransaction(ctx, id);
+	revalidateTransactionPages();
+});
+
+/** Active accounts for account pickers. */
 export async function getAccountsForSelector(): Promise<AccountWithType[]> {
-	if (await isSampleDataMode()) {
-		return sampleAccounts;
-	}
-
-	try {
-		const supabase = await createClient();
-		const userId = await getReadUserId(supabase);
-
-		if (!userId) return [];
-
-		const { data: accounts } = await supabase
-			.from("accounts")
-			.select("*, account_type:account_types(*)")
-			.eq("user_id", userId)
-			.eq("is_active", true)
-			.order("display_order");
-
-		return (accounts as AccountWithType[]) || [];
-	} catch (error) {
-		Logger.error("Error fetching accounts", { error });
-		return [];
-	}
+	const ctx = await getReadContext();
+	return ctx ? transactionStore(ctx).listSelectableAccounts() : [];
 }
 
-// =============================================================================
-// HELPER FUNCTIONS
-// =============================================================================
-
-/**
- * Calculate transaction type and signed amount based on account and input.
- * The sign convention lives in `calculateSignedDelta` so client validation and the write
- * path can never drift apart.
- */
-function calculateTransactionDetails(
-	account: AccountWithType,
-	input: Pick<UnifiedTransactionInput, "type" | "amount" | "transactionType">
-) {
-	const isAsset = account.account_type?.class !== "liability";
-	const txType =
-		input.type === "income"
-			? input.transactionType || (isAsset ? "deposit" : "payment")
-			: input.transactionType || (isAsset ? "withdrawal" : "adjustment");
-
-	return { txType, accountAmount: calculateSignedDelta(account, input.type, txType, input.amount) };
-}
-
-/**
- * Adjust account balance safely
- */
-async function adjustAccountBalance(supabase: any, accountId: string, delta: number): Promise<{ error?: any }> {
-	const { data: acc, error: fetchError } = await supabase
-		.from("accounts")
-		.select("current_balance")
-		.eq("id", accountId)
-		.single();
-	if (fetchError || !acc) return { error: fetchError || "Account not found" };
-
-	const { error: updateError } = await supabase
-		.from("accounts")
-		.update({ current_balance: acc.current_balance + delta })
-		.eq("id", accountId);
-
-	return { error: updateError };
-}
-
-/**
- * Get distinct previously used transaction descriptions for autofill suggestions
- */
+/** Previously used descriptions for autofill, or common examples when there are none. */
 export async function getTransactionDescriptions(): Promise<string[]> {
-	const defaultSuggestions = [
-		"Grocery Store",
-		"Rent Payment",
-		"Electric Bill",
-		"Water Bill",
-		"Internet Subscription",
-		"Restaurant Dinner",
-		"Coffee Shop",
-		"Gas Station",
-		"Uber Ride",
-		"Car Insurance",
-		"Netflix Subscription",
-		"Spotify",
-		"Paycheck",
-	];
-
 	try {
-		const set = new Set<string>();
-
-		const supabase = await createClient();
-		const {
-			data: { user },
-		} = await supabase.auth.getUser();
-
-		if (user) {
-			const [allocRes, acctRes, presetRes, recRes] = await Promise.all([
-				supabase
-					.from("transactions")
-					.select("name")
-					.eq("user_id", user.id)
-					.not("name", "is", null)
-					.order("created_at", { ascending: false })
-					.limit(100),
-				supabase
-					.from("account_transactions")
-					.select("description")
-					.eq("user_id", user.id)
-					.not("description", "is", null)
-					.order("created_at", { ascending: false })
-					.limit(100),
-				supabase
-					.from("transaction_presets")
-					.select("description")
-					.eq("user_id", user.id)
-					.not("description", "is", null)
-					.limit(50),
-				supabase.from("recurring_expenses").select("name").eq("user_id", user.id).not("name", "is", null).limit(50),
-			]);
-
-			if (allocRes.data) {
-				for (const row of allocRes.data) {
-					if (row.name && row.name.trim() && row.name.trim().toLowerCase() !== "transfer") {
-						set.add(row.name.trim());
-					}
-				}
-			}
-
-			if (acctRes.data) {
-				for (const row of acctRes.data) {
-					if (row.description && row.description.trim() && row.description.trim().toLowerCase() !== "transfer") {
-						set.add(row.description.trim());
-					}
-				}
-			}
-
-			if (presetRes.data) {
-				for (const row of presetRes.data) {
-					if (row.description && row.description.trim()) {
-						set.add(row.description.trim());
-					}
-				}
-			}
-
-			if (recRes.data) {
-				for (const row of recRes.data) {
-					if (row.name && row.name.trim()) {
-						set.add(row.name.trim());
-					}
-				}
-			}
-		}
-
-		if (set.size === 0 || (await isSampleDataMode())) {
-			defaultSuggestions.forEach((item) => set.add(item));
-		}
-
-		return Array.from(set).sort((a, b) => a.localeCompare(b));
+		const ctx = await getReadContext();
+		const used = ctx ? await transactionStore(ctx).listUsedDescriptions() : [];
+		const descriptions = used.length > 0 ? used : DEFAULT_DESCRIPTIONS;
+		return [...descriptions].sort((a, b) => a.localeCompare(b));
 	} catch (error) {
 		Logger.error("Error fetching transaction descriptions", { error });
-		return defaultSuggestions;
+		return DEFAULT_DESCRIPTIONS;
 	}
 }

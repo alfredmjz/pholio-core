@@ -393,12 +393,12 @@ export function UnifiedTransactionDialog({
 			}
 
 			const result = await createUnifiedTransaction(input);
-			if (result.success) {
+			if (result.ok) {
 				toast.success(type === "transfer" ? "Transfer created" : "Transaction added");
 				onOpenChange(false);
 				onSuccess?.();
 			} else {
-				toast.error("Transaction Failed", { description: result.error || "Failed to add transaction." });
+				toast.error("Transaction Failed", { description: result.error.message });
 			}
 		} catch (err) {
 			toast.error("Transaction Error", { description: err instanceof Error ? err.message : "Unexpected error" });
@@ -487,7 +487,7 @@ export function UnifiedTransactionDialog({
 		setIsAddingFromPreset(true);
 		try {
 			const result = await createTransactionsFromPresetBulk(selectedPresetId, entries);
-			if (result.success) {
+			if (result.ok) {
 				const preset = presets.find((p) => p.id === selectedPresetId);
 				const totalCount = entries.reduce((acc, curr) => acc + curr.count, 0);
 				toast.success(
@@ -497,7 +497,7 @@ export function UnifiedTransactionDialog({
 				onSuccess?.();
 				onOpenChange(false);
 			} else {
-				toast.error("Couldn't add the transactions", { description: result.error });
+				toast.error("Couldn't add the transactions", { description: result.error.message });
 			}
 		} catch (err) {
 			toast.error("Something went wrong", { description: "Try again in a moment." });

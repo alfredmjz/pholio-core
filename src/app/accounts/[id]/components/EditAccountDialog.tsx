@@ -176,11 +176,12 @@ export function EditAccountDialog({
 
 		try {
 			const planRoom = visibility.showContributionRoom ? toPlanRoomSetting(contribution, planRooms) : null;
-			if (planRoom && !(await saveContributionRoom(planRoom))) {
-				toast.error("Couldn't save your changes", {
-					description: "Could not save your contribution room. Please try again.",
-				});
-				return;
+			if (planRoom) {
+				const roomResult = await saveContributionRoom(planRoom);
+				if (!roomResult.ok) {
+					toast.error("Couldn't save your changes", { description: roomResult.error.message });
+					return;
+				}
 			}
 
 			const updates: UpdateAccountInput = {
@@ -211,19 +212,21 @@ export function EditAccountDialog({
 				...toFeeTermsInput(feeTerms, visibility),
 			};
 			// Sample data: the account page keeps the change in the demo store (via onSuccess).
-			const result = isSampleDataActive() ? updates : await updateAccount(account.id, updates);
+			const result = isSampleDataActive()
+				? { ok: true as const, data: updates }
+				: await updateAccount(account.id, updates);
 
-			if (result) {
+			if (result.ok) {
 				toast.success("Account updated");
 				onSuccess({
 					...account,
-					...result,
+					...result.data,
 					account_type: account.account_type,
 				});
 				onOpenChange(false);
 			} else {
 				toast.error("Couldn't save your changes", {
-					description: "Failed to update account details. Please try again.",
+					description: result.error.message,
 				});
 			}
 		} catch (err) {

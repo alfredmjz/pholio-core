@@ -1,290 +1,84 @@
 ﻿"use server";
 
-import { createClient } from "@/lib/supabase/server";
 import { revalidatePath } from "next/cache";
-import { Logger } from "@/lib/logger";
-import { isSampleDataMode } from "@/lib/demo-mode.server";
-import type { AccountPromotion, CreatePromotionInput, UpdatePromotionInput } from "@/app/accounts/types";
+import { z } from "zod";
+import { ActionError } from "@/lib/action-result";
+import { getReadContext } from "@/lib/data-context.server";
+import { defineAction } from "@/lib/define-action.server";
+import { dateStringSchema, idSchema, nonNegativeMoneySchema } from "@/lib/action-schemas";
 import { getTodayDateString } from "@/lib/date-utils";
+import type { AccountPromotion } from "@/app/accounts/types";
 import type { HeadsUpPromotion } from "@/app/dashboard/heads-up";
-import { samplePromotions } from "@/mock-data/dashboard";
+import { promotionStore } from "./promotion-store";
 
-// Mock data memory store when sample data mode is active
-let samplePromotionsStore: Record<string, AccountPromotion[]> = {
-	"acc-4": [
-		{
-			id: "promo-sample-1",
-			account_id: "acc-4",
-			user_id: "sample-user",
-			title: "Spend $4,000 in 90 Days for 60k Points",
-			promotion_type: "spend_threshold",
-			target_amount: 4000,
-			current_amount: 2850,
-			reward_description: "60,000 Aeroplan Points",
-			start_date: "2026-07-15",
-			end_date: "2026-10-15",
-			is_completed: false,
-			notes: "Minimum spend requirement for sign-up bonus",
-			created_at: "2026-07-15T10:00:00Z",
-			updated_at: "2026-07-15T10:00:00Z",
-		},
-	],
-};
+const promotionTypeSchema = z.enum(["spend_threshold", "deposit_threshold", "maintaining_balance"]);
 
-/**
- * Open promotions (not completed, not yet ended) across all accounts, with each account's name,
- * in the shape the heads-up lists use. Shared by the Dashboard and Accounts pages.
- */
+const createPromotionSchema = z.object({
+	account_id: idSchema,
+	title: z.string().trim().min(1, "Give the promotion a title."),
+	promotion_type: promotionTypeSchema,
+	target_amount: nonNegativeMoneySchema,
+	reward_description: z.string().trim().min(1, "Describe the reward."),
+	start_date: dateStringSchema.optional(),
+	end_date: dateStringSchema,
+	notes: z.string().nullish(),
+});
+
+const updatePromotionSchema = z.object({
+	title: z.string().trim().min(1, "Give the promotion a title.").optional(),
+	promotion_type: promotionTypeSchema.optional(),
+	target_amount: nonNegativeMoneySchema.optional(),
+	current_amount: nonNegativeMoneySchema.optional(),
+	reward_description: z.string().trim().min(1, "Describe the reward.").optional(),
+	start_date: dateStringSchema.optional(),
+	end_date: dateStringSchema.optional(),
+	is_completed: z.boolean().optional(),
+	notes: z.string().nullish(),
+});
+
+/** Open promotions across all accounts, in the shape the Dashboard and Accounts heads-up lists use. */
 export async function getOpenPromotions(today: string): Promise<HeadsUpPromotion[]> {
-	if (await isSampleDataMode()) {
-		return samplePromotions();
-	}
-
-	try {
-		const supabase = await createClient();
-		const {
-			data: { user },
-		} = await supabase.auth.getUser();
-		if (!user) return [];
-
-		const { data, error } = await supabase
-			.from("account_promotions")
-			.select(
-				"id, account_id, promotion_type, target_amount, current_amount, reward_description, end_date, is_completed, account:accounts(name)"
-			)
-			.eq("user_id", user.id)
-			.eq("is_completed", false)
-			.gte("end_date", today);
-
-		if (error) {
-			Logger.error("Error fetching open promotions", { error });
-			return [];
-		}
-
-		return (data ?? []).map((p: any) => ({
-			id: p.id,
-			accountId: p.account_id,
-			accountName: p.account?.name ?? "this account",
-			type: p.promotion_type,
-			target: Number(p.target_amount),
-			current: Number(p.current_amount),
-			reward: p.reward_description,
-			endDate: String(p.end_date).slice(0, 10),
-			isCompleted: Boolean(p.is_completed),
-		}));
-	} catch (error) {
-		Logger.error("Error in getOpenPromotions", { error });
-		return [];
-	}
+	const ctx = await getReadContext();
+	return ctx ? promotionStore(ctx).listOpen(today) : [];
 }
 
-/**
- * Fetch promotions for a specific account
- */
 export async function getAccountPromotions(accountId: string): Promise<AccountPromotion[]> {
-	if (await isSampleDataMode()) {
-		return samplePromotionsStore[accountId] || [];
-	}
-
-	try {
-		const supabase = await createClient();
-		const {
-			data: { user },
-		} = await supabase.auth.getUser();
-
-		if (!user) return [];
-
-		const { data, error } = await supabase
-			.from("account_promotions")
-			.select("*")
-			.eq("account_id", accountId)
-			.eq("user_id", user.id)
-			.order("end_date", { ascending: true });
-
-		if (error) {
-			Logger.error("Error fetching account promotions", { error, accountId });
-			return [];
-		}
-
-		return data || [];
-	} catch (error) {
-		Logger.error("Error in getAccountPromotions", { error });
-		return [];
-	}
+	const ctx = await getReadContext();
+	return ctx ? promotionStore(ctx).listForAccount(accountId) : [];
 }
 
-/**
- * Create a new promotion for an account
- */
-export async function createAccountPromotion(input: CreatePromotionInput): Promise<AccountPromotion | null> {
-	const startDate = input.start_date || getTodayDateString();
-
-	if (await isSampleDataMode()) {
-		const newPromo: AccountPromotion = {
-			id: `promo-${Date.now()}`,
-			account_id: input.account_id,
-			user_id: "sample-user",
-			title: input.title,
-			promotion_type: input.promotion_type,
-			target_amount: input.target_amount,
-			current_amount: 0,
-			reward_description: input.reward_description,
-			start_date: startDate,
-			end_date: input.end_date,
-			is_completed: false,
-			notes: input.notes || null,
-			created_at: new Date().toISOString(),
-			updated_at: new Date().toISOString(),
-		};
-		if (!samplePromotionsStore[input.account_id]) {
-			samplePromotionsStore[input.account_id] = [];
-		}
-		samplePromotionsStore[input.account_id].push(newPromo);
+export const createAccountPromotion = defineAction(
+	"createAccountPromotion",
+	[createPromotionSchema],
+	async (ctx, input) => {
+		const store = promotionStore(ctx);
+		const promotion = await store.create({ ...input, start_date: input.start_date ?? getTodayDateString() });
+		await store.recalculate(input.account_id);
 		revalidatePath("/accounts");
-		return newPromo;
+		return promotion;
 	}
+);
 
-	try {
-		const supabase = await createClient();
-		const {
-			data: { user },
-		} = await supabase.auth.getUser();
-
-		if (!user) throw new Error("Unauthorized");
-
-		const { data, error } = await supabase
-			.from("account_promotions")
-			.insert({
-				user_id: user.id,
-				account_id: input.account_id,
-				title: input.title,
-				promotion_type: input.promotion_type,
-				target_amount: input.target_amount,
-				current_amount: 0,
-				reward_description: input.reward_description,
-				start_date: startDate,
-				end_date: input.end_date,
-				notes: input.notes || null,
-			})
-			.select()
-			.single();
-
-		if (error) {
-			Logger.error("Error creating promotion", { error });
-			return null;
-		}
-
-		await refreshAccountPromotions(input.account_id);
+/** Recalculates progress too, since dates, target or type may have changed. */
+export const updateAccountPromotion = defineAction(
+	"updateAccountPromotion",
+	[idSchema, updatePromotionSchema],
+	async (ctx, id, input) => {
+		const store = promotionStore(ctx);
+		const accountId = await store.update(id, input);
+		if (!accountId) throw new ActionError("not_found", "That promotion no longer exists.");
+		await store.recalculate(accountId);
 		revalidatePath("/accounts");
-		return data;
-	} catch (error) {
-		Logger.error("Error in createAccountPromotion", { error });
-		return null;
 	}
-}
+);
 
-/**
- * Update an existing promotion
- */
-export async function updateAccountPromotion(id: string, input: UpdatePromotionInput): Promise<boolean> {
-	if (await isSampleDataMode()) {
-		Object.keys(samplePromotionsStore).forEach((accId) => {
-			samplePromotionsStore[accId] = samplePromotionsStore[accId].map((p) => {
-				if (p.id === id) {
-					return { ...p, ...input, updated_at: new Date().toISOString() };
-				}
-				return p;
-			});
-		});
-		revalidatePath("/accounts");
-		return true;
-	}
+export const deleteAccountPromotion = defineAction("deleteAccountPromotion", [idSchema], async (ctx, id) => {
+	await promotionStore(ctx).remove(id);
+	revalidatePath("/accounts");
+});
 
-	try {
-		const supabase = await createClient();
-		const {
-			data: { user },
-		} = await supabase.auth.getUser();
-
-		if (!user) return false;
-
-		const { error } = await supabase.from("account_promotions").update(input).eq("id", id).eq("user_id", user.id);
-
-		if (error) {
-			Logger.error("Error updating promotion", { error, id });
-			return false;
-		}
-
-		revalidatePath("/accounts");
-		return true;
-	} catch (error) {
-		Logger.error("Error in updateAccountPromotion", { error });
-		return false;
-	}
-}
-
-/**
- * Delete a promotion
- */
-export async function deleteAccountPromotion(id: string): Promise<boolean> {
-	if (await isSampleDataMode()) {
-		Object.keys(samplePromotionsStore).forEach((accId) => {
-			samplePromotionsStore[accId] = samplePromotionsStore[accId].filter((p) => p.id !== id);
-		});
-		revalidatePath("/accounts");
-		return true;
-	}
-
-	try {
-		const supabase = await createClient();
-		const {
-			data: { user },
-		} = await supabase.auth.getUser();
-
-		if (!user) return false;
-
-		const { error } = await supabase.from("account_promotions").delete().eq("id", id).eq("user_id", user.id);
-
-		if (error) {
-			Logger.error("Error deleting promotion", { error, id });
-			return false;
-		}
-
-		revalidatePath("/accounts");
-		return true;
-	} catch (error) {
-		Logger.error("Error in deleteAccountPromotion", { error });
-		return false;
-	}
-}
-
-/**
- * Ask PostgreSQL to recompute progress for this account open promotions.
- *
- * The authoritative calculation lives in `public.recalculate_account_promotions` and is
- * also fired by a trigger on `account_transactions`, so this action is only required
- * after a promotion definition changes (dates, target or type).
- */
-export async function refreshAccountPromotions(accountId: string): Promise<void> {
-	if (await isSampleDataMode()) return;
-
-	try {
-		const supabase = await createClient();
-		const {
-			data: { user },
-		} = await supabase.auth.getUser();
-
-		if (!user) return;
-
-		const { error } = await supabase.rpc("recalculate_account_promotions", { p_account_id: accountId });
-
-		if (error) {
-			Logger.error("Error refreshing promotion progress", { error, accountId });
-			return;
-		}
-
-		revalidatePath("/accounts");
-	} catch (error) {
-		Logger.error("Error in refreshAccountPromotions", { error });
-	}
-}
+/** Manual refresh of progress; definition changes already recalculate. */
+export const refreshAccountPromotions = defineAction("refreshAccountPromotions", [idSchema], async (ctx, accountId) => {
+	await promotionStore(ctx).recalculate(accountId);
+	revalidatePath("/accounts");
+});

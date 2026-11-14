@@ -161,9 +161,9 @@ export function EditRecurringDialog({
 				payload.is_active = true;
 			}
 
-			const success = await updateRecurringExpense(expense.id, payload);
+			const result = await updateRecurringExpense(expense.id, payload);
 
-			if (success) {
+			if (result.ok) {
 				toast.success(
 					forceActiveOnSave
 						? "Subscription reactivated"
@@ -180,7 +180,7 @@ export function EditRecurringDialog({
 				onOpenChange(false);
 			} else {
 				toast.error("Couldn't save your changes", {
-					description: "Failed to update expense. Please try again.",
+					description: result.error.message,
 				});
 			}
 		} catch (err) {

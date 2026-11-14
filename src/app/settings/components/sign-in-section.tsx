@@ -27,10 +27,10 @@ export function SignInSection({ email }: { email: string }) {
 		formData.append("newEmail", newEmail);
 		startTransition(async () => {
 			const result = await changeEmail(formData);
-			if (result.error) {
-				toast.error("Couldn't change your email", { description: result.error });
+			if (!result.ok) {
+				toast.error("Couldn't change your email", { description: result.error.message });
 			} else {
-				toast.success(result.message);
+				toast.success(result.data.message);
 				close(false);
 			}
 		});

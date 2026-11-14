@@ -13,9 +13,9 @@ import { getAccountsForSelector } from "@/lib/actions/unified-transaction-action
 import { getAllocationContributions } from "@/lib/actions/contribution-actions";
 import { getAllocationSettings, getTimezone } from "@/app/settings/actions";
 import { formatDateString, getTodayDateString } from "@/lib/date-utils";
+import { isSampleDataMode } from "@/lib/demo-mode.server";
 import { getDemoNow } from "@/mock-data/demo-date";
 import { AllocationsLoadingSkeleton } from "./components/allocations-loading-skeleton";
-import { isSampleDataMode } from "@/lib/demo-mode.server";
 
 export const metadata = {
 	title: "Allocations | Pholio",
@@ -44,18 +44,16 @@ export default async function AllocationsPage({
 }
 
 async function AllocationsLoader({ year, month }: { year: number; month: number }) {
-	const sampleMode = await isSampleDataMode();
-
-	if (!sampleMode) {
-		await requireAuth();
-	}
+	await requireAuth();
 
 	let summary = null;
 	let transactions: any[] = [];
 	let accounts: any[] = [];
 	let previousMonthData: { categoryCount: number; totalBudget: number; hasData: boolean } | null = null;
 
-	const today = sampleMode ? formatDateString(getDemoNow()) : getTodayDateString((await getTimezone()) ?? undefined);
+	const today = (await isSampleDataMode())
+		? formatDateString(getDemoNow())
+		: getTodayDateString((await getTimezone()) ?? undefined);
 
 	const [userSettings, userTemplates, incomeVerification, contributions] = await Promise.all([
 		getAllocationSettings(),
@@ -64,47 +62,29 @@ async function AllocationsLoader({ year, month }: { year: number; month: number 
 		getAllocationContributions(year, month),
 	]);
 
-	if (sampleMode) {
-		await new Promise((resolve) => setTimeout(resolve, 2000));
+	// Check if allocation exists (don't create yet - let dialog handle it)
+	const existingAllocation = await getAllocation(year, month);
 
-		const mockData = require("@/mock-data/allocations").getSmartMockData(year, month);
-		summary = mockData.summary;
-		transactions = mockData.transactions;
-
-		accounts = await getAccountsForSelector();
+	if (existingAllocation) {
+		[summary, transactions, accounts] = await Promise.all([
+			getAllocationSummary(existingAllocation.id),
+			getTransactionsForMonth(year, month),
+			getAccountsForSelector(),
+		]);
 	} else {
-		// Check if allocation exists (don't create yet - let dialog handle it)
-		const existingAllocation = await getAllocation(year, month);
+		const [prevMonthResult, accountsResult] = await Promise.all([
+			getPreviousMonthSummary(year, month),
+			getAccountsForSelector(),
+		]);
 
-		if (existingAllocation) {
-			// Allocation exists - load its data
-			[summary, transactions, accounts] = await Promise.all([
-				getAllocationSummary(existingAllocation.id),
-				getTransactionsForMonth(year, month),
-				getAccountsForSelector(),
-			]);
-		} else {
-			const [prevMonthResult, accountsResult] = await Promise.all([
-				getPreviousMonthSummary(year, month),
-				getAccountsForSelector(),
-			]);
-
-			accounts = accountsResult;
-
-			if (prevMonthResult.summary) {
-				previousMonthData = {
+		accounts = accountsResult;
+		previousMonthData = prevMonthResult.summary
+			? {
 					categoryCount: prevMonthResult.summary.categories?.length || 0,
 					totalBudget: prevMonthResult.summary.summary?.total_budget_caps || 0,
 					hasData: true,
-				};
-			} else {
-				previousMonthData = {
-					categoryCount: 0,
-					totalBudget: 0,
-					hasData: false,
-				};
-			}
-		}
+				}
+			: { categoryCount: 0, totalBudget: 0, hasData: false };
 	}
 
 	return (

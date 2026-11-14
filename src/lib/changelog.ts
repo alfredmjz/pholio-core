@@ -12,6 +12,16 @@ export interface ChangelogEntry {
 /** What's new in Pholio, newest first. Every user-facing release adds an entry at the top. */
 export const CHANGELOG: ChangelogEntry[] = [
 	{
+		id: "2026-11-day-by-day-budget-bars",
+		date: "2026-11-13",
+		title: "Budget bars that count the days",
+		items: [
+			"Each category on Allocations now has one segment for every day of the month, with a mark for today, so you can see your spending next to the days left.",
+			"Under each bar you'll see what's left and how long you have, like \"$30 left to spend in 15 days\", plus how much that is a day.",
+			"Categories spending faster than the month is going now say how far ahead they are.",
+		],
+	},
+	{
 		id: "2026-11-clearer-save-errors",
 		date: "2026-11-13",
 		title: "Clearer messages when a change can't be saved",

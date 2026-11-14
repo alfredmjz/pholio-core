@@ -34,6 +34,8 @@ interface AllocationClientProps {
 	initialTransactions: Transaction[];
 	initialAccounts: AccountWithType[];
 	initialContributions: AllocationContributions;
+	/** YYYY-MM-DD in the user's timezone. */
+	today: string;
 	previousMonthData?: {
 		categoryCount: number;
 		totalBudget: number;
@@ -74,6 +76,7 @@ export function AllocationClient({
 	initialTransactions,
 	initialAccounts,
 	initialContributions,
+	today,
 	previousMonthData,
 	incomeVerification,
 	userSettings,
@@ -293,6 +296,7 @@ export function AllocationClient({
 				isRefetching={isRefetching}
 				isChangingMonth={isChangingMonth}
 				currentMonth={currentMonth}
+				today={today}
 				summary={summary}
 				categories={categories}
 				transactions={transactions}

@@ -112,7 +112,7 @@ export function getLocaleOptions(sampleDate: Date): FormatOption<FormatLocale>[]
 	return FORMAT_LOCALES.map((locale) => ({
 		value: locale,
 		label: LOCALE_NAMES[locale],
-		example: `${formatNumber(1234.56, { minimumFractionDigits: 2 }, locale)} · ${formatDateParts(
+		example: `${formatNumber(1234.56, { minimumFractionDigits: 2 }, locale)} on ${formatDateParts(
 			sampleDate,
 			{ month: "short", day: "numeric", year: "numeric" },
 			locale

@@ -47,6 +47,22 @@ export function formatFullDate(date: string | Date): string {
 	return formatDateParts(d, { month: "short", day: "numeric", year: "numeric" });
 }
 
+/** True for a schedule that repeats once a year or less often ("yearly", "1:years", "2:years"). */
+export function isYearlyPeriod(billingPeriod: string): boolean {
+	return billingPeriod === "yearly" || /:(years?|yearly)$/.test(billingPeriod);
+}
+
+/**
+ * A recurring item's date: "Jan 4" when it falls in today's year, with the year added for a yearly
+ * schedule or a date in another year, where the month alone is ambiguous.
+ */
+export function formatScheduleDate(date: string | Date, billingPeriod: string, today: string | Date): string {
+	const d = typeof date === "string" ? parseLocalDate(date) : date;
+	const t = typeof today === "string" ? parseLocalDate(today) : today;
+	const showYear = isYearlyPeriod(billingPeriod) || d.getFullYear() !== t.getFullYear();
+	return showYear ? formatFullDate(d) : formatShortDate(d);
+}
+
 /**
  * Format month and year (e.g., "January 2025")
  */

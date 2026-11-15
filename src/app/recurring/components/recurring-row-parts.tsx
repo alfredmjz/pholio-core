@@ -84,18 +84,21 @@ export function RecurringIdentity({
 				>
 					{expense.name}
 				</p>
-				<p className="type-body-xs flex min-w-0 items-center gap-1.5 text-muted-foreground">
-					<span className="shrink-0">{formatFrequency(expense.billing_period)}</span>
+				<p className="type-body-xs flex min-w-0 items-center gap-1 text-muted-foreground">
+					<span className="shrink-0">
+						{formatFrequency(expense.billing_period)}
+						{(automated || (account && !toAccount)) && ","}
+					</span>
 					{automated && (
-						<span className="inline-flex items-center gap-0.5" title="Recorded automatically">
-							<span aria-hidden>·</span>
+						<span className="inline-flex shrink-0 items-center gap-0.5" title="Recorded automatically">
 							<Zap className="h-3 w-3" aria-hidden />
 							Auto
+							{account && !toAccount && ","}
 						</span>
 					)}
 					{account && !toAccount && (
 						<>
-							<span aria-hidden>·</span>
+							<span className="shrink-0">paid from</span>
 							<AccountLink account={account} title={`Paid from ${formatAccountDisplayName(account)}`} />
 						</>
 					)}

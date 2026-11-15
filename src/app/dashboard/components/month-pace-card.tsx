@@ -74,7 +74,7 @@ export function MonthPaceCard({ pace, today }: MonthPaceCardProps) {
 			id="month-pace-heading"
 			title={`${monthName} so far`}
 			note={`Day ${pace.dayOfMonth} of ${pace.daysInMonth}`}
-			action={{ label: "Open budget", href: "/allocations" }}
+			action={{ label: "Open Allocations", href: "/allocations" }}
 		>
 			<div className="flex flex-wrap items-end justify-between gap-x-4 gap-y-2">
 				<p className="text-primary">

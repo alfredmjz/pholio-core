@@ -89,11 +89,11 @@ export function describeBudgetLeft(
 			: { text: `Ended with ${format(left)} unspent`, tone: "success" };
 	}
 
-	if (over) return { text: `${format(-left)} over · ${dayCount(daysLeft)} to go`, tone: "error" };
+	if (over) return { text: `${format(-left)} over with ${dayCount(daysLeft)} to go`, tone: "error" };
 	if (spentInFull) {
 		return isPlan
 			? { text: "Contributed in full", tone: "muted" }
-			: { text: `Budget used · ${dayCount(daysLeft)} to go`, tone: "muted" };
+			: { text: `Budget used with ${dayCount(daysLeft)} to go`, tone: "muted" };
 	}
 
 	const when = daysLeft === 1 ? "today" : `in ${dayCount(daysLeft)}`;

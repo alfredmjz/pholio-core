@@ -22,6 +22,14 @@ export const CHANGELOG: ChangelogEntry[] = [
 		],
 	},
 	{
+		id: "2026-11-contributed-this-year",
+		date: "2026-11-15",
+		title: "Set what you've contributed this year",
+		items: [
+			"On a TFSA, RRSP, FHSA or RESP account, you can now enter how much you've contributed this year, including money put in at other banks. Pholio uses your number instead of its own total, and adds anything you record after that date.",
+		],
+	},
+	{
 		id: "2026-11-chequing-interest",
 		date: "2026-11-15",
 		title: "Interest on chequing accounts",

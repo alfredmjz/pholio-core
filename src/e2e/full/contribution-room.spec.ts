@@ -88,3 +88,38 @@ test("accounts of one plan share contribution room and warn on an over-contribut
 	await expect(card.getByText("$1,200.00 used of $1,000.00", { exact: false })).toBeVisible();
 	await expect(card.getByText(`Shared by your 2 ${plan} accounts`)).toBeVisible();
 });
+
+// The user's own contributed-this-year figure replaces the ledger total up to its date, and
+// clearing it goes back to the ledger total.
+test("the contributed-this-year figure replaces the ledger total", async ({ page }, testInfo) => {
+	test.slow();
+	const plan = PLAN_BY_PROJECT[testInfo.project.name] ?? "TFSA";
+	await signInNewUser(page, `contributed-${plan.toLowerCase()}`);
+	const name = uniqueName(`E2E ${plan} Figure`, testInfo.project.name);
+
+	await createRegisteredAccount(page, plan, name, "1000");
+	await page.getByRole("link", { name: new RegExp(name) }).click();
+	await expect(page).toHaveURL(/\/accounts\/[\w-]+$/);
+	const card = page.getByTestId("contribution-room-card");
+
+	const dialog = await deposit(page, "200");
+	await dialog.getByLabel(/Description/).fill(`E2E ${plan} deposit`);
+	await dialog.getByRole("button", { name: "Add Transaction" }).click();
+	await expect(card.getByText("$200.00 used of $1,000.00", { exact: false })).toBeVisible();
+
+	const editDialog = page.getByRole("dialog", { name: "Contributed this year" });
+	await openDialog(card.getByRole("button", { name: "Edit contributed this year" }), editDialog);
+	await editDialog.getByLabel("Amount").fill("500");
+	await editDialog.getByRole("button", { name: "Save" }).click();
+	await expect(page.getByText("Contributed amount saved")).toBeVisible();
+	await expect(card.getByText("$500.00 used of $1,000.00", { exact: false })).toBeVisible();
+	await expect(card.getByText("Includes your figure of $500.00", { exact: false })).toBeVisible();
+	await expectNoHorizontalScroll(page);
+
+	await openDialog(card.getByRole("button", { name: "Edit contributed this year" }), editDialog);
+	await expect(editDialog.getByLabel("Amount")).toHaveValue("500");
+	await editDialog.getByLabel("Amount").fill("");
+	await editDialog.getByRole("button", { name: "Save" }).click();
+	await expect(page.getByText("Contributed amount cleared")).toBeVisible();
+	await expect(card.getByText("$200.00 used of $1,000.00", { exact: false })).toBeVisible();
+});

@@ -5,6 +5,8 @@ import { adminClient, signInNewUser } from "@/e2e/support/users";
 test.use({ storageState: SIGNED_OUT });
 
 async function choose(page: Page, label: string, option: RegExp) {
+	// Wait for React to swap in the streamed page; a node grabbed before the swap can be detached.
+	await expect(page.locator('[id^="S:"]')).toHaveCount(0);
 	const trigger = page.getByLabel(label);
 	await trigger.scrollIntoViewIfNeeded();
 	await trigger.click();

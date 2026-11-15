@@ -123,14 +123,21 @@ export function ContributionDetails({
 									label={`${planLabel} annual contribution`}
 								/>
 								<span className="type-caption text-muted-foreground">
-									{summary.annual_limit_source === "cra" ? "CRA limit for this year" : "Your limit for this year"}
 									{summary.annual_remaining !== null && summary.annual_remaining >= 0
-										? ` · ${formatCurrency(summary.annual_remaining)} left`
-										: ""}
+										? `${formatCurrency(summary.annual_remaining)} left of ${summary.annual_limit_source === "cra" ? "this year's CRA limit" : "your limit for this year"}`
+										: summary.annual_limit_source === "cra"
+											? "CRA limit for this year"
+											: "Your limit for this year"}
 								</span>
 							</>
 						) : (
 							<span className="type-caption text-muted-foreground">No annual limit for this plan</span>
+						)}
+						{summary.contributed_override !== null && summary.contributed_as_of && (
+							<span className="type-caption text-muted-foreground">
+								Includes your figure of {formatCurrency(summary.contributed_override)} up to{" "}
+								{formatFullDate(summary.contributed_as_of)}.
+							</span>
 						)}
 					</div>
 
@@ -152,9 +159,9 @@ export function ContributionDetails({
 								<ProgressBar used={summary.room_used ?? 0} total={availableRoom} label={roomLineLabel} />
 								<span className="type-caption text-muted-foreground">
 									{formatCurrency(summary.room_used ?? 0)} used of {formatCurrency(availableRoom)}
-									{summary.room_as_of ? ` since ${formatFullDate(summary.room_as_of)}` : ""}
+									{summary.room_as_of ? ` since ${formatFullDate(summary.room_as_of)}` : ""}.
 									{summary.lifetime_limit !== null
-										? ` · ${planLabel} lifetime cap ${formatCurrency(summary.lifetime_limit)}`
+										? ` The ${planLabel} lifetime cap is ${formatCurrency(summary.lifetime_limit)}.`
 										: ""}
 								</span>
 							</>
@@ -170,10 +177,10 @@ export function ContributionDetails({
 								</span>
 							</div>
 							<span className="type-caption text-muted-foreground">
-								1% a month on the excess
-								{(summary.tax_this_month ?? 0) > 0 ? ` · ${formatCurrency(summary.tax_this_month!)} this month` : ""}
+								1% a month on the excess.
+								{(summary.tax_this_month ?? 0) > 0 ? ` ${formatCurrency(summary.tax_this_month!)} this month.` : ""}
 								{(summary.excess_amount ?? 0) > 0
-									? ` · stops once you withdraw ${formatCurrency(summary.excess_amount!)}`
+									? ` It stops once you withdraw ${formatCurrency(summary.excess_amount!)}.`
 									: ""}
 							</span>
 						</div>

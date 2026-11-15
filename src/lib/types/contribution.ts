@@ -55,6 +55,10 @@ export interface ContributionSummary {
 	tax_total: number | null;
 	/** Months in which an excess was taxed. */
 	taxed_months: number | null;
+	/** The user's own contributed-this-year figure, when it applies to the requested year. */
+	contributed_override: number | null;
+	/** The date `contributed_override` runs up to; later contributions add on top. */
+	contributed_as_of: string | null;
 }
 
 /** The pool an account belongs to, plus that account's own share. */

@@ -156,7 +156,7 @@ export function DetailsStep({
 				</span>
 				<span className="type-body-sm min-w-0 flex-1 truncate">
 					<span className="font-medium text-primary">{selectedType.name}</span>
-					<span className="text-muted-foreground"> · {isLiability ? "What you owe" : "What you own"}</span>
+					<span className="text-muted-foreground"> ({isLiability ? "what you owe" : "what you own"})</span>
 				</span>
 				<button
 					type="button"

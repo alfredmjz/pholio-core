@@ -24,6 +24,7 @@ import {
 	planIncomeVerification,
 	verifyIncome,
 } from "./income-verification";
+import type { ExportTransaction } from "./export-rows";
 import { VIRTUAL_UNCATEGORIZED_ID } from "./types";
 import type {
 	Allocation,
@@ -67,6 +68,8 @@ export interface AllocationStore {
 	importPreviousMonth(year: number, month: number, expectedIncome: number): Promise<Allocation>;
 	getSummary(allocationId: string): Promise<AllocationSummary | null>;
 	listTransactionsForMonth(year: number, month: number): Promise<Transaction[]>;
+	/** Budget transactions dated from startDate to endDate inclusive (YYYY-MM-DD), for the spreadsheet export. */
+	listTransactionsBetween(startDate: string, endDate: string): Promise<ExportTransaction[]>;
 	updateExpectedIncome(allocationId: string, expectedIncome: number): Promise<void>;
 	createCategory(input: NewCategory): Promise<AllocationCategory>;
 	updateCategory(categoryId: string, changes: CategoryUpdate): Promise<void>;
@@ -280,6 +283,24 @@ function supabaseAllocationStore({ db, userId }: SupabaseContext): AdapterStore 
 				account_id: t.linked_account_transaction?.account_id,
 				linked_account_transactions: linkedAccountTxMap.get(t.id) ?? [],
 			})) as Transaction[];
+		},
+
+		async listTransactionsBetween(startDate, endDate) {
+			const { data, error } = await db
+				.from("transactions")
+				.select("transaction_date, name, amount, source, recurring_expense_id, category:allocation_categories(name)")
+				.eq("user_id", userId)
+				.gte("transaction_date", startDate)
+				.lte("transaction_date", endDate)
+				.order("transaction_date", { ascending: false });
+			if (error) {
+				Logger.error("Error fetching transactions for export", { error });
+				throw new Error("Could not read transactions for the export.");
+			}
+			return (data ?? []).map(({ category, ...row }) => ({
+				...row,
+				category_name: (category as { name?: string } | null)?.name ?? null,
+			}));
 		},
 
 		async updateExpectedIncome(allocationId, expectedIncome) {
@@ -1111,6 +1132,19 @@ function demoAllocationStore(ctx: DemoContext): AdapterStore {
 
 		async listTransactionsForMonth(year, month) {
 			return monthState(year, month).transactions;
+		},
+
+		async listTransactionsBetween(startDate, endDate) {
+			const [startYear, startMonth] = startDate.split("-").map(Number);
+			const [endYear, endMonth] = endDate.split("-").map(Number);
+			const rows: Transaction[] = [];
+			for (let index = startYear * 12 + startMonth - 1; index <= endYear * 12 + endMonth - 1; index++) {
+				rows.push(...monthState(Math.floor(index / 12), (index % 12) + 1).transactions);
+			}
+			// Demo dates are full timestamps; the real column is a DATE.
+			return rows
+				.map((t) => ({ ...t, transaction_date: t.transaction_date.slice(0, 10) }))
+				.filter((t) => t.transaction_date >= startDate && t.transaction_date <= endDate);
 		},
 
 		async updateExpectedIncome(allocationId, expectedIncome) {

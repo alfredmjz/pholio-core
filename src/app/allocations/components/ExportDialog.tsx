@@ -6,12 +6,11 @@ import { DialogFooter } from "@/components/ui/dialog";
 import { Button } from "@/components/ui/button";
 import { Tabs, TabsContent, TabsList, TabsTrigger, UNDERLINE_TAB_CLASS } from "@/components/ui/tabs";
 import { FileText, Download, Loader2, Calendar } from "lucide-react";
-import { exportTransactions } from "../utils/exportUtils";
 import { toast } from "sonner";
-import { supabase } from "@/lib/supabase/client";
 import { MonthPicker } from "@/components/month-picker";
 import { formatMonthYear } from "@/lib/date-utils";
-import { GoogleSheetsIcon } from "@/components/icons/allocation-icons";
+import { exportTransactions } from "../actions";
+import { downloadExcel } from "../utils/exportUtils";
 
 interface ExportDialogProps {
 	open: boolean;
@@ -20,163 +19,54 @@ interface ExportDialogProps {
 	currentMonth: number;
 }
 
-const MONTHS = [
-	{ value: 1, label: "January" },
-	{ value: 2, label: "February" },
-	{ value: 3, label: "March" },
-	{ value: 4, label: "April" },
-	{ value: 5, label: "May" },
-	{ value: 6, label: "June" },
-	{ value: 7, label: "July" },
-	{ value: 8, label: "August" },
-	{ value: 9, label: "September" },
-	{ value: 10, label: "October" },
-	{ value: 11, label: "November" },
-	{ value: 12, label: "December" },
-];
-
 export function ExportDialog({ open, onOpenChange, currentYear, currentMonth }: ExportDialogProps) {
 	const [isExporting, setIsExporting] = useState(false);
-	const [isGoogleExporting, setIsGoogleExporting] = useState(false);
 	const [activeTab, setActiveTab] = useState("quick");
 
 	const [startDate, setStartDate] = useState<Date | undefined>(new Date(currentYear, currentMonth - 1, 1));
 	const [endDate, setEndDate] = useState<Date | undefined>(new Date(currentYear, currentMonth, 0)); // Last day of month
 
 	const getRange = () => {
-		if (activeTab === ("quick" as string)) {
-			return {
-				type: "current" as const,
-				startYear: currentYear,
-				startMonth: currentMonth,
-				endYear: currentYear,
-				endMonth: currentMonth,
-			};
-		} else {
-			if (!startDate || !endDate) {
-				throw new Error("Please select both start and end dates");
-			}
-			if (endDate < startDate) {
-				throw new Error("End date cannot be before start date");
-			}
-
-			return {
-				type: "custom" as const,
-				startYear: startDate.getFullYear(),
-				startMonth: startDate.getMonth() + 1,
-				endYear: endDate.getFullYear(),
-				endMonth: endDate.getMonth() + 1,
-			};
+		if (activeTab === "quick") {
+			return { startYear: currentYear, startMonth: currentMonth, endYear: currentYear, endMonth: currentMonth };
 		}
+		if (!startDate || !endDate) throw new Error("Pick a start and an end month.");
+		return {
+			startYear: startDate.getFullYear(),
+			startMonth: startDate.getMonth() + 1,
+			endYear: endDate.getFullYear(),
+			endMonth: endDate.getMonth() + 1,
+		};
 	};
 
 	const handleExport = async () => {
 		setIsExporting(true);
 		try {
-			const range = getRange();
-			let filename = "";
-
-			const startStr = `${MONTHS[range.startMonth - 1].value < 10 ? "0" : ""}${MONTHS[range.startMonth - 1].value}_${range.startYear}`;
-			const endStr = `${MONTHS[range.endMonth - 1].value < 10 ? "0" : ""}${MONTHS[range.endMonth - 1].value}_${range.endYear}`;
-
-			if (activeTab === "quick" || startStr === endStr) {
-				filename = `pholio_export_${startStr}`;
-			} else {
-				filename = `pholio_export_${startStr}_to_${endStr}`;
+			const result = await exportTransactions(getRange());
+			if (!result.ok) {
+				toast.error("Could not export", { description: result.error.message });
+				return;
 			}
-
-			await exportTransactions(range, filename);
-			toast.success("Export successful");
+			await downloadExcel(result.data.headers, result.data.rows, result.data.filename);
+			toast.success("Export downloaded");
 			onOpenChange(false);
 		} catch (error) {
-			console.error(error);
-			toast.error("Export Failed", {
-				description: error instanceof Error ? error.message : "Failed to generate Excel export.",
+			toast.error("Could not export", {
+				description: error instanceof Error ? error.message : "Something went wrong. Please try again.",
 			});
 		} finally {
 			setIsExporting(false);
 		}
 	};
 
-	const handleGoogleExport = async () => {
-		setIsGoogleExporting(true);
-		try {
-			const range = getRange();
-
-			const {
-				data: { session },
-			} = await supabase.auth.getSession();
-
-			const providerToken = session?.provider_token;
-
-			const body: any = {
-				token: providerToken,
-				startYear: range.startYear,
-				startMonth: range.startMonth,
-				endYear: range.endYear,
-				endMonth: range.endMonth,
-			};
-
-			const response = await fetch("/api/google/export", {
-				method: "POST",
-				headers: { "Content-Type": "application/json" },
-				body: JSON.stringify(body),
-			});
-
-			const data = await response.json();
-
-			if (!response.ok) {
-				if (response.status === 401) {
-					toast.info("Connecting to Google...", {
-						description: "You will be redirected to approve access.",
-						duration: 5000,
-					});
-
-					const { error: authError } = await supabase.auth.signInWithOAuth({
-						provider: "google",
-						options: {
-							scopes: "https://www.googleapis.com/auth/spreadsheets",
-							queryParams: {
-								access_type: "offline",
-								prompt: "consent",
-							},
-						},
-					});
-
-					if (authError) {
-						console.error("Link/Auth Error:", authError);
-						throw authError;
-					}
-
-					return;
-				}
-				throw new Error(data.error || "Failed to create Google Sheet");
-			}
-
-			// Success
-			if (data.url) {
-				window.open(data.url, "_blank");
-				toast.success("Spreadsheet created!", { description: "Opened in a new tab." });
-				onOpenChange(false);
-			}
-		} catch (error) {
-			console.error(error);
-			toast.error("Google Export Failed", {
-				description: error instanceof Error ? error.message : "Failed to export data to Google Sheets.",
-			});
-		} finally {
-			setIsGoogleExporting(false);
-		}
-	};
-
-	const currentMonthName = MONTHS.find((m) => m.value === currentMonth)?.label;
+	const currentMonthName = new Date(currentYear, currentMonth - 1, 1).toLocaleDateString("en-US", { month: "long" });
 
 	return (
 		<ControlBasedDialog
 			open={open}
 			onOpenChange={onOpenChange}
 			title="Export transactions"
-			description="Download them as an Excel file, or open them in Google Sheets."
+			description="Download them as an Excel file."
 			className="sm:max-w-[560px]"
 		>
 			<div>
@@ -234,16 +124,7 @@ export function ExportDialog({ open, onOpenChange, currentYear, currentMonth }: 
 				<Button variant="outline" onClick={() => onOpenChange(false)} className="sm:mr-auto">
 					Cancel
 				</Button>
-				<Button
-					variant="outline"
-					onClick={handleGoogleExport}
-					disabled={isGoogleExporting || isExporting}
-					className="gap-2"
-				>
-					{isGoogleExporting ? <Loader2 className="h-4 w-4 animate-spin" /> : <GoogleSheetsIcon className="h-4 w-4" />}
-					Open in Sheets
-				</Button>
-				<Button onClick={handleExport} disabled={isExporting || isGoogleExporting} className="gap-2">
+				<Button onClick={handleExport} disabled={isExporting} className="gap-2">
 					{isExporting ? <Loader2 className="h-4 w-4 animate-spin" /> : <Download className="h-4 w-4" />}
 					Download
 				</Button>

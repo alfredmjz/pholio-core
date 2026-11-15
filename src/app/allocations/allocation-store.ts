@@ -1,15 +1,29 @@
 import { Logger } from "@/lib/logger";
 import { demoSlice, type DataContext, type DemoContext, type SupabaseContext } from "@/lib/data-context.server";
-import { parseLocalDate, calculateNextDueDate, getTodayDateString, formatDateString, stepDate } from "@/lib/date-utils";
+import { parseLocalDate, calculateNextDueDate, getTodayDateString, formatDateString, previousMonthOf } from "@/lib/date-utils";
 import { getAllocationSettings, getTimezone } from "@/app/settings/actions";
 import {
 	canPostTransfer,
+	expandRecurringMonth,
 	isRecurringTransfer,
 	recurringOccurrenceRow,
+	resolveRecurringCategoryName,
 	type RecurringOccurrenceRow,
 } from "@/app/recurring/recurring-occurrence";
 import { getSmartMockData } from "@/mock-data/allocations";
 import type { RegisteredPlan } from "@/app/accounts/types";
+import {
+	allocationsWithBudget,
+	buildHistoricalPace,
+	notEnoughPaceData,
+	type HistoricalPace,
+} from "./historical-pace";
+import {
+	MONTHS_TO_LOOK_BACK,
+	noIncomeVerification,
+	planIncomeVerification,
+	verifyIncome,
+} from "./income-verification";
 import { VIRTUAL_UNCATEGORIZED_ID } from "./types";
 import type {
 	Allocation,
@@ -41,10 +55,7 @@ export interface NewCategory {
 
 export type CategoryUpdate = Partial<Pick<AllocationCategory, "budget_cap" | "name" | "color" | "contribution_plan">>;
 
-export interface HistoricalPace {
-	hasEnoughData: boolean;
-	dailyAmounts: number[];
-}
+export type { HistoricalPace };
 
 export interface AllocationStore {
 	/** The month's budget, or null. Reading it also posts due recurring payments into that month. */
@@ -81,10 +92,6 @@ export function allocationStore(ctx: DataContext): AllocationStore {
 			return allocation;
 		},
 	};
-}
-
-function previousMonthOf(year: number, month: number) {
-	return month === 1 ? { year: year - 1, month: 12 } : { year, month: month - 1 };
 }
 
 function uncategorizedCategory(allocationId: string, userId: string): AllocationCategory {
@@ -444,17 +451,6 @@ async function copyTemplateContributionPlans(db: Db, templateId: string, allocat
 	}
 }
 
-/**
- * The allocation category NAME a recurring expense should be bundled into.
- * An explicit `budget_category` wins; otherwise subscriptions fall back to the
- * auto-managed "Subscriptions" category and bills to "Bills".
- */
-function resolveRecurringCategoryName(expense: { category: string; budget_category?: string | null }): string {
-	const custom = expense.budget_category?.trim();
-	if (custom) return custom;
-	return expense.category === "bill" ? "Bills" : "Subscriptions";
-}
-
 /** Explicit user-chosen category name, or null when the expense uses the default bucket. */
 function customRecurringCategoryName(expense: { budget_category?: string | null }): string | null {
 	const custom = expense.budget_category?.trim();
@@ -522,70 +518,27 @@ async function syncRecurringExpenses(
 	// Active expenses with an explicit budget category, grouped by lowercase name.
 	const customTotals = new Map<string, { name: string; total: number }>();
 
-	const applicableExpenses: Array<{ expense: (typeof allRecurring)[0]; dates: Date[] }> = [];
+	const applicableExpenses = expandRecurringMonth(
+		allRecurring.filter((r) => r.is_active),
+		recordedAmountByKey,
+		targetYear,
+		targetMonth
+	);
 
-	for (const expense of allRecurring) {
-		if (!expense.is_active) continue;
+	for (const { expense, totalAmount } of applicableExpenses) {
+		// Transfers move money between the user's accounts; they are not budgeted spending.
+		if (isRecurringTransfer(expense)) continue;
 
-		const occurrences: Date[] = [];
-		const nextDue = parseLocalDate(expense.next_due_date);
-		const billingPeriod = expense.billing_period;
-
-		let normalizedFreq = billingPeriod;
-		if (billingPeriod === "monthly") normalizedFreq = "1:months";
-		else if (billingPeriod === "yearly") normalizedFreq = "1:years";
-		else if (billingPeriod === "weekly") normalizedFreq = "1:weeks";
-		else if (billingPeriod === "biweekly") normalizedFreq = "2:weeks";
-
-		const [valueStr, unit] = normalizedFreq.includes(":") ? normalizedFreq.split(":") : ["1", normalizedFreq];
-		const value = parseInt(valueStr) || 1;
-
-		let current = new Date(nextDue);
-		current.setHours(0, 0, 0, 0);
-
-		const monthStart = new Date(targetYear, targetMonth - 1, 1);
-		const monthEnd = new Date(targetYear, targetMonth, 0);
-
-		// Step backward until current is before the target month
-		while (current >= monthStart) {
-			const prev = stepDate(current, value, unit, -1);
-			if (prev.getTime() === current.getTime()) break;
-			current = prev;
-		}
-
-		// Step forward and collect all occurrences within the target month
-		while (current <= monthEnd) {
-			if (current >= monthStart) {
-				occurrences.push(new Date(current));
-			}
-			const next = stepDate(current, value, unit, 1);
-			if (next.getTime() === current.getTime()) break;
-			current = next;
-		}
-
-		if (occurrences.length > 0) {
-			// Use the amount captured when the occurrence was recorded, so editing a
-			// bill never retroactively changes the budget cap of a past month.
-			const totalAmount = occurrences.reduce((sum, occurrenceDate) => {
-				const recordedAmount = recordedAmountByKey.get(`${expense.id}:${formatDateString(occurrenceDate)}`);
-				return sum + (recordedAmount !== undefined ? Math.abs(recordedAmount) : Math.abs(Number(expense.amount)));
-			}, 0);
-			applicableExpenses.push({ expense, dates: occurrences });
-
-			// Transfers move money between the user's accounts; they are not budgeted spending.
-			if (isRecurringTransfer(expense)) continue;
-
-			const customName = customRecurringCategoryName(expense);
-			if (customName) {
-				const key = customName.toLowerCase();
-				const existing = customTotals.get(key) ?? { name: customName, total: 0 };
-				existing.total += totalAmount;
-				customTotals.set(key, existing);
-			} else if (expense.category === "bill") {
-				totalBills += totalAmount;
-			} else {
-				totalSubscriptions += totalAmount;
-			}
+		const customName = customRecurringCategoryName(expense);
+		if (customName) {
+			const key = customName.toLowerCase();
+			const existing = customTotals.get(key) ?? { name: customName, total: 0 };
+			existing.total += totalAmount;
+			customTotals.set(key, existing);
+		} else if (expense.category === "bill") {
+			totalBills += totalAmount;
+		} else {
+			totalSubscriptions += totalAmount;
 		}
 	}
 
@@ -788,8 +741,7 @@ async function syncRecurringExpenses(
 	for (const item of applicableExpenses) {
 		const { expense, dates } = item;
 
-		for (const dateObj of dates) {
-			const dateStr = formatDateString(dateObj);
+		for (const dateStr of dates) {
 			const key = `${expense.id}:${dateStr}`;
 
 			// A recorded occurrence is never rewritten or re-created. Edits to a
@@ -802,8 +754,7 @@ async function syncRecurringExpenses(
 			if (meta.is_automated === false) continue;
 
 			const todayLocal = parseLocalDate(getTodayDateString(timezone || undefined));
-			const targetDate = new Date(dateObj);
-			targetDate.setHours(0, 0, 0, 0);
+			const targetDate = parseLocalDate(dateStr);
 
 			if (targetDate > todayLocal) continue;
 
@@ -1012,8 +963,6 @@ async function historicalPace(
 	currentYear: number,
 	currentMonth: number
 ): Promise<HistoricalPace> {
-	const notEnough: HistoricalPace = { hasEnoughData: false, dailyAmounts: [] };
-
 	// 1. Fetch up to 6 most recent past allocations
 	const { data: pastAllocations, error: allocError } = await db
 		.from("allocations")
@@ -1024,24 +973,19 @@ async function historicalPace(
 		.order("month", { ascending: false })
 		.limit(6);
 
-	if (allocError || !pastAllocations || pastAllocations.length === 0) return notEnough;
-
-	const allocIds = pastAllocations.map((a) => a.id);
+	if (allocError || !pastAllocations || pastAllocations.length === 0) return notEnoughPaceData();
 
 	// 2. Fetch categories to compute total budget for these past months
 	const { data: categories } = await db
 		.from("allocation_categories")
 		.select("allocation_id, budget_cap")
-		.in("allocation_id", allocIds);
+		.in(
+			"allocation_id",
+			pastAllocations.map((a) => a.id)
+		);
 
-	const budgetMap = new Map<string, number>();
-	categories?.forEach((c) => {
-		budgetMap.set(c.allocation_id, (budgetMap.get(c.allocation_id) || 0) + Number(c.budget_cap));
-	});
-
-	// Filter allocations to only those with > 0 budget
-	const validAllocations = pastAllocations.filter((a) => (budgetMap.get(a.id) || 0) > 0);
-	if (validAllocations.length === 0) return notEnough;
+	const validAllocations = allocationsWithBudget(pastAllocations, categories ?? []);
+	if (validAllocations.length === 0) return notEnoughPaceData();
 
 	// 3. Fetch expenses for these past months
 	const monthConditions = validAllocations
@@ -1060,75 +1004,8 @@ async function historicalPace(
 		.lt("amount", 0) // Only expenses
 		.or(monthConditions);
 
-	// 4. Calculate daily spend percentages per month
-	interface PastMonthStats {
-		totalBudget: number;
-		daysInMonth: number;
-		dailySpend: number[];
-		transactionCount: number;
-	}
-
-	const monthStats = new Map<string, PastMonthStats>();
-	validAllocations.forEach((a) => {
-		const days = new Date(a.year, a.month, 0).getDate();
-		monthStats.set(`${a.year}-${a.month}`, {
-			totalBudget: budgetMap.get(a.id) || 0,
-			daysInMonth: days,
-			dailySpend: new Array(days).fill(0),
-			transactionCount: 0,
-		});
-	});
-
-	transactions?.forEach((t) => {
-		// Use parseLocalDate to avoid timezone shifts throwing dates off
-		const date = parseLocalDate(t.transaction_date);
-		const key = `${date.getFullYear()}-${date.getMonth() + 1}`;
-		const d = date.getDate();
-		const stats = monthStats.get(key);
-		if (stats && d >= 1 && d <= stats.daysInMonth) {
-			stats.dailySpend[d - 1] += Math.abs(t.amount);
-			stats.transactionCount += 1;
-		}
-	});
-
-	// The pace needs more than 10 transactions in the month just before this one.
-	const prev = previousMonthOf(currentYear, currentMonth);
-	const prevMonthStats = monthStats.get(`${prev.year}-${prev.month}`);
-	if (!prevMonthStats || prevMonthStats.transactionCount <= 10) return notEnough;
-
-	const dailyAmountSums = new Array(31).fill(0);
-	const dailyAmountCounts = new Array(31).fill(0);
-
-	monthStats.forEach((stats) => {
-		let cumulativeSpend = 0;
-		for (let i = 0; i < stats.daysInMonth; i++) {
-			cumulativeSpend += stats.dailySpend[i];
-			dailyAmountSums[i] += cumulativeSpend;
-			dailyAmountCounts[i] += 1;
-		}
-	});
-
-	const averageDailyAmounts = dailyAmountSums.map((sum, i) =>
-		dailyAmountCounts[i] === 0 ? 0 : sum / dailyAmountCounts[i]
-	);
-
-	// Make sure days 29-31 don't drop to 0 if no months have those lengths by carrying over last known amount
-	let lastValidAmount = 0;
-	for (let i = 0; i < averageDailyAmounts.length; i++) {
-		if (dailyAmountCounts[i] > 0) {
-			lastValidAmount = averageDailyAmounts[i];
-		} else {
-			averageDailyAmounts[i] = lastValidAmount;
-		}
-	}
-
-	return { hasEnoughData: true, dailyAmounts: averageDailyAmounts };
+	return buildHistoricalPace(validAllocations, transactions ?? [], currentYear, currentMonth);
 }
-
-const INCOME_MATCH_TOLERANCE = 0.05; // ±5%
-const MONTHS_TO_VERIFY = 3;
-const MONTHS_TO_DETECT_DRIFT = 2;
-const MONTHS_TO_LOOK_BACK = 6;
 
 async function incomeVerification(
 	db: Db,
@@ -1136,16 +1013,6 @@ async function incomeVerification(
 	currentYear: number,
 	currentMonth: number
 ): Promise<IncomeVerificationResult> {
-	const defaultResult: IncomeVerificationResult = { status: "not_set", consecutiveMatches: 0, drift: null };
-
-	// Past months to analyze, most recent first, excluding the current one.
-	const monthsToCheck: { year: number; month: number }[] = [];
-	let cursor = { year: currentYear, month: currentMonth };
-	for (let i = 0; i < MONTHS_TO_LOOK_BACK; i++) {
-		cursor = previousMonthOf(cursor.year, cursor.month);
-		monthsToCheck.push(cursor);
-	}
-
 	const { data: allocations } = await db
 		.from("allocations")
 		.select("year, month, expected_income")
@@ -1154,26 +1021,13 @@ async function incomeVerification(
 		.order("month", { ascending: false })
 		.limit(MONTHS_TO_LOOK_BACK + 1);
 
-	if (!allocations || allocations.length === 0) return defaultResult;
+	if (!allocations || allocations.length === 0) return noIncomeVerification();
 
-	const allocationMap = new Map<string, number>();
-	for (const alloc of allocations) {
-		allocationMap.set(`${alloc.year}-${alloc.month}`, Number(alloc.expected_income));
-	}
+	const plan = planIncomeVerification(allocations, currentYear, currentMonth);
+	if (!plan) return noIncomeVerification();
 
-	// The current expected income comes from this month's budget, else the most recent one.
-	const currentExpected =
-		allocationMap.get(`${currentYear}-${currentMonth}`) ??
-		(allocations.length > 0 ? Number(allocations[0].expected_income) : 0);
-
-	if (currentExpected === 0) return defaultResult;
-
-	const monthlyActuals: { year: number; month: number; actual: number; expected: number }[] = [];
-
-	for (const { year, month } of monthsToCheck) {
-		const expected = allocationMap.get(`${year}-${month}`);
-		if (expected === undefined) continue;
-
+	const incomeByMonth = new Map<string, Array<{ amount: number; name: string | null; notes: string | null }>>();
+	for (const { year, month } of plan.months) {
 		const startDate = `${year}-${String(month).padStart(2, "0")}-01`;
 		const endDate = `${year}-${String(month).padStart(2, "0")}-${new Date(year, month, 0).getDate()}`;
 
@@ -1187,71 +1041,10 @@ async function incomeVerification(
 			.neq("source", "external") // Exclude one-time / external income
 			.neq("source", "transfer"); // Exclude transfers
 
-		const totalIncome = (incomeTransactions || [])
-			.filter((t) => {
-				const name = (t.name || "").toLowerCase();
-				const notes = (t.notes || "").toLowerCase();
-				return !name.includes("transfer") && !notes.includes("transfer");
-			})
-			.reduce((sum, t) => sum + Number(t.amount), 0);
-
-		monthlyActuals.push({ year, month, actual: totalIncome, expected: Number(expected) });
+		incomeByMonth.set(`${year}-${month}`, incomeTransactions || []);
 	}
 
-	if (monthlyActuals.length === 0) return { ...defaultResult, status: "tracking" };
-
-	// Verification: consecutive months where actual ≈ expected (within tolerance)
-	let consecutiveMatches = 0;
-	for (const entry of monthlyActuals) {
-		if (entry.expected === 0) break;
-		const ratio = entry.actual / entry.expected;
-		if (ratio >= 1 - INCOME_MATCH_TOLERANCE && ratio <= 1 + INCOME_MATCH_TOLERANCE) {
-			consecutiveMatches++;
-		} else {
-			break;
-		}
-	}
-
-	const status = consecutiveMatches >= MONTHS_TO_VERIFY ? "verified" : "tracking";
-
-	// Drift: recent actual income consistently above or below expected, in one direction.
-	let drift: IncomeVerificationResult["drift"] = null;
-
-	if (monthlyActuals.length >= MONTHS_TO_DETECT_DRIFT) {
-		let driftMonths = 0;
-		let driftDirection: "increase" | "decrease" | null = null;
-		let driftSum = 0;
-
-		for (const entry of monthlyActuals) {
-			if (entry.expected === 0 || entry.actual === 0) break;
-			const ratio = entry.actual / entry.expected;
-
-			if (ratio > 1 + INCOME_MATCH_TOLERANCE) {
-				if (driftDirection === "decrease") break;
-				driftDirection = "increase";
-				driftMonths++;
-				driftSum += entry.actual;
-			} else if (ratio < 1 - INCOME_MATCH_TOLERANCE) {
-				if (driftDirection === "increase") break;
-				driftDirection = "decrease";
-				driftMonths++;
-				driftSum += entry.actual;
-			} else {
-				break;
-			}
-		}
-
-		if (driftMonths >= MONTHS_TO_DETECT_DRIFT && driftDirection) {
-			drift = {
-				detected: true,
-				direction: driftDirection,
-				suggestedAmount: Math.round(driftSum / driftMonths),
-				monthsObserved: driftMonths,
-			};
-		}
-	}
-
-	return { status, consecutiveMatches, drift };
+	return verifyIncome(plan, incomeByMonth);
 }
 
 // ============================================================================

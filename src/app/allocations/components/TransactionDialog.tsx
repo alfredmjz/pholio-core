@@ -22,7 +22,7 @@ import {
 import { AutocompleteInput } from "@/components/ui/autocomplete-input";
 import { VIRTUAL_UNCATEGORIZED_ID } from "../types";
 import type { Transaction, AllocationCategory } from "../types";
-import { accountBeforeSavedRow, getLinkedAccountIds, getTransferAccountIds } from "../utils/transfer-accounts";
+import { getLinkedAccountIds, getTransferAccountIds } from "../utils/transfer-accounts";
 import { accountHref } from "@/lib/account-links";
 import type { AccountWithType } from "@/app/accounts/types";
 import { FormSection } from "@/components/FormSection";
@@ -33,7 +33,7 @@ import { ShortcutKey } from "@/lib/keyboard-shortcuts";
 import { getTodayDateString } from "@/lib/date-utils";
 import { formatAccountDisplayName, sortAccounts } from "@/lib/account-utils";
 import { sortAlphabetically } from "@/lib/sort-utils";
-import { checkTransactionCaps } from "@/lib/account-validation-utils";
+import { noneToNull, transactionCapCheck } from "@/components/dialogs/transaction-cap-check";
 import { CapWarning } from "@/components/dialogs/cap-warning";
 import {
 	AlertDialog,
@@ -110,23 +110,15 @@ export function TransactionDialog({
 
 	const [allowOverpayment, setAllowOverpayment] = useState(false);
 
-	// An edit is capped against the balance without the row's own amount. A recurring payment is
-	// never capped: it posts whatever the balance, like the bill it records.
-	const findAccount = (id: string) =>
-		accountBeforeSavedRow(
-			accounts.find((a) => a.id === id),
-			transaction
-		);
-	const capCheck =
-		amount && parseFloat(amount) > 0 && !transaction?.recurring_expense_id
-			? checkTransactionCaps({
-					intent: type,
-					amount: parseFloat(amount),
-					account: type === "transfer" ? null : findAccount(accountId),
-					fromAccount: type === "transfer" ? findAccount(fromAccountId) : null,
-					toAccount: type === "transfer" ? findAccount(toAccountId) : null,
-				})
-			: { isValid: true, violations: [] as ReturnType<typeof checkTransactionCaps>["violations"] };
+	const capCheck = transactionCapCheck({
+		type,
+		amount: parseFloat(amount),
+		accountId,
+		fromId: fromAccountId,
+		toId: toAccountId,
+		accounts,
+		savedRow: transaction,
+	});
 
 	const firstViolation = capCheck.violations[0];
 	const maxAllowed = firstViolation?.maxAllowed;
@@ -160,14 +152,7 @@ export function TransactionDialog({
 		try {
 			const numAmount = parseFloat(amount);
 			const finalCategoryId = type === "transfer" ? null : categoryId === VIRTUAL_UNCATEGORIZED_ID ? null : categoryId;
-			const finalAccountId =
-				type === "transfer"
-					? fromAccountId === "none"
-						? null
-						: fromAccountId
-					: accountId === "none"
-						? null
-						: accountId;
+			const finalAccountId = noneToNull(type === "transfer" ? fromAccountId : accountId);
 			const finalDescription = name.trim() || (type === "transfer" ? "Transfer" : "");
 
 			if (transaction) {
@@ -177,8 +162,8 @@ export function TransactionDialog({
 					date,
 					categoryId: finalCategoryId,
 					accountId: finalAccountId,
-					fromAccountId: type === "transfer" ? (fromAccountId === "none" ? null : fromAccountId) : null,
-					toAccountId: type === "transfer" ? (toAccountId === "none" ? null : toAccountId) : null,
+					fromAccountId: type === "transfer" ? noneToNull(fromAccountId) : null,
+					toAccountId: type === "transfer" ? noneToNull(toAccountId) : null,
 					type,
 					notes,
 					allowOverpayment,
@@ -197,8 +182,8 @@ export function TransactionDialog({
 					date,
 					categoryId: finalCategoryId,
 					accountId: finalAccountId,
-					fromAccountId: type === "transfer" ? (fromAccountId === "none" ? null : fromAccountId) : null,
-					toAccountId: type === "transfer" ? (toAccountId === "none" ? null : toAccountId) : null,
+					fromAccountId: type === "transfer" ? noneToNull(fromAccountId) : null,
+					toAccountId: type === "transfer" ? noneToNull(toAccountId) : null,
 					type,
 					notes,
 					allowOverpayment,

@@ -2,152 +2,164 @@ import { AllocationSummary, Transaction } from "@/app/allocations/types";
 import { TransactionType } from "@/app/allocations/components/TransactionTypeIcon";
 import type { AllocationCategory } from "@/app/allocations/types";
 
-const CURRENT_YEAR = new Date().getFullYear();
-const CURRENT_MONTH = new Date().getMonth() + 1;
+import { getDemoNow } from "@/mock-data/demo-date";
 
-const sampleCategories: AllocationCategory[] = [
-	{
-		id: "cat-housing",
-		allocation_id: "sample-allocation-id",
-		user_id: "user-1",
-		name: "Housing",
-		budget_cap: 2000,
-		is_recurring: true,
-		display_order: 1,
-		color: "blue",
-		icon: "Home",
-		created_at: new Date().toISOString(),
-		updated_at: new Date().toISOString(),
-		actual_spend: 2000,
-		remaining: 0,
-		utilization_percentage: 100,
-		transaction_count: 1,
-	},
-	{
-		id: "cat-food",
-		allocation_id: "sample-allocation-id",
-		user_id: "user-1",
-		name: "Food & Dining",
-		budget_cap: 800,
-		is_recurring: false,
-		display_order: 2,
-		color: "green",
-		icon: "Utensils",
-		created_at: new Date().toISOString(),
-		updated_at: new Date().toISOString(),
-		actual_spend: 650,
-		remaining: 150,
-		utilization_percentage: 81.25,
-		transaction_count: 12,
-	},
-	{
-		id: "cat-transport",
-		allocation_id: "sample-allocation-id",
-		user_id: "user-1",
-		name: "Transportation",
-		budget_cap: 400,
-		is_recurring: false,
-		display_order: 3,
-		color: "orange",
-		icon: "Car",
-		created_at: new Date().toISOString(),
-		updated_at: new Date().toISOString(),
-		actual_spend: 150,
-		remaining: 250,
-		utilization_percentage: 37.5,
-		transaction_count: 4,
-	},
-	{
-		id: "cat-utilities",
-		allocation_id: "sample-allocation-id",
-		user_id: "user-1",
-		name: "Utilities",
-		budget_cap: 300,
-		is_recurring: true,
-		display_order: 4,
-		color: "cyan",
-		icon: "Zap",
-		created_at: new Date().toISOString(),
-		updated_at: new Date().toISOString(),
-		actual_spend: 280,
-		remaining: 20,
-		utilization_percentage: 93.3,
-		transaction_count: 3,
-	},
-	{
-		id: "cat-entertainment",
-		allocation_id: "sample-allocation-id",
-		user_id: "user-1",
-		name: "Entertainment",
-		budget_cap: 200,
-		is_recurring: false,
-		display_order: 5,
-		color: "purple",
-		icon: "Film",
-		created_at: new Date().toISOString(),
-		updated_at: new Date().toISOString(),
-		actual_spend: 250,
-		remaining: -50,
-		utilization_percentage: 125,
-		transaction_count: 5,
-	},
-	{
-		id: "cat-savings",
-		allocation_id: "sample-allocation-id",
-		user_id: "user-1",
-		name: "Emergency Fund",
-		budget_cap: 500,
-		is_recurring: true,
-		display_order: 6,
-		color: "yellow",
-		icon: "PiggyBank",
-		created_at: new Date().toISOString(),
-		updated_at: new Date().toISOString(),
-		actual_spend: 0,
-		remaining: 500,
-		utilization_percentage: 0,
-		transaction_count: 0,
-	},
-	{
-		// Linked to the TFSA plan (see getSampleCategoryContributionPlans): the card shows the
-		// budget against the TFSA room, while only real deposits use the room.
-		id: "cat-tfsa",
-		allocation_id: "sample-allocation-id",
-		user_id: "user-1",
-		name: "TFSA",
-		budget_cap: 750,
-		is_recurring: false,
-		display_order: 7,
-		color: "teal",
-		icon: "TrendingUp",
-		created_at: new Date().toISOString(),
-		updated_at: new Date().toISOString(),
-		actual_spend: 0,
-		remaining: 750,
-		utilization_percentage: 0,
-		transaction_count: 0,
-	},
-];
+function buildSampleCategories(now: Date): AllocationCategory[] {
+	const stamp = now.toISOString();
+	return [
+		{
+			id: "cat-housing",
+			allocation_id: "sample-allocation-id",
+			user_id: "user-1",
+			name: "Housing",
+			budget_cap: 2000,
+			is_recurring: true,
+			display_order: 1,
+			color: "blue",
+			icon: "Home",
+			created_at: stamp,
+			updated_at: stamp,
+			actual_spend: 2000,
+			remaining: 0,
+			utilization_percentage: 100,
+			transaction_count: 1,
+		},
+		{
+			id: "cat-food",
+			allocation_id: "sample-allocation-id",
+			user_id: "user-1",
+			name: "Food & Dining",
+			budget_cap: 800,
+			is_recurring: false,
+			display_order: 2,
+			color: "green",
+			icon: "Utensils",
+			created_at: stamp,
+			updated_at: stamp,
+			actual_spend: 650,
+			remaining: 150,
+			utilization_percentage: 81.25,
+			transaction_count: 12,
+		},
+		{
+			id: "cat-transport",
+			allocation_id: "sample-allocation-id",
+			user_id: "user-1",
+			name: "Transportation",
+			budget_cap: 400,
+			is_recurring: false,
+			display_order: 3,
+			color: "orange",
+			icon: "Car",
+			created_at: stamp,
+			updated_at: stamp,
+			actual_spend: 150,
+			remaining: 250,
+			utilization_percentage: 37.5,
+			transaction_count: 4,
+		},
+		{
+			id: "cat-utilities",
+			allocation_id: "sample-allocation-id",
+			user_id: "user-1",
+			name: "Utilities",
+			budget_cap: 300,
+			is_recurring: true,
+			display_order: 4,
+			color: "cyan",
+			icon: "Zap",
+			created_at: stamp,
+			updated_at: stamp,
+			actual_spend: 280,
+			remaining: 20,
+			utilization_percentage: 93.3,
+			transaction_count: 3,
+		},
+		{
+			id: "cat-entertainment",
+			allocation_id: "sample-allocation-id",
+			user_id: "user-1",
+			name: "Entertainment",
+			budget_cap: 200,
+			is_recurring: false,
+			display_order: 5,
+			color: "purple",
+			icon: "Film",
+			created_at: stamp,
+			updated_at: stamp,
+			actual_spend: 250,
+			remaining: -50,
+			utilization_percentage: 125,
+			transaction_count: 5,
+		},
+		{
+			id: "cat-savings",
+			allocation_id: "sample-allocation-id",
+			user_id: "user-1",
+			name: "Emergency Fund",
+			budget_cap: 500,
+			is_recurring: true,
+			display_order: 6,
+			color: "yellow",
+			icon: "PiggyBank",
+			created_at: stamp,
+			updated_at: stamp,
+			actual_spend: 0,
+			remaining: 500,
+			utilization_percentage: 0,
+			transaction_count: 0,
+		},
+		{
+			// Linked to the TFSA plan (see getSampleCategoryContributionPlans): the card shows the
+			// budget against the TFSA room, while only real deposits use the room.
+			id: "cat-tfsa",
+			allocation_id: "sample-allocation-id",
+			user_id: "user-1",
+			name: "TFSA",
+			budget_cap: 750,
+			is_recurring: false,
+			display_order: 7,
+			color: "teal",
+			icon: "TrendingUp",
+			created_at: stamp,
+			updated_at: stamp,
+			actual_spend: 0,
+			remaining: 750,
+			utilization_percentage: 0,
+			transaction_count: 0,
+		},
+	];
+}
 
-export const sampleAllocationSummary: AllocationSummary = {
-	allocation: {
-		id: "sample-allocation-id",
-		user_id: "user-1",
-		year: CURRENT_YEAR,
-		month: CURRENT_MONTH,
-		expected_income: 5000,
-		notes: "Sample Budget",
-		created_at: new Date().toISOString(),
-		updated_at: new Date().toISOString(),
-	},
-	categories: sampleCategories,
-	summary: {
-		total_budget_caps: 4450,
-		total_actual_spend: 3330,
-		unallocated_funds: 550, // 5000 - 4450
-		overall_utilization: 90,
-	},
-};
+function buildSampleAllocationSummary(now: Date = getDemoNow()): AllocationSummary {
+	const stamp = now.toISOString();
+	return {
+		allocation: {
+			id: "sample-allocation-id",
+			user_id: "user-1",
+			year: now.getFullYear(),
+			month: now.getMonth() + 1,
+			expected_income: 5000,
+			notes: "Sample Budget",
+			created_at: stamp,
+			updated_at: stamp,
+		},
+		categories: buildSampleCategories(now),
+		summary: {
+			total_budget_caps: 4450,
+			total_actual_spend: 3330,
+			unallocated_funds: 550, // 5000 - 4450
+			overall_utilization: 90,
+		},
+	};
+}
+
+/** Built on each read, so the sample budget always sits in the current demo month. */
+export const sampleAllocationSummary: AllocationSummary = Object.defineProperties({} as AllocationSummary, {
+	allocation: { enumerable: true, get: () => buildSampleAllocationSummary().allocation },
+	categories: { enumerable: true, get: () => buildSampleAllocationSummary().categories },
+	summary: { enumerable: true, get: () => buildSampleAllocationSummary().summary },
+});
 
 const createTx = (
 	id: string,
@@ -158,10 +170,11 @@ const createTx = (
 	type: TransactionType = "one_time",
 	accountId?: string,
 	transferToAccountId?: string,
-	year: number = CURRENT_YEAR,
-	month: number = CURRENT_MONTH
+	year: number = getDemoNow().getFullYear(),
+	month: number = getDemoNow().getMonth() + 1,
+	now: Date = getDemoNow()
 ): Transaction => {
-	const categoryName = categoryId ? sampleCategories.find((c) => c.id === categoryId)?.name : undefined;
+	const categoryName = categoryId ? buildSampleCategories(now).find((c) => c.id === categoryId)?.name : undefined;
 	const isTransfer = type === "transfer";
 
 	return {
@@ -186,24 +199,40 @@ const createTx = (
 				: accountId
 					? [{ id: `${id}-acct`, account_id: accountId }]
 					: [],
-		created_at: new Date().toISOString(),
-		updated_at: new Date().toISOString(),
+		created_at: now.toISOString(),
+		updated_at: now.toISOString(),
 	};
 };
 
-export function buildSampleTransactions(year: number = CURRENT_YEAR, month: number = CURRENT_MONTH): Transaction[] {
+export function buildSampleTransactions(
+	year: number = getDemoNow().getFullYear(),
+	month: number = getDemoNow().getMonth() + 1,
+	now: Date = getDemoNow()
+): Transaction[] {
 	return [
-		createTx("tx-1", "Rent Payment", 2000, 1, "cat-housing", "recurring", "acc-1", undefined, year, month),
-		createTx("tx-2", "Electric Bill", 150, 5, "cat-utilities", "recurring", "acc-1", undefined, year, month),
-		createTx("tx-3", "Water Bill", 50, 12, "cat-utilities", "recurring", "acc-1", undefined, year, month),
-		createTx("tx-4", "Internet Subscription", 80, 15, "cat-utilities", "subscription", "acc-4", undefined, year, month),
-		createTx("tx-5", "Grocery Store", 150, 2, "cat-food", "one_time", "acc-4", undefined, year, month),
-		createTx("tx-6", "Restaurant Dinner", 85, 4, "cat-food", "one_time", "acc-4", undefined, year, month),
-		createTx("tx-7", "Coffee Shop", 15, 6, "cat-food", "one_time", "acc-4", undefined, year, month),
-		createTx("tx-8", "Grocery Run", 200, 10, "cat-food", "one_time", "acc-4", undefined, year, month),
-		createTx("tx-9", "Gas Station", 60, 3, "cat-transport", "one_time", "acc-4", undefined, year, month),
-		createTx("tx-10", "Uber Ride", 25, 8, "cat-transport", "one_time", "acc-4", undefined, year, month),
-		createTx("tx-11", "Car Insurance", 100, 15, "cat-transport", "one_time", "acc-1", undefined, year, month),
+		createTx("tx-1", "Rent Payment", 2000, 1, "cat-housing", "recurring", "acc-1", undefined, year, month, now),
+		createTx("tx-2", "Electric Bill", 150, 5, "cat-utilities", "recurring", "acc-1", undefined, year, month, now),
+		createTx("tx-3", "Water Bill", 50, 12, "cat-utilities", "recurring", "acc-1", undefined, year, month, now),
+		createTx(
+			"tx-4",
+			"Internet Subscription",
+			80,
+			15,
+			"cat-utilities",
+			"subscription",
+			"acc-4",
+			undefined,
+			year,
+			month,
+			now
+		),
+		createTx("tx-5", "Grocery Store", 150, 2, "cat-food", "one_time", "acc-4", undefined, year, month, now),
+		createTx("tx-6", "Restaurant Dinner", 85, 4, "cat-food", "one_time", "acc-4", undefined, year, month, now),
+		createTx("tx-7", "Coffee Shop", 15, 6, "cat-food", "one_time", "acc-4", undefined, year, month, now),
+		createTx("tx-8", "Grocery Run", 200, 10, "cat-food", "one_time", "acc-4", undefined, year, month, now),
+		createTx("tx-9", "Gas Station", 60, 3, "cat-transport", "one_time", "acc-4", undefined, year, month, now),
+		createTx("tx-10", "Uber Ride", 25, 8, "cat-transport", "one_time", "acc-4", undefined, year, month, now),
+		createTx("tx-11", "Car Insurance", 100, 15, "cat-transport", "one_time", "acc-1", undefined, year, month, now),
 		createTx(
 			"tx-12",
 			"Netflix Subscription",
@@ -214,19 +243,30 @@ export function buildSampleTransactions(year: number = CURRENT_YEAR, month: numb
 			"acc-4",
 			undefined,
 			year,
-			month
+			month,
+			now
 		),
-		createTx("tx-13", "Spotify", 10, 1, "cat-entertainment", "subscription", "acc-4", undefined, year, month),
-		createTx("tx-14", "Movie Tickets", 40, 20, "cat-entertainment", "one_time", "acc-4", undefined, year, month),
-		createTx("tx-15", "Concert Tickets", 150, 22, "cat-entertainment", "one_time", "acc-4", undefined, year, month),
-		createTx("tx-16", "Student Loan", 300, 1, undefined, "loan", "acc-5", undefined, year, month),
-		createTx("tx-17", "Savings Transfer", 500, 1, undefined, "transfer", "acc-1", "acc-3", year, month),
-		createTx("tx-18", "Paycheck", 2500, 15, undefined, "income", "acc-1", undefined, year, month),
-		createTx("tx-19", "Paycheck", 2500, 30, undefined, "income", "acc-1", undefined, year, month),
+		createTx("tx-13", "Spotify", 10, 1, "cat-entertainment", "subscription", "acc-4", undefined, year, month, now),
+		createTx("tx-14", "Movie Tickets", 40, 20, "cat-entertainment", "one_time", "acc-4", undefined, year, month, now),
+		createTx(
+			"tx-15",
+			"Concert Tickets",
+			150,
+			22,
+			"cat-entertainment",
+			"one_time",
+			"acc-4",
+			undefined,
+			year,
+			month,
+			now
+		),
+		createTx("tx-16", "Student Loan", 300, 1, undefined, "loan", "acc-5", undefined, year, month, now),
+		createTx("tx-17", "Savings Transfer", 500, 1, undefined, "transfer", "acc-1", "acc-3", year, month, now),
+		createTx("tx-18", "Paycheck", 2500, 15, undefined, "income", "acc-1", undefined, year, month, now),
+		createTx("tx-19", "Paycheck", 2500, 30, undefined, "income", "acc-1", undefined, year, month, now),
 	];
 }
-
-export const sampleTransactions: Transaction[] = buildSampleTransactions();
 
 /** Category spend and totals derived from the month's transactions, so every view agrees. */
 function withSpendFromTransactions(summary: AllocationSummary, transactions: Transaction[]): AllocationSummary {
@@ -264,8 +304,9 @@ function withSpendFromTransactions(summary: AllocationSummary, transactions: Tra
 }
 
 // Helper to deep copy and modify dates
-function getMockData(year: number, month: number, type: "base" | "default" = "base") {
-	const summary: AllocationSummary = JSON.parse(JSON.stringify(sampleAllocationSummary));
+function getMockData(year: number, month: number) {
+	const now = getDemoNow();
+	const summary: AllocationSummary = JSON.parse(JSON.stringify(buildSampleAllocationSummary(now)));
 	summary.allocation.id = `sample-allocation-${year}-${month}`;
 	summary.allocation.year = year;
 	summary.allocation.month = month;
@@ -276,44 +317,6 @@ function getMockData(year: number, month: number, type: "base" | "default" = "ba
 	summary.allocation.created_at = dateStr;
 	summary.allocation.updated_at = dateStr;
 
-	if (type === "default") {
-		// Default Template: Simple structure
-		summary.categories = [
-			{
-				...sampleCategories[0],
-				name: "Essentials",
-				budget_cap: 3000,
-				actual_spend: 0,
-				transaction_count: 0,
-				id: "cat-def-1",
-			},
-			{
-				...sampleCategories[5],
-				name: "Savings",
-				budget_cap: 1000,
-				actual_spend: 0,
-				transaction_count: 0,
-				id: "cat-def-2",
-			},
-			{
-				...sampleCategories[4],
-				name: "Wants",
-				budget_cap: 1500,
-				actual_spend: 0,
-				transaction_count: 0,
-				id: "cat-def-3",
-			},
-		].map((category) => ({ ...category, allocation_id: summary.allocation.id }));
-		summary.summary = {
-			total_budget_caps: 5500,
-			total_actual_spend: 0,
-			unallocated_funds: -500,
-			overall_utilization: 0,
-		};
-		// No transactions for "Default" month
-		return { summary, transactions: [] };
-	}
-
 	// Base/Imported (Jan 2026 mimics Dec 2025)
 	if (year === 2026 && month === 1) {
 		// Imported means categories exist (same as base), but transactions are usually empty?
@@ -322,17 +325,12 @@ function getMockData(year: number, month: number, type: "base" | "default" = "ba
 		return { summary, transactions: [] };
 	}
 
-	const transactions = buildSampleTransactions(year, month);
+	const transactions = buildSampleTransactions(year, month, now);
 	return { summary: withSpendFromTransactions(summary, transactions), transactions };
 }
 
 export function getSmartMockData(year: number, month: number) {
-	// Feb 2026: Default Template Scenario
-	if (year === 2026 && month === 2) {
-		return getMockData(year, month, "default");
-	}
-
-	// Every other month (including the current one) shows the populated base
-	// scenario so the demo never lands on an empty, non-persisting budget flow.
-	return getMockData(year, month, "base");
+	// Every month (including the current one) shows the populated base scenario so the demo
+	// never lands on an empty, non-persisting budget flow.
+	return getMockData(year, month);
 }

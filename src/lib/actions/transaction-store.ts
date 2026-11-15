@@ -13,14 +13,22 @@ export interface NewBudgetRow {
 	source: string;
 }
 
-export interface NewLedgerRow {
+export interface NewLedgerLeg {
 	accountId: string;
+	/** Signed change to the account balance. */
 	amount: number;
 	transactionType: string;
 	description: string;
 	date: string;
-	linkedBudgetRowId: string | null;
 	isCashAdvance?: boolean;
+	interestPeriod?: string;
+	/** Index of the other leg of a transfer in the same post. */
+	transferPair?: number;
+}
+
+export interface PostedEntries {
+	budgetRowId: string | null;
+	legIds: string[];
 }
 
 export interface LedgerRow {
@@ -58,16 +66,13 @@ export interface TransactionStore {
 	listUsedDescriptions(): Promise<string[]>;
 	getAccount(id: string): Promise<AccountWithType | null>;
 	getBudgetRow(id: string): Promise<SavedBudgetRow | null>;
-	insertBudgetRow(row: NewBudgetRow): Promise<string>;
+	/** post_ledger_entries(): the budget row, its legs, their links and balance changes in one transaction. */
+	postEntries(budgetRow: NewBudgetRow | null, legs: NewLedgerLeg[]): Promise<PostedEntries>;
 	updateBudgetRow(id: string, patch: BudgetRowPatch): Promise<void>;
-	linkBudgetRow(budgetRowId: string, ledgerRowId: string): Promise<void>;
 	deleteBudgetRow(id: string): Promise<void>;
 	getLedgerRow(id: string): Promise<LedgerRow | null>;
-	insertLedgerRow(row: NewLedgerRow): Promise<string>;
 	updateLedgerRow(id: string, patch: LedgerRowPatch): Promise<void>;
-	linkTransferLegs(fromLedgerRowId: string, toLedgerRowId: string): Promise<void>;
 	deleteLedgerRow(id: string): Promise<void>;
-	adjustBalance(accountId: string, delta: number): Promise<void>;
 	setBalance(accountId: string, balance: number): Promise<void>;
 	/** update_unified_transaction(): false when the row is missing or the edit is rejected. */
 	updateUnified(id: string, input: Record<string, unknown>): Promise<boolean>;
@@ -77,6 +82,35 @@ export interface TransactionStore {
 
 export function transactionStore(ctx: DataContext): TransactionStore {
 	return ctx.kind === "demo" ? demoTransactionStore(ctx) : supabaseTransactionStore(ctx);
+}
+
+/** Arguments for post_ledger_entries(), shared with the interest job's admin client. */
+export function ledgerEntriesArgs(budgetRow: NewBudgetRow | null, legs: NewLedgerLeg[]) {
+	return {
+		p_budget_row: budgetRow && {
+			category_id: budgetRow.categoryId,
+			name: budgetRow.name,
+			amount: budgetRow.amount,
+			transaction_date: budgetRow.date,
+			notes: budgetRow.notes,
+			source: budgetRow.source,
+		},
+		p_legs: legs.map((leg) => ({
+			account_id: leg.accountId,
+			amount: leg.amount,
+			transaction_type: leg.transactionType,
+			description: leg.description,
+			transaction_date: leg.date,
+			is_cash_advance: !!leg.isCashAdvance,
+			interest_period: leg.interestPeriod ?? null,
+			transfer_pair: leg.transferPair ?? null,
+		})),
+	};
+}
+
+export function toPostedEntries(data: unknown): PostedEntries {
+	const result = (data ?? {}) as { budget_row_id?: string | null; leg_ids?: string[] | null };
+	return { budgetRowId: result.budget_row_id ?? null, legIds: result.leg_ids ?? [] };
 }
 
 function addDescription(set: Set<string>, value: string | null | undefined, skipTransfer: boolean) {
@@ -180,35 +214,14 @@ function supabaseTransactionStore({ db, userId }: SupabaseContext): TransactionS
 			return { id: row.id, source: row.source, recurringExpenseId: row.recurring_expense_id ?? null, legs };
 		},
 
-		async insertBudgetRow(row) {
-			const { data, error } = await db
-				.from("transactions")
-				.insert({
-					user_id: userId,
-					category_id: row.categoryId,
-					name: row.name,
-					amount: row.amount,
-					transaction_date: row.date,
-					notes: row.notes,
-					source: row.source,
-				})
-				.select("id")
-				.single();
-			if (error || !data) throw error ?? new Error("Budget row insert returned nothing");
-			return data.id;
+		async postEntries(budgetRow, legs) {
+			const { data, error } = await db.rpc("post_ledger_entries", ledgerEntriesArgs(budgetRow, legs));
+			if (error) throw error;
+			return toPostedEntries(data);
 		},
 
 		async updateBudgetRow(id, patch) {
 			const { error } = await db.from("transactions").update(patch).eq("id", id).eq("user_id", userId);
-			if (error) throw error;
-		},
-
-		async linkBudgetRow(budgetRowId, ledgerRowId) {
-			const { error } = await db
-				.from("transactions")
-				.update({ linked_account_transaction_id: ledgerRowId })
-				.eq("id", budgetRowId)
-				.eq("user_id", userId);
 			if (error) throw error;
 		},
 
@@ -228,57 +241,14 @@ function supabaseTransactionStore({ db, userId }: SupabaseContext): TransactionS
 			return data ? { ...data, amount: Number(data.amount) } : null;
 		},
 
-		async insertLedgerRow(row) {
-			const { data, error } = await db
-				.from("account_transactions")
-				.insert({
-					user_id: userId,
-					account_id: row.accountId,
-					amount: row.amount,
-					transaction_type: row.transactionType,
-					description: row.description,
-					transaction_date: row.date,
-					linked_allocation_transaction_id: row.linkedBudgetRowId,
-					is_cash_advance: !!row.isCashAdvance,
-				})
-				.select("id")
-				.single();
-			if (error || !data) throw error ?? new Error("Ledger row insert returned nothing");
-			return data.id;
-		},
-
 		async updateLedgerRow(id, patch) {
 			const { error } = await db.from("account_transactions").update(patch).eq("id", id).eq("user_id", userId);
 			if (error) throw error;
 		},
 
-		async linkTransferLegs(fromLedgerRowId, toLedgerRowId) {
-			const [from, to] = await Promise.all([
-				db
-					.from("account_transactions")
-					.update({ linked_transfer_transaction_id: toLedgerRowId })
-					.eq("id", fromLedgerRowId),
-				db
-					.from("account_transactions")
-					.update({ linked_transfer_transaction_id: fromLedgerRowId })
-					.eq("id", toLedgerRowId),
-			]);
-			if (from.error || to.error) throw from.error ?? to.error;
-		},
-
 		async deleteLedgerRow(id) {
 			const { error } = await db.from("account_transactions").delete().eq("id", id).eq("user_id", userId);
 			if (error) throw error;
-		},
-
-		async adjustBalance(accountId, delta) {
-			const { data, error } = await db.from("accounts").select("current_balance").eq("id", accountId).single();
-			if (error || !data) throw error ?? new Error("Account not found");
-			const { error: updateError } = await db
-				.from("accounts")
-				.update({ current_balance: Number(data.current_balance) + delta })
-				.eq("id", accountId);
-			if (updateError) throw updateError;
 		},
 
 		async setBalance(accountId, balance) {
@@ -321,22 +291,19 @@ function demoTransactionStore(_ctx: DemoContext): TransactionStore {
 		async getBudgetRow() {
 			throw new ActionError("failed", DEMO_READONLY_ERROR);
 		},
-		async insertBudgetRow() {
-			return demoId("demo-budget");
+		async postEntries(budgetRow, legs) {
+			return {
+				budgetRowId: budgetRow ? demoId("demo-budget") : null,
+				legIds: legs.map(() => demoId("demo-ledger")),
+			};
 		},
 		async updateBudgetRow() {},
-		async linkBudgetRow() {},
 		async deleteBudgetRow() {},
 		async getLedgerRow() {
 			throw new ActionError("failed", DEMO_READONLY_ERROR);
 		},
-		async insertLedgerRow() {
-			return demoId("demo-ledger");
-		},
 		async updateLedgerRow() {},
-		async linkTransferLegs() {},
 		async deleteLedgerRow() {},
-		async adjustBalance() {},
 		async setBalance() {},
 		async updateUnified() {
 			throw new ActionError("failed", DEMO_READONLY_ERROR);

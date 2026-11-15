@@ -12,6 +12,16 @@ export interface ChangelogEntry {
 /** What's new in Pholio, newest first. Every user-facing release adds an entry at the top. */
 export const CHANGELOG: ChangelogEntry[] = [
 	{
+		id: "2026-11-reliable-saves-and-interest",
+		date: "2026-11-15",
+		title: "More reliable saves and interest",
+		items: [
+			"A new transaction or transfer is now saved all at once, so a hiccup can no longer leave one side recorded without the other.",
+			"Monthly interest and overdraft interest are rounded to the cent and dated by your own day.",
+			"Recurring items set to repeat daily now show days when you edit them.",
+		],
+	},
+	{
 		id: "2026-11-day-by-day-budget-bars",
 		date: "2026-11-13",
 		title: "Budget bars that count the days",

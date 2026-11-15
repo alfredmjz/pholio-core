@@ -1,5 +1,5 @@
 # syntax=docker/dockerfile:1
-ARG BUN_VERSION=1.3.3
+ARG BUN_VERSION=1.4.4
 
 ################################################################################
 # Use Bun image for base image for all stages.

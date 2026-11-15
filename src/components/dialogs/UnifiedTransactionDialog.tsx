@@ -47,7 +47,8 @@ import { TransferRoute, TransferRouteSummary } from "./transfer-route";
 import { CapWarning } from "./cap-warning";
 import { isSampleDataActive } from "@/lib/demo-mode";
 import { createDemoId, recordDemoUnifiedTransaction, useDemoStore } from "@/lib/demo-store";
-import { calculateAccountStanding, checkTransactionCaps } from "@/lib/account-validation-utils";
+import { calculateAccountStanding } from "@/lib/account-validation-utils";
+import { noneToNull, transactionCapCheck } from "./transaction-cap-check";
 import { getAccountContributionSummary } from "@/lib/actions/contribution-actions";
 import { formatContributionAmount, getContributionNotices } from "@/lib/contribution-plans";
 import { ContributionNotices } from "@/components/common/ContributionDetails";
@@ -232,17 +233,15 @@ export function UnifiedTransactionDialog({
 	// Validate every account the transaction touches. `allowOverpayment` is intentionally
 	// NOT applied here so the warning stays visible while the opt-in is ticked; the submit
 	// handler decides whether the override clears the (overridable) violation.
-	const capCheck =
-		amount && parseFloat(amount) > 0
-			? checkTransactionCaps({
-					intent: type,
-					amount: parseFloat(amount),
-					account: type === "transfer" ? null : accounts.find((a) => a.id === accountId),
-					fromAccount,
-					toAccount,
-					transactionType,
-				})
-			: { isValid: true, violations: [] as ReturnType<typeof checkTransactionCaps>["violations"] };
+	const capCheck = transactionCapCheck({
+		type,
+		amount: parseFloat(amount),
+		accountId,
+		fromId: fromAccountId,
+		toId: toAccountId,
+		accounts,
+		transactionType,
+	});
 
 	// Contribution room warnings (issue #121): money going into an account that tracks room.
 	// A direct transfer between two accounts of the same registered plan does not use room
@@ -361,9 +360,9 @@ export function UnifiedTransactionDialog({
 				date,
 				type,
 				categoryId: type === "transfer" ? null : categoryId === VIRTUAL_UNCATEGORIZED_ID ? null : categoryId,
-				accountId: type === "transfer" ? null : accountId === "none" ? null : accountId,
-				fromAccountId: type === "transfer" ? (fromAccountId === "none" ? null : fromAccountId) : null,
-				toAccountId: type === "transfer" ? (toAccountId === "none" ? null : toAccountId) : null,
+				accountId: type === "transfer" ? null : noneToNull(accountId),
+				fromAccountId: type === "transfer" ? noneToNull(fromAccountId) : null,
+				toAccountId: type === "transfer" ? noneToNull(toAccountId) : null,
 				transactionType: transactionType as any,
 				notes: notes || undefined,
 				allowOverpayment,

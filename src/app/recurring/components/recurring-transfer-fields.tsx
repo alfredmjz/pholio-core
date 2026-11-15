@@ -3,6 +3,7 @@
 import { Label } from "@/components/ui/label";
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
 import { formatAccountDisplayName, sortAccounts } from "@/lib/account-utils";
+import { transferInLegType } from "@/lib/account-validation-utils";
 import type { AccountWithType } from "@/app/accounts/types";
 import { transferAccountsError } from "./recurring-form";
 
@@ -25,6 +26,8 @@ export function RecurringTransferFields({
 	accounts,
 }: RecurringTransferFieldsProps) {
 	const sorted = sortAccounts(accounts);
+	const toAccount = accounts.find((account) => account.id === toAccountId);
+	const paysDebt = !!toAccount && transferInLegType(toAccount) === "payment";
 	return (
 		<div className="space-y-2">
 			<div className="grid grid-cols-1 gap-4 sm:grid-cols-2">
@@ -73,7 +76,9 @@ export function RecurringTransferFields({
 			<p className="type-body-xs text-muted-foreground">
 				{accounts.length < 2
 					? "Add at least two accounts to set up a transfer."
-					: "Each transfer is recorded on both accounts. It isn't counted as spending in your budget."}
+					: paysDebt
+						? `Each payment is recorded on both accounts and lowers what you owe on ${toAccount?.name}. It isn't counted as spending again.`
+						: "Each transfer is recorded on both accounts. It isn't counted as spending in your budget."}
 			</p>
 		</div>
 	);

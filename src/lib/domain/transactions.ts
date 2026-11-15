@@ -5,6 +5,7 @@ import {
 	calculateSignedDelta,
 	checkTransactionCaps,
 	resolveAccountTransactionType,
+	transferInLegType,
 } from "@/lib/account-validation-utils";
 import type { AccountWithType, TransactionType } from "@/app/accounts/types";
 import type { UnifiedTransactionInput } from "@/lib/types/unified-transaction";
@@ -140,6 +141,7 @@ async function createTransfer(store: TransactionStore, input: UnifiedTransaction
 	const { fromAccount, toAccount } = await loadTransferAccounts(store, input.fromAccountId, input.toAccountId);
 	const amount = Math.abs(input.amount);
 	assertWithinCaps({ intent: "transfer", amount, fromAccount, toAccount, allowOverpayment: input.allowOverpayment });
+	const inType = transferInLegType(toAccount);
 
 	const posted = await step(
 		() =>
@@ -157,15 +159,16 @@ async function createTransfer(store: TransactionStore, input: UnifiedTransaction
 						accountId: fromAccount.id,
 						amount: calculateSignedDelta(fromAccount, "transfer", undefined, amount),
 						transactionType: "transfer",
-						description: input.description || `Transfer to ${toAccount.name}`,
+						description: input.description || `${inType === "payment" ? "Payment" : "Transfer"} to ${toAccount.name}`,
 						date: input.date,
 						transferPair: 1,
 					},
 					{
 						accountId: toAccount.id,
 						amount: -calculateSignedDelta(toAccount, "transfer", undefined, amount),
-						transactionType: "transfer",
-						description: input.description || `Transfer from ${fromAccount.name}`,
+						transactionType: inType,
+						description:
+							input.description || `${inType === "payment" ? "Payment" : "Transfer"} from ${fromAccount.name}`,
 						date: input.date,
 						transferPair: 0,
 					},
@@ -268,6 +271,17 @@ export function assertLedgerEditWithinCaps(
 }
 
 /**
+ * Signed amount for the budget row linked to an edited ledger row: negative for money out. A
+ * transfer's budget row is always positive, including a payment into a debt, so it never counts as
+ * spending.
+ */
+export function editedBudgetAmount(txType: string, isTransferLeg: boolean, inputAmount: number): number {
+	const abs = Math.abs(inputAmount);
+	if (isTransferLeg) return abs;
+	return ["withdrawal", "payment"].includes(txType) ? -abs : abs;
+}
+
+/**
  * Edits one ledger row from the account page: moves the balance by the difference and keeps a
  * linked budget row in step.
  */
@@ -303,9 +317,8 @@ export async function updateLedgerEntry(ctx: DataContext, id: string, input: Led
 	const patch = {
 		...(input.description !== undefined && { name: input.description }),
 		...(input.transactionDate !== undefined && { transaction_date: input.transactionDate }),
-		// Budget amounts are signed: negative for money out.
 		...(input.amount !== undefined && {
-			amount: ["withdrawal", "payment"].includes(txType) ? -Math.abs(input.amount) : Math.abs(input.amount),
+			amount: editedBudgetAmount(txType, !!existing.linked_transfer_transaction_id, input.amount),
 		}),
 	};
 	if (Object.keys(patch).length > 0) {

@@ -157,6 +157,14 @@ export function resolveAccountTransactionType(
  *  - transfers ignore `transactionType` and follow the account class (out of a liability
  *    is a draw, into a liability is a payment).
  */
+/**
+ * Type of the leg a transfer writes on its destination. Money moved into a liability pays down its
+ * debt, so that leg is a payment; the budget row stays a transfer and never counts as spending.
+ */
+export function transferInLegType(account: Pick<AccountWithType, "account_type">): "payment" | "transfer" {
+	return account.account_type?.class === "liability" ? "payment" : "transfer";
+}
+
 export function calculateSignedDelta(
 	account: AccountWithType,
 	intent: TransactionIntent,

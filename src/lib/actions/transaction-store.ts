@@ -37,6 +37,8 @@ export interface LedgerRow {
 	amount: number;
 	transaction_type: string;
 	linked_allocation_transaction_id: string | null;
+	/** Set on both legs of a transfer, including a payment into a debt. */
+	linked_transfer_transaction_id: string | null;
 }
 
 export interface LedgerRowPatch {
@@ -233,7 +235,9 @@ function supabaseTransactionStore({ db, userId }: SupabaseContext): TransactionS
 		async getLedgerRow(id) {
 			const { data, error } = await db
 				.from("account_transactions")
-				.select("id, account_id, amount, transaction_type, linked_allocation_transaction_id")
+				.select(
+					"id, account_id, amount, transaction_type, linked_allocation_transaction_id, linked_transfer_transaction_id"
+				)
 				.eq("id", id)
 				.eq("user_id", userId)
 				.maybeSingle();

@@ -68,7 +68,7 @@ const PRESET_PROVIDERS = [
 	},
 	{
 		id: "transfer",
-		name: "Transfer",
+		name: "Transfer or payment",
 		domain: null,
 		category: "transfer",
 		isGeneric: true,
@@ -180,9 +180,9 @@ export function AddRecurringDialog({
 			title="Add Recurring Expense"
 			description={
 				step === 1
-					? "Select a service provider, create custom, or set up a transfer between your accounts."
+					? "Select a service provider, create custom, or set up a transfer or debt payment between your accounts."
 					: isTransfer
-						? "Move money between two of your accounts on a schedule."
+						? "Move money between two of your accounts on a schedule, or pay down a card, loan or line of credit."
 						: "Enter expense details."
 			}
 			className="sm:max-w-[500px]"

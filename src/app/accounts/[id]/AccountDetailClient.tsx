@@ -158,7 +158,8 @@ export function AccountDetailClient({
 	const [deleteDialogOpen, setDeleteDialogOpen] = useState(false);
 	const [transactionDialogOpen, setTransactionDialogOpen] = useState(false);
 	const [transactionType, setTransactionType] = useState<"deposit" | "withdrawal">("deposit");
-	// When set, the transaction dialog opens as a transfer that settles this liability's debt
+	// A payment on this liability opens the dialog as a transfer into it; Pay Remaining also fills the amount.
+	const [isPayment, setIsPayment] = useState(false);
 	const [payRemainingAmount, setPayRemainingAmount] = useState<number | null>(null);
 	const [editTransactionDialogOpen, setEditTransactionDialogOpen] = useState(false);
 	const [editingTransaction, setEditingTransaction] = useState<AccountTransaction | null>(null);
@@ -193,12 +194,14 @@ export function AccountDetailClient({
 
 	const handleRecordDeposit = () => {
 		setPayRemainingAmount(null);
+		setIsPayment(accountClass === "liability");
 		setTransactionType("deposit");
 		setTransactionDialogOpen(true);
 	};
 
 	const handleRecordWithdrawal = () => {
 		setPayRemainingAmount(null);
+		setIsPayment(false);
 		setTransactionType("withdrawal");
 		setTransactionDialogOpen(true);
 	};
@@ -314,6 +317,7 @@ export function AccountDetailClient({
 					// Settle the debt as a transfer from a source account into this
 					// liability account, pre-filled with the outstanding amount.
 					setPayRemainingAmount(amount);
+					setIsPayment(true);
 					setTransactionDialogOpen(true);
 				}}
 			/>
@@ -380,16 +384,19 @@ export function AccountDetailClient({
 				open={transactionDialogOpen}
 				onOpenChange={(open) => {
 					setTransactionDialogOpen(open);
-					if (!open) setPayRemainingAmount(null);
+					if (!open) {
+						setPayRemainingAmount(null);
+						setIsPayment(false);
+					}
 				}}
 				categories={[]}
 				// Every account is selectable so transfers can come from, or go to, any other account;
 				// this account stays the default.
 				accounts={[account, ...otherAccounts]}
 				defaultAccountId={account.id}
-				defaultToAccountId={payRemainingAmount !== null ? account.id : undefined}
+				defaultToAccountId={isPayment ? account.id : undefined}
 				defaultAmount={payRemainingAmount ?? undefined}
-				defaultType={payRemainingAmount !== null ? "transfer" : transactionType === "deposit" ? "income" : "expense"}
+				defaultType={isPayment ? "transfer" : transactionType === "deposit" ? "income" : "expense"}
 				onSuccess={handleTransactionSuccess}
 				context="accounts"
 			/>

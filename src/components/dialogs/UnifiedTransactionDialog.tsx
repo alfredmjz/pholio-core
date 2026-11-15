@@ -47,7 +47,7 @@ import { TransferRoute, TransferRouteSummary } from "./transfer-route";
 import { CapWarning } from "./cap-warning";
 import { isSampleDataActive } from "@/lib/demo-mode";
 import { createDemoId, recordDemoUnifiedTransaction, useDemoStore } from "@/lib/demo-store";
-import { calculateAccountStanding } from "@/lib/account-validation-utils";
+import { calculateAccountStanding, transferInLegType } from "@/lib/account-validation-utils";
 import { noneToNull, transactionCapCheck } from "./transaction-cap-check";
 import { getAccountContributionSummary } from "@/lib/actions/contribution-actions";
 import { formatContributionAmount, getContributionNotices } from "@/lib/contribution-plans";
@@ -229,6 +229,7 @@ export function UnifiedTransactionDialog({
 
 	const fromAccount = type === "transfer" ? accounts.find((a) => a.id === fromAccountId) : null;
 	const toAccount = type === "transfer" ? accounts.find((a) => a.id === toAccountId) : null;
+	const isDebtPayment = !!toAccount && transferInLegType(toAccount) === "payment";
 
 	// Validate every account the transaction touches. `allowOverpayment` is intentionally
 	// NOT applied here so the warning stays visible while the opt-in is ticked; the submit
@@ -353,7 +354,8 @@ export function UnifiedTransactionDialog({
 		setIsLoading(true);
 		try {
 			const numAmount = parseFloat(amount);
-			const finalDescription = description.trim() || (type === "transfer" ? "Transfer" : "");
+			const finalDescription =
+				description.trim() || (isDebtPayment ? "Payment" : type === "transfer" ? "Transfer" : "");
 			const input: UnifiedTransactionInput = {
 				description: finalDescription,
 				amount: numAmount,
@@ -385,7 +387,9 @@ export function UnifiedTransactionDialog({
 					account: accountName,
 				});
 				recordDemoUnifiedTransaction(input);
-				toast.success(type === "transfer" ? "Transfer created" : "Transaction added");
+				toast.success(
+					isDebtPayment ? "Payment recorded" : type === "transfer" ? "Transfer created" : "Transaction added"
+				);
 				onOpenChange(false);
 				onSuccess?.();
 				return;
@@ -393,7 +397,9 @@ export function UnifiedTransactionDialog({
 
 			const result = await createUnifiedTransaction(input);
 			if (result.ok) {
-				toast.success(type === "transfer" ? "Transfer created" : "Transaction added");
+				toast.success(
+					isDebtPayment ? "Payment recorded" : type === "transfer" ? "Transfer created" : "Transaction added"
+				);
 				onOpenChange(false);
 				onSuccess?.();
 			} else {
@@ -606,7 +612,9 @@ export function UnifiedTransactionDialog({
 										/>
 										<p className="type-body-xs flex items-start gap-2 text-muted-foreground">
 											<Info className="mt-0.5 h-3.5 w-3.5 shrink-0" />
-											Transfers move money between your accounts, so they don&apos;t need a budget category.
+											{isDebtPayment
+												? `This is a payment on ${toAccount?.name}. The charges were already counted when you made them, so it doesn't count as spending again.`
+												: "Transfers move money between your accounts, so they don't need a budget category."}
 										</p>
 									</>
 								) : (
@@ -895,7 +903,7 @@ export function UnifiedTransactionDialog({
 									) : (
 										<Button key="submit" type="submit" className="w-full sm:w-auto" disabled={isLoading}>
 											{isLoading && <Loader2 className="mr-2 h-4 w-4 animate-spin" />}
-											{type === "transfer" ? "Add transfer" : "Add transaction"}
+											{isDebtPayment ? "Add payment" : type === "transfer" ? "Add transfer" : "Add transaction"}
 											<SubmitShortcut />
 										</Button>
 									)}

@@ -169,7 +169,7 @@ export interface AccountTransaction {
 	/** The budget row this ledger row belongs to, for linking to Allocations. */
 	budget_link?: AccountTransactionBudgetLink | null;
 	/** For a transfer leg, the account on the other side (null when it was deleted). */
-	transfer_account?: { id: string; label: string } | null;
+	transfer_account?: { id: string; label: string; is_payment?: boolean } | null;
 }
 
 export interface AccountTransactionBudgetLink {

@@ -1,13 +1,14 @@
 import { afterEach, beforeAll, beforeEach, describe, expect, mock, test } from "bun:test";
+import { mockModule } from "../../../support/mock-module";
 
 type CronRoute = typeof import("@/app/api/cron/post-account-charges/route");
 
 const postDueAccountCharges = mock(async () => ({ success: true, posted: 2 }));
-mock.module("@/lib/account-charges-job", () => ({ postDueAccountCharges }));
 
 let GET: CronRoute["GET"];
 
 beforeAll(async () => {
+	await mockModule("@/lib/account-charges-job", { postDueAccountCharges });
 	// Import after mocking so the route picks up the stubbed job.
 	({ GET } = await import("@/app/api/cron/post-account-charges/route"));
 });

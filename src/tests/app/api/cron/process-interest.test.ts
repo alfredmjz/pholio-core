@@ -1,13 +1,14 @@
 import { afterEach, beforeAll, beforeEach, describe, expect, mock, test } from "bun:test";
+import { mockModule } from "../../../support/mock-module";
 
 type CronRoute = typeof import("@/app/api/cron/process-interest/route");
 
 const processGlobalMonthlyInterest = mock(async () => ({ success: true, processed: 3 }));
-mock.module("@/lib/monthly-interest", () => ({ processGlobalMonthlyInterest }));
 
 let GET: CronRoute["GET"];
 
 beforeAll(async () => {
+	await mockModule("@/lib/monthly-interest", { processGlobalMonthlyInterest });
 	// Import after mocking so the route picks up the stubbed interest job.
 	({ GET } = await import("@/app/api/cron/process-interest/route"));
 });

@@ -1,22 +1,12 @@
 import { NextResponse } from "next/server";
+import { withCronAuth } from "@/lib/cron-auth";
 import { Logger } from "@/lib/logger";
 import { sendDueReminders } from "@/lib/reminder-jobs";
 
 export const dynamic = "force-dynamic";
 
 /** Vercel Cron handler for the daily reminder emails. */
-export async function GET(request: Request) {
-	// Fail closed: without a secret anyone could make Pholio email every opted-in user.
-	const cronSecret = process.env.CRON_SECRET;
-	if (!cronSecret) {
-		Logger.error("CRON_SECRET is not set; refusing to send reminders");
-		return NextResponse.json({ error: "Cron is not configured" }, { status: 500 });
-	}
-
-	if (request.headers.get("authorization") !== `Bearer ${cronSecret}`) {
-		return NextResponse.json({ error: "Unauthorized" }, { status: 401 });
-	}
-
+export const GET = withCronAuth("send reminders", async (request) => {
 	if (process.env.NEXT_PUBLIC_USE_SAMPLE_DATA === "true") {
 		return NextResponse.json({ message: "Sample data: no reminders sent", users: 0, emailed: 0, failed: 0 });
 	}
@@ -29,4 +19,4 @@ export async function GET(request: Request) {
 		Logger.error("Reminder job failed", { error });
 		return NextResponse.json({ error: "Failed to send reminders" }, { status: 500 });
 	}
-}
+});

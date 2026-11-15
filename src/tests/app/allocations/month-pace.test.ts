@@ -138,15 +138,15 @@ describe("describeBudgetLeft", () => {
 
 	test("over budget", () => {
 		expect(describeBudgetLeft(getBudgetPace(nov13, 200, 215), fmt)).toEqual({
-			text: "$15 over · 18 days to go",
+			text: "$15 over with 18 days to go",
 			tone: "error",
 		});
-		expect(describeBudgetLeft(getBudgetPace(nov30, 200, 215), fmt).text).toBe("$15 over · 1 day to go");
+		expect(describeBudgetLeft(getBudgetPace(nov30, 200, 215), fmt).text).toBe("$15 over with 1 day to go");
 	});
 
 	test("budget used exactly", () => {
 		expect(describeBudgetLeft(getBudgetPace(nov13, 200, 200), fmt)).toEqual({
-			text: "Budget used · 18 days to go",
+			text: "Budget used with 18 days to go",
 			tone: "muted",
 		});
 	});

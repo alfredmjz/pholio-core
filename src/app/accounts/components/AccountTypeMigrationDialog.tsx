@@ -146,7 +146,7 @@ export function AccountTypeMigrationDialog({ open, onOpenChange, items, onComple
 								<div className="flex flex-col">
 									<span className="text-sm font-semibold text-primary">{row.accountName}</span>
 									<span className="text-xs text-muted-foreground">
-										was &ldquo;{row.previousTypeName}&rdquo; · {row.balanceLabel}
+										was &ldquo;{row.previousTypeName}&rdquo;, {row.balanceLabel}
 									</span>
 								</div>
 

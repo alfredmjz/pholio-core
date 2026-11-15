@@ -20,6 +20,16 @@ export const CHANGELOG: ChangelogEntry[] = [
 		],
 	},
 	{
+		id: "2026-11-chequing-interest",
+		date: "2026-11-15",
+		title: "Interest on chequing accounts",
+		items: [
+			"Chequing accounts can now have an interest rate, and earn monthly interest like savings accounts.",
+			"Yearly recurring items now show the year next to their date, and so does any date that isn't in this year.",
+			"The button on the Dashboard's month card now says Open Allocations, matching the page it opens.",
+		],
+	},
+	{
 		id: "2026-11-reliable-saves-and-interest",
 		date: "2026-11-15",
 		title: "More reliable saves and interest",

@@ -8,7 +8,7 @@ import { DeleteConfirmDialog } from "@/components/dialogs/DeleteConfirmDialog";
 import { cn } from "@/lib/utils";
 import { formatCurrency } from "@/app/dashboard/utils";
 import { accountWarning } from "@/lib/account-links";
-import { differenceInDays, formatShortDate, getTodayDateString, parseLocalDate } from "@/lib/date-utils";
+import { differenceInDays, formatScheduleDate, getTodayDateString, parseLocalDate } from "@/lib/date-utils";
 import { deleteRecurringExpense, toggleSubscription, type RecurringExpense } from "../actions";
 import { EditRecurringDialog } from "./edit-recurring-dialog";
 import type { AccountWithType } from "@/app/accounts/types";
@@ -121,7 +121,13 @@ export function SubscriptionRow({
 				<div className="mt-2 pl-12 row-wide:mt-0 row-wide:pl-0">
 					{isActive ? (
 						<>
-							<p className="type-body-sm text-primary">{formatShortDate(parseLocalDate(subscription.next_due_date))}</p>
+							<p className="type-body-sm text-primary">
+								{formatScheduleDate(
+									subscription.next_due_date,
+									subscription.billing_period,
+									getTodayDateString(timezone || undefined)
+								)}
+							</p>
 							<p className={cn("type-body-xs", daysUntil < 0 ? "text-error" : "text-muted-foreground")}>
 								{daysUntil < 0
 									? `${Math.abs(daysUntil)} ${Math.abs(daysUntil) === 1 ? "day" : "days"} overdue`

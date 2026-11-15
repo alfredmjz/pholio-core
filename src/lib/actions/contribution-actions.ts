@@ -14,6 +14,8 @@ import { ActionError } from "@/lib/action-result";
 import { getReadContext } from "@/lib/data-context.server";
 import { defineAction } from "@/lib/define-action.server";
 import { moneySchema, nonNegativeMoneySchema } from "@/lib/action-schemas";
+import { validateContributedOverride } from "@/lib/contributed-override";
+import { getTodayDateString } from "@/lib/date-utils";
 import { Logger } from "@/lib/logger";
 import type {
 	AccountContribution,
@@ -21,6 +23,7 @@ import type {
 	ContributionRoomSetting,
 	ContributionSummary,
 } from "@/lib/types/contribution";
+import { settingsStore } from "@/app/settings/settings-store";
 import { contributionStore } from "./contribution-store";
 
 const roomSettingSchema = z.object({
@@ -28,6 +31,12 @@ const roomSettingSchema = z.object({
 	room: moneySchema.nullable(),
 	room_as_of: z.string().nullable(),
 	annual_limit: nonNegativeMoneySchema.nullable(),
+});
+
+const contributedSchema = z.object({
+	plan: z.enum(["tfsa", "rrsp", "fhsa", "resp"]),
+	amount: z.string(),
+	as_of: z.string(),
 });
 
 /**
@@ -84,3 +93,25 @@ export const saveContributionRoom = defineAction("saveContributionRoom", [roomSe
 	revalidatePath("/accounts");
 	revalidatePath("/allocations");
 });
+
+/**
+ * Saves what the user contributed to a plan this year up to a date; it replaces the ledger total
+ * up to that date. A blank amount clears it.
+ */
+export const saveContributedThisYear = defineAction(
+	"saveContributedThisYear",
+	[contributedSchema],
+	async (ctx, input) => {
+		const timezone = await settingsStore(ctx).getTimezone();
+		const result = validateContributedOverride(input.amount, input.as_of, getTodayDateString(timezone ?? undefined));
+		if (!result.ok) throw new ActionError("invalid_input", result.error);
+		try {
+			await contributionStore(ctx).saveContributed(input.plan, result.amount, result.asOf);
+		} catch (error) {
+			Logger.error("Error saving contributed amount", { error, plan: input.plan });
+			throw new ActionError("failed", "Couldn't save your contributed amount. Try again.");
+		}
+		revalidatePath("/accounts");
+		revalidatePath("/allocations");
+	}
+);

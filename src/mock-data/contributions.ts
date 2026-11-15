@@ -52,6 +52,8 @@ export function getSampleContributionSummaries(
 			tax_this_year: 0,
 			tax_total: 0,
 			taxed_months: 0,
+			contributed_override: null,
+			contributed_as_of: null,
 		},
 	];
 }

@@ -15,6 +15,8 @@ export interface ContributionStore {
 	categoryPlans(year: number, month: number): Promise<Record<string, RegisteredPlan>>;
 	rooms(): Promise<ContributionRoomSetting[]>;
 	saveRoom(setting: ContributionRoomSetting): Promise<void>;
+	/** Sets (or, with a null amount, clears) the plan's contributed-this-year figure. */
+	saveContributed(plan: RegisteredPlan, amount: number | null, asOf: string | null): Promise<void>;
 }
 
 export function contributionStore(ctx: DataContext): ContributionStore {
@@ -39,6 +41,7 @@ const NUMERIC_FIELDS = [
 	"tax_this_year",
 	"tax_total",
 	"taxed_months",
+	"contributed_override",
 ] as const;
 
 const toNumberOrNull = (value: unknown) => (value === null || value === undefined ? null : Number(value));
@@ -127,6 +130,19 @@ function supabaseContributionStore({ db, userId }: SupabaseContext): Contributio
 			);
 			if (error) throw error;
 		},
+
+		async saveContributed(plan, amount, asOf) {
+			const { error } = await db.from("contribution_rooms").upsert(
+				{
+					user_id: userId,
+					plan,
+					year_contributed: amount,
+					year_contributed_as_of: amount === null ? null : asOf,
+				},
+				{ onConflict: "user_id,plan" }
+			);
+			if (error) throw error;
+		},
 	};
 }
 
@@ -142,5 +158,6 @@ function demoContributionStore(_ctx: DemoContext): ContributionStore {
 			return getSampleContributionRooms();
 		},
 		async saveRoom() {},
+		async saveContributed() {},
 	};
 }

@@ -14,7 +14,7 @@ import { formatAccountDisplayName } from "@/lib/account-utils";
 import {
 	calculateNextDueDate,
 	differenceInDays,
-	formatShortDate,
+	formatScheduleDate,
 	getTodayDateString,
 	parseLocalDate,
 } from "@/lib/date-utils";
@@ -124,9 +124,14 @@ export function BillRow({
 			)}
 			{bill.next_due_change && (
 				<span className="inline-flex items-center gap-1">
-					Next date <span className="line-through">{formatShortDate(bill.next_due_change.from)}</span>
+					Next date{" "}
+					<span className="line-through">
+						{formatScheduleDate(bill.next_due_change.from, bill.billing_period, today)}
+					</span>
 					<ArrowRight className="h-3 w-3" aria-hidden />
-					<span className="text-primary">{formatShortDate(bill.next_due_change.to)}</span>
+					<span className="text-primary">
+						{formatScheduleDate(bill.next_due_change.to, bill.billing_period, today)}
+					</span>
 				</span>
 			)}
 			{bill.deleted_auto_payments ? (
@@ -152,7 +157,7 @@ export function BillRow({
 				</div>
 
 				<div className="mt-2 flex items-center gap-2 pl-12 row-wide:mt-0 row-wide:block row-wide:pl-0">
-					<p className="type-body-sm text-primary">{formatShortDate(dueDate)}</p>
+					<p className="type-body-sm text-primary">{formatScheduleDate(dueDate, bill.billing_period, today)}</p>
 					<p className={cn("type-body-xs", isFullyPaid ? "text-success" : due.tone)}>
 						{isFullyPaid ? "Paid for this month" : due.text}
 					</p>

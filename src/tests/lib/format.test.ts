@@ -113,8 +113,8 @@ test("the pickers list every option alphabetically", () => {
 		"French (Canada)",
 		"French (France)",
 	]);
-	expect(locales[1].example).toBe("1,234.56 · 31 Jan 2026");
-	expect(plain(locales[4].example)).toBe("1 234,56 · 31 janv. 2026");
+	expect(locales[1].example).toBe("1,234.56 on 31 Jan 2026");
+	expect(plain(locales[4].example)).toBe("1 234,56 on 31 janv. 2026");
 
 	expect(CURRENCIES).toEqual(["AUD", "CAD", "EUR", "GBP", "JPY", "USD"]);
 });

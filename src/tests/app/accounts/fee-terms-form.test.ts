@@ -20,6 +20,11 @@ describe("field visibility", () => {
 		]);
 	});
 
+	test("chequing and savings accounts take an interest rate", () => {
+		expect([chequing.showInterestRate, chequing.interestRateLabel]).toEqual([true, "APY (%)"]);
+		expect(getFieldVisibility({ code: "savings" }).showInterestRate).toBe(true);
+	});
+
 	test("Other accounts opt in", () => {
 		expect(getFieldVisibility({ code: "other" }, { showOverdraft: true }).showOverdraft).toBe(true);
 		expect(getFieldVisibility({ code: "other" }, {}).showOverdraft).toBe(false);

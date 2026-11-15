@@ -1,5 +1,12 @@
 import { describe, expect, test } from "bun:test";
-import { calculateNextDueDate, formatPeriod, formatRelativeTime, parsePeriod, previousMonthOf } from "@/lib/date-utils";
+import {
+	calculateNextDueDate,
+	formatPeriod,
+	formatRelativeTime,
+	formatScheduleDate,
+	parsePeriod,
+	previousMonthOf,
+} from "@/lib/date-utils";
 
 describe("formatRelativeTime", () => {
 	const now = new Date(2026, 9, 25, 12, 0, 0).getTime();
@@ -59,5 +66,24 @@ describe("previousMonthOf", () => {
 	test("rolls back over the year boundary", () => {
 		expect(previousMonthOf(2026, 11)).toEqual({ year: 2026, month: 10 });
 		expect(previousMonthOf(2026, 1)).toEqual({ year: 2025, month: 12 });
+	});
+});
+
+describe("formatScheduleDate", () => {
+	const today = "2026-11-15";
+
+	test("a monthly date this year shows month and day only", () => {
+		expect(formatScheduleDate("2026-12-04", "monthly", today)).toBe("Dec 4");
+	});
+
+	test("a yearly schedule always shows the year", () => {
+		expect(formatScheduleDate("2026-12-04", "yearly", today)).toBe("Dec 4, 2026");
+		expect(formatScheduleDate("2027-03-01", "1:years", today)).toBe("Mar 1, 2027");
+		expect(formatScheduleDate("2028-03-01", "2:years", today)).toBe("Mar 1, 2028");
+	});
+
+	test("any schedule shows the year when the date is in another year", () => {
+		expect(formatScheduleDate("2027-01-04", "monthly", today)).toBe("Jan 4, 2027");
+		expect(formatScheduleDate("2027-01-04", "2:weeks", today)).toBe("Jan 4, 2027");
 	});
 });

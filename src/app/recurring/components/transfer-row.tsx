@@ -12,7 +12,7 @@ import { formatCurrency } from "@/app/dashboard/utils";
 import {
 	calculateNextDueDate,
 	differenceInDays,
-	formatShortDate,
+	formatScheduleDate,
 	getTodayDateString,
 	parseLocalDate,
 } from "@/lib/date-utils";
@@ -126,9 +126,14 @@ export function TransferRow({
 			)}
 			{transfer.next_due_change && (
 				<span className="inline-flex items-center gap-1">
-					Next date <span className="line-through">{formatShortDate(transfer.next_due_change.from)}</span>
+					Next date{" "}
+					<span className="line-through">
+						{formatScheduleDate(transfer.next_due_change.from, transfer.billing_period, today)}
+					</span>
 					<ArrowRight className="h-3 w-3" aria-hidden />
-					<span className="text-primary">{formatShortDate(transfer.next_due_change.to)}</span>
+					<span className="text-primary">
+						{formatScheduleDate(transfer.next_due_change.to, transfer.billing_period, today)}
+					</span>
 				</span>
 			)}
 			{transfer.deleted_auto_payments ? (
@@ -160,7 +165,7 @@ export function TransferRow({
 				</div>
 
 				<div className="mt-2 flex items-center gap-2 pl-12 row-wide:mt-0 row-wide:block row-wide:pl-0">
-					<p className="type-body-sm text-primary">{formatShortDate(dueDate)}</p>
+					<p className="type-body-sm text-primary">{formatScheduleDate(dueDate, transfer.billing_period, today)}</p>
 					<p className={cn("type-body-xs", isDone ? "text-success" : due.tone)}>
 						{isDone ? "Done for this month" : due.text}
 					</p>

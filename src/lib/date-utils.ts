@@ -132,6 +132,51 @@ export function formatRelativeTime(timestamp: string | Date, now: Date | number 
 // Recurring Date Calculation Helpers
 // ============================================================================
 
+export type PeriodUnit = "days" | "weeks" | "months" | "years";
+
+export interface Period {
+	value: number;
+	unit: PeriodUnit;
+}
+
+const LEGACY: Record<string, Period> = {
+	daily: { value: 1, unit: "days" },
+	weekly: { value: 1, unit: "weeks" },
+	biweekly: { value: 2, unit: "weeks" },
+	monthly: { value: 1, unit: "months" },
+	yearly: { value: 1, unit: "years" },
+};
+
+const UNIT_ALIASES: Record<string, PeriodUnit> = {
+	day: "days",
+	days: "days",
+	daily: "days",
+	week: "weeks",
+	weeks: "weeks",
+	weekly: "weeks",
+	month: "months",
+	months: "months",
+	monthly: "months",
+	year: "years",
+	years: "years",
+	yearly: "years",
+};
+
+/** Reads a stored billing period ("n:unit" or a legacy word). Anything unrecognised is treated as monthly. */
+export function parsePeriod(billingPeriod: string): Period {
+	const raw = (billingPeriod || "").trim().toLowerCase();
+	if (LEGACY[raw]) return LEGACY[raw];
+	const [valuePart, unitPart] = raw.includes(":") ? raw.split(":") : ["1", raw];
+	const unit = UNIT_ALIASES[unitPart];
+	const value = Math.max(1, parseInt(valuePart, 10) || 1);
+	return unit ? { value, unit } : { value: 1, unit: "months" };
+}
+
+/** The stored "n:unit" form of a period, e.g. "3:months". */
+export function formatPeriod({ value, unit }: Period): string {
+	return `${value}:${unit}`;
+}
+
 /**
  * Calculate the next due date based on frequency.
  *
@@ -140,45 +185,13 @@ export function formatRelativeTime(timestamp: string | Date, now: Date | number 
  * @returns Next due Date object
  */
 export function calculateNextDueDate(currentDue: Date, frequency: string): Date {
-	const result = new Date(currentDue);
+	const { value, unit } = parsePeriod(frequency);
+	return stepDate(currentDue, value, unit, 1);
+}
 
-	// Handle legacy formats
-	let normalizedFreq = frequency;
-	if (frequency === "monthly") normalizedFreq = "1:months";
-	else if (frequency === "yearly") normalizedFreq = "1:years";
-	else if (frequency === "weekly") normalizedFreq = "1:weeks";
-	else if (frequency === "biweekly") normalizedFreq = "2:weeks";
-
-	const [valueStr, unit] = normalizedFreq.includes(":") ? normalizedFreq.split(":") : ["1", normalizedFreq];
-	const value = parseInt(valueStr) || 1;
-
-	switch (unit) {
-		case "days":
-		case "daily":
-			result.setDate(result.getDate() + value);
-			break;
-		case "weeks":
-		case "weekly":
-			result.setDate(result.getDate() + value * 7);
-			break;
-		case "months":
-		case "monthly":
-			result.setMonth(result.getMonth() + value);
-			break;
-		case "years":
-		case "yearly":
-			result.setFullYear(result.getFullYear() + value);
-			break;
-		default:
-			// Fallback for any other legacy strings not handled above
-			if (frequency === "monthly") result.setMonth(result.getMonth() + 1);
-			else if (frequency === "yearly") result.setFullYear(result.getFullYear() + 1);
-			else if (frequency === "weekly") result.setDate(result.getDate() + 7);
-			else if (frequency === "biweekly") result.setDate(result.getDate() + 14);
-			return result;
-	}
-
-	return result;
+/** The month before a 1-12 month, rolling back across the year boundary. */
+export function previousMonthOf(year: number, month: number): { year: number; month: number } {
+	return month === 1 ? { year: year - 1, month: 12 } : { year, month: month - 1 };
 }
 
 /**

@@ -6,7 +6,12 @@ import { formatDateString, parseLocalDate } from "@/lib/date-utils";
 import { sampleAllocationSummary } from "@/mock-data/allocations";
 import { getMockRecurringExpenses } from "@/mock-data/recurring";
 import { getMockTransactions } from "@/mock-data/transactions";
-import { canPostTransfer, isRecurringTransfer, recurringOccurrenceRow } from "./recurring-occurrence";
+import {
+	canPostTransfer,
+	isRecurringTransfer,
+	recurringOccurrenceRow,
+	resolveRecurringCategoryName,
+} from "./recurring-occurrence";
 import { enrichRecurringExpenses, type MonthPayment, type RecordedOccurrence } from "./recurring-status";
 import type { NewRecurringExpense, RecurringExpense } from "./recurring-types";
 
@@ -58,17 +63,6 @@ export function recurringStore(ctx: DataContext): RecurringStore {
 export async function listRecurringExpenses(ctx: DataContext, now: Date = new Date()): Promise<RecurringExpense[]> {
 	const { expenses, payments, recorded } = await recurringStore(ctx).loadMonth(now);
 	return enrichRecurringExpenses(expenses, payments, recorded, now);
-}
-
-/**
- * The allocation category NAME a recurring expense is bundled into. A user-chosen
- * `budget_category` wins; otherwise subscriptions fall back to "Subscriptions" and
- * bills to "Bills" (the legacy behavior).
- */
-function resolveRecurringCategoryName(expense: { category: string; budget_category?: string | null }): string {
-	const custom = expense.budget_category?.trim();
-	if (custom) return custom;
-	return expense.category === "bill" ? "Bills" : "Subscriptions";
 }
 
 function supabaseRecurringStore({ db, userId }: SupabaseContext): RecurringStore {

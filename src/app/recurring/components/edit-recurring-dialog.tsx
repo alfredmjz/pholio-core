@@ -18,7 +18,14 @@ import { sanitizePositiveIntegerInput } from "@/lib/input-utils";
 import type { AccountWithType } from "@/app/accounts/types";
 import { cn } from "@/lib/utils";
 import { NO_ACCOUNT, RecurringAccountField } from "./recurring-account-field";
-import { RecurringTransferFields, transferAccountsError } from "./recurring-transfer-fields";
+import { RecurringTransferFields } from "./recurring-transfer-fields";
+import {
+	emptyRecurringForm,
+	expenseToForm,
+	formToPayload,
+	validateRecurringForm,
+	type RecurringFormValues,
+} from "./recurring-form";
 
 interface EditRecurringDialogProps {
 	open: boolean;
@@ -40,117 +47,28 @@ export function EditRecurringDialog({
 	categoryOptions = [],
 	accounts = [],
 }: EditRecurringDialogProps) {
-	const [formData, setFormData] = useState({
-		name: "",
-		amount: "",
-		frequency_value: "1",
-		frequency_unit: "months",
-		next_due_date: new Date(),
-		category: "subscription",
-		budget_category: "__default__",
-		account_id: NO_ACCOUNT,
-		to_account_id: "",
-		is_automated: true,
-	});
+	const [formData, setFormData] = useState<RecurringFormValues>(() => emptyRecurringForm());
 	const [isSubmitting, setIsSubmitting] = useState(false);
 	const isTransfer = formData.category === "transfer";
 
 	useEffect(() => {
-		if (expense) {
-			const [val, unit] = expense.billing_period.includes(":")
-				? expense.billing_period.split(":")
-				: [
-						expense.billing_period === "biweekly" ? "2" : "1",
-						expense.billing_period === "biweekly"
-							? "weeks"
-							: expense.billing_period === "yearly"
-								? "years"
-								: expense.billing_period === "weekly"
-									? "weeks"
-									: "months",
-					];
-
-			setFormData({
-				name: expense.name,
-				amount: String(expense.amount),
-				frequency_value: val,
-				frequency_unit: unit,
-				next_due_date: forceActiveOnSave
-					? new Date()
-					: new Date(
-							...(expense.next_due_date
-								.split("T")[0]
-								.split("-")
-								.map((n, i) => (i === 1 ? Number(n) - 1 : Number(n))) as [number, number, number])
-						),
-				category: expense.category,
-				budget_category: expense.budget_category ?? "__default__",
-				account_id: expense.account_id ?? (expense.category === "transfer" ? "" : NO_ACCOUNT),
-				to_account_id: expense.to_account_id ?? "",
-				is_automated: (expense.meta_data as any)?.is_automated !== false,
-			});
-		}
+		if (expense) setFormData(expenseToForm(expense, { reactivating: forceActiveOnSave }));
 	}, [expense, forceActiveOnSave]);
 
 	const handleSubmit = async () => {
 		if (!expense) return;
 
-		if (!formData.name.trim()) {
-			toast.error("Name is required", {
-				description: "Please enter a name for this recurring expense.",
-			});
+		const validation = validateRecurringForm(formData);
+		if (!validation.ok) {
+			toast.error(validation.title, { description: validation.description });
 			return;
 		}
-
-		if (!formData.amount) {
-			toast.error("Amount is required", {
-				description: "Please enter an amount for this recurring expense.",
-			});
-			return;
-		}
-
-		const amountRegex = /^\d+(\.\d{1,2})?$/;
-		if (!amountRegex.test(formData.amount)) {
-			toast.error("Invalid amount", {
-				description: "Please enter a valid number with up to 2 decimal places (e.g., 9.99).",
-			});
-			return;
-		}
-
-		const amount = parseFloat(formData.amount);
-		if (amount <= 0) {
-			toast.error("Invalid amount", {
-				description: "Amount must be greater than zero.",
-			});
-			return;
-		}
-
-		// The field may be empty while typing; it only has to be a whole number of at least 1 on submit.
-		const frequencyValue = parseInt(formData.frequency_value, 10);
-		if (!(frequencyValue >= 1)) {
-			toast.error("Invalid frequency", {
-				description: "Frequency must be a whole number of at least 1.",
-			});
-			return;
-		}
-
-		const accountsError = isTransfer ? transferAccountsError(formData.account_id, formData.to_account_id) : null;
-		if (accountsError) {
-			toast.error("Choose two accounts", { description: accountsError });
-			return;
-		}
+		const { amount } = validation;
 
 		setIsSubmitting(true);
 		try {
 			const payload: Partial<RecurringExpense> = {
-				name: formData.name,
-				amount: amount,
-				billing_period: `${frequencyValue}:${formData.frequency_unit}`,
-				next_due_date: formatDateString(formData.next_due_date),
-				category: formData.category,
-				budget_category: isTransfer || formData.budget_category === "__default__" ? null : formData.budget_category,
-				account_id: formData.account_id === NO_ACCOUNT ? null : formData.account_id,
-				to_account_id: isTransfer ? formData.to_account_id : null,
+				...formToPayload(formData, validation),
 				meta_data: {
 					...(expense.meta_data as any),
 					is_automated: formData.is_automated,

@@ -1,12 +1,11 @@
 "use client";
 
-import { useMemo, useState } from "react";
+import { useCallback, useEffect, useMemo, useState } from "react";
 import { Plus } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { SurfacePage } from "@/components/layout/surface-page";
 import { SurfaceSection } from "@/components/layout/surface-section";
 import { ShortcutHint } from "@/components/common/shortcut-hint";
-import { useOptimisticRecurring } from "@/hooks/useOptimisticRecurring";
 import { useKeyboardShortcut } from "@/hooks/use-keyboard-shortcut";
 import { SHORTCUTS, ShortcutId } from "@/lib/keyboard-shortcuts";
 import { getTodayDateString } from "@/lib/date-utils";
@@ -58,8 +57,19 @@ export function RecurringClient({
 	accounts = [],
 }: RecurringClientProps) {
 	useFormatSettings();
-	const { expenses, optimisticallyAdd, optimisticallyDelete, optimisticallyUpdate } =
-		useOptimisticRecurring(initialExpenses);
+	const [expenses, setExpenses] = useState<RecurringExpense[]>(initialExpenses);
+	useEffect(() => {
+		setExpenses(initialExpenses);
+	}, [initialExpenses]);
+	const optimisticallyAdd = useCallback((expense: RecurringExpense) => {
+		setExpenses((prev) => [...prev, expense]);
+	}, []);
+	const optimisticallyUpdate = useCallback((id: string, updates: Partial<RecurringExpense>) => {
+		setExpenses((prev) => prev.map((exp) => (exp.id === id ? { ...exp, ...updates } : exp)));
+	}, []);
+	const optimisticallyDelete = useCallback((id: string) => {
+		setExpenses((prev) => prev.filter((exp) => exp.id !== id));
+	}, []);
 	const [isAddOpen, setIsAddOpen] = useState(false);
 
 	useKeyboardShortcut(SHORTCUTS[ShortcutId.AddRecurring].keys, () => setIsAddOpen(true));

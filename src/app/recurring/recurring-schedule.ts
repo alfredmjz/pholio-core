@@ -6,47 +6,18 @@
  * first, so a "3:months" bill is never mistaken for a monthly one.
  */
 
-import { calculateNextDueDate, formatDateString, getDaysInMonth, parseLocalDate, stepDate } from "@/lib/date-utils";
+import {
+	calculateNextDueDate,
+	formatDateString,
+	getDaysInMonth,
+	parsePeriod,
+	parseLocalDate,
+	stepDate,
+} from "@/lib/date-utils";
+import type { Period, PeriodUnit } from "@/lib/date-utils";
 
-export type PeriodUnit = "days" | "weeks" | "months" | "years";
-
-export interface Period {
-	value: number;
-	unit: PeriodUnit;
-}
-
-const LEGACY: Record<string, Period> = {
-	daily: { value: 1, unit: "days" },
-	weekly: { value: 1, unit: "weeks" },
-	biweekly: { value: 2, unit: "weeks" },
-	monthly: { value: 1, unit: "months" },
-	yearly: { value: 1, unit: "years" },
-};
-
-const UNIT_ALIASES: Record<string, PeriodUnit> = {
-	day: "days",
-	days: "days",
-	daily: "days",
-	week: "weeks",
-	weeks: "weeks",
-	weekly: "weeks",
-	month: "months",
-	months: "months",
-	monthly: "months",
-	year: "years",
-	years: "years",
-	yearly: "years",
-};
-
-/** Reads a stored billing period. Anything unrecognised is treated as monthly. */
-export function parsePeriod(billingPeriod: string): Period {
-	const raw = (billingPeriod || "").trim().toLowerCase();
-	if (LEGACY[raw]) return LEGACY[raw];
-	const [valuePart, unitPart] = raw.includes(":") ? raw.split(":") : ["1", raw];
-	const unit = UNIT_ALIASES[unitPart];
-	const value = Math.max(1, parseInt(valuePart, 10) || 1);
-	return unit ? { value, unit } : { value: 1, unit: "months" };
-}
+export { parsePeriod };
+export type { Period, PeriodUnit };
 
 /** Average days in a month and weeks in a month over a year. */
 const DAYS_PER_MONTH = 365.25 / 12;

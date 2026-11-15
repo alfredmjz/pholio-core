@@ -5,7 +5,9 @@ import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@
 import { formatAccountDisplayName, sortAccounts } from "@/lib/account-utils";
 import type { AccountWithType } from "@/app/accounts/types";
 
-export const NO_ACCOUNT = "__none__";
+import { NO_ACCOUNT } from "./recurring-form";
+
+export { NO_ACCOUNT };
 
 interface RecurringAccountFieldProps {
 	id: string;

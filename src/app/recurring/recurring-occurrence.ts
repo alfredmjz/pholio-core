@@ -1,3 +1,4 @@
+import { formatDateString, parseLocalDate, parsePeriod, stepDate } from "@/lib/date-utils";
 import { monthlyEquivalent } from "./recurring-schedule";
 
 export type RecurringKind = "bill" | "subscription" | "transfer";
@@ -82,4 +83,70 @@ export function monthlyTotalsByKind(
 		totals[kind] += monthlyEquivalent(Number(item.amount), item.billing_period);
 	}
 	return { ...totals, spending: totals.bill + totals.subscription };
+}
+
+/**
+ * The allocation category NAME a recurring expense is bundled into. A user-chosen
+ * `budget_category` wins; otherwise subscriptions fall back to "Subscriptions" and bills to "Bills".
+ */
+export function resolveRecurringCategoryName(expense: { category: string; budget_category?: string | null }): string {
+	const custom = expense.budget_category?.trim();
+	if (custom) return custom;
+	return expense.category === "bill" ? "Bills" : "Subscriptions";
+}
+
+/** Every due date (YYYY-MM-DD) of a schedule that falls in the given month (1-12), oldest first. */
+export function occurrenceDatesInMonth(
+	nextDueDate: string,
+	billingPeriod: string,
+	year: number,
+	month: number
+): string[] {
+	const { value, unit } = parsePeriod(billingPeriod);
+	const monthStart = new Date(year, month - 1, 1);
+	const monthEnd = new Date(year, month, 0);
+
+	let current = parseLocalDate(nextDueDate);
+	current.setHours(0, 0, 0, 0);
+
+	while (current >= monthStart) {
+		const prev = stepDate(current, value, unit, -1);
+		if (prev.getTime() === current.getTime()) break;
+		current = prev;
+	}
+
+	const dates: string[] = [];
+	while (current <= monthEnd) {
+		if (current >= monthStart) dates.push(formatDateString(current));
+		const next = stepDate(current, value, unit, 1);
+		if (next.getTime() === current.getTime()) break;
+		current = next;
+	}
+	return dates;
+}
+
+/**
+ * The active expenses that fall in a month, with their due dates and the month's total. An
+ * occurrence already recorded counts at the amount captured then, so editing a bill never
+ * rewrites a past month's budget.
+ */
+export function expandRecurringMonth<
+	T extends { id: string; amount: number | string; next_due_date: string; billing_period: string },
+>(
+	expenses: T[],
+	recordedAmountByKey: ReadonlyMap<string, number>,
+	year: number,
+	month: number
+): Array<{ expense: T; dates: string[]; totalAmount: number }> {
+	const result: Array<{ expense: T; dates: string[]; totalAmount: number }> = [];
+	for (const expense of expenses) {
+		const dates = occurrenceDatesInMonth(expense.next_due_date, expense.billing_period, year, month);
+		if (dates.length === 0) continue;
+		const totalAmount = dates.reduce((sum, date) => {
+			const recorded = recordedAmountByKey.get(`${expense.id}:${date}`);
+			return sum + (recorded !== undefined ? Math.abs(recorded) : Math.abs(Number(expense.amount)));
+		}, 0);
+		result.push({ expense, dates, totalAmount });
+	}
+	return result;
 }

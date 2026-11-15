@@ -4,6 +4,9 @@ import { Label } from "@/components/ui/label";
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
 import { formatAccountDisplayName, sortAccounts } from "@/lib/account-utils";
 import type { AccountWithType } from "@/app/accounts/types";
+import { transferAccountsError } from "./recurring-form";
+
+export { transferAccountsError };
 
 interface RecurringTransferFieldsProps {
 	idPrefix: string;
@@ -74,11 +77,4 @@ export function RecurringTransferFields({
 			</p>
 		</div>
 	);
-}
-
-/** The message for a transfer whose accounts aren't ready, or null when they are. */
-export function transferAccountsError(fromAccountId: string, toAccountId: string): string | null {
-	if (!fromAccountId || !toAccountId) return "Choose the account the money comes from and the one it goes to.";
-	if (fromAccountId === toAccountId) return "The two accounts must be different.";
-	return null;
 }

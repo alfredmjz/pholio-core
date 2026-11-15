@@ -21,7 +21,8 @@ import { ProminentAmountInput } from "@/components/ProminentAmountInput";
 import { sanitizePositiveIntegerInput } from "@/lib/input-utils";
 import type { AccountWithType } from "@/app/accounts/types";
 import { NO_ACCOUNT, RecurringAccountField } from "./recurring-account-field";
-import { RecurringTransferFields, transferAccountsError } from "./recurring-transfer-fields";
+import { RecurringTransferFields } from "./recurring-transfer-fields";
+import { emptyRecurringForm, formToPayload, validateRecurringForm } from "./recurring-form";
 
 interface AddRecurringDialogProps {
 	open: boolean;
@@ -77,19 +78,10 @@ const PRESET_PROVIDERS = [
 ];
 
 const INITIAL_FORM = {
-	name: "",
-	amount: "",
-	frequency_value: "1",
-	frequency_unit: "months",
-	next_due_date: new Date(),
-	category: "subscription",
-	budget_category: "__default__",
-	account_id: NO_ACCOUNT,
+	...emptyRecurringForm(),
 	from_account_id: "",
-	to_account_id: "",
 	service_provider: "",
 	isCustom: false,
-	is_automated: true,
 	meta_data: {} as Record<string, any>,
 };
 
@@ -122,48 +114,11 @@ export function AddRecurringDialog({
 	};
 
 	const handleSubmit = async () => {
-		if (!formData.name.trim()) {
-			toast.error("Name is required", {
-				description: "Please enter a name for this recurring expense.",
-			});
-			return;
-		}
-
-		if (!formData.amount) {
-			toast.error("Amount is required", {
-				description: "Please enter an amount for this recurring expense.",
-			});
-			return;
-		}
-
-		const amountRegex = /^\d+(\.\d{1,2})?$/;
-		if (!amountRegex.test(formData.amount)) {
-			toast.error("Invalid amount", {
-				description: "Please enter a valid number with up to 2 decimal places (e.g., 9.99).",
-			});
-			return;
-		}
-
-		const amount = parseFloat(formData.amount);
-		if (amount <= 0) {
-			toast.error("Invalid amount", {
-				description: "Amount must be greater than zero.",
-			});
-			return;
-		}
-
-		// The field may be empty while typing; it only has to be a whole number of at least 1 on submit.
-		const frequencyValue = parseInt(formData.frequency_value, 10);
-		if (!(frequencyValue >= 1)) {
-			toast.error("Invalid frequency", {
-				description: "Frequency must be a whole number of at least 1.",
-			});
-			return;
-		}
-
-		const accountsError = isTransfer ? transferAccountsError(formData.from_account_id, formData.to_account_id) : null;
-		if (accountsError) {
-			toast.error("Choose two accounts", { description: accountsError });
+		// The shared form keeps a transfer's source in account_id; this dialog edits it as from_account_id.
+		const shared = { ...formData, account_id: isTransfer ? formData.from_account_id : formData.account_id };
+		const validation = validateRecurringForm(shared);
+		if (!validation.ok) {
+			toast.error(validation.title, { description: validation.description });
 			return;
 		}
 
@@ -185,18 +140,7 @@ export function AddRecurringDialog({
 			}
 
 			const result = await addRecurringExpense({
-				name: formData.name,
-				amount: amount,
-				billing_period: `${frequencyValue}:${formData.frequency_unit}`,
-				next_due_date: formatDateString(formData.next_due_date),
-				category: formData.category,
-				budget_category: isTransfer || formData.budget_category === "__default__" ? null : formData.budget_category,
-				account_id: isTransfer
-					? formData.from_account_id
-					: formData.account_id === NO_ACCOUNT
-						? null
-						: formData.account_id,
-				to_account_id: isTransfer ? formData.to_account_id : null,
+				...formToPayload(shared, validation),
 				service_provider: isTransfer ? null : serviceProvider,
 				is_active: true,
 				currency: "USD",

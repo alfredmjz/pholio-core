@@ -1,10 +1,9 @@
 "use client";
 
-import { useEffect, useRef, useState } from "react";
+import { useCallback, useEffect, useRef, useState } from "react";
 import type { AllocationPageData, AllocationSummary, Transaction, AllocationCategory } from "@/app/allocations/types";
 import { reorderCategories } from "@/app/allocations/actions";
 import { toast } from "sonner";
-import { useOptimisticAllocation } from "./useOptimisticAllocation";
 
 interface UseAllocationSyncReturn {
 	summary: AllocationSummary | null;
@@ -70,8 +69,19 @@ export function useAllocationSync(
 	const [transactions, setTransactions] = useState<Transaction[]>(initialTransactions);
 	const [isRefetching, setIsRefetching] = useState(false);
 
-	const { summary, optimisticallyReorderCategories, rollback, syncWithServer } =
-		useOptimisticAllocation(initialSummary);
+	const [summary, setSummary] = useState<AllocationSummary | null>(initialSummary);
+
+	const optimisticallyReorderCategories = useCallback(
+		(newCategories: AllocationCategory[]) => {
+			if (!summary) return;
+			setSummary({ ...summary, categories: newCategories });
+		},
+		[summary]
+	);
+
+	const rollback = useCallback((previousSummary: AllocationSummary) => {
+		setSummary(previousSummary);
+	}, []);
 
 	const refetchTimeoutRef = useRef<NodeJS.Timeout | null>(null);
 	const summaryRef = useRef(summary);
@@ -88,9 +98,9 @@ export function useAllocationSync(
 	// Update state when initial props change (e.g., month navigation, or a save on the page)
 	useEffect(() => {
 		lastFetchedAt.current = Date.now();
-		if (initialSummary && !sameData(initialSummary, summaryRef.current)) syncWithServer(initialSummary);
+		if (initialSummary && !sameData(initialSummary, summaryRef.current)) setSummary(initialSummary);
 		if (!sameData(initialTransactions, transactionsRef.current)) setTransactions(initialTransactions);
-	}, [initialSummary, initialTransactions, syncWithServer]);
+	}, [initialSummary, initialTransactions]);
 
 	const saveCategoryOrder = async (newCategories: AllocationCategory[]) => {
 		const ordered = newCategories.map((category, index) => ({ ...category, display_order: index }));
@@ -120,7 +130,7 @@ export function useAllocationSync(
 					const fresh = await fetchPageData(allocationId, year, month);
 					lastFetchedAt.current = Date.now();
 					// Unchanged data is not applied, so nothing on the page re-renders or re-animates.
-					if (fresh.summary && !sameData(fresh.summary, summaryRef.current)) syncWithServer(fresh.summary);
+					if (fresh.summary && !sameData(fresh.summary, summaryRef.current)) setSummary(fresh.summary);
 					if (!sameData(fresh.transactions, transactionsRef.current)) setTransactions(fresh.transactions);
 					onRefetchedRef.current?.(fresh);
 				} catch (error) {
@@ -154,7 +164,7 @@ export function useAllocationSync(
 			window.removeEventListener("focus", handleFocus);
 			document.removeEventListener("visibilitychange", handleFocus);
 		};
-	}, [allocationId, year, month, syncWithServer]);
+	}, [allocationId, year, month]);
 
 	return {
 		summary,

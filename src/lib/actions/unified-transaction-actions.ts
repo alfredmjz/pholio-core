@@ -4,7 +4,7 @@ import { revalidatePath } from "next/cache";
 import { z } from "zod";
 import { getReadContext } from "@/lib/data-context.server";
 import { defineAction } from "@/lib/define-action.server";
-import { dateStringSchema, idSchema, moneySchema } from "@/lib/action-schemas";
+import { dateStringSchema, idSchema, moneySchema, transactionIntentSchema } from "@/lib/action-schemas";
 import { Logger } from "@/lib/logger";
 import { createTransaction, deleteTransaction, updateTransaction } from "@/lib/domain/transactions";
 import type { AccountWithType } from "@/app/accounts/types";
@@ -52,7 +52,7 @@ const unifiedTransactionSchema = z.object({
 		.string()
 		.nullish()
 		.transform((value) => value ?? undefined),
-	type: z.enum(["income", "expense", "transfer"]),
+	type: transactionIntentSchema,
 	categoryId: optionalIdSchema,
 	accountId: optionalIdSchema,
 	fromAccountId: optionalIdSchema,

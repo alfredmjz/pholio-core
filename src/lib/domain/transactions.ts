@@ -86,9 +86,9 @@ async function loadAccount(store: TransactionStore, id: string) {
 }
 
 /**
- * Records a budget row and, when an account is tagged, its ledger row and balance change. A transfer
- * is one budget row plus a leg on each account. Balance and debt caps are checked against balances
- * read now, before anything is written.
+ * Records a budget row and, when an account is tagged, its ledger row and balance change, all in
+ * one database transaction. A transfer is one budget row plus a leg on each account. Balance and
+ * debt caps are checked against balances read now, before anything is written.
  */
 export async function createTransaction(ctx: DataContext, input: UnifiedTransactionInput): Promise<CreatedTransaction> {
 	const store = transactionStore(ctx);
@@ -105,55 +105,35 @@ export async function createTransaction(ctx: DataContext, input: UnifiedTransact
 		});
 	}
 
-	const budgetRowId = await step(
-		() =>
-			store.insertBudgetRow({
-				categoryId: input.categoryId ?? null,
-				name: input.description,
-				amount: input.type === "income" ? input.amount : -Math.abs(input.amount),
-				date: input.date,
-				notes: input.notes || null,
-				source: input.source || "manual",
-			}),
-		"Failed to create budget transaction"
-	);
-	if (!account) return { allocationTransactionId: budgetRowId };
+	const budgetRow = {
+		categoryId: input.categoryId ?? null,
+		name: input.description,
+		amount: input.type === "income" ? input.amount : -Math.abs(input.amount),
+		date: input.date,
+		notes: input.notes || null,
+		source: input.source || "manual",
+	};
+	if (!account) {
+		const posted = await step(() => store.postEntries(budgetRow, []), "Failed to create budget transaction");
+		return { allocationTransactionId: posted.budgetRowId ?? "" };
+	}
 
 	const txType = resolveAccountTransactionType(account, input.type, input.transactionType);
-	const accountAmount = calculateSignedDelta(account, input.type, txType, input.amount);
-
-	let ledgerRowId: string;
-	try {
-		ledgerRowId = await step(
-			() =>
-				store.insertLedgerRow({
+	const posted = await step(
+		() =>
+			store.postEntries(budgetRow, [
+				{
 					accountId: account.id,
-					amount: accountAmount,
+					amount: calculateSignedDelta(account, input.type, txType, input.amount),
 					transactionType: txType,
 					description: input.description,
 					date: input.date,
-					linkedBudgetRowId: budgetRowId,
 					isCashAdvance: input.type === "expense" && !!input.isCashAdvance,
-				}),
-			"Failed to create account transaction"
-		);
-	} catch (error) {
-		await undo(() => store.deleteBudgetRow(budgetRowId));
-		throw error;
-	}
-
-	try {
-		await step(() => store.adjustBalance(account.id, accountAmount), "Failed to update account balance");
-	} catch (error) {
-		await undo(
-			() => store.deleteBudgetRow(budgetRowId),
-			() => store.deleteLedgerRow(ledgerRowId)
-		);
-		throw error;
-	}
-
-	await bestEffort(() => store.linkBudgetRow(budgetRowId, ledgerRowId), "Linking budget row to ledger row failed");
-	return { allocationTransactionId: budgetRowId, accountTransactionId: ledgerRowId };
+				},
+			]),
+		"Failed to create account transaction"
+	);
+	return { allocationTransactionId: posted.budgetRowId ?? "", accountTransactionId: posted.legIds[0] };
 }
 
 async function createTransfer(store: TransactionStore, input: UnifiedTransactionInput): Promise<CreatedTransaction> {
@@ -161,78 +141,39 @@ async function createTransfer(store: TransactionStore, input: UnifiedTransaction
 	const amount = Math.abs(input.amount);
 	assertWithinCaps({ intent: "transfer", amount, fromAccount, toAccount, allowOverpayment: input.allowOverpayment });
 
-	const budgetRowId = await step(
+	const posted = await step(
 		() =>
-			store.insertBudgetRow({
-				categoryId: null,
-				name: input.description,
-				amount,
-				date: input.date,
-				notes: input.notes || null,
-				source: "transfer",
-			}),
-		"Failed to create transfer transaction record"
+			store.postEntries(
+				{
+					categoryId: null,
+					name: input.description,
+					amount,
+					date: input.date,
+					notes: input.notes || null,
+					source: "transfer",
+				},
+				[
+					{
+						accountId: fromAccount.id,
+						amount: calculateSignedDelta(fromAccount, "transfer", undefined, amount),
+						transactionType: "transfer",
+						description: input.description || `Transfer to ${toAccount.name}`,
+						date: input.date,
+						transferPair: 1,
+					},
+					{
+						accountId: toAccount.id,
+						amount: -calculateSignedDelta(toAccount, "transfer", undefined, amount),
+						transactionType: "transfer",
+						description: input.description || `Transfer from ${fromAccount.name}`,
+						date: input.date,
+						transferPair: 0,
+					},
+				]
+			),
+		"Failed to process transfer"
 	);
-
-	const fromAmount = calculateSignedDelta(fromAccount, "transfer", undefined, amount);
-	const toAmount = -calculateSignedDelta(toAccount, "transfer", undefined, amount);
-
-	let fromLegId: string;
-	try {
-		fromLegId = await step(
-			() =>
-				store.insertLedgerRow({
-					accountId: fromAccount.id,
-					amount: fromAmount,
-					transactionType: "transfer",
-					description: input.description || `Transfer to ${toAccount.name}`,
-					date: input.date,
-					linkedBudgetRowId: budgetRowId,
-				}),
-			"Failed to process transfer from source account"
-		);
-	} catch (error) {
-		await undo(() => store.deleteBudgetRow(budgetRowId));
-		throw error;
-	}
-
-	try {
-		await step(() => store.adjustBalance(fromAccount.id, fromAmount), "Failed to process transfer from source account");
-	} catch (error) {
-		await undo(
-			() => store.deleteLedgerRow(fromLegId),
-			() => store.deleteBudgetRow(budgetRowId)
-		);
-		throw error;
-	}
-
-	let toLegId: string;
-	try {
-		toLegId = await step(
-			() =>
-				store.insertLedgerRow({
-					accountId: toAccount.id,
-					amount: toAmount,
-					transactionType: "transfer",
-					description: input.description || `Transfer from ${fromAccount.name}`,
-					date: input.date,
-					linkedBudgetRowId: budgetRowId,
-				}),
-			"Failed to process transfer to destination account"
-		);
-		await step(() => store.adjustBalance(toAccount.id, toAmount), "Failed to process transfer to destination account");
-	} catch (error) {
-		await undo(
-			() => store.adjustBalance(fromAccount.id, -fromAmount),
-			() => store.deleteLedgerRow(fromLegId),
-			() => store.deleteBudgetRow(budgetRowId)
-		);
-		throw error;
-	}
-
-	await bestEffort(() => store.linkTransferLegs(fromLegId, toLegId), "Optional transfer linking failed");
-	await bestEffort(() => store.linkBudgetRow(budgetRowId, fromLegId), "Linking transfer budget row failed");
-	return { allocationTransactionId: budgetRowId, accountTransactionId: fromLegId };
+	return { allocationTransactionId: posted.budgetRowId ?? "", accountTransactionId: posted.legIds[0] };
 }
 
 /**

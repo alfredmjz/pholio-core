@@ -16,24 +16,19 @@ const fakeStore: TransactionStore = {
 	listUsedDescriptions: async () => [],
 	getAccount: async (id) => accounts.get(id) ?? null,
 	getBudgetRow: async () => savedRow,
-	insertBudgetRow: async (row) => {
-		writes.push(`budget ${row.amount}`);
-		return "budget-1";
+	postEntries: async (budgetRow, legs) => {
+		if (budgetRow) writes.push(`budget ${budgetRow.amount}`);
+		for (const leg of legs) {
+			const pair = leg.transferPair === undefined ? "" : ` pair ${leg.transferPair}`;
+			writes.push(`ledger ${leg.accountId} ${leg.amount}${pair}`);
+		}
+		return { budgetRowId: budgetRow ? "budget-1" : null, legIds: legs.map((leg) => `ledger-${leg.accountId}`) };
 	},
 	updateBudgetRow: async () => {},
-	linkBudgetRow: async () => {},
 	deleteBudgetRow: async () => {},
 	getLedgerRow: async () => null,
-	insertLedgerRow: async (row) => {
-		writes.push(`ledger ${row.accountId} ${row.amount}`);
-		return `ledger-${row.accountId}`;
-	},
 	updateLedgerRow: async () => {},
-	linkTransferLegs: async () => {},
 	deleteLedgerRow: async () => {},
-	adjustBalance: async (accountId, delta) => {
-		writes.push(`balance ${accountId} ${delta}`);
-	},
 	setBalance: async () => {},
 	updateUnified: async () => {
 		writes.push("update");
@@ -95,7 +90,7 @@ describe("createTransaction caps on an asset", () => {
 	test("an expense equal to the balance is recorded", async () => {
 		account("chq", "asset", 100);
 		await domain.createTransaction(ctx, input({ accountId: "chq", amount: 100 }));
-		expect(writes).toEqual(["budget -100", "ledger chq -100", "balance chq -100"]);
+		expect(writes).toEqual(["budget -100", "ledger chq -100"]);
 	});
 
 	test("an expense one cent over the balance is rejected before anything is written", async () => {
@@ -123,7 +118,7 @@ describe("createTransaction caps on an asset", () => {
 	test("a deposit is never capped", async () => {
 		account("chq", "asset", 0);
 		await domain.createTransaction(ctx, input({ type: "income", accountId: "chq", amount: 5000 }));
-		expect(writes).toContain("balance chq 5000");
+		expect(writes).toContain("ledger chq 5000");
 	});
 });
 
@@ -134,7 +129,7 @@ describe("createTransaction caps on a liability", () => {
 			ctx,
 			input({ type: "income", transactionType: "payment", accountId: "card", amount: 500 })
 		);
-		expect(writes).toContain("balance card -500");
+		expect(writes).toContain("ledger card -500");
 	});
 
 	test("a payment one cent over the remaining debt is rejected", async () => {
@@ -155,7 +150,7 @@ describe("createTransaction caps on a liability", () => {
 			ctx,
 			input({ type: "income", transactionType: "payment", accountId: "card", amount: 600, allowOverpayment: true })
 		);
-		expect(writes).toContain("balance card -600");
+		expect(writes).toContain("ledger card -600");
 	});
 
 	test("a charge beyond the available credit is rejected", async () => {
@@ -173,7 +168,7 @@ describe("createTransaction caps on a transfer", () => {
 			ctx,
 			input({ type: "transfer", fromAccountId: "chq", toAccountId: "sav", amount: 200 })
 		);
-		expect(writes).toEqual(["budget 200", "ledger chq -200", "balance chq -200", "ledger sav 200", "balance sav 200"]);
+		expect(writes).toEqual(["budget 200", "ledger chq -200 pair 1", "ledger sav 200 pair 0"]);
 
 		writes.length = 0;
 		const error = await rejection(
@@ -193,7 +188,7 @@ describe("createTransaction caps on a transfer", () => {
 			ctx,
 			input({ type: "transfer", fromAccountId: "loc", toAccountId: "chq", amount: 100 })
 		);
-		expect(writes).toContain("ledger loc 100");
+		expect(writes).toContain("ledger loc 100 pair 1");
 
 		const error = await rejection(
 			domain.createTransaction(
@@ -211,7 +206,7 @@ describe("createTransaction caps on a transfer", () => {
 			ctx,
 			input({ type: "transfer", fromAccountId: "chq", toAccountId: "card", amount: 300 })
 		);
-		expect(writes).toContain("ledger card -300");
+		expect(writes).toContain("ledger card -300 pair 0");
 
 		const error = await rejection(
 			domain.createTransaction(
@@ -226,7 +221,7 @@ describe("createTransaction caps on a transfer", () => {
 			ctx,
 			input({ type: "transfer", fromAccountId: "chq", toAccountId: "card", amount: 350, allowOverpayment: true })
 		);
-		expect(writes).toContain("ledger card -350");
+		expect(writes).toContain("ledger card -350 pair 0");
 	});
 
 	test("the opt-in never lifts the source account's balance cap", async () => {
@@ -251,6 +246,35 @@ describe("createTransaction caps on a transfer", () => {
 			domain.createTransaction(ctx, input({ type: "transfer", fromAccountId: "chq", toAccountId: "chq", amount: 1 }))
 		);
 		expect(same.message).toBe("Source and destination accounts must be different");
+	});
+});
+
+describe("createTransaction posting", () => {
+	test("a row with no account posts only the budget row", async () => {
+		const created = await domain.createTransaction(ctx, input({ type: "income", amount: 40 }));
+		expect(writes).toEqual(["budget 40"]);
+		expect(created).toEqual({ allocationTransactionId: "budget-1" });
+	});
+
+	test("returns the budget row and the account leg it posted", async () => {
+		account("chq", "asset", 100);
+		const created = await domain.createTransaction(ctx, input({ accountId: "chq", amount: 25 }));
+		expect(created).toEqual({ allocationTransactionId: "budget-1", accountTransactionId: "ledger-chq" });
+	});
+
+	test("a failed post is reported as a failure, with nothing to undo", async () => {
+		account("chq", "asset", 100);
+		const original = fakeStore.postEntries;
+		fakeStore.postEntries = async () => {
+			throw new Error("connection reset");
+		};
+		try {
+			const error = await rejection(domain.createTransaction(ctx, input({ accountId: "chq", amount: 25 })));
+			expect(error.code).toBe("failed");
+			expect(error.message).toBe("Failed to create account transaction");
+		} finally {
+			fakeStore.postEntries = original;
+		}
 	});
 });
 

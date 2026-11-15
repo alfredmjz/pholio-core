@@ -5,7 +5,7 @@ import { z } from "zod";
 import { ActionError } from "@/lib/action-result";
 import { getReadContext } from "@/lib/data-context.server";
 import { defineAction } from "@/lib/define-action.server";
-import { dateStringSchema, idSchema, moneySchema } from "@/lib/action-schemas";
+import { dateStringSchema, idSchema, moneySchema, transactionIntentSchema } from "@/lib/action-schemas";
 import { createTransaction } from "@/lib/domain/transactions";
 import type { UnifiedTransactionInput } from "@/lib/types/unified-transaction";
 import type { TransactionType } from "@/app/accounts/types";
@@ -17,7 +17,7 @@ const presetSchema = z.object({
 	name: z.string().trim().min(1, "Give the preset a name."),
 	description: z.string(),
 	amount: moneySchema,
-	type: z.enum(["income", "expense", "transfer"]),
+	type: transactionIntentSchema,
 	transaction_type: z.string(),
 	category_id: idSchema.nullable(),
 	account_id: idSchema.nullable(),

@@ -9,4 +9,7 @@ export const moneySchema = z.number().finite("Enter a valid amount.");
 
 export const nonNegativeMoneySchema = moneySchema.nonnegative("Amount can't be negative.");
 
+/** What a transaction does in the budget, before the account-specific ledger type is resolved. */
+export const transactionIntentSchema = z.enum(["income", "expense", "transfer"]);
+
 export const displayOrderSchema = z.array(z.object({ id: idSchema, display_order: z.number().int() }));

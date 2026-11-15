@@ -4,6 +4,7 @@ import { isInvestmentAccount } from "@/lib/account-validation-utils";
 import { enteredStatement, isCardInterestWaived, lastEndedCycle } from "@/lib/credit-card-statement";
 import { getTodayDateString } from "@/lib/date-utils";
 import { overdraftInterest } from "@/lib/overdraft";
+import { ledgerEntriesArgs } from "@/lib/actions/transaction-store";
 
 /** Postgres error code for the one-interest-row-per-month index (migration 014). */
 const UNIQUE_VIOLATION = "23505";
@@ -46,32 +47,19 @@ export async function processGlobalMonthlyInterest(): Promise<{ success: boolean
 			// An investment's balance is the amount deposited; interest would make it a market value.
 			if (isInvestmentAccount({ account_type: type })) continue;
 			try {
-				const interestAmount = account.current_balance * (account.interest_rate / 12);
+				const interestAmount =
+					Math.round(Number(account.current_balance) * (Number(account.interest_rate) / 12) * 100) / 100;
 				if (interestAmount <= 0) continue;
 				if (await isStatementPaidInFull(supabase, account)) continue;
 
-				const { error: txError } = await supabase.from("account_transactions").insert({
-					account_id: account.id,
-					user_id: account.user_id,
-					amount: interestAmount,
-					transaction_type: "interest",
-					description: `Monthly ${account.interest_type ?? "compound"} interest`,
-					transaction_date: new Date().toISOString().split("T")[0],
-					interest_period: period,
-				});
-
-				// Another run posted this month between the check above and this insert.
-				if (txError?.code === UNIQUE_VIOLATION) continue;
-				if (txError) throw txError;
-
-				const { error: updateError } = await supabase
-					.from("accounts")
-					.update({ current_balance: account.current_balance + interestAmount })
-					.eq("id", account.id);
-
-				if (updateError) throw updateError;
-
-				processedCount++;
+				const isNew = await postInterest(
+					supabase,
+					account.id,
+					interestAmount,
+					`Monthly ${account.interest_type ?? "compound"} interest`,
+					period
+				);
+				if (isNew) processedCount++;
 			} catch (err) {
 				Logger.error(`Failed to process interest for account ${account.id}`, { error: err });
 			}
@@ -101,7 +89,7 @@ async function isStatementPaidInFull(
 ): Promise<boolean> {
 	const type = Array.isArray(account.account_types) ? account.account_types[0] : account.account_types;
 	if (type?.code !== "credit_card") return false;
-	const runDate = new Date().toISOString().split("T")[0];
+	const runDate = getTodayDateString();
 	const settings = { dueDay: account.payment_due_date, statementDay: account.statement_day };
 	const cycle = lastEndedCycle(settings, runDate);
 	if (!cycle) return false;
@@ -125,7 +113,7 @@ async function chargeOverdraftInterest(
 ): Promise<number> {
 	const { data: accounts, error } = await supabase
 		.from("accounts")
-		.select("id, user_id, current_balance, overdraft_interest_rate")
+		.select("id, current_balance, overdraft_interest_rate")
 		.eq("is_active", true)
 		.eq("overdraft_protection", true)
 		.gt("overdraft_interest_rate", 0)
@@ -142,30 +130,37 @@ async function chargeOverdraftInterest(
 		const amount = overdraftInterest(Number(account.current_balance), Number(account.overdraft_interest_rate));
 		if (amount === 0) continue;
 		try {
-			const { error: txError } = await supabase.from("account_transactions").insert({
-				account_id: account.id,
-				user_id: account.user_id,
-				amount,
-				transaction_type: "interest",
-				description: "Overdraft interest",
-				transaction_date: getTodayDateString(),
-				interest_period: period,
-			});
-			if (txError?.code === UNIQUE_VIOLATION) continue;
-			if (txError) throw txError;
-
-			const { error: updateError } = await supabase
-				.from("accounts")
-				.update({ current_balance: Math.round((Number(account.current_balance) + amount) * 100) / 100 })
-				.eq("id", account.id);
-			if (updateError) throw updateError;
-
-			charged++;
+			if (await postInterest(supabase, account.id, amount, "Overdraft interest", period)) charged++;
 		} catch (err) {
 			Logger.error(`Failed to charge overdraft interest for account ${account.id}`, { error: err });
 		}
 	}
 	return charged;
+}
+
+/**
+ * Posts one interest row and its balance change in one transaction through post_ledger_entries().
+ * False when another run already posted this account's interest for the month.
+ */
+async function postInterest(
+	supabase: ReturnType<typeof createAdminClient>,
+	accountId: string,
+	amount: number,
+	description: string,
+	period: string
+): Promise<boolean> {
+	const leg = {
+		accountId,
+		amount,
+		transactionType: "interest",
+		description,
+		date: getTodayDateString(),
+		interestPeriod: period,
+	};
+	const { error } = await supabase.rpc("post_ledger_entries", ledgerEntriesArgs(null, [leg]));
+	if (error?.code === UNIQUE_VIOLATION) return false;
+	if (error) throw error;
+	return true;
 }
 
 /** Accounts that already have an interest row for the month starting on `period`. */

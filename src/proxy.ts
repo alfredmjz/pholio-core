@@ -8,7 +8,7 @@ import { withoutUnknownParams } from "@/lib/page-params";
 /*
  * Server Components can't write cookies, this refresh expired Auth tokens and store them
  */
-export async function middleware(request: NextRequest) {
+export async function proxy(request: NextRequest) {
 	// Only full page loads: client navigations carry Next's own parameters.
 	if (request.headers.get("sec-fetch-dest") === "document") {
 		const kept = withoutUnknownParams(request.nextUrl.pathname, request.nextUrl.searchParams);

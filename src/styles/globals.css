@@ -6,9 +6,6 @@
 @tailwind components;
 @tailwind utilities;
 
-@import "./animations.css";
-@import "./surfaces.css";
-
 /* --------------------------------------------------------------------------
  * Typography system
  * One family, a small semantic scale, and shared roles for headings, copy,

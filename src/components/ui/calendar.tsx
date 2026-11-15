@@ -62,7 +62,7 @@ function DayGrid({
 					defaultClassNames.month_caption
 				),
 				caption_label: cn("type-body select-none font-semibold text-primary", defaultClassNames.caption_label),
-				table: "w-full border-collapse",
+				month_grid: cn("w-full border-collapse", defaultClassNames.month_grid),
 				weekdays: cn("flex", defaultClassNames.weekdays),
 				weekday: cn("type-body-xs flex-1 select-none font-normal text-muted-foreground", defaultClassNames.weekday),
 				week: cn("mt-1 flex w-full", defaultClassNames.week),

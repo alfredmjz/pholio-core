@@ -1,5 +1,5 @@
 import { supabase } from "@/lib/supabase/client";
-import * as XLSX from "xlsx";
+import writeExcelFile from "write-excel-file/browser";
 import { formatDateString } from "@/lib/date-utils";
 
 export type ExportRange = {
@@ -75,15 +75,10 @@ export async function exportTransactions(range: ExportRange, filename: string = 
 		"Is Recurring": t.is_recurring ? "Yes" : "No",
 	}));
 
-	// Create workbook and worksheet
-	const wb = XLSX.utils.book_new();
-	const ws = XLSX.utils.json_to_sheet(exportData);
+	const headers = Object.keys(exportData[0]) as (keyof ExportTransaction)[];
+	const sheetData = [headers, ...exportData.map((row) => headers.map((header) => row[header]))];
 
-	// Add worksheet to workbook
-	XLSX.utils.book_append_sheet(wb, ws, "Transactions");
-
-	// Generate file and trigger download
 	const finalFilename = filename.match(/\.(xlsx|xlr|csv)$/) ? filename : `${filename}.xlsx`;
 
-	XLSX.writeFile(wb, finalFilename);
+	await writeExcelFile(sheetData, { sheet: "Transactions" }).toFile(finalFilename);
 }

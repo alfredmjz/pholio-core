@@ -54,17 +54,17 @@ test("the old settings pages open their group", { tag: "@smoke" }, async ({ page
 
 test("the theme saves as soon as it's picked", { tag: "@smoke" }, async ({ page }) => {
 	await page.goto("/settings#appearance");
-	const theme = page.getByRole("group", { name: "Theme" });
+	const theme = page.getByRole("radiogroup", { name: "Theme" });
 
 	await theme.getByRole("radio", { name: "Dark" }).click();
 	await expect(page.locator("html")).toHaveClass(/dark/);
 	await page.reload();
-	await expect(page.getByRole("group", { name: "Theme" }).getByRole("radio", { name: "Dark" })).toHaveAttribute(
+	await expect(page.getByRole("radiogroup", { name: "Theme" }).getByRole("radio", { name: "Dark" })).toHaveAttribute(
 		"aria-checked",
 		"true"
 	);
 
-	await page.getByRole("group", { name: "Theme" }).getByRole("radio", { name: "Light" }).click();
+	await page.getByRole("radiogroup", { name: "Theme" }).getByRole("radio", { name: "Light" }).click();
 	await expect(page.locator("html")).not.toHaveClass(/dark/);
 });
 

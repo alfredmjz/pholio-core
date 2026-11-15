@@ -1,11 +1,16 @@
 import { test, expect, SIGNED_OUT } from "@/e2e/fixtures";
 import { NAV_DESTINATIONS } from "@/e2e/support/routes";
+import type { Page } from "@playwright/test";
+
+// React streams a page into a hidden copy at the end of the body before swapping it in, so the
+// first backdrop is always the one on screen.
+const onScreenBackdrop = (page: Page) => page.locator(".surface-backdrop").first();
 
 test("a new account starts on a cloudy sky on every main page", { tag: "@smoke" }, async ({ page }) => {
 	// Each run signs in a fresh user with no history, which is always graded cloudy.
 	for (const { path } of NAV_DESTINATIONS) {
 		await page.goto(path);
-		const backdrop = page.locator(".surface-backdrop");
+		const backdrop = onScreenBackdrop(page);
 		await expect(backdrop).toHaveAttribute("data-backdrop", "adaptive");
 		await expect(backdrop).toHaveAttribute("data-weather", "cloudy");
 		await expect(backdrop.locator("canvas")).toHaveCount(1);
@@ -13,7 +18,7 @@ test("a new account starts on a cloudy sky on every main page", { tag: "@smoke" 
 });
 
 test("the background setting changes the backdrop and is remembered", { tag: "@smoke" }, async ({ page }) => {
-	const backdrop = page.locator(".surface-backdrop");
+	const backdrop = onScreenBackdrop(page);
 	const choose = async (name: string) => {
 		await page.goto("/settings#appearance");
 		const option = page.getByRole("radio", { name });
@@ -39,7 +44,7 @@ test("the background setting changes the backdrop and is remembered", { tag: "@s
 test("a mood in the URL is dropped on load and never overrides the data", { tag: "@smoke" }, async ({ page }) => {
 	await page.goto("/dashboard?weather=rainy");
 	await expect(page).toHaveURL(/\/dashboard$/);
-	await expect(page.locator(".surface-backdrop")).toHaveAttribute("data-weather", "cloudy");
+	await expect(onScreenBackdrop(page)).toHaveAttribute("data-weather", "cloudy");
 
 	await page.goto("/allocations?year=2026&month=10&weather=rainy");
 	await expect(page).toHaveURL(/\/allocations\?year=2026&month=10$/);

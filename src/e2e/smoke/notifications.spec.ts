@@ -8,7 +8,7 @@ test("the bell opens reminders and what's new", { tag: "@smoke" }, async ({ page
 	await expect(bell).toHaveAccessibleName("Notifications");
 
 	await bell.click();
-	const show = page.getByRole("group", { name: "Show" });
+	const show = page.getByRole("radiogroup", { name: "Show" });
 	await expect(show.getByRole("radio", { name: "Account" })).toHaveAttribute("aria-checked", "true");
 	await expect(page.getByText(/Nothing coming up/)).toBeVisible();
 

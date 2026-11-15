@@ -61,7 +61,7 @@ test("the bell's dot shows unread reminders and releases until they're seen", as
 	await expect(bell).toHaveAccessibleName("Notifications, unread");
 
 	await bell.click();
-	const show = page.getByRole("group", { name: "Show" });
+	const show = page.getByRole("radiogroup", { name: "Show" });
 	await expect(show.getByRole("radio", { name: "Account, unread" })).toBeVisible();
 	await expect(page.getByRole("link", { name: /E2E Hydro/ })).toContainText("Bill, $82.40");
 	await show.getByRole("radio", { name: "What's new, unread" }).click();

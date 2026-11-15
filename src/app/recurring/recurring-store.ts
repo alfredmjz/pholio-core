@@ -105,7 +105,7 @@ function supabaseRecurringStore({ db, userId }: SupabaseContext): RecurringStore
 
 			const { data: dbPayments } = await db
 				.from("transactions")
-				.select("id, name, amount, transaction_date, recurring_expense_id, covers_due_date")
+				.select("id, name, amount, transaction_date, recurring_expense_id, covers_due_date, source")
 				.eq("user_id", userId)
 				.or(
 					`and(transaction_date.gte.${monthStart},transaction_date.lte.${monthEnd}),and(covers_due_date.gte.${monthStart},covers_due_date.lte.${monthEnd})`

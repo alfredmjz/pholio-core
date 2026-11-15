@@ -51,6 +51,31 @@ describe("enrichRecurringExpenses", () => {
 		expect(result.paid_amount).toBe(16);
 	});
 
+	test("a manual debt payment named Payment does not pay a recurring item with payment in its name", () => {
+		const item = expense({ id: "loc", name: "LOC payment", category: "transfer", next_due_date: "2026-06-20" });
+		const manualPayment = {
+			name: "Payment",
+			amount: 100,
+			transaction_date: "2026-06-10",
+			recurring_expense_id: null,
+			source: "transfer",
+		};
+		const [result] = enrichRecurringExpenses([item], [manualPayment], [], NOW);
+		expect([result.paid_count, result.occurrences_count, result.status]).toEqual([0, 1, "upcoming"]);
+	});
+
+	test("an older unlinked bill row still pays its item by name", () => {
+		const row = {
+			name: "Netflix",
+			amount: 16,
+			transaction_date: "2026-06-10",
+			recurring_expense_id: null,
+			source: "manual",
+		};
+		const [result] = enrichRecurringExpenses([expense({})], [row], [], NOW);
+		expect(result.paid_count).toBe(1);
+	});
+
 	test("returns nothing for no items", () => {
 		expect(enrichRecurringExpenses([], [], [], NOW)).toEqual([]);
 	});

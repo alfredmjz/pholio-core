@@ -2,6 +2,8 @@ import React from "react";
 import type { Metadata, Viewport } from "next";
 
 import "@/styles/globals.css";
+import "@/styles/animations.css";
+import "@/styles/surfaces.css";
 import "sonner/dist/styles.css";
 import LayoutWrapper from "@/components/layoutWrapper";
 import { SideBarComponent } from "@/components/sidebar/index";

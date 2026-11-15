@@ -67,6 +67,10 @@ function pickRecurring(accountId: string, rows: RecurringForAccountRow[]): Accou
 		.sort((a, b) => a.next_due_date.localeCompare(b.next_due_date));
 }
 
+/** A leg of a transfer, including a payment into a debt (its leg there is a payment row). */
+const isTransferLeg = (row: AccountTransaction) =>
+	row.transaction_type === "transfer" || (row.transaction_type === "payment" && !!row.linked_transfer_transaction_id);
+
 function supabaseAccountStore({ db, userId }: SupabaseContext): AccountStore {
 	/**
 	 * Adds each row's budget row (to link to Allocations) and, for a transfer leg, the account on the
@@ -76,13 +80,14 @@ function supabaseAccountStore({ db, userId }: SupabaseContext): AccountStore {
 	 */
 	async function attachTransactionLinks(rows: AccountTransaction[]): Promise<AccountTransaction[]> {
 		const unique = (ids: (string | null | undefined)[]) => Array.from(new Set(ids.filter((id): id is string => !!id)));
-		const transfers = rows.filter((row) => row.transaction_type === "transfer");
+		const transfers = rows.filter(isTransferLeg);
 		const budgetIds = unique(rows.map((row) => row.linked_allocation_transaction_id));
 		const transferBudgetIds = unique(transfers.map((row) => row.linked_allocation_transaction_id));
 		const pairedLegIds = unique(transfers.map((row) => row.linked_transfer_transaction_id));
 		if (budgetIds.length === 0 && pairedLegIds.length === 0) return rows;
 
-		const legColumns = "id, account_id, linked_allocation_transaction_id, account:accounts(id, name, institution)";
+		const legColumns =
+			"id, account_id, transaction_type, linked_allocation_transaction_id, account:accounts(id, name, institution)";
 		const [budgetResult, sharedLegResult, pairedLegResult] = await Promise.all([
 			budgetIds.length
 				? db
@@ -115,7 +120,7 @@ function supabaseAccountStore({ db, userId }: SupabaseContext): AccountStore {
 					? { id: budget.id, transaction_date: budget.transaction_date, category_name: budget.category?.name ?? null }
 					: null,
 			};
-			if (row.transaction_type !== "transfer") return linked;
+			if (!isTransferLeg(row)) return linked;
 
 			const otherLeg =
 				legs.find((leg) => leg.id === row.linked_transfer_transaction_id) ??
@@ -128,7 +133,13 @@ function supabaseAccountStore({ db, userId }: SupabaseContext): AccountStore {
 			const otherAccount = otherLeg?.account;
 			return {
 				...linked,
-				transfer_account: otherAccount ? { id: otherAccount.id, label: formatAccountDisplayName(otherAccount) } : null,
+				transfer_account: otherAccount
+					? {
+							id: otherAccount.id,
+							label: formatAccountDisplayName(otherAccount),
+							is_payment: row.transaction_type === "payment" || otherLeg?.transaction_type === "payment",
+						}
+					: null,
 			};
 		});
 	}

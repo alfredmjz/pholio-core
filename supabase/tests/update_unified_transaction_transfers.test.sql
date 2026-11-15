@@ -128,7 +128,7 @@ SELECT ok(pg_temp.edit('d6000000-0000-0000-0000-000000000001', 'transfer', 150, 
 SELECT is(pg_temp.balance('c6000000-0000-0000-0000-000000000002'), 500.00, 'the old destination gets its money back out');
 SELECT is(pg_temp.balance('c6000000-0000-0000-0000-000000000003'), 250.00, 'the new card destination has its debt paid down');
 SELECT is((pg_temp.to_leg('d6000000-0000-0000-0000-000000000001')).amount, -150.00, 'liability to-leg is -150');
-SELECT is((pg_temp.to_leg('d6000000-0000-0000-0000-000000000001')).transaction_type, 'transfer', 'the new to-leg is a transfer');
+SELECT is((pg_temp.to_leg('d6000000-0000-0000-0000-000000000001')).transaction_type, 'payment', 'the new to-leg on a card is a payment');
 SELECT is(pg_temp.leg_count('d6000000-0000-0000-0000-000000000001'), 2, 'changing the destination leaves two legs');
 SELECT ok(pg_temp.legs_linked('d6000000-0000-0000-0000-000000000001'), 'the legs are linked to each other after a destination change');
 

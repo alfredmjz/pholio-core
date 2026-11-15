@@ -114,7 +114,7 @@ SELECT is(
 SELECT pg_temp.run('d9000000-0000-0000-0000-000000000002', 'e9000000-0000-0000-0000-000000000002', '2026-11-01');
 SELECT is(pg_temp.balance('c9000000-0000-0000-0000-000000000001'), 350.00, 'the card payment takes 150 from chequing (500 - 150)');
 SELECT is(pg_temp.balance('c9000000-0000-0000-0000-000000000003'), 250.00, 'and lowers the card debt by 150 (400 - 150)');
-SELECT is(pg_temp.leg('d9000000-0000-0000-0000-000000000002', 'c9000000-0000-0000-0000-000000000003'), '-150.00 transfer', 'the card leg is a -150 transfer');
+SELECT is(pg_temp.leg('d9000000-0000-0000-0000-000000000002', 'c9000000-0000-0000-0000-000000000003'), '-150.00 payment', 'the card leg is a -150 payment (a transfer into a debt pays it down)');
 
 SELECT pg_temp.run('d9000000-0000-0000-0000-000000000003', 'e9000000-0000-0000-0000-000000000003', '2026-11-02');
 SELECT is(pg_temp.balance('c9000000-0000-0000-0000-000000000003'), 350.00, 'moving 100 off the card adds to its debt (250 + 100)');

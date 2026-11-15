@@ -7,7 +7,7 @@ import { getSampleRecentTransactions } from "@/mock-data/dashboard";
 import type { AccountWithType, AccountTransaction, TransactionType } from "@/app/accounts/types";
 import type { Transaction } from "@/app/dashboard/types";
 import type { UnifiedTransactionInput } from "@/lib/types/unified-transaction";
-import { calculateSignedDelta, resolveAccountTransactionType } from "@/lib/account-validation-utils";
+import { calculateSignedDelta, resolveAccountTransactionType, transferInLegType } from "@/lib/account-validation-utils";
 
 /** A ledger row to record against one account; the store fills in the id and metadata. */
 export interface DemoLedgerEntry {
@@ -124,12 +124,14 @@ export function recordDemoUnifiedTransaction(input: UnifiedTransactionInput) {
 	if (input.type === "transfer") {
 		const from = findAccount(input.fromAccountId);
 		const to = findAccount(input.toAccountId);
+		const inType = to ? transferInLegType(to) : "transfer";
 		if (from) {
 			entries.push({
 				account_id: from.id,
 				amount: calculateSignedDelta(from, "transfer", undefined, input.amount),
 				transaction_type: "transfer",
-				description: input.description || `Transfer to ${to?.name ?? "account"}`,
+				description:
+					input.description || `${inType === "payment" ? "Payment" : "Transfer"} to ${to?.name ?? "account"}`,
 				transaction_date: input.date,
 			});
 		}
@@ -137,8 +139,9 @@ export function recordDemoUnifiedTransaction(input: UnifiedTransactionInput) {
 			entries.push({
 				account_id: to.id,
 				amount: -calculateSignedDelta(to, "transfer", undefined, input.amount),
-				transaction_type: "transfer",
-				description: input.description || `Transfer from ${from?.name ?? "account"}`,
+				transaction_type: inType,
+				description:
+					input.description || `${inType === "payment" ? "Payment" : "Transfer"} from ${from?.name ?? "account"}`,
 				transaction_date: input.date,
 			});
 		}

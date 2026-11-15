@@ -12,6 +12,16 @@ export interface ChangelogEntry {
 /** What's new in Pholio, newest first. Every user-facing release adds an entry at the top. */
 export const CHANGELOG: ChangelogEntry[] = [
 	{
+		id: "2026-11-debt-payments",
+		date: "2026-11-15",
+		title: "Payments on cards, loans and lines of credit",
+		items: [
+			"Record Payment now moves money from the account you pay with into the debt, and both accounts show it as a payment. It no longer shows up as income.",
+			"A payment never counts as spending, since the charges were already counted when you made them.",
+			"You can set up a recurring payment into a card, loan or line of credit, even from another card, and it shows on both accounts.",
+		],
+	},
+	{
 		id: "2026-11-contributed-this-year",
 		date: "2026-11-15",
 		title: "Set what you've contributed this year",

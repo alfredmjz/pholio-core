@@ -9,6 +9,18 @@ export interface MonthPayment {
 	transaction_date: string;
 	recurring_expense_id: string | null;
 	covers_due_date?: string | null;
+	source?: string | null;
+}
+
+/**
+ * An unlinked row whose name overlaps the item's name counts as paying it (older rows predate the
+ * recurring link). Transfers and debt payments are never bills, so they never match by name.
+ */
+function matchesByName(t: MonthPayment, expenseName: string): boolean {
+	if (t.recurring_expense_id || t.source === "transfer") return false;
+	const name = t.name.toLowerCase();
+	const target = expenseName.toLowerCase();
+	return name.includes(target) || target.includes(name);
 }
 
 export interface RecordedOccurrence {
@@ -46,13 +58,7 @@ export function enrichRecurringExpenses(
 			if (manualMatches.length > 0) {
 				paidAmount = manualMatches.reduce((sum, t) => sum + Math.abs(t.amount), 0);
 			} else {
-				const autoMatches = transactions.filter(
-					(t) =>
-						// Ensure not linked to another expense
-						!t.recurring_expense_id &&
-						(t.name.toLowerCase().includes(expense.name.toLowerCase()) ||
-							expense.name.toLowerCase().includes(t.name.toLowerCase()))
-				);
+				const autoMatches = transactions.filter((t) => matchesByName(t, expense.name));
 				paidAmount = autoMatches.reduce((sum, t) => sum + Math.abs(t.amount), 0);
 			}
 		}
@@ -60,11 +66,7 @@ export function enrichRecurringExpenses(
 		// Calculate Counts
 
 		const paidTransactions = transactions.filter(
-			(t) =>
-				t.recurring_expense_id === expense.id ||
-				(!t.recurring_expense_id &&
-					(t.name.toLowerCase().includes(expense.name.toLowerCase()) ||
-						expense.name.toLowerCase().includes(t.name.toLowerCase())))
+			(t) => t.recurring_expense_id === expense.id || matchesByName(t, expense.name)
 		);
 		const paidCount = paidTransactions.length;
 

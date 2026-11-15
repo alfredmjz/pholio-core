@@ -10,6 +10,7 @@ type Domain = typeof import("@/lib/domain/transactions");
 const accounts = new Map<string, AccountWithType>();
 let savedRow: SavedBudgetRow | null = null;
 const writes: string[] = [];
+const legTypes: string[] = [];
 
 const fakeStore: TransactionStore = {
 	listSelectableAccounts: async () => Array.from(accounts.values()),
@@ -21,6 +22,7 @@ const fakeStore: TransactionStore = {
 		for (const leg of legs) {
 			const pair = leg.transferPair === undefined ? "" : ` pair ${leg.transferPair}`;
 			writes.push(`ledger ${leg.accountId} ${leg.amount}${pair}`);
+			legTypes.push(`${leg.accountId} ${leg.transactionType} ${leg.description}`);
 		}
 		return { budgetRowId: budgetRow ? "budget-1" : null, legIds: legs.map((leg) => `ledger-${leg.accountId}`) };
 	},
@@ -49,6 +51,7 @@ beforeEach(() => {
 	accounts.clear();
 	savedRow = null;
 	writes.length = 0;
+	legTypes.length = 0;
 });
 
 function account(
@@ -246,6 +249,47 @@ describe("createTransaction caps on a transfer", () => {
 			domain.createTransaction(ctx, input({ type: "transfer", fromAccountId: "chq", toAccountId: "chq", amount: 1 }))
 		);
 		expect(same.message).toBe("Source and destination accounts must be different");
+	});
+});
+
+describe("debt payments are transfers", () => {
+	test("a transfer into a liability writes a payment leg there and keeps the budget row a transfer", async () => {
+		account("chq", "asset", 1000);
+		account("loc", "liability", 500);
+		await domain.createTransaction(
+			ctx,
+			input({ type: "transfer", fromAccountId: "chq", toAccountId: "loc", amount: 100, description: "" })
+		);
+		expect(writes).toEqual(["budget 100", "ledger chq -100 pair 1", "ledger loc -100 pair 0"]);
+		expect(legTypes).toEqual(["chq transfer Payment to loc", "loc payment Payment from chq"]);
+	});
+
+	test("a card paying a line of credit draws on the card and pays the line", async () => {
+		account("amex", "liability", 200, { credit_limit: 5000 } as Partial<AccountWithType>);
+		account("loc", "liability", 500);
+		await domain.createTransaction(
+			ctx,
+			input({ type: "transfer", fromAccountId: "amex", toAccountId: "loc", amount: 100 })
+		);
+		expect(writes).toEqual(["budget 100", "ledger amex 100 pair 1", "ledger loc -100 pair 0"]);
+		expect(legTypes.map((leg) => leg.split(" ").slice(0, 2).join(" "))).toEqual(["amex transfer", "loc payment"]);
+	});
+
+	test("a transfer between assets stays a transfer on both sides", async () => {
+		account("chq", "asset", 1000);
+		account("sav", "asset", 0);
+		await domain.createTransaction(
+			ctx,
+			input({ type: "transfer", fromAccountId: "chq", toAccountId: "sav", amount: 50, description: "" })
+		);
+		expect(legTypes).toEqual(["chq transfer Transfer to sav", "sav transfer Transfer from chq"]);
+	});
+
+	test("editing a payment leg keeps its budget row positive, so it never counts as spending", () => {
+		expect(domain.editedBudgetAmount("payment", true, 120)).toBe(120);
+		expect(domain.editedBudgetAmount("payment", false, 120)).toBe(-120);
+		expect(domain.editedBudgetAmount("withdrawal", false, 120)).toBe(-120);
+		expect(domain.editedBudgetAmount("deposit", false, 120)).toBe(120);
 	});
 });
 

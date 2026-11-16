@@ -49,14 +49,17 @@ test("a recurring bill pays down a mortgage", async ({ page }, testInfo) => {
 	await expect(row.getByText("pays down")).toBeVisible();
 	await row.getByRole("button", { name: "Pay", exact: true }).click();
 	await expect(page.getByText(`${name} marked as paid`)).toBeVisible();
+	await expect(row.getByText("1 of 1 paid this month")).toBeVisible();
 
-	await page.goto("/accounts");
-	await page.getByRole("link", { name: new RegExp(mortgage) }).click();
+	// Leave through the row's links, as a user would; a full page load can cut off the refresh.
+	await row.getByRole("link", { name: mortgage, exact: true }).click();
+	await expect(page).toHaveURL(/\/accounts\/[\w-]+$/);
 	await expect(page.getByText("$600.00").first()).toBeVisible();
 	await expect(page.getByText(`Payment from ${chequing}`, { exact: false }).first()).toBeVisible();
 
-	await page.goto("/accounts");
-	await page.getByRole("link", { name: new RegExp(chequing) }).click();
+	await page.goBack();
+	await row.getByRole("link", { name: chequing, exact: true }).click();
+	await expect(page).toHaveURL(/\/accounts\/[\w-]+$/);
 	await expect(page.getByText("$700.00").first()).toBeVisible();
 	await expect(page.getByText(`Payment to ${mortgage}`, { exact: false }).first()).toBeVisible();
 });

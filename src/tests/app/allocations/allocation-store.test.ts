@@ -35,6 +35,16 @@ describe("demo allocation store", () => {
 		expect(transactions.every((t) => new Date(t.transaction_date).getMonth() + 1 === 11)).toBe(true);
 	});
 
+	test("export reads every demo month in the range and nothing outside it", async () => {
+		const store = allocationStore(demo("export"));
+		const rows = await store.listTransactionsBetween("2026-10-01", "2026-11-30");
+		const october = await store.listTransactionsForMonth(2026, 10);
+		const november = await store.listTransactionsForMonth(2026, 11);
+
+		expect(rows.length).toBe(october.length + november.length);
+		expect(rows.every((t) => /^2026-1[01]-\d{2}$/.test(t.transaction_date))).toBe(true);
+	});
+
 	test("summary totals follow the categories and expected income", async () => {
 		const store = allocationStore(demo("totals"));
 		const allocation = await store.findOrCreate(2026, 11, 0);

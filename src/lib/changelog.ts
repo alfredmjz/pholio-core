@@ -12,6 +12,15 @@ export interface ChangelogEntry {
 /** What's new in Pholio, newest first. Every user-facing release adds an entry at the top. */
 export const CHANGELOG: ChangelogEntry[] = [
 	{
+		id: "2026-11-excel-export-only",
+		date: "2026-11-15",
+		title: "A simpler transaction export",
+		items: [
+			"Exporting transactions from Allocations now downloads an Excel file only. The Open in Sheets option is gone, and you can still open the file in Google Sheets yourself.",
+			"Exported dates now match the dates you entered, and recurring payments are marked as recurring.",
+		],
+	},
+	{
 		id: "2026-11-debt-payments",
 		date: "2026-11-15",
 		title: "Payments on cards, loans and lines of credit",

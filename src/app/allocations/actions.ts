@@ -4,10 +4,19 @@ import { revalidatePath } from "next/cache";
 import { z } from "zod";
 import { getReadContext } from "@/lib/data-context.server";
 import { defineAction } from "@/lib/define-action.server";
+import { ActionError } from "@/lib/action-result";
 import { displayOrderSchema, idSchema, nonNegativeMoneySchema } from "@/lib/action-schemas";
 import type { Allocation, AllocationPageData, AllocationSummary, IncomeVerificationResult, Transaction } from "./types";
 import { allocationStore, type HistoricalPace, type TemplateListItem } from "./allocation-store";
 import { loadAllocationPageData } from "./page-data.server";
+import {
+	EXPORT_HEADERS,
+	MAX_EXPORT_MONTHS,
+	exportFilename,
+	monthsInRange,
+	rangeDates,
+	toExportRows,
+} from "./export-rows";
 
 const yearSchema = z.number().int().min(1970, "Pick a valid year.").max(9999, "Pick a valid year.");
 const monthSchema = z.number().int().min(1, "Pick a valid month.").max(12, "Pick a valid month.");
@@ -46,6 +55,19 @@ export async function getTransactionsForMonth(year: number, month: number): Prom
 	const ctx = await getReadContext();
 	return ctx ? allocationStore(ctx).listTransactionsForMonth(year, month) : [];
 }
+
+const monthRangeSchema = z
+	.object({ startYear: yearSchema, startMonth: monthSchema, endYear: yearSchema, endMonth: monthSchema })
+	.refine((r) => monthsInRange(r) >= 1, "The end month can't be before the start month.")
+	.refine((r) => monthsInRange(r) <= MAX_EXPORT_MONTHS, `Export at most ${MAX_EXPORT_MONTHS / 12} years at a time.`);
+
+/** Rows for the Excel download, read on the server so RLS and demo mode apply. */
+export const exportTransactions = defineAction("exportTransactions", [monthRangeSchema], async (ctx, range) => {
+	const { startDate, endDate } = rangeDates(range);
+	const rows = toExportRows(await allocationStore(ctx).listTransactionsBetween(startDate, endDate));
+	if (rows.length === 0) throw new ActionError("not_found", "No transactions in the selected months.");
+	return { headers: [...EXPORT_HEADERS], rows, filename: exportFilename(range) };
+});
 
 /** The page's catch-up refetch; the focus refetch reads the same data from /api/allocations/page-data. */
 export async function getAllocationPageData(

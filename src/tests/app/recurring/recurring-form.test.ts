@@ -1,5 +1,7 @@
 import { describe, expect, test } from "bun:test";
 import {
+	canPayBillsFrom,
+	canPayDown,
 	emptyRecurringForm,
 	expenseToForm,
 	formToPayload,
@@ -7,6 +9,7 @@ import {
 	validateRecurringForm,
 } from "@/app/recurring/components/recurring-form";
 import type { RecurringExpense } from "@/app/recurring/actions";
+import { makeAccount } from "../../support/contribution-fixtures";
 
 const expense = (overrides: Partial<RecurringExpense> = {}) =>
 	({
@@ -74,6 +77,16 @@ describe("validateRecurringForm", () => {
 		});
 		expect(validateRecurringForm(form({ ...transfer, to_account_id: "b" })).ok).toBe(true);
 	});
+
+	test("a bill can't be paid from the debt it pays down", () => {
+		const bill = { category: "bill", account_id: "chq", to_account_id: "mortgage" };
+		expect(validateRecurringForm(form(bill)).ok).toBe(true);
+		expect(validateRecurringForm(form({ ...bill, account_id: NO_ACCOUNT })).ok).toBe(true);
+		expect(validateRecurringForm(form({ ...bill, account_id: "mortgage" }))).toMatchObject({
+			ok: false,
+			description: "A bill can't be paid from the debt it pays down.",
+		});
+	});
 });
 
 describe("formToPayload", () => {
@@ -108,6 +121,42 @@ describe("formToPayload", () => {
 			{ amount: 1, frequencyValue: 1 }
 		);
 		expect(payload).toMatchObject({ budget_category: null, account_id: "a", to_account_id: "b" });
+	});
+
+	test("a bill keeps the debt it pays down and its budget category", () => {
+		const payload = formToPayload(
+			form({ category: "bill", budget_category: "Housing", account_id: "chq", to_account_id: "mortgage" }),
+			{ amount: 1, frequencyValue: 1 }
+		);
+		expect(payload).toMatchObject({ budget_category: "Housing", account_id: "chq", to_account_id: "mortgage" });
+		const none = formToPayload(form({ category: "bill", to_account_id: "" }), { amount: 1, frequencyValue: 1 });
+		expect(none.to_account_id).toBeNull();
+	});
+
+	test("a subscription never pays down a debt", () => {
+		const payload = formToPayload(form({ category: "subscription", to_account_id: "card" }), {
+			amount: 1,
+			frequencyValue: 1,
+		});
+		expect(payload.to_account_id).toBeNull();
+	});
+});
+
+describe("bill accounts", () => {
+	const chequing = makeAccount({ code: "chequing" });
+	const card = makeAccount({ accountClass: "liability", code: "credit_card" });
+	const lineOfCredit = makeAccount({ accountClass: "liability", code: "line_of_credit" });
+	const mortgage = makeAccount({ accountClass: "liability", code: "mortgage" });
+	const loan = makeAccount({ accountClass: "liability", code: "loan" });
+
+	test("bills are paid from anything but a mortgage or loan", () => {
+		expect([chequing, card, lineOfCredit].every(canPayBillsFrom)).toBe(true);
+		expect([mortgage, loan].some(canPayBillsFrom)).toBe(false);
+	});
+
+	test("a bill pays down any debt, never an asset", () => {
+		expect([card, lineOfCredit, mortgage, loan].every(canPayDown)).toBe(true);
+		expect(canPayDown(chequing)).toBe(false);
 	});
 });
 

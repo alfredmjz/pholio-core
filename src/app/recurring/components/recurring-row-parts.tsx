@@ -38,7 +38,7 @@ function AccountLink({ account, title }: { account: AccountWithType; title: stri
 
 /**
  * Logo, name, how often it repeats, "Auto" when it's recorded automatically, and the account it's
- * paid from (a transfer shows both of its accounts).
+ * paid from (a transfer shows both of its accounts, a bill the debt it pays down).
  */
 export function RecurringIdentity({
 	expense,
@@ -46,12 +46,14 @@ export function RecurringIdentity({
 	automated = false,
 	account = null,
 	toAccount = null,
+	paysDown = null,
 }: {
 	expense: RecurringExpense;
 	muted?: boolean;
 	automated?: boolean;
 	account?: AccountWithType | null;
 	toAccount?: AccountWithType | null;
+	paysDown?: AccountWithType | null;
 }) {
 	const meta = expense.meta_data as { domain?: string; no_logo_lookup?: boolean } | null;
 	return (
@@ -109,6 +111,12 @@ export function RecurringIdentity({
 						<ArrowRight className="h-3 w-3 shrink-0" aria-hidden />
 						<span className="sr-only">to</span>
 						<AccountLink account={toAccount} title={`To ${formatAccountDisplayName(toAccount)}`} />
+					</p>
+				)}
+				{paysDown && (
+					<p className="type-body-xs flex min-w-0 items-center gap-1 text-muted-foreground">
+						<span className="shrink-0">pays down</span>
+						<AccountLink account={paysDown} title={`Pays down ${formatAccountDisplayName(paysDown)}`} />
 					</p>
 				)}
 			</div>

@@ -260,6 +260,24 @@ export function getMockRecurringExpenses(now: Date = getDemoNow()): RecurringExp
         created_at: iso,
         updated_at: iso,
     },
+    {
+        id: "mock-15",
+        user_id: "mock-user",
+        name: "Student loan payment",
+        amount: 320.00,
+        currency: "USD",
+        billing_period: "1:months",
+        next_due_date: new Date(y, m, 28).toISOString(),
+        category: "bill",
+        budget_category: null,
+        account_id: "acc-1",
+        to_account_id: "acc-5",
+        is_active: true,
+        service_provider: null,
+        meta_data: { no_logo_lookup: true, is_automated: true },
+        created_at: iso,
+        updated_at: iso,
+    },
 	];
 }
 

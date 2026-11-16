@@ -70,6 +70,7 @@ export function BillRow({
 	const isFullyPaid = paid >= (total || 1);
 	const canPay = !isAutomated && !isFullyPaid;
 	const account = accounts.find((a) => a.id === bill.account_id) ?? null;
+	const paysDown = accounts.find((a) => a.id === bill.to_account_id) ?? null;
 
 	const handleDelete = async () => {
 		setIsDeleting(true);
@@ -150,7 +151,7 @@ export function BillRow({
 				onClick={() => setIsEditOpen(true)}
 			>
 				<div className="flex items-center justify-between gap-3 row-wide:block">
-					<RecurringIdentity expense={bill} automated={isAutomated} account={account} />
+					<RecurringIdentity expense={bill} automated={isAutomated} account={account} paysDown={paysDown} />
 					<span className="type-value shrink-0 text-primary row-wide:hidden">
 						{formatCurrency(Number(bill.amount), { showCents: true })}
 					</span>

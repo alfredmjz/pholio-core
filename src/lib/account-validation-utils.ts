@@ -143,7 +143,7 @@ export function resolveAccountTransactionType(
 ): string {
 	const isAsset = account.account_type?.class !== "liability";
 	return intent === "income"
-		? transactionType || (isAsset ? "deposit" : "payment")
+		? transactionType || (isAsset ? "deposit" : "refund")
 		: transactionType || (isAsset ? "withdrawal" : "adjustment");
 }
 

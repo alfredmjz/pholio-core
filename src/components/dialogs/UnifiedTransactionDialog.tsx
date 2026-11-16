@@ -639,6 +639,28 @@ export function UnifiedTransactionDialog({
 											</div>
 										)}
 
+										{type === "income" && accountIsLiability && (
+											<p className="type-body-xs flex items-start gap-2 text-muted-foreground">
+												<Info className="mt-0.5 h-3.5 w-3.5 shrink-0" />
+												<span>
+													Income on a debt is a refund. To pay it down,{" "}
+													<button
+														type="button"
+														className="font-medium text-primary underline underline-offset-2"
+														onClick={() => {
+															setToAccountId(accountId);
+															setFromAccountId("none");
+															setType("transfer");
+															setTransferStep("route");
+														}}
+													>
+														record a transfer into it
+													</button>
+													.
+												</span>
+											</p>
+										)}
+
 										{isAllocationsContext && type === "income" && (
 											<div className="space-y-2">
 												<Label htmlFor="incomeSource">Income source</Label>

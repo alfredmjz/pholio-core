@@ -141,7 +141,7 @@ SELECT pg_temp.record('d5000000-0000-0000-0000-000000000003', 'c5000000-0000-000
 SELECT ok(pg_temp.edit('d5000000-0000-0000-0000-000000000003', 'c5000000-0000-0000-0000-000000000002', 'income', 100), 'moving a deposit to the card succeeds');
 SELECT is(pg_temp.balance('c5000000-0000-0000-0000-000000000001'), 1080.00, 'moving the deposit off chequing removes it');
 SELECT is(pg_temp.balance('c5000000-0000-0000-0000-000000000002'), 400.00, 'the moved deposit pays down the card');
-SELECT is((SELECT transaction_type FROM pg_temp.ledger('d5000000-0000-0000-0000-000000000003')), 'payment', 'a deposit moved to a liability becomes a payment');
+SELECT is((SELECT transaction_type FROM pg_temp.ledger('d5000000-0000-0000-0000-000000000003')), 'refund', 'a deposit moved to a liability becomes a refund (paying a debt is a transfer)');
 SELECT is((SELECT amount FROM pg_temp.ledger('d5000000-0000-0000-0000-000000000003')), -100.00, 'the resulting payment is negative');
 
 SELECT ok(pg_temp.edit('d5000000-0000-0000-0000-000000000003', 'c5000000-0000-0000-0000-000000000003', 'income', 100, 'refund'), 'moving with an explicit refund type succeeds');

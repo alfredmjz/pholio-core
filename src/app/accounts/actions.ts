@@ -174,11 +174,11 @@ export interface AccountRecurringItem {
 	billing_period: string;
 	next_due_date: string;
 	category: string;
-	/** "in" for a recurring transfer into this account; everything else takes money out. */
+	/** "in" for a transfer into this account or a bill that pays it down; everything else takes money out. */
 	direction: "in" | "out";
 }
 
-/** Active bills, subscriptions and transfers paid from this account, and transfers into it, soonest first. */
+/** Active bills, subscriptions and transfers paid from this account, and those paying into it, soonest first. */
 export async function getRecurringForAccount(accountId: string): Promise<AccountRecurringItem[]> {
 	const ctx = await getReadContext();
 	return ctx ? accountStore(ctx).listRecurring(accountId) : [];

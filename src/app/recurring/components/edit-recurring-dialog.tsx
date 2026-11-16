@@ -17,7 +17,7 @@ import { ProminentAmountInput } from "@/components/ProminentAmountInput";
 import { sanitizePositiveIntegerInput } from "@/lib/input-utils";
 import type { AccountWithType } from "@/app/accounts/types";
 import { cn } from "@/lib/utils";
-import { NO_ACCOUNT, RecurringAccountField } from "./recurring-account-field";
+import { NO_ACCOUNT, RecurringAccountField, RecurringDebtField } from "./recurring-account-field";
 import { RecurringTransferFields } from "./recurring-transfer-fields";
 import {
 	emptyRecurringForm,
@@ -242,7 +242,22 @@ export function EditRecurringDialog({
 					<RecurringAccountField
 						id="edit-recurring-account"
 						value={formData.account_id}
-						onChange={(v) => setFormData({ ...formData, account_id: v })}
+						onChange={(v) =>
+							setFormData({
+								...formData,
+								account_id: v,
+								to_account_id: v === formData.to_account_id ? "" : formData.to_account_id,
+							})
+						}
+						accounts={accounts}
+					/>
+				)}
+				{formData.category === "bill" && (
+					<RecurringDebtField
+						id="edit-recurring-pays-down"
+						value={formData.to_account_id}
+						onChange={(v) => setFormData({ ...formData, to_account_id: v })}
+						paidFromId={formData.account_id}
 						accounts={accounts}
 					/>
 				)}

@@ -298,7 +298,6 @@ function supabaseAccountStore({ db, userId }: SupabaseContext): AccountStore {
 					.from("recurring_expenses")
 					.select(columns)
 					.eq("user_id", userId)
-					.eq("category", "transfer")
 					.eq("to_account_id", accountId)
 					.eq("is_active", true),
 			]);
@@ -487,9 +486,7 @@ function demoAccountStore(_ctx: DemoContext): AccountStore {
 			return pickRecurring(
 				accountId,
 				getMockRecurringExpenses().filter(
-					(item) =>
-						(item.account_id === accountId || (item.category === "transfer" && item.to_account_id === accountId)) &&
-						item.is_active !== false
+					(item) => (item.account_id === accountId || item.to_account_id === accountId) && item.is_active !== false
 				)
 			);
 		},

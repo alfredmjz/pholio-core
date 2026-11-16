@@ -45,7 +45,7 @@ test("a new account names itself once, then goes where the link pointed", async 
 	await page.goto("/welcome");
 	await expect(page).toHaveURL(/\/dashboard$/);
 	// The greeting uses the first name.
-	await expect(page.getByText(/, Alex$/)).toBeVisible();
+	await expect(page.getByText(/, Alex$/).filter({ visible: true })).toBeVisible();
 });
 
 test("an existing account without a name is asked before the dashboard", async ({ page }) => {

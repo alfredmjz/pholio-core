@@ -12,6 +12,16 @@ export interface ChangelogEntry {
 /** What's new in Pholio, newest first. Every user-facing release adds an entry at the top. */
 export const CHANGELOG: ChangelogEntry[] = [
 	{
+		id: "2026-11-bills-pay-down-debt",
+		date: "2026-11-16",
+		title: "Bills that pay down a mortgage or loan",
+		items: [
+			"A recurring bill can now pay down a mortgage, loan, line of credit or card. Each payment leaves the account you pay from, lowers what you owe, and still counts in your budget.",
+			"Mortgages and loans no longer show up as an account to pay bills from.",
+			"Income on a card, loan or line of credit is now only a refund. To pay one down, record a transfer into it.",
+		],
+	},
+	{
 		id: "2026-11-excel-export-only",
 		date: "2026-11-15",
 		title: "A simpler transaction export",

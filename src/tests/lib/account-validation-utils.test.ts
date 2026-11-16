@@ -4,7 +4,9 @@ import {
 	calculateSignedDelta,
 	checkTransactionCaps,
 	isInvestmentAccount,
+	resolveAccountTransactionType,
 } from "@/lib/account-validation-utils";
+import { getAccountTransactionTypeOptions, getDefaultAccountTransactionType } from "@/lib/account-transaction-types";
 import type { AccountTransaction } from "@/app/accounts/types";
 import { makeAccount } from "../support/contribution-fixtures";
 
@@ -52,6 +54,25 @@ describe("calculateSignedDelta", () => {
 	test("transfers follow the account class, ignoring the transaction type", () => {
 		expect(calculateSignedDelta(chequing, "transfer", "deposit", 50)).toBe(-50);
 		expect(calculateSignedDelta(card, "transfer", "payment", 50)).toBe(50);
+	});
+});
+
+describe("income on a debt", () => {
+	test("is a refund: Payment is not offered, since paying a debt is a transfer into it", () => {
+		expect(getAccountTransactionTypeOptions(true, "income").map((option) => option.value)).toEqual(["refund"]);
+		expect(getDefaultAccountTransactionType(true, "income")).toBe("refund");
+		expect(resolveAccountTransactionType(card, "income", undefined)).toBe("refund");
+		expect(calculateSignedDelta(card, "income", undefined, 50)).toBe(-50);
+	});
+
+	test("assets keep their income types and Payment as an expense", () => {
+		expect(getAccountTransactionTypeOptions(false, "income").map((option) => option.value)).toEqual([
+			"contribution",
+			"deposit",
+			"refund",
+		]);
+		expect(getAccountTransactionTypeOptions(false, "expense").map((option) => option.value)).toContain("payment");
+		expect(resolveAccountTransactionType(chequing, "income", undefined)).toBe("deposit");
 	});
 });
 

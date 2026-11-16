@@ -7,8 +7,8 @@ export interface AccountTransactionTypeOption {
 
 /**
  * Account transaction types offered for an income or expense, by account class.
- * On a liability, income reduces the debt (payment, refund) and an expense adds to it
- * (a charge is stored as `adjustment`, the liability default in calculateTransactionDetails).
+ * On a liability, income is a refund that reduces the debt (a payment is a transfer into it) and an
+ * expense adds to it (a charge is stored as `adjustment`).
  * Each list is in alphabetical order of its label (ADR-003).
  */
 const ACCOUNT_TRANSACTION_TYPE_OPTIONS: Record<
@@ -28,10 +28,7 @@ const ACCOUNT_TRANSACTION_TYPE_OPTIONS: Record<
 		],
 	},
 	liability: {
-		income: [
-			{ value: "payment", label: "💳 Payment" },
-			{ value: "refund", label: "🔄 Refund" },
-		],
+		income: [{ value: "refund", label: "🔄 Refund" }],
 		expense: [
 			{ value: "interest", label: "📈 Interest" },
 			{ value: "adjustment", label: "🛒 Purchase / Charge" },
@@ -39,10 +36,10 @@ const ACCOUNT_TRANSACTION_TYPE_OPTIONS: Record<
 	},
 };
 
-/** Types an account starts on: deposit/withdrawal on assets, payment/charge on liabilities. */
+/** Types an account starts on: deposit/withdrawal on assets, refund/charge on liabilities. */
 const DEFAULT_ACCOUNT_TRANSACTION_TYPE: Record<"asset" | "liability", Record<"income" | "expense", TransactionType>> = {
 	asset: { income: "deposit", expense: "withdrawal" },
-	liability: { income: "payment", expense: "adjustment" },
+	liability: { income: "refund", expense: "adjustment" },
 };
 
 export function getAccountTransactionTypeOptions(

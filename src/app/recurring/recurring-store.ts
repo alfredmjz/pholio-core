@@ -45,6 +45,8 @@ export interface RecurringStore {
 	findKind(id: string): Promise<RecurringKindFields | null>;
 	/** A transfer posts only between two different accounts that are both still active. */
 	transferAccountsAreUsable(row: { account_id?: string | null; to_account_id?: string | null }): Promise<boolean>;
+	/** A bill pays down an open debt the user holds, other than the account it's paid from. */
+	debtAccountIsUsable(row: { account_id?: string | null; to_account_id?: string | null }): Promise<boolean>;
 	insert(row: RecurringRow): Promise<RecurringExpense>;
 	update(id: string, row: Partial<RecurringExpense>): Promise<void>;
 	remove(id: string): Promise<void>;
@@ -152,6 +154,20 @@ function supabaseRecurringStore({ db, userId }: SupabaseContext): RecurringStore
 			return canPostTransfer(row, new Set((data ?? []).map((account: { id: string }) => account.id)));
 		},
 
+		async debtAccountIsUsable(row) {
+			if (!row.to_account_id) return true;
+			if (row.to_account_id === row.account_id) return false;
+			const { data } = await db
+				.from("accounts")
+				.select("id, account_type:account_types(class)")
+				.eq("id", row.to_account_id)
+				.eq("user_id", userId)
+				.eq("is_active", true)
+				.maybeSingle();
+			const accountType = (data as { account_type?: { class?: string } | null } | null)?.account_type;
+			return accountType?.class === "liability";
+		},
+
 		async insert(row) {
 			const { data, error } = await db
 				.from("recurring_expenses")
@@ -229,6 +245,9 @@ function demoRecurringStore(_ctx: DemoContext): RecurringStore {
 			throw new ActionError("failed", DEMO_READONLY_ERROR);
 		},
 		async transferAccountsAreUsable() {
+			return false;
+		},
+		async debtAccountIsUsable() {
 			return false;
 		},
 		async insert() {

@@ -60,7 +60,8 @@ const getTransactionTitle = (txn: AccountTransaction, isLiability: boolean) => {
 		case "withdrawal":
 			return "Withdrawal";
 		case "payment":
-			return txn.transfer_account ? `Payment from ${txn.transfer_account.label}` : "Payment";
+			if (!txn.transfer_account) return "Payment";
+			return `Payment ${isLiability ? "from" : "to"} ${txn.transfer_account.label}`;
 		case "interest":
 			return "Interest";
 		case "refund":

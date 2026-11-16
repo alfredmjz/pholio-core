@@ -20,7 +20,7 @@ import { ServiceAutocomplete } from "@/components/service-autocomplete";
 import { ProminentAmountInput } from "@/components/ProminentAmountInput";
 import { sanitizePositiveIntegerInput } from "@/lib/input-utils";
 import type { AccountWithType } from "@/app/accounts/types";
-import { NO_ACCOUNT, RecurringAccountField } from "./recurring-account-field";
+import { NO_ACCOUNT, RecurringAccountField, RecurringDebtField } from "./recurring-account-field";
 import { RecurringTransferFields } from "./recurring-transfer-fields";
 import { emptyRecurringForm, formToPayload, validateRecurringForm } from "./recurring-form";
 
@@ -106,6 +106,7 @@ export function AddRecurringDialog({
 			...formData,
 			name: isCustom || provider.category === "transfer" ? "" : provider.name,
 			category: provider.category,
+			to_account_id: provider.category === formData.category ? formData.to_account_id : "",
 			service_provider: isCustom || isGeneric ? "" : provider.id,
 			isCustom: isCustom,
 			meta_data: isGeneric ? { no_logo_lookup: true } : {},
@@ -342,7 +343,22 @@ export function AddRecurringDialog({
 						<RecurringAccountField
 							id="recurring-account"
 							value={formData.account_id}
-							onChange={(v) => setFormData({ ...formData, account_id: v })}
+							onChange={(v) =>
+								setFormData({
+									...formData,
+									account_id: v,
+									to_account_id: v === formData.to_account_id ? "" : formData.to_account_id,
+								})
+							}
+							accounts={accounts}
+						/>
+					)}
+					{formData.category === "bill" && (
+						<RecurringDebtField
+							id="recurring-pays-down"
+							value={formData.to_account_id}
+							onChange={(v) => setFormData({ ...formData, to_account_id: v })}
+							paidFromId={formData.account_id}
 							accounts={accounts}
 						/>
 					)}

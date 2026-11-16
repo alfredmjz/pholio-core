@@ -19,8 +19,8 @@ interface RecurringChargesCardProps {
 }
 
 /**
- * Bills, subscriptions and transfers paid from this account, transfers into it, and the fees the
- * outgoing ones would charge. Hidden when there are none.
+ * Bills, subscriptions and transfers paid from this account, transfers and bills paying into it, and
+ * the fees the outgoing ones would charge. Hidden when there are none.
  */
 export function RecurringChargesCard({ account, items, today }: RecurringChargesCardProps) {
 	if (items.length === 0) return null;
@@ -31,7 +31,7 @@ export function RecurringChargesCard({ account, items, today }: RecurringCharges
 	const monthlyNote = [
 		outgoing.length > 0 &&
 			`${outgoing.length} ${outgoing.length === 1 ? "item is" : "items are"} paid from this account`,
-		incoming > 0 && `${incoming} ${incoming === 1 ? "transfer comes" : "transfers come"} in`,
+		incoming > 0 && `${incoming} ${incoming === 1 ? "item pays" : "items pay"} into it`,
 	]
 		.filter(Boolean)
 		.join(", ");

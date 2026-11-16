@@ -14,12 +14,13 @@ import { formatFullDate, getTodayDateString } from "@/lib/date-utils";
 import { compareAlphabetically } from "@/lib/sort-utils";
 import { earlyPaymentPlan, PAY_AHEAD_MAX } from "./recurring-schedule";
 import { isRecurringTransfer } from "./recurring-occurrence";
-import { listRecurringExpenses, recurringStore } from "./recurring-store";
+import { listRecurringExpenses, recurringStore, type RecurringStore } from "./recurring-store";
 import type { RecurringExpense } from "./recurring-types";
 
 export type { NewRecurringExpense, RecurringExpense, RecurringExpenseStatus } from "./recurring-types";
 
 const TRANSFER_ACCOUNTS_MESSAGE = "Check that both accounts are still open and try again.";
+const DEBT_ACCOUNT_MESSAGE = "Choose an open debt to pay down, other than the account the bill is paid from.";
 
 const recurringFieldsSchema = z.object({
 	name: z.string().trim().min(1, "Give it a name."),
@@ -54,13 +55,24 @@ export async function getRecurringExpenses(): Promise<RecurringExpense[]> {
 
 /**
  * A transfer moves money between two of the user's accounts: it has no budget category or service.
- * Bills and subscriptions have no destination account.
+ * A bill's destination is the debt it pays down; subscriptions have none.
  */
 function normalizeRecurringKind<T extends { category?: string }>(row: T): T {
 	if (row.category === undefined) return row;
-	return isRecurringTransfer({ category: row.category })
-		? { ...row, budget_category: null, service_provider: null }
-		: { ...row, to_account_id: null };
+	if (isRecurringTransfer({ category: row.category })) return { ...row, budget_category: null, service_provider: null };
+	return row.category === "bill" ? row : { ...row, to_account_id: null };
+}
+
+async function assertRecurringAccountsUsable(
+	store: RecurringStore,
+	row: { category?: string; account_id?: string | null; to_account_id?: string | null }
+) {
+	if (isRecurringTransfer({ category: row.category ?? "" })) {
+		if (!(await store.transferAccountsAreUsable(row)))
+			throw new ActionError("invalid_input", TRANSFER_ACCOUNTS_MESSAGE);
+	} else if (row.category === "bill" && row.to_account_id) {
+		if (!(await store.debtAccountIsUsable(row))) throw new ActionError("invalid_input", DEBT_ACCOUNT_MESSAGE);
+	}
 }
 
 async function syncAllocationForCurrentMonth(ctx: DataContext, delayMs: number = 0) {
@@ -91,9 +103,7 @@ function revalidateRecurring() {
 export const addRecurringExpense = defineAction("addRecurringExpense", [newRecurringSchema], async (ctx, expense) => {
 	const store = recurringStore(ctx);
 	const row = normalizeRecurringKind(expense);
-	if (isRecurringTransfer(row) && !(await store.transferAccountsAreUsable(row))) {
-		throw new ActionError("invalid_input", TRANSFER_ACCOUNTS_MESSAGE);
-	}
+	await assertRecurringAccountsUsable(store, row);
 
 	const created = await store.insert(row);
 	await syncAllocationForCurrentMonth(ctx);
@@ -123,9 +133,7 @@ export const updateRecurringExpense = defineAction(
 			if (!current) throw new ActionError("not_found", "That item no longer exists.");
 			const merged = { ...current, ...updates };
 			row = normalizeRecurringKind({ ...updates, category: merged.category });
-			if (isRecurringTransfer(merged) && !(await store.transferAccountsAreUsable({ ...merged, ...row }))) {
-				throw new ActionError("invalid_input", TRANSFER_ACCOUNTS_MESSAGE);
-			}
+			await assertRecurringAccountsUsable(store, { ...merged, ...row });
 		}
 
 		await store.update(id, row);

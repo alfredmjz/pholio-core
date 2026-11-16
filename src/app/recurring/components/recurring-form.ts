@@ -1,10 +1,14 @@
 import { formatDateString, formatPeriod, parseLocalDate, parsePeriod, type PeriodUnit } from "@/lib/date-utils";
+import type { AccountWithType } from "@/app/accounts/types";
 import type { RecurringExpense } from "../actions";
 
 export const NO_ACCOUNT = "__none__";
 export const DEFAULT_BUDGET_CATEGORY = "__default__";
 
-/** For a transfer, `account_id` is the source account. */
+/**
+ * For a transfer, `account_id` is the source account and `to_account_id` the destination. For a
+ * bill, `to_account_id` is the debt it pays down ("" for none).
+ */
 export interface RecurringFormValues {
 	name: string;
 	amount: string;
@@ -53,6 +57,17 @@ export function expenseToForm(
 	};
 }
 
+/** Accounts a bill or subscription can be paid from: not a mortgage or loan, which only take payments. */
+export function canPayBillsFrom(account: Pick<AccountWithType, "account_type">): boolean {
+	const code = account.account_type?.code;
+	return code !== "mortgage" && code !== "loan";
+}
+
+/** Accounts a bill can pay down: any debt (credit card, line of credit, loan, mortgage, other liability). */
+export function canPayDown(account: Pick<AccountWithType, "account_type">): boolean {
+	return account.account_type?.class === "liability";
+}
+
 /** The message for a transfer whose accounts aren't ready, or null when they are. */
 export function transferAccountsError(fromAccountId: string, toAccountId: string): string | null {
 	if (!fromAccountId || !toAccountId) return "Choose the account the money comes from and the one it goes to.";
@@ -61,8 +76,7 @@ export function transferAccountsError(fromAccountId: string, toAccountId: string
 }
 
 export type RecurringFormValidation =
-	| { ok: true; amount: number; frequencyValue: number }
-	| { ok: false; title: string; description: string };
+	{ ok: true; amount: number; frequencyValue: number } | { ok: false; title: string; description: string };
 
 export function validateRecurringForm(form: RecurringFormValues): RecurringFormValidation {
 	const fail = (title: string, description: string): RecurringFormValidation => ({ ok: false, title, description });
@@ -82,6 +96,8 @@ export function validateRecurringForm(form: RecurringFormValues): RecurringFormV
 	if (form.category === "transfer") {
 		const accountsError = transferAccountsError(form.account_id, form.to_account_id);
 		if (accountsError) return fail("Choose two accounts", accountsError);
+	} else if (form.category === "bill" && form.to_account_id && form.to_account_id === form.account_id) {
+		return fail("Choose two accounts", "A bill can't be paid from the debt it pays down.");
 	}
 
 	return { ok: true, amount, frequencyValue };
@@ -103,6 +119,7 @@ export function formToPayload(
 	| "to_account_id"
 > {
 	const isTransfer = form.category === "transfer";
+	const paysDown = isTransfer || form.category === "bill";
 	return {
 		name: form.name,
 		amount: valid.amount,
@@ -111,6 +128,6 @@ export function formToPayload(
 		category: form.category,
 		budget_category: isTransfer || form.budget_category === DEFAULT_BUDGET_CATEGORY ? null : form.budget_category,
 		account_id: form.account_id === NO_ACCOUNT ? null : form.account_id,
-		to_account_id: isTransfer ? form.to_account_id : null,
+		to_account_id: paysDown && form.to_account_id ? form.to_account_id : null,
 	};
 }
